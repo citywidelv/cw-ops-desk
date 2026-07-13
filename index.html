@@ -53,6 +53,13 @@ a{color:var(--red)}
   letter-spacing:.06em;text-transform:uppercase;background:var(--red);color:#fff;
   border-radius:10px;padding:3px 9px;display:none}
 .card .pill.show{display:block}
+div.card{cursor:default}
+div.card:hover{transform:none;box-shadow:var(--shadow)}
+.card .links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.card .links a{font-size:12px;font-weight:700;color:var(--red);text-decoration:none;
+  border:1px solid var(--border);border-radius:16px;padding:6px 12px;background:var(--light);
+  transition:all .15s}
+.card .links a:hover{background:var(--red);color:#fff;border-color:var(--red)}
 .foot{text-align:center;font-size:11px;color:var(--grey);padding:36px 20px 28px}
 .foot b{color:var(--black)}
 </style>
@@ -108,24 +115,17 @@ a{color:var(--red)}
       <p>The nightly building inspection form, photos and all.</p>
       <span class="go">Open the form</span>
     </a>
-    <a class="card" href="https://form.jotform.com/241294883910159" target="_blank" rel="noopener">
+    <div class="card">
       <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6-3-6 3z"/><path d="M9 7v13M15 4v13"/></svg></span>
-      <h3>Route Out: SouthEast</h3>
-      <p>SouthEast night manager route out.</p>
-      <span class="go">Open the form</span>
-    </a>
-    <a class="card" href="https://form.jotform.com/241440730763149" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6-3-6 3z"/><path d="M9 7v13M15 4v13"/></svg></span>
-      <h3>Route Out: North</h3>
-      <p>North night manager route out.</p>
-      <span class="go">Open the form</span>
-    </a>
-    <a class="card" href="https://form.jotform.com/241566167038157" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6-3-6 3z"/><path d="M9 7v13M15 4v13"/></svg></span>
-      <h3>Route Out: SouthWest</h3>
-      <p>SouthWest night manager route out.</p>
-      <span class="go">Open the form</span>
-    </a>
+      <h3>Nightly Route Outs</h3>
+      <p>Pick your region. Same form, right route.</p>
+      <div class="links">
+        <a href="https://form.jotform.com/241294883910159" target="_blank" rel="noopener">SouthEast</a>
+        <a href="https://form.jotform.com/241566167038157" target="_blank" rel="noopener">SouthWest</a>
+        <a href="https://form.jotform.com/241440730763149" target="_blank" rel="noopener">North</a>
+        <a href="https://form.jotform.com/team/253234894174059/nnv-night-manager-route-out" target="_blank" rel="noopener">Northern Nevada</a>
+      </div>
+    </div>
     <a class="card" href="https://form.jotform.com/252935932465163" target="_blank" rel="noopener">
       <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 0-10-10"/><path d="M2 12h10V2"/></svg></span>
       <h3>Comprehensive Cancer Work Orders</h3>
@@ -223,14 +223,17 @@ a{color:var(--red)}
 
 <section class="section">
   <div class="section-head"><h2>Team &amp; Admin</h2><span class="tag">The Back Office</span></div>
-  <p class="sub">The map, the tasks, the payroll portal, and the swag.</p>
+  <p class="sub">The maps, the tasks, the payroll portal, and the swag.</p>
   <div class="grid">
-    <a class="card" href="https://www.google.com/maps/d/edit?mid=1ewhUmSrFCo0--ALiJP0O1pLTbH0qlk4&usp=sharing" target="_blank" rel="noopener">
+    <div class="card">
       <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
-      <h3>CW LV Accounts Map</h3>
+      <h3>Accounts Maps</h3>
       <p>Every account pinned on the map. Plan routes and walkthroughs.</p>
-      <span class="go">Open the map</span>
-    </a>
+      <div class="links">
+        <a href="https://www.google.com/maps/d/edit?mid=1ewhUmSrFCo0--ALiJP0O1pLTbH0qlk4&usp=sharing" target="_blank" rel="noopener">Las Vegas</a>
+        <a href="https://www.google.com/maps/d/u/0/viewer?ll=39.31045610315164%2C-119.69410335&z=10&mid=1_o8DPUf6zH9kiAcZuNEOCAbZLq93nnc" target="_blank" rel="noopener">Northern Nevada</a>
+      </div>
+    </div>
     <a class="card" href="https://app.asana.com/" target="_blank" rel="noopener">
       <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3.2"/><circle cx="6.5" cy="16" r="3.2"/><circle cx="17.5" cy="16" r="3.2"/></svg></span>
       <h3>Asana</h3>
