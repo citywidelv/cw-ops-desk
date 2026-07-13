@@ -4,17 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>CW Ops Desk | Post an Opportunity</title>
-<!-- build 2026-07-13b -->
+<title>CW Ops Hub | City Wide Operations</title>
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
-  --border:#E5E5E5;--gold:#E5B423;
-  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+  --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06);
+  --shadow-lift:0 4px 10px rgba(45,42,38,.10),0 10px 28px rgba(45,42,38,.10)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
   color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+a{color:var(--red)}
 .head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
-.head .bar{max-width:860px;margin:0 auto;padding:0 20px;height:64px;display:flex;
+.head .bar{max-width:1080px;margin:0 auto;padding:0 20px;height:64px;display:flex;
   align-items:center;gap:14px}
 .head img{height:38px;width:auto;max-width:none;flex:none}
 .head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
@@ -22,539 +23,211 @@ body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-seri
 .head .badge{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.1em;
   text-transform:uppercase;background:var(--black);color:#fff;border-left:3px solid var(--gold);
   padding:4px 10px}
-.wrap{max-width:860px;margin:0 auto;padding:28px 20px 60px}
-h1{font-size:24px;line-height:1.25}
-h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);
-  border-radius:2px;margin-top:12px}
-p.lede{color:var(--grey);margin:12px 0 6px;max-width:62ch}
-.note{font-size:12.5px;color:var(--grey);background:#fff;border:1px dashed var(--border);
-  border-radius:8px;padding:10px 14px;margin:16px 0 26px}
-.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
-  padding:24px;margin-bottom:18px}
-.card h2{font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px}
-.card h2 .n{width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;
-  font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex:none}
-.card .sub{font-size:12.5px;color:var(--grey);margin-bottom:16px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.grid .full{grid-column:1/-1}
-@media(max-width:640px){.grid{grid-template-columns:1fr}}
-label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--grey);margin-bottom:5px}
-label .req{color:var(--red)}
-input[type=text],input[type=number],input[type=email],input[type=tel],input[type=date],
-select,textarea{width:100%;font-family:inherit;font-size:14px;color:var(--black);
-  border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;background:#fff}
-textarea{min-height:84px;resize:vertical}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
-.seg{display:flex;flex-wrap:wrap;gap:8px}
-.seg button{font-family:inherit;font-size:13px;font-weight:700;color:var(--black);
-  background:#fff;border:2px solid var(--border);border-radius:8px;padding:10px 16px;
-  cursor:pointer;line-height:1.35}
-.seg button small{display:block;font-weight:400;color:var(--grey);font-size:11px}
-.seg button.on{border-color:var(--red);background:var(--red);color:#fff}
-.seg button.on small{color:rgba(255,255,255,.85)}
-.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
-.checks label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;
-  text-transform:none;letter-spacing:0;color:var(--black);background:var(--light);
-  border-radius:8px;padding:9px 12px;cursor:pointer;margin:0}
-.checks input{width:16px;height:16px;accent-color:var(--red)}
-.hint{font-size:11.5px;color:var(--grey);margin-top:4px}
-.hidden{display:none!important}
-.preview{background:var(--black);color:#fff;border-radius:8px;padding:12px 16px;font-size:13px;
-  margin-top:12px}
-.preview b{color:var(--gold);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
-  display:block;margin-bottom:3px}
-.submit-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:6px}
-.btn{font-family:inherit;font-size:15px;font-weight:700;background:var(--red);color:#fff;
-  border:none;border-radius:8px;padding:14px 28px;cursor:pointer}
-.btn:hover{background:var(--red-dark)}
-.btn[disabled]{opacity:.5;cursor:wait}
-#msg{font-size:13px;font-weight:700}
-#msg.err{color:var(--red)}
-#msg.ok{color:#1E7B34}
-.success{background:#fff;border:2px solid #1E7B34;border-radius:12px;padding:26px;text-align:center}
-.success h2{color:#1E7B34;font-size:19px;margin-bottom:8px}
-.success p{margin-bottom:14px}
-.success a{color:var(--red);font-weight:700}
-.foot{text-align:center;font-size:11px;color:var(--grey);padding:20px}
+.hero{background:linear-gradient(120deg,var(--black) 0%,#3a3733 100%);color:#fff;
+  padding:40px 0 34px;border-bottom:5px solid var(--red)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+.hero h1{font-size:clamp(24px,4vw,34px);line-height:1.25}
+.hero h1::after{content:"";display:block;width:56px;height:4px;background:var(--red);
+  border-radius:2px;margin-top:14px}
+.hero p{color:#cfcdca;margin-top:12px;max-width:640px;font-size:15px}
+.section{padding:34px 0 6px}
+.section-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}
+.section-head h2{font-size:19px}
+.section-head .tag{font-size:11px;font-weight:700;color:var(--grey);letter-spacing:.1em;
+  text-transform:uppercase}
+.section p.sub{color:var(--grey);font-size:13.5px;max-width:640px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.card{position:relative;display:flex;flex-direction:column;background:#fff;
+  border:1px solid var(--border);border-radius:12px;padding:20px;text-decoration:none;
+  color:var(--black);transition:all .15s;box-shadow:var(--shadow)}
+.card:hover{box-shadow:var(--shadow-lift);transform:translateY(-2px)}
+.card .icon{width:42px;height:42px;border-radius:10px;background:var(--light);display:flex;
+  align-items:center;justify-content:center;margin-bottom:12px;color:var(--red);flex:none}
+.card.primary{border-left:5px solid var(--red)}
+.card.primary .icon{background:var(--red);color:#fff}
+.card h3{font-size:14.5px;font-weight:700;margin-bottom:4px}
+.card p{font-size:12.5px;color:var(--grey);flex:1}
+.card .go{margin-top:12px;font-size:12.5px;font-weight:700;color:var(--red)}
+.card .go::after{content:" \2192"}
+.card .pill{position:absolute;top:14px;right:14px;font-size:10px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;background:var(--red);color:#fff;
+  border-radius:10px;padding:3px 9px;display:none}
+.card .pill.show{display:block}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:36px 20px 28px}
+.foot b{color:var(--black)}
 </style>
 </head>
 <body>
 <header class="head"><div class="bar">
   <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
-  <span class="t">Ops Desk</span>
+  <span class="t">Ops Hub</span>
   <span class="badge">Internal Team Use</span>
 </div></header>
 
+<section class="hero"><div class="wrap">
+  <h1>City Wide Operations Hub</h1>
+  <p>Every tool the operations team uses, one page. Post vendor opportunities, price the
+  work, check your margins, and get to the resources without hunting for links.</p>
+</div></section>
+
 <div class="wrap">
-<h1>Post an Opportunity</h1>
-<p class="lede">Fill this out and the posting goes live on the Vendor Resource Center immediately, logs to the CW Solicitations Sheet, and emails the service line. Check the <b>Filled</b> box on the Sheet to take it down.</p>
-<div class="note">Write for vendors: plain language, no client names, no internal account numbers. Area of town, not the exact address.</div>
 
-<form id="f" onsubmit="return false;">
-
-<div class="card">
-  <h2><span class="n">1</span>What Is This?</h2>
-  <div class="sub">Type drives which fields appear below.</div>
+<section class="section">
+  <div class="section-head"><h2>Vendor Solicitations</h2><span class="tag">Find the Crew</span></div>
+  <p class="sub">Post work, watch responses come in, and close it out when it fills.</p>
   <div class="grid">
-    <div><label>Region <span class="req">*</span></label>
-      <div class="seg" id="segRegion">
-        <button type="button" data-v="Las Vegas" class="on">Las Vegas</button>
-        <button type="button" data-v="Northern Nevada">Northern Nevada</button>
-      </div>
-    </div>
-    <div><label>Posting Type <span class="req">*</span></label>
-      <div class="seg" id="segType">
-        <button type="button" data-v="contract" class="on">Recurring Contract<small>Ongoing service</small></button>
-        <button type="button" data-v="project">One-Time Project<small>Work order</small></button>
-      </div>
-    </div>
-    <div><label>Trade <span class="req">*</span></label>
-      <select id="trade">
-        <option>Janitorial</option><option>Day Porter</option>
-        <option>Floor Care (Strip &amp; Wax / Buff)</option><option>Carpet Cleaning</option>
-        <option>Window Cleaning</option><option>Pressure Washing</option>
-        <option>Landscaping</option><option>Tree Trimming / Palms</option>
-        <option>Security / Guard Services</option><option>Street Sweeping</option>
-        <option>Parking Lot Services</option><option>Handyman / Repairs</option>
-        <option>Post-Construction Clean</option>
-        <option>Specialty (Medical / Clean Room / GMP)</option><option>Other</option>
-      </select>
-    </div>
-    <div><label>Facility Type <span class="req">*</span></label>
-      <input type="text" id="facility" list="facList" placeholder="e.g., Childcare Center">
-      <datalist id="facList">
-        <option>Office</option><option>Medical Office / Clinic</option><option>Dialysis Clinic</option>
-        <option>Dental Office</option><option>Surgery Center</option><option>Veterinary Clinic</option>
-        <option>Childcare Center</option><option>Preschool / Early Learning</option><option>Daycare</option>
-        <option>School</option><option>Charter School</option><option>Church</option>
-        <option>Retail</option><option>Restaurant</option><option>Nightclub / Bar</option>
-        <option>Salon / Spa</option><option>Dispensary</option><option>Movie Theater</option>
-        <option>Event Venue</option><option>Country Club / Golf</option>
-        <option>Industrial / Warehouse</option><option>Distribution Center</option>
-        <option>Food Manufacturing (GMP)</option><option>Clean Room / Lab</option>
-        <option>Gym / Fitness</option><option>Auto Dealership</option><option>Car Wash</option>
-        <option>Bank</option><option>Casino / Gaming</option><option>HOA / Community</option>
-        <option>Apartment Community / Leasing Office</option><option>Senior Living</option>
-        <option>Property Management Office</option><option>Government / Public Building</option>
-        <option>Storage Facility</option><option>Mixed Use</option>
-      </datalist>
-    </div>
-    <div><label>Area of Town <span class="req">*</span></label>
-      <input type="text" id="area" list="areaList" placeholder="e.g., Henderson">
-      <datalist id="areaList">
-        <option>Henderson</option><option>Green Valley</option><option>Anthem</option>
-        <option>Inspirada</option><option>Lake Las Vegas</option><option>Boulder City</option>
-        <option>Summerlin</option><option>Downtown Summerlin</option><option>The Lakes</option>
-        <option>Northwest Las Vegas</option><option>Centennial Hills</option><option>Skye Canyon</option>
-        <option>Aliante</option><option>North Las Vegas</option><option>Craig Road Corridor</option>
-        <option>Nellis / Sunrise Manor</option><option>East Las Vegas</option><option>Whitney</option>
-        <option>Downtown Las Vegas</option><option>Arts District</option>
-        <option>Strip / Resort Corridor</option><option>Paradise</option>
-        <option>Spring Valley</option><option>Chinatown / Spring Mountain</option>
-        <option>Southwest Las Vegas</option><option>Enterprise</option>
-        <option>Mountains Edge</option><option>Southern Highlands</option>
-        <option>Silverado Ranch</option><option>Rhodes Ranch</option>
-        <option>Reno</option><option>South Reno</option><option>Northwest Reno</option>
-        <option>Midtown Reno</option><option>Damonte Ranch</option><option>Sparks</option>
-        <option>Spanish Springs</option><option>Carson City</option>
-        <option>Minden / Gardnerville</option><option>Fernley</option><option>Dayton</option>
-        <option>Incline Village / Tahoe</option>
-      </datalist>
-    </div>
-    <div><label>Posting Title <span class="req">*</span></label>
-      <input type="text" id="title" placeholder="Auto-builds; edit if you want">
-      <div class="hint">Auto: Trade Opportunity: Facility, Area</div>
-    </div>
+    <a class="card primary" href="post.html">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>
+      <h3>Post an Opportunity</h3>
+      <p>Contracts and one-time projects. Composes the vendor's response form and goes live on the board instantly.</p>
+      <span class="go">Open the form</span>
+    </a>
+    <a class="card" href="https://citywidelv.github.io/cw-vendor-shop/opportunities.html" target="_blank" rel="noopener">
+      <span class="pill" id="openPill"></span>
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h8M8 17h5"/></svg></span>
+      <h3>Live Opportunities Board</h3>
+      <p>What vendors see right now. Check your posting rendered the way you meant it.</p>
+      <span class="go">View the board</span>
+    </a>
+    <a class="card" href="https://docs.google.com/spreadsheets/d/1ymbqR7LMvA7sbgZe2Ro5o2dNiXhP08Tn9Hw1b-H5AeQ/edit" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></span>
+      <h3>Solicitations Sheet</h3>
+      <p>Postings and vendor responses side by side. Check Filled to take a posting down; edit any cell and the board updates live.</p>
+      <span class="go">Open the Sheet</span>
+    </a>
   </div>
-  <div class="preview"><b>Vendors will see</b><span id="pv">Janitorial Opportunity: &hellip;</span></div>
-</div>
+</section>
 
-<div class="card">
-  <h2><span class="n">2</span>The Building</h2>
-  <div class="sub">What a vendor needs to size the job.</div>
+<section class="section">
+  <div class="section-head"><h2>Pricing &amp; Bid Calculators</h2><span class="tag">Price the Work</span></div>
+  <p class="sub">Service-specific calculators for quotes, bids, and scope pricing.</p>
   <div class="grid">
-    <div><label>Square Footage</label><input type="number" id="sqft" placeholder="e.g., 9060"></div>
-    <div><label>Restrooms</label><input type="number" id="restrooms" placeholder="e.g., 4"></div>
-    <div id="fFreq"><label>Frequency <span class="req">*</span></label>
-      <input type="text" id="frequency" list="freqList" placeholder="Type anything, e.g., 3x per week: 2 full cleans + 1 trash only">
-      <datalist id="freqList">
-        <option>5 days per week</option><option>7 days per week</option>
-        <option>6 days per week</option><option>4 days per week</option>
-        <option>3 days per week</option><option>2 days per week</option>
-        <option>1 day per week</option><option>Every other week</option>
-        <option>Monthly</option>
-        <option>3x per week: 2 full cleans + 1 trash only</option>
-        <option>5x per week: 3 full cleans + 2 trash and restrooms only</option>
-      </datalist>
-    </div>
-    <div><label>Clean Window</label>
-      <input type="text" id="clean_window" list="cwList" placeholder="Type anything, e.g., after 9 PM close">
-      <datalist id="cwList">
-        <option>Night clean (after close)</option><option>Day clean (during business hours)</option>
-        <option>Early morning (before open)</option><option>Flexible</option><option>Overnight only</option>
-        <option>Weekends only</option>
-      </datalist>
-    </div>
-    <div><label id="lblStart">Target Start Date</label><input type="text" id="start_date" placeholder="e.g., Monday, July 20 or ASAP"></div>
-    <div><label>Walkthrough</label><input type="text" id="walkthrough" placeholder="e.g., To be scheduled this week"></div>
-    <div class="full" id="fScope"><label>Scope Summary <span class="req">*</span></label>
-      <textarea id="scope_summary" placeholder="What exactly is the work? Keep it plain: what, where, how often, any details a vendor needs to plan the job."></textarea>
-    </div>
+    <a class="card" href="https://citywidelv.github.io/strip-and-wax-calculator/" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18M5 20V8l7-4 7 4v12"/></svg></span>
+      <h3>Strip &amp; Wax</h3>
+      <p>VCT strip and wax floor pricing by square footage and condition.</p>
+      <span class="go">Open calculator</span>
+    </a>
+    <a class="card" href="https://citywidelv.github.io/Carpet-Cleaning/" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12c2-2 4 2 6 0s4 2 6 0 4 2 4 0"/></svg></span>
+      <h3>Carpet Cleaning</h3>
+      <p>Commercial carpet extraction and bonnet pricing.</p>
+      <span class="go">Open calculator</span>
+    </a>
+    <a class="card" href="https://citywidelv.github.io/windowcleaningcalculator/" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M4 12h16"/></svg></span>
+      <h3>Window Cleaning</h3>
+      <p>Pane counts, interior and exterior, high work pricing.</p>
+      <span class="go">Open calculator</span>
+    </a>
+    <a class="card" href="https://citywidelv.github.io/powerwashing/" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14c2-5 6-9 12-9l4 4c0 6-4 10-9 12z"/><path d="M9 15l-5 5"/></svg></span>
+      <h3>Pressure Washing</h3>
+      <p>Flatwork, buildings, and dumpster pads across Nevada markets.</p>
+      <span class="go">Open calculator</span>
+    </a>
+    <a class="card" href="https://citywidelv.github.io/post-construction-clean/" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20M6 20V10h5v10M14 20V4h5v16"/></svg></span>
+      <h3>Post-Construction Clean</h3>
+      <p>Rough, final, and touch-up phase cleaning bids.</p>
+      <span class="go">Open calculator</span>
+    </a>
+    <a class="card" href="https://citywidelv.github.io/restaurants/" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v8M9 3v8M7 3v18M7 11c1.5 0 2-1 2-3M17 3c-2 0-3 2-3 5v4h3v9M17 3v18"/></svg></span>
+      <h3>Restaurant Cleaning</h3>
+      <p>Front of house, kitchen, and hood-adjacent service pricing.</p>
+      <span class="go">Open calculator</span>
+    </a>
+    <a class="card" href="https://citywidelv.github.io/landscapingmaintenance/" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V8M12 8c0-4 3-6 6-6 0 4-3 6-6 6zM12 12c0-3-2.5-5-5-5 0 3 2.5 5 5 5z"/></svg></span>
+      <h3>Landscaping Maintenance</h3>
+      <p>Commercial grounds maintenance for Nevada markets.</p>
+      <span class="go">Open calculator</span>
+    </a>
+    <a class="card" href="https://citywidelv.github.io/porter-exterior/" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="3"/><path d="M6 21v-2a6 6 0 0 1 12 0v2"/></svg></span>
+      <h3>Exterior Porter</h3>
+      <p>Exterior porter service coverage and pricing.</p>
+      <span class="go">Open calculator</span>
+    </a>
   </div>
-</div>
+</section>
 
-<div class="card">
-  <h2><span class="n">3</span>Pay</h2>
-  <div class="sub">Set pay posts the number publicly. Quote requested asks vendors to price it.</div>
-  <div class="seg" id="segPay">
-    <button type="button" data-v="set" class="on">Pay Is Set<small>We post the amount</small></button>
-    <button type="button" data-v="quote">Quote Requested<small>Vendor prices it</small></button>
-  </div>
-  <div class="grid" style="margin-top:14px">
-    <div id="fPayAmt"><label>Amount <span class="req">*</span></label><input type="text" id="pay_amount" placeholder="e.g., $1,800.31"></div>
-    <div id="fPayPer"><label>Per</label>
-      <input type="text" id="pay_period" list="ppList" value="per month" placeholder="e.g., per month">
-      <datalist id="ppList"><option>per month</option><option>per job</option><option>per visit</option><option>per hour</option><option>per quarter</option></datalist>
-    </div>
-    <div class="full"><label>Pay Notes</label>
-      <input type="text" id="pay_notes" placeholder="e.g., Mat cleaning time included in monthly amount / include supplies in your quote">
-    </div>
-  </div>
-</div>
-
-<div class="card">
-  <h2><span class="n">4</span>Requirements</h2>
-  <div class="sub">Check everything that applies. This is what keeps the wrong crew from raising their hand.</div>
-  <label>Required Chemicals</label>
-  <div class="checks" id="chemChecks">
-    <label><input type="checkbox" value="EnvirOx H2Orange2 Hyper-Concentrate 112" checked> H2Orange2 112</label>
-    <label><input type="checkbox" value="EnvirOx OxyGenesis" checked> OxyGenesis</label>
-    <label><input type="checkbox" value="EnvirOx Mineral Shock" checked> Mineral Shock</label>
-    <label><input type="checkbox" value="Client-approved chemicals only"> Client-approved list only</label>
-  </div>
-  <div style="margin-top:10px"><input type="text" id="chem_other" placeholder="Other chemicals (optional)"></div>
-
-  <div style="margin-top:18px"><label>Required Certifications &amp; Experience</label>
-    <div class="checks" id="certChecks">
-      <label><input type="checkbox" value="Signed vendor packet on file" checked> Vendor packet on file</label>
-      <label><input type="checkbox" value="Medical facility experience"> Medical experience</label>
-      <label><input type="checkbox" value="Bloodborne pathogen training"> Bloodborne pathogen training</label>
-      <label><input type="checkbox" value="GMP / food facility experience"> GMP / food experience</label>
-      <label><input type="checkbox" value="Clean room experience"> Clean room experience</label>
-      <label><input type="checkbox" value="Floor machine experience"> Floor machine experience</label>
-    </div>
-    <div style="margin-top:10px"><input type="text" id="cert_other" placeholder="Other certifications (optional)"></div>
-  </div>
-
-  <div class="grid" style="margin-top:18px">
-    <div><label>Equipment the Vendor Must Bring</label>
-      <input type="text" id="equipment_required" placeholder="e.g., Backpack vacuum, flat mop system">
-    </div>
-    <div><label>Equipment City Wide / Client Provides</label>
-      <input type="text" id="equipment_provided" placeholder="e.g., Bissell carpet extractor on site">
-    </div>
-  </div>
-
-  <div style="margin-top:18px"><label>Standard Expectations</label>
-    <div class="checks" id="stdChecks">
-      <label><input type="checkbox" value="Final walk each visit to verify 100% scope completion" checked> Final walk each visit</label>
-      <label><input type="checkbox" value="Photo documentation each visit"> Photo documentation</label>
-      <label><input type="checkbox" value="Crew supervisor on site"> Crew supervisor on site</label>
-    </div>
-  </div>
-
-  <div style="margin-top:18px"><label>Anything Else Vendors Should Know</label>
-    <textarea id="special_requirements" placeholder="e.g., Move chairs and clean under them nightly. Never move fixed equipment. Alarm training provided."></textarea>
-  </div>
-</div>
-
-<div class="card">
-  <h2><span class="n">5</span>How Vendors Respond</h2>
-  <div class="sub">This builds the form vendors fill out when they click the posting. No more email threads.</div>
-  <div><label>Response Type <span class="req">*</span></label>
-    <div class="seg" id="segMode">
-      <button type="button" data-v="interest" class="on">Interest Letter<small>Pay is set; vendor applies</small></button>
-      <button type="button" data-v="quote">Quote Request<small>Vendor prices the work</small></button>
-    </div>
-  </div>
-  <div class="grid" style="margin-top:14px">
-    <div id="fBasis"><label>How They Must Price It</label>
-      <select id="quote_basis_sel">
-        <option>per month</option><option>per job (total)</option><option>per visit</option>
-        <option>per hour</option><option>per unit</option>
-      </select>
-    </div>
-    <div id="fUnit" class="hidden"><label>Unit <span class="req">*</span></label>
-      <input type="text" id="unit_label" placeholder="e.g., per palm tree, per 1,000 sq ft, per window pane">
-    </div>
-  </div>
-  <div style="margin-top:16px"><label>Question Blocks</label>
-    <div class="checks">
-      <label><input type="checkbox" id="blkStaffing" checked> Staffing, supervision &amp; training plan</label>
-      <label><input type="checkbox" id="blkEquipment" checked> Equipment they will bring</label>
-    </div>
-    <div class="hint">Company, contact, vendor packet status, and earliest start date are always asked.</div>
-  </div>
-  <div style="margin-top:16px"><label>Trade Questions (one per line, edit freely)</label>
-    <textarea id="questions" placeholder="Questions the vendor must answer"></textarea>
-    <div class="hint">Auto-fills when you pick a trade. Add, edit, or delete lines; each line becomes a question on the vendor form.</div>
-  </div>
-</div>
-
-<div class="card">
-  <h2><span class="n">6</span>Deadline &amp; Contact</h2>
-  <div class="sub">Interested vendors email the contact directly from the posting.</div>
+<section class="section">
+  <div class="section-head"><h2>Analysis &amp; Field Tools</h2><span class="tag">Know Your Numbers</span></div>
+  <p class="sub">Margin checks, retention tracking, and the building walk.</p>
   <div class="grid">
-    <div><label>Respond By <span class="req">*</span></label><input type="text" id="deadline" placeholder="e.g., 8:00 AM Monday, July 20"></div>
-    <div></div>
-    <div><label>Your Name <span class="req">*</span></label><input type="text" id="contact_name" placeholder="First Last"></div>
-    <div><label>Your Email <span class="req">*</span></label><input type="email" id="contact_email" placeholder="you@gocitywide.com"></div>
-    <div><label>Your Phone</label><input type="tel" id="contact_phone" placeholder="(702) 555-1234"></div>
-    <div><label>Team Passcode <span class="req">*</span></label><input type="text" id="passcode" placeholder="Ask TJ if you do not have it"></div>
-    <div class="full"><label>Account / Client Name (Internal Only)</label>
-      <input type="text" id="account_name" placeholder="e.g., Kitty Academy - Craig Rd">
-      <div class="hint">Logged to the Sheet and internal emails so we can track the account. NEVER shown to vendors; they see it after we pick them for the walkthrough.</div>
-    </div>
+    <a class="card" href="https://citywidelv.github.io/margincalculator/" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5L5 19M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM17.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg></span>
+      <h3>Margin Calculator</h3>
+      <p>Check the margin before you commit the price. Works for any pay and bill combination.</p>
+      <span class="go">Open calculator</span>
+    </a>
+    <a class="card" href="https://citywidelv.github.io/retentioncalculator/" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v6h-6"/></svg></span>
+      <h3>Revenue Retention (TRR)</h3>
+      <p>Total revenue retention tracking across the book of business.</p>
+      <span class="go">Open calculator</span>
+    </a>
+    <a class="card" href="https://citywidelv.github.io/BuildingSurvey/" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+      <h3>Building Survey</h3>
+      <p>Walk the building and capture what workloading and bidding need.</p>
+      <span class="go">Open the survey</span>
+    </a>
   </div>
+</section>
+
+<section class="section" style="padding-bottom:20px">
+  <div class="section-head"><h2>Vendor Resource Center</h2><span class="tag">What Vendors See</span></div>
+  <p class="sub">The public site your crews use. Handy when you are walking a vendor through it on the phone.</p>
+  <div class="grid">
+    <a class="card" href="https://citywidelv.github.io/cw-vendor-shop/resources.html" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-8 9 8M5 10v10h14V10"/></svg></span>
+      <h3>Resource Center Home</h3>
+      <p>The hub: guides, planner, opportunities, and the shop.</p>
+      <span class="go">Open the site</span>
+    </a>
+    <a class="card" href="https://citywidelv.github.io/cw-vendor-shop/workloading.html" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg></span>
+      <h3>Workloading Guide</h3>
+      <p>ISSA rates, crew sizing, and the first three cleans playbook.</p>
+      <span class="go">Open the guide</span>
+    </a>
+    <a class="card" href="https://citywidelv.github.io/cw-vendor-shop/planner.html" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg></span>
+      <h3>New Building Planner</h3>
+      <p>Starting kit quantities by building size and cleaning type.</p>
+      <span class="go">Open the planner</span>
+    </a>
+    <a class="card" href="https://citywidelv.github.io/cw-vendor-shop/" target="_blank" rel="noopener">
+      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>
+      <h3>Vendor Shop</h3>
+      <p>Supplies, equipment, and uniforms. Orders hit both service inboxes.</p>
+      <span class="go">Open the shop</span>
+    </a>
+  </div>
+</section>
+
 </div>
 
-<div class="submit-row">
-  <button class="btn" id="go">Post This Opportunity</button>
-  <span id="msg"></span>
-</div>
-</form>
-
-<div id="done" class="success hidden">
-  <h2>Posted!</h2>
-  <p>ID <b id="doneId"></b> is live on the Vendor Resource Center and logged to the Sheet. A confirmation email is on the way to the service line and to you.</p>
-  <p><a href="https://citywidelv.github.io/cw-vendor-shop/opportunities.html" target="_blank" rel="noopener">View the live board</a></p>
-  <p><button class="btn" onclick="location.reload()">Post Another</button></p>
-</div>
-</div>
-
-<div class="foot">City Wide Facility Solutions &middot; Internal tool &middot; Postings appear at
-citywidelv.github.io/cw-vendor-shop/opportunities.html</div>
+<div class="foot"><b>City Wide Facility Solutions</b> &middot; Operations Hub &middot; Internal use only<br>
+Something missing from this page? Tell TJ.</div>
 
 <script>
-var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
-var state = { region: "Las Vegas", type: "contract", pay_type: "set", mode: "interest" };
-
-var TRADE_QS = {
-  "Janitorial": [
-    "Have you serviced this facility type before? Tell us where.",
-    "How soon can your crew start?"
-  ],
-  "Day Porter": [
-    "Have you staffed day porter routes before? Where?",
-    "Can your porter cover the full coverage window listed?"
-  ],
-  "Landscaping": [
-    "Will you service the FULL property every visit, or rotate quadrants weekly? Explain your rotation.",
-    "Do you haul away green waste, or does it stay on site?",
-    "List your mowers and major equipment."
-  ],
-  "Tree Trimming / Palms": [
-    "Are you licensed and insured for tree and height work?",
-    "How do you price: per palm, per tree, or per job?",
-    "Do you haul away all trimmings?"
-  ],
-  "Security / Guard Services": [
-    "What is your Nevada PILB license number?",
-    "Armed or unarmed guards for this post?",
-    "Are all guards carded, uniformed, and insured?"
-  ],
-  "Street Sweeping": [
-    "Do you own a sweeper truck? What make and model?",
-    "Overnight sweeping OK for this location?"
-  ],
-  "Parking Lot Services": [
-    "What equipment do you run for lot work?",
-    "Overnight work OK for this location?"
-  ],
-  "Floor Care (Strip & Wax / Buff)": [
-    "What machines do you own (swing machine, auto scrubber, burnisher)?",
-    "What finish and products do you use?",
-    "How many coats are included in your price?"
-  ],
-  "Carpet Cleaning": [
-    "Truck mount or portable extraction?",
-    "What is your typical dry time?"
-  ],
-  "Window Cleaning": [
-    "Can you do high or lift work? Do you have lift certification?",
-    "Does your price include interior AND exterior?"
-  ],
-  "Pressure Washing": [
-    "Hot or cold water rig? What GPM and PSI?",
-    "Can you reclaim wash water where required?"
-  ],
-  "Handyman / Repairs": [
-    "Which trades are you licensed for?",
-    "Do you carry your own materials, or bill materials separately?"
-  ],
-  "Post-Construction Clean": [
-    "How large a crew can you field for surge work?",
-    "Have you done post-construction cleans before? Where?"
-  ],
-  "Specialty (Medical / Clean Room / GMP)": [
-    "Describe your experience in this type of regulated facility.",
-    "What certifications or training does your crew hold?"
-  ],
-  "Other": []
-};
-var qsTouched = false;
-function fillTradeQs() {
-  if (qsTouched) return;
-  var t = document.getElementById("trade").value;
-  document.getElementById("questions").value = (TRADE_QS[t] || []).join("\n");
-}
-document.getElementById("questions").addEventListener("input", function () { qsTouched = true; });
-document.getElementById("trade").addEventListener("change", function () { fillTradeQs(); });
-
-function segInit(id, key, fn) {
-  var seg = document.getElementById(id);
-  Array.prototype.forEach.call(seg.querySelectorAll("button"), function (b) {
-    b.addEventListener("click", function () {
-      Array.prototype.forEach.call(seg.querySelectorAll("button"), function (x) { x.classList.remove("on"); });
-      b.classList.add("on");
-      state[key] = b.getAttribute("data-v");
-      if (fn) fn();
-    });
-  });
-}
-function v(id) { return document.getElementById(id).value.trim(); }
-function checks(id, otherId) {
-  var out = [];
-  Array.prototype.forEach.call(document.querySelectorAll("#" + id + " input:checked"), function (c) { out.push(c.value); });
-  if (otherId && v(otherId)) out.push(v(otherId));
-  return out.join("; ");
-}
-function updateType() {
-  var isContract = state.type === "contract";
-  document.getElementById("fFreq").classList.toggle("hidden", !isContract);
-  document.getElementById("lblStart").textContent = isContract ? "Target Start Date" : "Target Date(s)";
-  document.getElementById("scope_summary").placeholder = isContract
-    ? "Nightly scope in plain language: trash, restrooms, floors, break rooms, anything unusual."
-    : "What exactly is the work? e.g., Strip and wax 4,200 sq ft of VCT in two sections over one weekend.";
-  updatePreview();
-}
-function updatePay() {
-  var isSet = state.pay_type === "set";
-  document.getElementById("fPayAmt").classList.toggle("hidden", !isSet);
-  document.getElementById("fPayPer").classList.toggle("hidden", !isSet);
-  document.getElementById("pay_notes").placeholder = isSet
-    ? "e.g., Mat cleaning time included in the monthly amount"
-    : "What should the quote include? e.g., Labor, supplies, and equipment; quote due at walkthrough";
-  // pay drives the default response mode
-  setMode(isSet ? "interest" : "quote");
-}
-function setMode(m) {
-  state.mode = m;
-  Array.prototype.forEach.call(document.querySelectorAll("#segMode button"), function (b) {
-    b.classList.toggle("on", b.getAttribute("data-v") === m);
-  });
-  updateModeFields();
-}
-function updateModeFields() {
-  var isQuote = state.mode === "quote";
-  document.getElementById("fBasis").classList.toggle("hidden", !isQuote);
-  updateUnit();
-}
-function updateUnit() {
-  var isUnit = state.mode === "quote" &&
-    document.getElementById("quote_basis_sel").value === "per unit";
-  document.getElementById("fUnit").classList.toggle("hidden", !isUnit);
-}
-document.getElementById("quote_basis_sel").addEventListener("change", updateUnit);
-function autoTitle() {
-  var t = document.getElementById("trade").value.replace(/ \(.*\)/, "");
-  var parts = [];
-  if (v("facility")) parts.push(v("facility"));
-  if (v("area")) parts.push(v("area"));
-  return t + " Opportunity" + (parts.length ? ": " + parts.join(", ") : "");
-}
-var titleTouched = false;
-document.getElementById("title").addEventListener("input", function () { titleTouched = true; updatePreview(); });
-function updatePreview() {
-  if (!titleTouched) document.getElementById("title").value = autoTitle();
-  document.getElementById("pv").textContent = v("title") || autoTitle();
-}
-["trade", "facility", "area"].forEach(function (id) {
-  document.getElementById(id).addEventListener("input", updatePreview);
-});
-segInit("segRegion", "region");
-segInit("segType", "type", updateType);
-segInit("segPay", "pay_type", updatePay);
-segInit("segMode", "mode", updateModeFields);
-updateType(); updatePay(); updatePreview(); fillTradeQs();
-
-document.getElementById("go").addEventListener("click", function () {
-  var msg = document.getElementById("msg");
-  msg.className = ""; msg.textContent = "";
-  var required = { title: "Posting title", facility: "Facility type", area: "Area of town",
-    scope_summary: "Scope summary", deadline: "Respond-by deadline",
-    contact_name: "Your name", contact_email: "Your email", passcode: "Team passcode" };
-  if (state.pay_type === "set" && !v("pay_amount")) { msg.className = "err"; msg.textContent = "Pay amount is required (or switch to Quote Requested)."; return; }
-  if (state.type === "contract" && !v("frequency")) { msg.className = "err"; msg.textContent = "Frequency is required for contracts (type anything, e.g., 3x per week)."; return; }
-  for (var k in required) {
-    if (!v(k)) { msg.className = "err"; msg.textContent = required[k] + " is required."; return; }
-  }
-  var data = {
-    passcode: v("passcode"), region: state.region, type: state.type,
-    trade: document.getElementById("trade").value, title: v("title"),
-    facility_type: v("facility"), area: v("area"), sqft: v("sqft"), restrooms: v("restrooms"),
-    frequency: state.type === "contract" ? document.getElementById("frequency").value : "One-time",
-    clean_window: document.getElementById("clean_window").value,
-    start_date: v("start_date"), walkthrough: v("walkthrough"), deadline: v("deadline"),
-    pay_type: state.pay_type,
-    pay_amount: state.pay_type === "set" ? v("pay_amount") : "",
-    pay_period: state.pay_type === "set" ? document.getElementById("pay_period").value : "",
-    pay_notes: v("pay_notes"), scope_summary: v("scope_summary"),
-    chemicals: checks("chemChecks", "chem_other"),
-    equipment_required: v("equipment_required"), equipment_provided: v("equipment_provided"),
-    certifications: checks("certChecks", "cert_other"),
-    special_requirements: (checks("stdChecks") ? checks("stdChecks") + ". " : "") + v("special_requirements"),
-    contact_name: v("contact_name"), contact_email: v("contact_email"), contact_phone: v("contact_phone"),
-    notes: "", account_name: v("account_name"),
-    response_form: JSON.stringify({
-      mode: state.mode,
-      pricing: state.mode === "quote" ? document.getElementById("quote_basis_sel").value : "",
-      unit: state.mode === "quote" && document.getElementById("quote_basis_sel").value === "per unit"
-        ? v("unit_label") : "",
-      blocks: {
-        staffing: document.getElementById("blkStaffing").checked,
-        equipment: document.getElementById("blkEquipment").checked
-      },
-      questions: document.getElementById("questions").value.split("\n")
-        .map(function (q) { return q.trim(); }).filter(function (q) { return q; })
-    })
-  };
-  if (state.mode === "quote" &&
-      document.getElementById("quote_basis_sel").value === "per unit" && !v("unit_label")) {
-    msg.className = "err"; msg.textContent = "Per-unit pricing needs a unit (e.g., per palm tree)."; return;
-  }
-  var btn = document.getElementById("go");
-  btn.disabled = true; msg.textContent = "Posting...";
-  fetch(WEBHOOK, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(data) })
-    .then(function (r) { return r.text(); })
-    .then(function (t) { try { return JSON.parse(t); } catch (e) { return { ok: true, id: "posted (check the Sheet for the ID)" }; } })
-    .then(function (r) {
-      if (r && r.ok) {
-        document.getElementById("f").classList.add("hidden");
-        document.getElementById("doneId").textContent = r.id;
-        document.getElementById("done").classList.remove("hidden");
-        window.scrollTo(0, 0);
-      } else {
-        btn.disabled = false; msg.className = "err";
-        msg.textContent = (r && r.error) ? r.error : "Something went wrong. Try again.";
-      }
-    })
-    .catch(function () {
-      btn.disabled = false; msg.className = "err";
-      msg.textContent = "Could not reach the posting service. Check your connection and try again.";
-    });
-});
+(function(){
+  try{
+    fetch("https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec")
+      .then(function(r){return r.json();})
+      .then(function(r){
+        if(r && r.ok){
+          var p=document.getElementById("openPill");
+          p.textContent=r.count+" open";
+          p.classList.add("show");
+        }
+      }).catch(function(){});
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
