@@ -124,22 +124,41 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
       <input type="text" id="facility" list="facList" placeholder="e.g., Childcare Center">
       <datalist id="facList">
         <option>Office</option><option>Medical Office / Clinic</option><option>Dialysis Clinic</option>
-        <option>Childcare Center</option><option>School</option><option>Church</option>
+        <option>Dental Office</option><option>Surgery Center</option><option>Veterinary Clinic</option>
+        <option>Childcare Center</option><option>Preschool / Early Learning</option><option>Daycare</option>
+        <option>School</option><option>Charter School</option><option>Church</option>
         <option>Retail</option><option>Restaurant</option><option>Nightclub / Bar</option>
-        <option>Industrial / Warehouse</option><option>Food Manufacturing (GMP)</option>
-        <option>Clean Room / Lab</option><option>Gym / Fitness</option><option>Auto Dealership</option>
+        <option>Salon / Spa</option><option>Dispensary</option><option>Movie Theater</option>
+        <option>Event Venue</option><option>Country Club / Golf</option>
+        <option>Industrial / Warehouse</option><option>Distribution Center</option>
+        <option>Food Manufacturing (GMP)</option><option>Clean Room / Lab</option>
+        <option>Gym / Fitness</option><option>Auto Dealership</option><option>Car Wash</option>
         <option>Bank</option><option>Casino / Gaming</option><option>HOA / Community</option>
-        <option>Mixed Use</option>
+        <option>Apartment Community / Leasing Office</option><option>Senior Living</option>
+        <option>Property Management Office</option><option>Government / Public Building</option>
+        <option>Storage Facility</option><option>Mixed Use</option>
       </datalist>
     </div>
     <div><label>Area of Town <span class="req">*</span></label>
       <input type="text" id="area" list="areaList" placeholder="e.g., Henderson">
       <datalist id="areaList">
-        <option>Henderson</option><option>Summerlin</option><option>North Las Vegas</option>
-        <option>Downtown Las Vegas</option><option>Southwest Las Vegas</option>
-        <option>Strip / Resort Corridor</option><option>Spring Valley</option>
-        <option>Boulder City</option><option>Reno</option><option>Sparks</option>
-        <option>Carson City</option><option>Minden / Gardnerville</option>
+        <option>Henderson</option><option>Green Valley</option><option>Anthem</option>
+        <option>Inspirada</option><option>Lake Las Vegas</option><option>Boulder City</option>
+        <option>Summerlin</option><option>Downtown Summerlin</option><option>The Lakes</option>
+        <option>Northwest Las Vegas</option><option>Centennial Hills</option><option>Skye Canyon</option>
+        <option>Aliante</option><option>North Las Vegas</option><option>Craig Road Corridor</option>
+        <option>Nellis / Sunrise Manor</option><option>East Las Vegas</option><option>Whitney</option>
+        <option>Downtown Las Vegas</option><option>Arts District</option>
+        <option>Strip / Resort Corridor</option><option>Paradise</option>
+        <option>Spring Valley</option><option>Chinatown / Spring Mountain</option>
+        <option>Southwest Las Vegas</option><option>Enterprise</option>
+        <option>Mountains Edge</option><option>Southern Highlands</option>
+        <option>Silverado Ranch</option><option>Rhodes Ranch</option>
+        <option>Reno</option><option>South Reno</option><option>Northwest Reno</option>
+        <option>Midtown Reno</option><option>Damonte Ranch</option><option>Sparks</option>
+        <option>Spanish Springs</option><option>Carson City</option>
+        <option>Minden / Gardnerville</option><option>Fernley</option><option>Dayton</option>
+        <option>Incline Village / Tahoe</option>
       </datalist>
     </div>
     <div><label>Posting Title <span class="req">*</span></label>
@@ -156,20 +175,25 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
   <div class="grid">
     <div><label>Square Footage</label><input type="number" id="sqft" placeholder="e.g., 9060"></div>
     <div><label>Restrooms</label><input type="number" id="restrooms" placeholder="e.g., 4"></div>
-    <div id="fFreq"><label>Days Per Week <span class="req">*</span></label>
-      <select id="frequency">
-        <option>5 days per week, Monday through Friday</option>
-        <option>7 days per week</option><option>6 days per week</option>
-        <option>4 days per week</option><option>3 days per week</option>
-        <option>2 days per week</option><option>1 day per week</option>
-        <option>Every other week</option><option>Monthly</option>
-      </select>
+    <div id="fFreq"><label>Frequency <span class="req">*</span></label>
+      <input type="text" id="frequency" list="freqList" placeholder="Type anything, e.g., 3x per week: 2 full cleans + 1 trash only">
+      <datalist id="freqList">
+        <option>5 days per week</option><option>7 days per week</option>
+        <option>6 days per week</option><option>4 days per week</option>
+        <option>3 days per week</option><option>2 days per week</option>
+        <option>1 day per week</option><option>Every other week</option>
+        <option>Monthly</option>
+        <option>3x per week: 2 full cleans + 1 trash only</option>
+        <option>5x per week: 3 full cleans + 2 trash and restrooms only</option>
+      </datalist>
     </div>
     <div><label>Clean Window</label>
-      <select id="clean_window">
+      <input type="text" id="clean_window" list="cwList" placeholder="Type anything, e.g., after 9 PM close">
+      <datalist id="cwList">
         <option>Night clean (after close)</option><option>Day clean (during business hours)</option>
         <option>Early morning (before open)</option><option>Flexible</option><option>Overnight only</option>
-      </select>
+        <option>Weekends only</option>
+      </datalist>
     </div>
     <div><label id="lblStart">Target Start Date</label><input type="text" id="start_date" placeholder="e.g., Monday, July 20 or ASAP"></div>
     <div><label>Walkthrough</label><input type="text" id="walkthrough" placeholder="e.g., To be scheduled this week"></div>
@@ -189,7 +213,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
   <div class="grid" style="margin-top:14px">
     <div id="fPayAmt"><label>Amount <span class="req">*</span></label><input type="text" id="pay_amount" placeholder="e.g., $1,800.31"></div>
     <div id="fPayPer"><label>Per</label>
-      <select id="pay_period"><option>per month</option><option>per job</option><option>per visit</option><option>per hour</option></select>
+      <input type="text" id="pay_period" list="ppList" value="per month" placeholder="e.g., per month">
+      <datalist id="ppList"><option>per month</option><option>per job</option><option>per visit</option><option>per hour</option><option>per quarter</option></datalist>
     </div>
     <div class="full"><label>Pay Notes</label>
       <input type="text" id="pay_notes" placeholder="e.g., Mat cleaning time included in monthly amount / include supplies in your quote">
@@ -286,6 +311,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
     <div><label>Your Email <span class="req">*</span></label><input type="email" id="contact_email" placeholder="you@gocitywide.com"></div>
     <div><label>Your Phone</label><input type="tel" id="contact_phone" placeholder="(702) 555-1234"></div>
     <div><label>Team Passcode <span class="req">*</span></label><input type="text" id="passcode" placeholder="Ask TJ if you do not have it"></div>
+    <div class="full"><label>Account / Client Name (Internal Only)</label>
+      <input type="text" id="account_name" placeholder="e.g., Kitty Academy - Craig Rd">
+      <div class="hint">Logged to the Sheet and internal emails so we can track the account. NEVER shown to vendors; they see it after we pick them for the walkthrough.</div>
+    </div>
   </div>
 </div>
 
@@ -466,6 +495,7 @@ document.getElementById("go").addEventListener("click", function () {
     scope_summary: "Scope summary", deadline: "Respond-by deadline",
     contact_name: "Your name", contact_email: "Your email", passcode: "Team passcode" };
   if (state.pay_type === "set" && !v("pay_amount")) { msg.className = "err"; msg.textContent = "Pay amount is required (or switch to Quote Requested)."; return; }
+  if (state.type === "contract" && !v("frequency")) { msg.className = "err"; msg.textContent = "Frequency is required for contracts (type anything, e.g., 3x per week)."; return; }
   for (var k in required) {
     if (!v(k)) { msg.className = "err"; msg.textContent = required[k] + " is required."; return; }
   }
@@ -485,7 +515,7 @@ document.getElementById("go").addEventListener("click", function () {
     certifications: checks("certChecks", "cert_other"),
     special_requirements: (checks("stdChecks") ? checks("stdChecks") + ". " : "") + v("special_requirements"),
     contact_name: v("contact_name"), contact_email: v("contact_email"), contact_phone: v("contact_phone"),
-    notes: "",
+    notes: "", account_name: v("account_name"),
     response_form: JSON.stringify({
       mode: state.mode,
       pricing: state.mode === "quote" ? document.getElementById("quote_basis_sel").value : "",
