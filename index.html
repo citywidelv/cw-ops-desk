@@ -113,8 +113,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
         <option>Janitorial</option><option>Day Porter</option>
         <option>Floor Care (Strip &amp; Wax / Buff)</option><option>Carpet Cleaning</option>
         <option>Window Cleaning</option><option>Pressure Washing</option>
-        <option>Handyman / Repairs</option><option>Landscaping</option>
-        <option>Parking Lot / Sweeping</option><option>Post-Construction Clean</option>
+        <option>Landscaping</option><option>Tree Trimming / Palms</option>
+        <option>Security / Guard Services</option><option>Street Sweeping</option>
+        <option>Parking Lot Services</option><option>Handyman / Repairs</option>
+        <option>Post-Construction Clean</option>
         <option>Specialty (Medical / Clean Room / GMP)</option><option>Other</option>
       </select>
     </div>
@@ -242,7 +244,40 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
 </div>
 
 <div class="card">
-  <h2><span class="n">5</span>Deadline &amp; Contact</h2>
+  <h2><span class="n">5</span>How Vendors Respond</h2>
+  <div class="sub">This builds the form vendors fill out when they click the posting. No more email threads.</div>
+  <div><label>Response Type <span class="req">*</span></label>
+    <div class="seg" id="segMode">
+      <button type="button" data-v="interest" class="on">Interest Letter<small>Pay is set; vendor applies</small></button>
+      <button type="button" data-v="quote">Quote Request<small>Vendor prices the work</small></button>
+    </div>
+  </div>
+  <div class="grid" style="margin-top:14px">
+    <div id="fBasis"><label>How They Must Price It</label>
+      <select id="quote_basis_sel">
+        <option>per month</option><option>per job (total)</option><option>per visit</option>
+        <option>per hour</option><option>per unit</option>
+      </select>
+    </div>
+    <div id="fUnit" class="hidden"><label>Unit <span class="req">*</span></label>
+      <input type="text" id="unit_label" placeholder="e.g., per palm tree, per 1,000 sq ft, per window pane">
+    </div>
+  </div>
+  <div style="margin-top:16px"><label>Question Blocks</label>
+    <div class="checks">
+      <label><input type="checkbox" id="blkStaffing" checked> Staffing, supervision &amp; training plan</label>
+      <label><input type="checkbox" id="blkEquipment" checked> Equipment they will bring</label>
+    </div>
+    <div class="hint">Company, contact, vendor packet status, and earliest start date are always asked.</div>
+  </div>
+  <div style="margin-top:16px"><label>Trade Questions (one per line, edit freely)</label>
+    <textarea id="questions" placeholder="Questions the vendor must answer"></textarea>
+    <div class="hint">Auto-fills when you pick a trade. Add, edit, or delete lines; each line becomes a question on the vendor form.</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2><span class="n">6</span>Deadline &amp; Contact</h2>
   <div class="sub">Interested vendors email the contact directly from the posting.</div>
   <div class="grid">
     <div><label>Respond By <span class="req">*</span></label><input type="text" id="deadline" placeholder="e.g., 8:00 AM Monday, July 20"></div>
@@ -273,7 +308,79 @@ citywidelv.github.io/cw-vendor-shop/opportunities.html</div>
 
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
-var state = { region: "Las Vegas", type: "contract", pay_type: "set" };
+var state = { region: "Las Vegas", type: "contract", pay_type: "set", mode: "interest" };
+
+var TRADE_QS = {
+  "Janitorial": [
+    "Have you serviced this facility type before? Tell us where.",
+    "How soon can your crew start?"
+  ],
+  "Day Porter": [
+    "Have you staffed day porter routes before? Where?",
+    "Can your porter cover the full coverage window listed?"
+  ],
+  "Landscaping": [
+    "Will you service the FULL property every visit, or rotate quadrants weekly? Explain your rotation.",
+    "Do you haul away green waste, or does it stay on site?",
+    "List your mowers and major equipment."
+  ],
+  "Tree Trimming / Palms": [
+    "Are you licensed and insured for tree and height work?",
+    "How do you price: per palm, per tree, or per job?",
+    "Do you haul away all trimmings?"
+  ],
+  "Security / Guard Services": [
+    "What is your Nevada PILB license number?",
+    "Armed or unarmed guards for this post?",
+    "Are all guards carded, uniformed, and insured?"
+  ],
+  "Street Sweeping": [
+    "Do you own a sweeper truck? What make and model?",
+    "Overnight sweeping OK for this location?"
+  ],
+  "Parking Lot Services": [
+    "What equipment do you run for lot work?",
+    "Overnight work OK for this location?"
+  ],
+  "Floor Care (Strip & Wax / Buff)": [
+    "What machines do you own (swing machine, auto scrubber, burnisher)?",
+    "What finish and products do you use?",
+    "How many coats are included in your price?"
+  ],
+  "Carpet Cleaning": [
+    "Truck mount or portable extraction?",
+    "What is your typical dry time?"
+  ],
+  "Window Cleaning": [
+    "Can you do high or lift work? Do you have lift certification?",
+    "Does your price include interior AND exterior?"
+  ],
+  "Pressure Washing": [
+    "Hot or cold water rig? What GPM and PSI?",
+    "Can you reclaim wash water where required?"
+  ],
+  "Handyman / Repairs": [
+    "Which trades are you licensed for?",
+    "Do you carry your own materials, or bill materials separately?"
+  ],
+  "Post-Construction Clean": [
+    "How large a crew can you field for surge work?",
+    "Have you done post-construction cleans before? Where?"
+  ],
+  "Specialty (Medical / Clean Room / GMP)": [
+    "Describe your experience in this type of regulated facility.",
+    "What certifications or training does your crew hold?"
+  ],
+  "Other": []
+};
+var qsTouched = false;
+function fillTradeQs() {
+  if (qsTouched) return;
+  var t = document.getElementById("trade").value;
+  document.getElementById("questions").value = (TRADE_QS[t] || []).join("\n");
+}
+document.getElementById("questions").addEventListener("input", function () { qsTouched = true; });
+document.getElementById("trade").addEventListener("change", function () { fillTradeQs(); });
 
 function segInit(id, key, fn) {
   var seg = document.getElementById(id);
@@ -309,7 +416,27 @@ function updatePay() {
   document.getElementById("pay_notes").placeholder = isSet
     ? "e.g., Mat cleaning time included in the monthly amount"
     : "What should the quote include? e.g., Labor, supplies, and equipment; quote due at walkthrough";
+  // pay drives the default response mode
+  setMode(isSet ? "interest" : "quote");
 }
+function setMode(m) {
+  state.mode = m;
+  Array.prototype.forEach.call(document.querySelectorAll("#segMode button"), function (b) {
+    b.classList.toggle("on", b.getAttribute("data-v") === m);
+  });
+  updateModeFields();
+}
+function updateModeFields() {
+  var isQuote = state.mode === "quote";
+  document.getElementById("fBasis").classList.toggle("hidden", !isQuote);
+  updateUnit();
+}
+function updateUnit() {
+  var isUnit = state.mode === "quote" &&
+    document.getElementById("quote_basis_sel").value === "per unit";
+  document.getElementById("fUnit").classList.toggle("hidden", !isUnit);
+}
+document.getElementById("quote_basis_sel").addEventListener("change", updateUnit);
 function autoTitle() {
   var t = document.getElementById("trade").value.replace(/ \(.*\)/, "");
   var parts = [];
@@ -329,7 +456,8 @@ function updatePreview() {
 segInit("segRegion", "region");
 segInit("segType", "type", updateType);
 segInit("segPay", "pay_type", updatePay);
-updateType(); updatePay(); updatePreview();
+segInit("segMode", "mode", updateModeFields);
+updateType(); updatePay(); updatePreview(); fillTradeQs();
 
 document.getElementById("go").addEventListener("click", function () {
   var msg = document.getElementById("msg");
@@ -357,8 +485,24 @@ document.getElementById("go").addEventListener("click", function () {
     certifications: checks("certChecks", "cert_other"),
     special_requirements: (checks("stdChecks") ? checks("stdChecks") + ". " : "") + v("special_requirements"),
     contact_name: v("contact_name"), contact_email: v("contact_email"), contact_phone: v("contact_phone"),
-    notes: ""
+    notes: "",
+    response_form: JSON.stringify({
+      mode: state.mode,
+      pricing: state.mode === "quote" ? document.getElementById("quote_basis_sel").value : "",
+      unit: state.mode === "quote" && document.getElementById("quote_basis_sel").value === "per unit"
+        ? v("unit_label") : "",
+      blocks: {
+        staffing: document.getElementById("blkStaffing").checked,
+        equipment: document.getElementById("blkEquipment").checked
+      },
+      questions: document.getElementById("questions").value.split("\n")
+        .map(function (q) { return q.trim(); }).filter(function (q) { return q; })
+    })
   };
+  if (state.mode === "quote" &&
+      document.getElementById("quote_basis_sel").value === "per unit" && !v("unit_label")) {
+    msg.className = "err"; msg.textContent = "Per-unit pricing needs a unit (e.g., per palm tree)."; return;
+  }
   var btn = document.getElementById("go");
   btn.disabled = true; msg.textContent = "Posting...";
   fetch(WEBHOOK, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(data) })
