@@ -23,6 +23,9 @@ a{color:var(--red)}
 .head .badge{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.1em;
   text-transform:uppercase;background:var(--black);color:#fff;border-left:3px solid var(--gold);
   padding:4px 10px}
+.head .out{font-size:11px;font-weight:700;color:var(--grey);cursor:pointer;text-decoration:none;
+  border:1px solid var(--border);border-radius:14px;padding:5px 12px;background:var(--light)}
+.head .out:hover{background:var(--red);color:#fff;border-color:var(--red)}
 .hero{background:linear-gradient(120deg,var(--black) 0%,#3a3733 100%);color:#fff;
   padding:40px 0 34px;border-bottom:5px solid var(--red)}
 .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
@@ -40,7 +43,7 @@ a{color:var(--red)}
 .card{position:relative;display:flex;flex-direction:column;background:#fff;
   border:1px solid var(--border);border-radius:12px;padding:20px;text-decoration:none;
   color:var(--black);transition:all .15s;box-shadow:var(--shadow)}
-.card:hover{box-shadow:var(--shadow-lift);transform:translateY(-2px)}
+a.card:hover{box-shadow:var(--shadow-lift);transform:translateY(-2px)}
 .card .icon{width:42px;height:42px;border-radius:10px;background:var(--light);display:flex;
   align-items:center;justify-content:center;margin-bottom:12px;color:var(--red);flex:none}
 .card.primary{border-left:5px solid var(--red)}
@@ -54,7 +57,6 @@ a{color:var(--red)}
   border-radius:10px;padding:3px 9px;display:none}
 .card .pill.show{display:block}
 div.card{cursor:default}
-div.card:hover{transform:none;box-shadow:var(--shadow)}
 .card .links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .card .links a{font-size:12px;font-weight:700;color:var(--red);text-decoration:none;
   border:1px solid var(--border);border-radius:16px;padding:6px 12px;background:var(--light);
@@ -62,13 +64,47 @@ div.card:hover{transform:none;box-shadow:var(--shadow)}
 .card .links a:hover{background:var(--red);color:#fff;border-color:var(--red)}
 .foot{text-align:center;font-size:11px;color:var(--grey);padding:36px 20px 28px}
 .foot b{color:var(--black)}
+/* Gate */
+.gate{position:fixed;inset:0;z-index:100;background:linear-gradient(120deg,var(--black) 0%,#3a3733 100%);
+  display:flex;align-items:center;justify-content:center;padding:20px}
+.gate.hidden{display:none}
+.gate .box{background:#fff;border-radius:14px;box-shadow:var(--shadow-lift);
+  border-top:5px solid var(--red);padding:34px 30px 30px;max-width:420px;width:100%;text-align:center}
+.gate img{height:40px;width:auto;margin-bottom:18px}
+.gate h1{font-size:20px;margin-bottom:6px}
+.gate p{font-size:13px;color:var(--grey);margin-bottom:20px}
+.gate input{width:100%;font-family:inherit;font-size:16px;text-align:center;letter-spacing:.04em;
+  border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;background:#fff}
+.gate input:focus{outline:none;border-color:var(--red)}
+.gate button{width:100%;margin-top:12px;font-family:inherit;font-size:15px;font-weight:700;
+  background:var(--red);color:#fff;border:none;border-radius:8px;padding:13px;cursor:pointer}
+.gate button:hover{background:var(--red-dark)}
+.gate button[disabled]{opacity:.5;cursor:wait}
+.gate .err{color:var(--red);font-size:12.5px;font-weight:700;margin-top:12px;min-height:16px}
+.gate .note{font-size:11px;color:var(--grey);margin-top:16px}
+#app.hidden{display:none}
 </style>
 </head>
 <body>
+
+<div id="gate" class="gate">
+  <div class="box">
+    <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+    <h1>Operations Hub</h1>
+    <p>Internal team access. Enter the team passcode to continue.</p>
+    <input type="password" id="pc" placeholder="Team passcode" autocomplete="current-password" autofocus>
+    <button id="enter">Enter</button>
+    <div class="err" id="gerr"></div>
+    <div class="note">Ask TJ if you do not have the passcode.</div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
 <header class="head"><div class="bar">
   <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
   <span class="t">Ops Hub</span>
   <span class="badge">Internal Team Use</span>
+  <a class="out" id="signout" href="#">Sign out</a>
 </div></header>
 
 <section class="hero"><div class="wrap">
@@ -77,233 +113,141 @@ div.card:hover{transform:none;box-shadow:var(--shadow)}
   work, check your margins, and get to the resources without hunting for links.</p>
 </div></section>
 
-<div class="wrap">
-
-<section class="section">
-  <div class="section-head"><h2>Vendor Solicitations</h2><span class="tag">Find the Crew</span></div>
-  <p class="sub">Post work, watch responses come in, and close it out when it fills.</p>
-  <div class="grid">
-    <a class="card primary" href="post.html">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>
-      <h3>Post an Opportunity</h3>
-      <p>Contracts and one-time projects. Composes the vendor's response form and goes live on the board instantly.</p>
-      <span class="go">Open the form</span>
-    </a>
-    <a class="card" href="https://citywidelv.github.io/cw-vendor-shop/opportunities.html" target="_blank" rel="noopener">
-      <span class="pill" id="openPill"></span>
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h8M8 17h5"/></svg></span>
-      <h3>Live Opportunities Board</h3>
-      <p>What vendors see right now. Check your posting rendered the way you meant it.</p>
-      <span class="go">View the board</span>
-    </a>
-    <a class="card" href="https://docs.google.com/spreadsheets/d/1ymbqR7LMvA7sbgZe2Ro5o2dNiXhP08Tn9Hw1b-H5AeQ/edit" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></span>
-      <h3>Solicitations Sheet</h3>
-      <p>Postings and vendor responses side by side. Check Filled to take a posting down; edit any cell and the board updates live.</p>
-      <span class="go">Open the Sheet</span>
-    </a>
-  </div>
-</section>
-
-<section class="section">
-  <div class="section-head"><h2>Night Manager &amp; Route Outs</h2><span class="tag">Every Night</span></div>
-  <p class="sub">Inspections, nightly route outs by region, and the tools that ride along.</p>
-  <div class="grid">
-    <a class="card" href="https://form.jotform.com/233486327771060" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg></span>
-      <h3>Night Manager Inspection</h3>
-      <p>The nightly building inspection form, photos and all.</p>
-      <span class="go">Open the form</span>
-    </a>
-    <div class="card">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6-3-6 3z"/><path d="M9 7v13M15 4v13"/></svg></span>
-      <h3>Nightly Route Outs</h3>
-      <p>Pick your region. Same form, right route.</p>
-      <div class="links">
-        <a href="https://form.jotform.com/241294883910159" target="_blank" rel="noopener">SouthEast</a>
-        <a href="https://form.jotform.com/241566167038157" target="_blank" rel="noopener">SouthWest</a>
-        <a href="https://form.jotform.com/241440730763149" target="_blank" rel="noopener">North</a>
-        <a href="https://form.jotform.com/team/253234894174059/nnv-night-manager-route-out" target="_blank" rel="noopener">Northern Nevada</a>
-      </div>
-    </div>
-    <a class="card" href="https://form.jotform.com/252935932465163" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 0-10-10"/><path d="M2 12h10V2"/></svg></span>
-      <h3>Comprehensive Cancer Work Orders</h3>
-      <p>Site-specific work order form for the Comprehensive Cancer account.</p>
-      <span class="go">Open the form</span>
-    </a>
-    <a class="card" href="https://chatgpt.com/g/g-681233262c3c81918605de9bd3edf7be-city-wide-night-manager-tool" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 4h8M9 13h.01M15 13h.01M9 17h6"/></svg></span>
-      <h3>Night Manager AI Tool</h3>
-      <p>The custom GPT trained for night manager questions in the field.</p>
-      <span class="go">Open the tool</span>
-    </a>
-  </div>
-</section>
-
-<section class="section">
-  <div class="section-head"><h2>Pricing &amp; Bid Calculators</h2><span class="tag">Price the Work</span></div>
-  <p class="sub">Service-specific calculators for quotes, bids, and scope pricing.</p>
-  <div class="grid">
-    <a class="card" href="https://citywidelv.github.io/strip-and-wax-calculator/" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18M5 20V8l7-4 7 4v12"/></svg></span>
-      <h3>Strip &amp; Wax</h3>
-      <p>VCT strip and wax floor pricing by square footage and condition.</p>
-      <span class="go">Open calculator</span>
-    </a>
-    <a class="card" href="https://citywidelv.github.io/Carpet-Cleaning/" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12c2-2 4 2 6 0s4 2 6 0 4 2 4 0"/></svg></span>
-      <h3>Carpet Cleaning</h3>
-      <p>Commercial carpet extraction and bonnet pricing.</p>
-      <span class="go">Open calculator</span>
-    </a>
-    <a class="card" href="https://citywidelv.github.io/windowcleaningcalculator/" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M4 12h16"/></svg></span>
-      <h3>Window Cleaning</h3>
-      <p>Pane counts, interior and exterior, high work pricing.</p>
-      <span class="go">Open calculator</span>
-    </a>
-    <a class="card" href="https://citywidelv.github.io/powerwashing/" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14c2-5 6-9 12-9l4 4c0 6-4 10-9 12z"/><path d="M9 15l-5 5"/></svg></span>
-      <h3>Pressure Washing</h3>
-      <p>Flatwork, buildings, and dumpster pads across Nevada markets.</p>
-      <span class="go">Open calculator</span>
-    </a>
-    <a class="card" href="https://citywidelv.github.io/post-construction-clean/" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20M6 20V10h5v10M14 20V4h5v16"/></svg></span>
-      <h3>Post-Construction Clean</h3>
-      <p>Rough, final, and touch-up phase cleaning bids.</p>
-      <span class="go">Open calculator</span>
-    </a>
-    <a class="card" href="https://citywidelv.github.io/restaurants/" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v8M9 3v8M7 3v18M7 11c1.5 0 2-1 2-3M17 3c-2 0-3 2-3 5v4h3v9M17 3v18"/></svg></span>
-      <h3>Restaurant Cleaning</h3>
-      <p>Front of house, kitchen, and hood-adjacent service pricing.</p>
-      <span class="go">Open calculator</span>
-    </a>
-    <a class="card" href="https://citywidelv.github.io/landscapingmaintenance/" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V8M12 8c0-4 3-6 6-6 0 4-3 6-6 6zM12 12c0-3-2.5-5-5-5 0 3 2.5 5 5 5z"/></svg></span>
-      <h3>Landscaping Maintenance</h3>
-      <p>Commercial grounds maintenance for Nevada markets.</p>
-      <span class="go">Open calculator</span>
-    </a>
-    <a class="card" href="https://citywidelv.github.io/porter-exterior/" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="3"/><path d="M6 21v-2a6 6 0 0 1 12 0v2"/></svg></span>
-      <h3>Exterior Porter</h3>
-      <p>Exterior porter service coverage and pricing.</p>
-      <span class="go">Open calculator</span>
-    </a>
-  </div>
-</section>
-
-<section class="section">
-  <div class="section-head"><h2>Analysis &amp; Field Tools</h2><span class="tag">Know Your Numbers</span></div>
-  <p class="sub">Margin checks, retention tracking, and the building walk.</p>
-  <div class="grid">
-    <a class="card" href="https://citywidelv.github.io/margincalculator/" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5L5 19M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM17.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg></span>
-      <h3>Margin Calculator</h3>
-      <p>Check the margin before you commit the price. Works for any pay and bill combination.</p>
-      <span class="go">Open calculator</span>
-    </a>
-    <a class="card" href="https://citywidelv.github.io/retentioncalculator/" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v6h-6"/></svg></span>
-      <h3>Revenue Retention (TRR)</h3>
-      <p>Total revenue retention tracking across the book of business.</p>
-      <span class="go">Open calculator</span>
-    </a>
-    <a class="card" href="https://citywidelv.github.io/BuildingSurvey/" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-      <h3>Building Survey</h3>
-      <p>Walk the building and capture what workloading and bidding need.</p>
-      <span class="go">Open the survey</span>
-    </a>
-  </div>
-</section>
-
-<section class="section">
-  <div class="section-head"><h2>Team &amp; Admin</h2><span class="tag">The Back Office</span></div>
-  <p class="sub">The maps, the tasks, the payroll portal, and the swag.</p>
-  <div class="grid">
-    <div class="card">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
-      <h3>Accounts Maps</h3>
-      <p>Every account pinned on the map. Plan routes and walkthroughs.</p>
-      <div class="links">
-        <a href="https://www.google.com/maps/d/edit?mid=1ewhUmSrFCo0--ALiJP0O1pLTbH0qlk4&usp=sharing" target="_blank" rel="noopener">Las Vegas</a>
-        <a href="https://www.google.com/maps/d/u/0/viewer?ll=39.31045610315164%2C-119.69410335&z=10&mid=1_o8DPUf6zH9kiAcZuNEOCAbZLq93nnc" target="_blank" rel="noopener">Northern Nevada</a>
-      </div>
-    </div>
-    <a class="card" href="https://app.asana.com/" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3.2"/><circle cx="6.5" cy="16" r="3.2"/><circle cx="17.5" cy="16" r="3.2"/></svg></span>
-      <h3>Asana</h3>
-      <p>Team tasks and projects.</p>
-      <span class="go">Open Asana</span>
-    </a>
-    <a class="card" href="https://online.adp.com/signin/v1/?APPID=WFNPortal&productId=80e309c3-7085-bae1-e053-3505430b5495&returnURL=https://workforcenow.adp.com/&callingAppId=WFN" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg></span>
-      <h3>ADP TotalSource</h3>
-      <p>Payroll, HR, and time off.</p>
-      <span class="go">Sign in</span>
-    </a>
-    <a class="card" href="https://cwlv.printful.me/" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l4-3h8l4 3-2 4-2-1v10H8V10l-2 1z"/></svg></span>
-      <h3>Order CW Merch</h3>
-      <p>Branded gear for the team.</p>
-      <span class="go">Open the store</span>
-    </a>
-  </div>
-</section>
-
-<section class="section" style="padding-bottom:20px">
-  <div class="section-head"><h2>Vendor Resource Center</h2><span class="tag">What Vendors See</span></div>
-  <p class="sub">The public site your crews use. Handy when you are walking a vendor through it on the phone.</p>
-  <div class="grid">
-    <a class="card" href="https://citywidelv.github.io/cw-vendor-shop/resources.html" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-8 9 8M5 10v10h14V10"/></svg></span>
-      <h3>Resource Center Home</h3>
-      <p>The hub: guides, planner, opportunities, and the shop.</p>
-      <span class="go">Open the site</span>
-    </a>
-    <a class="card" href="https://citywidelv.github.io/cw-vendor-shop/workloading.html" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg></span>
-      <h3>Workloading Guide</h3>
-      <p>ISSA rates, crew sizing, and the first three cleans playbook.</p>
-      <span class="go">Open the guide</span>
-    </a>
-    <a class="card" href="https://citywidelv.github.io/cw-vendor-shop/planner.html" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg></span>
-      <h3>New Building Planner</h3>
-      <p>Starting kit quantities by building size and cleaning type.</p>
-      <span class="go">Open the planner</span>
-    </a>
-    <a class="card" href="https://citywidelv.github.io/cw-vendor-shop/" target="_blank" rel="noopener">
-      <span class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>
-      <h3>Vendor Shop</h3>
-      <p>Supplies, equipment, and uniforms. Orders hit both service inboxes.</p>
-      <span class="go">Open the shop</span>
-    </a>
-  </div>
-</section>
-
-</div>
+<div class="wrap" id="content"></div>
 
 <div class="foot"><b>City Wide Facility Solutions</b> &middot; Operations Hub &middot; Internal use only<br>
 Something missing from this page? Tell TJ.</div>
+</div>
 
 <script>
-(function(){
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var KEY = "cwOpsHubPass";
+
+var ICONS = {
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  board:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h8M8 17h5"/>',
+  sheet:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>',
+  clip:'<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12l2 2 4-4"/>',
+  route:'<path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6-3-6 3z"/><path d="M9 7v13M15 4v13"/>',
+  clock:'<path d="M12 22a10 10 0 1 0-10-10"/><path d="M2 12h10V2"/>',
+  bot:'<rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 4h8M9 13h.01M15 13h.01M9 17h6"/>',
+  floor:'<path d="M3 20h18M5 20V8l7-4 7 4v12"/>',
+  carpet:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12c2-2 4 2 6 0s4 2 6 0 4 2 4 0"/>',
+  window:'<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M12 3v18M4 12h16"/>',
+  pressure:'<path d="M4 14c2-5 6-9 12-9l4 4c0 6-4 10-9 12z"/><path d="M9 15l-5 5"/>',
+  postcon:'<path d="M2 20h20M6 20V10h5v10M14 20V4h5v16"/>',
+  rest:'<path d="M5 3v8M9 3v8M7 3v18M7 11c1.5 0 2-1 2-3M17 3c-2 0-3 2-3 5v4h3v9M17 3v18"/>',
+  land:'<path d="M12 22V8M12 8c0-4 3-6 6-6 0 4-3 6-6 6zM12 12c0-3-2.5-5-5-5 0 3 2.5 5 5 5z"/>',
+  porter:'<circle cx="12" cy="6" r="3"/><path d="M6 21v-2a6 6 0 0 1 12 0v2"/>',
+  margin:'<path d="M19 5L5 19M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM17.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>',
+  trend:'<path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v6h-6"/>',
+  survey:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  map:'<path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  asana:'<circle cx="12" cy="7" r="3.2"/><circle cx="6.5" cy="16" r="3.2"/><circle cx="17.5" cy="16" r="3.2"/>',
+  adp:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
+  merch:'<path d="M4 7l4-3h8l4 3-2 4-2-1v10H8V10l-2 1z"/>',
+  home:'<path d="M3 12l9-8 9 8M5 10v10h14V10"/>',
+  work:'<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>',
+  plan:'<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h4"/>',
+  shop:'<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>'
+};
+function iconSvg(k){
+  return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[k] || ICONS.home) + '</svg>';
+}
+function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+function render(sections){
+  var html = "";
+  sections.forEach(function(sec){
+    html += '<section class="section"><div class="section-head"><h2>' + esc(sec.h) +
+      '</h2><span class="tag">' + esc(sec.tag) + '</span></div>';
+    if(sec.sub) html += '<p class="sub">' + esc(sec.sub) + '</p>';
+    html += '<div class="grid">';
+    sec.cards.forEach(function(c){
+      var cls = "card" + (c.primary ? " primary" : "");
+      var inner = '<span class="icon">' + iconSvg(c.icon) + '</span>';
+      if(c.pill) inner = '<span class="pill" id="openPill"></span>' + inner;
+      inner += '<h3>' + esc(c.title) + '</h3>';
+      if(c.desc) inner += '<p>' + esc(c.desc) + '</p>';
+      if(c.links){
+        inner += '<div class="links">';
+        c.links.forEach(function(l){
+          inner += '<a href="' + esc(l.href) + '" target="_blank" rel="noopener">' + esc(l.label) + '</a>';
+        });
+        inner += '</div>';
+      }
+      if(c.go) inner += '<span class="go">' + esc(c.go) + '</span>';
+      if(c.href){
+        var tgt = /^https?:/.test(c.href) ? ' target="_blank" rel="noopener"' : '';
+        html += '<a class="' + cls + '" href="' + esc(c.href) + '"' + tgt + '>' + inner + '</a>';
+      } else {
+        html += '<div class="' + cls + '">' + inner + '</div>';
+      }
+    });
+    html += '</div></section>';
+  });
+  document.getElementById("content").innerHTML = html;
+  loadPill();
+}
+
+function loadPill(){
   try{
-    fetch("https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec")
-      .then(function(r){return r.json();})
-      .then(function(r){
-        if(r && r.ok){
-          var p=document.getElementById("openPill");
-          p.textContent=r.count+" open";
-          p.classList.add("show");
-        }
-      }).catch(function(){});
+    fetch(WEBHOOK).then(function(r){return r.json();}).then(function(r){
+      if(r && r.ok){
+        var p = document.getElementById("openPill");
+        if(p){ p.textContent = r.count + " open"; p.classList.add("show"); }
+      }
+    }).catch(function(){});
   }catch(e){}
+}
+
+function unlock(sections){
+  document.getElementById("gate").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  render(sections);
+}
+
+function tryPass(pass, isAuto){
+  var btn = document.getElementById("enter");
+  var err = document.getElementById("gerr");
+  err.textContent = "";
+  if(!pass){ err.textContent = "Enter the passcode."; return; }
+  btn.disabled = true; btn.textContent = "Checking...";
+  fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
+      body: JSON.stringify({ kind:"auth", passcode: pass }) })
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      btn.disabled = false; btn.textContent = "Enter";
+      if(r && r.ok && r.sections){
+        try{ localStorage.setItem(KEY, pass); }catch(e){}
+        unlock(r.sections);
+      } else {
+        if(isAuto){ try{ localStorage.removeItem(KEY); }catch(e){} }
+        err.textContent = (r && r.error) ? r.error : "That passcode is not right.";
+      }
+    })
+    .catch(function(){
+      btn.disabled = false; btn.textContent = "Enter";
+      err.textContent = "Could not reach the server. Check your connection and try again.";
+    });
+}
+
+document.getElementById("enter").addEventListener("click", function(){
+  tryPass(document.getElementById("pc").value.trim(), false);
+});
+document.getElementById("pc").addEventListener("keydown", function(e){
+  if(e.key === "Enter") tryPass(this.value.trim(), false);
+});
+document.getElementById("signout").addEventListener("click", function(e){
+  e.preventDefault();
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  location.reload();
+});
+
+(function(){
+  var saved = "";
+  try{ saved = localStorage.getItem(KEY) || ""; }catch(e){}
+  if(saved) tryPass(saved, true);
 })();
 </script>
 </body>
