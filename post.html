@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Desk | Post an Opportunity</title>
-<!-- build 2026-07-15a: expanded trade list, trade-aware defaults -->
+<!-- build 2026-07-15b: expanded trade list + trade-aware defaults, on top of notify available vendors -->
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
   --border:#E5E5E5;--gold:#E5B423;
@@ -64,6 +64,15 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
   margin-top:12px}
 .preview b{color:var(--gold);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
   display:block;margin-bottom:3px}
+
+/* FSM picker (added 2026-07-15) */
+.fsm-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.fsm-pick button{font-family:inherit;text-align:left;background:#fff;border:2px solid var(--border);
+  border-radius:10px;padding:10px;cursor:pointer;display:flex;align-items:center;gap:10px}
+.fsm-pick button img{width:40px;height:44px;border-radius:6px;object-fit:cover;flex:none}
+.fsm-pick button .fp-n{font-size:12.5px;font-weight:700;line-height:1.3;color:var(--black)}
+.fsm-pick button .fp-t{display:block;font-size:10px;font-weight:400;color:var(--grey)}
+.fsm-pick button.on{border-color:var(--red);background:#FDF1F2}
 .submit-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:6px}
 .btn{font-family:inherit;font-size:15px;font-weight:700;background:var(--red);color:#fff;
   border:none;border-radius:8px;padding:14px 28px;cursor:pointer}
@@ -320,8 +329,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
 
 <div class="card">
   <h2><span class="n">6</span>Deadline &amp; Contact</h2>
-  <div class="sub">Interested vendors email the contact directly from the posting.</div>
+  <div class="sub">Pick the FSM the job belongs to. Contact fields are internal: confirmations and response CCs only, never shown to vendors.</div>
   <div class="grid">
+    <div class="full"><label>Posting FSM: Who Owns This Job? <span class="req">*</span></label>
+      <div class="fsm-pick" id="fsmPick"></div>
+      <div class="hint">Your photo, name, and title appear at the bottom of the public posting so vendors know who the job belongs to. Phone numbers are never shown publicly.</div>
+    </div>
     <div><label>Respond By <span class="req">*</span></label><input type="text" id="deadline" placeholder="e.g., 8:00 AM Monday, July 20"></div>
     <div></div>
     <div><label>Your Name <span class="req">*</span></label><input type="text" id="contact_name" placeholder="First Last"></div>
@@ -344,6 +357,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
 <div id="done" class="success hidden">
   <h2>Posted!</h2>
   <p>ID <b id="doneId"></b> is live on the Vendor Resource Center and logged to the Sheet. A confirmation email is on the way to the service line and to you.</p>
+  <div id="notifyBox" class="hidden">
+    <div id="notifyBtns"></div>
+    <p id="notifyHint" style="font-size:12.5px;color:var(--grey);margin:10px auto 0;max-width:58ch"></p>
+  </div>
   <p><a href="https://citywidelv.github.io/cw-vendor-shop/opportunities.html" target="_blank" rel="noopener">View the live board</a></p>
   <p><button class="btn" onclick="location.reload()">Post Another</button></p>
 </div>
@@ -354,7 +371,39 @@ citywidelv.github.io/cw-vendor-shop/opportunities.html</div>
 
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
-var state = { region: "Las Vegas", type: "contract", pay_type: "set", mode: "interest" };
+var state = { region: "Las Vegas", type: "contract", pay_type: "set", mode: "interest", fsm: "" };
+var FSM_ROSTER = {
+  alex:   { name:"Alex Manon",     title:"Facility Solutions Manager",  region:"Las Vegas" },
+  brett:  { name:"Brett Stephens", title:"Facility Solutions Manager",  region:"Las Vegas" },
+  jake:   { name:"Jake Schmidt",   title:"Facility Solutions Manager",  region:"Las Vegas" },
+  sam:    { name:"Sam Morse",      title:"Facility Solutions Manager",  region:"Northern Nevada" },
+  jeremy: { name:"Jeremy Walker",  title:"General Manager",             region:"Northern Nevada" },
+  robert: { name:"Robert Krause",  title:"Director of Operations",      region:"Las Vegas" },
+  josh:   { name:"Joshua Smith",   title:"Business Operations Manager", region:"Las Vegas & Northern Nevada" },
+  tj:     { name:"TJ Robert",      title:"Chief Operating Officer",     region:"Las Vegas & Northern Nevada" }
+};
+var FSM_PHOTO_BASE = "https://emailer.emfluence.com/clients/citywide/uploadedfiles/Franchise-Location-Uploads/Las_Vegas/";
+var FSM_PHOTOS = { alex:"IMG_4680.jpg", brett:"IMG_4080.PNG", jake:"IMG_3966.jpg", sam:"IMG_5569.jpg",
+  jeremy:"IMG_3968.jpg", robert:"IMG_3964.jpg", josh:"IMG_3963.jpg", tj:"IMG_3962.jpg" };
+(function buildFsmPick(){
+  var box = document.getElementById("fsmPick");
+  Object.keys(FSM_ROSTER).forEach(function(k){
+    var f = FSM_ROSTER[k];
+    var b = document.createElement("button");
+    b.type = "button"; b.setAttribute("data-fsm", k);
+    b.innerHTML = '<img src="' + FSM_PHOTO_BASE + FSM_PHOTOS[k] + '" alt="' + f.name + '">'
+      + '<span class="fp-n">' + f.name + '<span class="fp-t">' + f.title + '</span></span>';
+    b.addEventListener("click", function(){
+      Array.prototype.forEach.call(box.querySelectorAll("button"), function(x){ x.classList.remove("on"); });
+      b.classList.add("on");
+      state.fsm = k;
+      var cn = document.getElementById("contact_name");
+      if (!cn.value.trim()) cn.value = f.name;
+    });
+    box.appendChild(b);
+  });
+})();
+
 
 var TRADE_QS = {
   "Janitorial": [
@@ -597,6 +646,57 @@ segInit("segPay", "pay_type", updatePay);
 segInit("segMode", "mode", updateModeFields);
 updateType(); updatePay(); updatePreview(); fillTradeQs(); applyTradeDefaults();
 
+// Notify Available Vendors: one-time projects only. The Apps Script returns
+// notify_emails (Vendor Directory tab, matched on trade + region). Clicking a
+// button opens the FSM's mail client (Outlook) with every match in BCC.
+function renderNotify(r) {
+  if (state.type !== "project") return;
+  var box = document.getElementById("notifyBox");
+  var btns = document.getElementById("notifyBtns");
+  var hint = document.getElementById("notifyHint");
+  btns.innerHTML = ""; hint.textContent = "";
+  box.classList.remove("hidden");
+  var emails = (r && Object.prototype.toString.call(r.notify_emails) === "[object Array]") ? r.notify_emails : [];
+  var trade = document.getElementById("trade").value;
+  if (!emails.length) {
+    hint.textContent = "No vendors on the notify list yet for " + trade + " in " + state.region +
+      ". Add them on the Vendor Directory tab of the CW Solicitations Sheet and they get the next one.";
+    return;
+  }
+  var id = String(r.id || "");
+  var link = /^(LV|NNV)-/.test(id)
+    ? "https://citywidelv.github.io/cw-vendor-shop/respond.html?id=" + encodeURIComponent(id)
+    : "https://citywidelv.github.io/cw-vendor-shop/opportunities.html";
+  var subject = "New City Wide Opportunity: " + v("title");
+  var body = "Hi all,\r\n\r\n" +
+    "I just posted a new opportunity for " + trade + ": " + v("title") + " (" + state.region + ").\r\n\r\n" +
+    "View the details and respond here:\r\n" + link + "\r\n\r\n" +
+    (v("deadline") ? "Respond by " + v("deadline") + ". " : "") + "First qualified answers get the walkthrough.\r\n\r\n" +
+    v("contact_name") + "\r\nCity Wide Facility Solutions";
+  var base = "mailto:?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body) + "&bcc=";
+  // keep each mailto under ~1800 chars or mail clients truncate; batch if needed
+  var batches = [], cur = [];
+  emails.forEach(function (em) {
+    if (cur.length && (base + encodeURIComponent(cur.concat([em]).join(";"))).length > 1800) {
+      batches.push(cur); cur = [];
+    }
+    cur.push(em);
+  });
+  if (cur.length) batches.push(cur);
+  batches.forEach(function (b, i) {
+    var a = document.createElement("a");
+    a.className = "btn";
+    a.style.display = "inline-block"; a.style.textDecoration = "none"; a.style.margin = "4px 6px 2px";
+    a.href = base + encodeURIComponent(b.join(";"));
+    a.textContent = batches.length > 1
+      ? "Notify Available Vendors: Batch " + (i + 1) + " of " + batches.length + " (" + b.length + ")"
+      : "Notify Available Vendors (" + b.length + ")";
+    btns.appendChild(a);
+  });
+  hint.textContent = "Opens a new email in Outlook with every matching " + trade +
+    " vendor in BCC. Look it over, make it yours, and hit send.";
+}
+
 document.getElementById("go").addEventListener("click", function () {
   var msg = document.getElementById("msg");
   msg.className = ""; msg.textContent = "";
@@ -605,6 +705,7 @@ document.getElementById("go").addEventListener("click", function () {
     contact_name: "Your name", contact_email: "Your email", passcode: "Team passcode" };
   if (state.pay_type === "set" && !v("pay_amount")) { msg.className = "err"; msg.textContent = "Pay amount is required (or switch to Quote Requested)."; return; }
   if (state.type === "contract" && !v("frequency")) { msg.className = "err"; msg.textContent = "Frequency is required for contracts (type anything, e.g., 3x per week)."; return; }
+  if (!state.fsm) { msg.className = "err"; msg.textContent = "Pick the posting FSM (your card, most likely)."; return; }
   for (var k in required) {
     if (!v(k)) { msg.className = "err"; msg.textContent = required[k] + " is required."; return; }
   }
@@ -624,7 +725,7 @@ document.getElementById("go").addEventListener("click", function () {
     certifications: checks("certChecks", "cert_other"),
     special_requirements: (checks("stdChecks") ? checks("stdChecks") + ". " : "") + v("special_requirements"),
     contact_name: v("contact_name"), contact_email: v("contact_email"), contact_phone: v("contact_phone"),
-    notes: "", account_name: v("account_name"),
+    notes: "", account_name: v("account_name"), fsm: state.fsm,
     response_form: JSON.stringify({
       mode: state.mode,
       pricing: state.mode === "quote" ? document.getElementById("quote_basis_sel").value : "",
@@ -651,6 +752,7 @@ document.getElementById("go").addEventListener("click", function () {
       if (r && r.ok) {
         document.getElementById("f").classList.add("hidden");
         document.getElementById("doneId").textContent = r.id;
+        renderNotify(r);
         document.getElementById("done").classList.remove("hidden");
         window.scrollTo(0, 0);
       } else {
