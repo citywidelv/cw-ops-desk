@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Desk | Post an Opportunity</title>
-<!-- build 2026-07-15a: notify available vendors on one-time projects -->
+<!-- build 2026-07-15a: expanded trade list, trade-aware defaults -->
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
   --border:#E5E5E5;--gold:#E5B423;
@@ -64,15 +64,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
   margin-top:12px}
 .preview b{color:var(--gold);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
   display:block;margin-bottom:3px}
-
-/* FSM picker (added 2026-07-15) */
-.fsm-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.fsm-pick button{font-family:inherit;text-align:left;background:#fff;border:2px solid var(--border);
-  border-radius:10px;padding:10px;cursor:pointer;display:flex;align-items:center;gap:10px}
-.fsm-pick button img{width:40px;height:44px;border-radius:6px;object-fit:cover;flex:none}
-.fsm-pick button .fp-n{font-size:12.5px;font-weight:700;line-height:1.3;color:var(--black)}
-.fsm-pick button .fp-t{display:block;font-size:10px;font-weight:400;color:var(--grey)}
-.fsm-pick button.on{border-color:var(--red);background:#FDF1F2}
 .submit-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:6px}
 .btn{font-family:inherit;font-size:15px;font-weight:700;background:var(--red);color:#fff;
   border:none;border-radius:8px;padding:14px 28px;cursor:pointer}
@@ -120,14 +111,30 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
     </div>
     <div><label>Trade <span class="req">*</span></label>
       <select id="trade">
-        <option>Janitorial</option><option>Day Porter</option>
-        <option>Floor Care (Strip &amp; Wax / Buff)</option><option>Carpet Cleaning</option>
-        <option>Window Cleaning</option><option>Pressure Washing</option>
-        <option>Landscaping</option><option>Tree Trimming / Palms</option>
-        <option>Security / Guard Services</option><option>Street Sweeping</option>
-        <option>Parking Lot Services</option><option>Handyman / Repairs</option>
-        <option>Post-Construction Clean</option>
-        <option>Specialty (Medical / Clean Room / GMP)</option><option>Other</option>
+        <optgroup label="Cleaning">
+          <option>Janitorial</option><option>Day Porter</option>
+          <option>Floor Care (Strip &amp; Wax / Buff)</option><option>Carpet Cleaning</option>
+          <option>Tile &amp; Grout</option><option>Upholstery Cleaning</option>
+          <option>Window Cleaning</option><option>High Dusting / Ceilings</option>
+          <option>Duct &amp; Vent Cleaning</option><option>Post-Construction Clean</option>
+          <option>Specialty (Medical / Clean Room / GMP)</option>
+        </optgroup>
+        <optgroup label="Exterior &amp; Grounds">
+          <option>Pressure Washing</option><option>Landscaping</option>
+          <option>Tree Trimming / Palms</option><option>Snow Removal</option>
+          <option>Parking Lot Services</option><option>Street Sweeping</option>
+          <option>Graffiti Removal</option><option>Solar Panel Cleaning</option>
+          <option>Trash Bin Cleaning</option>
+        </optgroup>
+        <optgroup label="Building Trades">
+          <option>Handyman / Repairs</option><option>Painting</option>
+          <option>Pest Control</option><option>HVAC / Mechanical</option>
+          <option>Plumbing</option><option>Electrical</option>
+          <option>Junk Removal / Hauling</option><option>Water / Flood Restoration</option>
+        </optgroup>
+        <optgroup label="Other Services">
+          <option>Security / Guard Services</option><option>Other</option>
+        </optgroup>
       </select>
     </div>
     <div><label>Facility Type <span class="req">*</span></label>
@@ -234,7 +241,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
 
 <div class="card">
   <h2><span class="n">4</span>Requirements</h2>
-  <div class="sub">Check everything that applies. This is what keeps the wrong crew from raising their hand.</div>
+  <div class="sub">Check everything that applies. This is what keeps the wrong crew from raising their hand. Chemical and expectation defaults follow the trade you picked; adjust freely.</div>
   <label>Required Chemicals</label>
   <div class="checks" id="chemChecks">
     <label><input type="checkbox" value="EnvirOx H2Orange2 Hyper-Concentrate 112" checked> H2Orange2 112</label>
@@ -313,12 +320,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
 
 <div class="card">
   <h2><span class="n">6</span>Deadline &amp; Contact</h2>
-  <div class="sub">Pick the FSM the job belongs to. Contact fields are internal: confirmations and response CCs only, never shown to vendors.</div>
+  <div class="sub">Interested vendors email the contact directly from the posting.</div>
   <div class="grid">
-    <div class="full"><label>Posting FSM: Who Owns This Job? <span class="req">*</span></label>
-      <div class="fsm-pick" id="fsmPick"></div>
-      <div class="hint">Your photo, name, and title appear at the bottom of the public posting so vendors know who the job belongs to. Phone numbers are never shown publicly.</div>
-    </div>
     <div><label>Respond By <span class="req">*</span></label><input type="text" id="deadline" placeholder="e.g., 8:00 AM Monday, July 20"></div>
     <div></div>
     <div><label>Your Name <span class="req">*</span></label><input type="text" id="contact_name" placeholder="First Last"></div>
@@ -341,10 +344,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
 <div id="done" class="success hidden">
   <h2>Posted!</h2>
   <p>ID <b id="doneId"></b> is live on the Vendor Resource Center and logged to the Sheet. A confirmation email is on the way to the service line and to you.</p>
-  <div id="notifyBox" class="hidden">
-    <div id="notifyBtns"></div>
-    <p id="notifyHint" style="font-size:12.5px;color:var(--grey);margin:10px auto 0;max-width:58ch"></p>
-  </div>
   <p><a href="https://citywidelv.github.io/cw-vendor-shop/opportunities.html" target="_blank" rel="noopener">View the live board</a></p>
   <p><button class="btn" onclick="location.reload()">Post Another</button></p>
 </div>
@@ -355,39 +354,7 @@ citywidelv.github.io/cw-vendor-shop/opportunities.html</div>
 
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
-var state = { region: "Las Vegas", type: "contract", pay_type: "set", mode: "interest", fsm: "" };
-var FSM_ROSTER = {
-  alex:   { name:"Alex Manon",     title:"Facility Solutions Manager",  region:"Las Vegas" },
-  brett:  { name:"Brett Stephens", title:"Facility Solutions Manager",  region:"Las Vegas" },
-  jake:   { name:"Jake Schmidt",   title:"Facility Solutions Manager",  region:"Las Vegas" },
-  sam:    { name:"Sam Morse",      title:"Facility Solutions Manager",  region:"Northern Nevada" },
-  jeremy: { name:"Jeremy Walker",  title:"General Manager",             region:"Northern Nevada" },
-  robert: { name:"Robert Krause",  title:"Director of Operations",      region:"Las Vegas" },
-  josh:   { name:"Joshua Smith",   title:"Business Operations Manager", region:"Las Vegas & Northern Nevada" },
-  tj:     { name:"TJ Robert",      title:"Chief Operating Officer",     region:"Las Vegas & Northern Nevada" }
-};
-var FSM_PHOTO_BASE = "https://emailer.emfluence.com/clients/citywide/uploadedfiles/Franchise-Location-Uploads/Las_Vegas/";
-var FSM_PHOTOS = { alex:"IMG_4680.jpg", brett:"IMG_4080.PNG", jake:"IMG_3966.jpg", sam:"IMG_5569.jpg",
-  jeremy:"IMG_3968.jpg", robert:"IMG_3964.jpg", josh:"IMG_3963.jpg", tj:"IMG_3962.jpg" };
-(function buildFsmPick(){
-  var box = document.getElementById("fsmPick");
-  Object.keys(FSM_ROSTER).forEach(function(k){
-    var f = FSM_ROSTER[k];
-    var b = document.createElement("button");
-    b.type = "button"; b.setAttribute("data-fsm", k);
-    b.innerHTML = '<img src="' + FSM_PHOTO_BASE + FSM_PHOTOS[k] + '" alt="' + f.name + '">'
-      + '<span class="fp-n">' + f.name + '<span class="fp-t">' + f.title + '</span></span>';
-    b.addEventListener("click", function(){
-      Array.prototype.forEach.call(box.querySelectorAll("button"), function(x){ x.classList.remove("on"); });
-      b.classList.add("on");
-      state.fsm = k;
-      var cn = document.getElementById("contact_name");
-      if (!cn.value.trim()) cn.value = f.name;
-    });
-    box.appendChild(b);
-  });
-})();
-
+var state = { region: "Las Vegas", type: "contract", pay_type: "set", mode: "interest" };
 
 var TRADE_QS = {
   "Janitorial": [
@@ -430,17 +397,82 @@ var TRADE_QS = {
     "Truck mount or portable extraction?",
     "What is your typical dry time?"
   ],
+  "Tile & Grout": [
+    "What machines and process do you use for tile and grout work?",
+    "Is sealing included in your price?"
+  ],
+  "Upholstery Cleaning": [
+    "What cleaning method do you use: hot water extraction, dry clean, or encapsulation?",
+    "What is your typical dry time?"
+  ],
   "Window Cleaning": [
     "Can you do high or lift work? Do you have lift certification?",
     "Does your price include interior AND exterior?"
+  ],
+  "High Dusting / Ceilings": [
+    "What lift or reach equipment do you own, and how high can you work?",
+    "Do you have lift certification and fall protection?"
+  ],
+  "Duct & Vent Cleaning": [
+    "Are you NADCA certified?",
+    "What equipment do you use, and do you provide before and after photos?"
   ],
   "Pressure Washing": [
     "Hot or cold water rig? What GPM and PSI?",
     "Can you reclaim wash water where required?"
   ],
+  "Snow Removal": [
+    "What plow and de-icing equipment do you run?",
+    "What is your response time once snow starts falling?",
+    "Is de-icing material included in your price?"
+  ],
+  "Graffiti Removal": [
+    "What removal methods do you use: chemical, soda blast, pressure, or paint-over?",
+    "Can you color match for paint-overs?"
+  ],
+  "Solar Panel Cleaning": [
+    "What is your cleaning method: water-fed pole, deionized water, or manual?",
+    "Are you set up for roof work: fall protection, harnesses, insurance?"
+  ],
+  "Trash Bin Cleaning": [
+    "Do you run a truck-mounted bin washer? What make?",
+    "How do you handle wash water reclamation?"
+  ],
   "Handyman / Repairs": [
     "Which trades are you licensed for?",
     "Do you carry your own materials, or bill materials separately?"
+  ],
+  "Painting": [
+    "Are you a licensed Nevada painting contractor? Give us your license number.",
+    "Interior, exterior, or both?",
+    "Are paint and materials included in your price, or billed separately?"
+  ],
+  "Pest Control": [
+    "What is your Nevada pest control license number?",
+    "What pests does your plan cover, and what treatment schedule do you recommend?"
+  ],
+  "HVAC / Mechanical": [
+    "What is your Nevada contractor license number and classification?",
+    "Are your techs EPA 608 certified?",
+    "Do you offer emergency response? What is your typical response time?"
+  ],
+  "Plumbing": [
+    "What is your Nevada contractor license number?",
+    "Do you offer emergency response? What is your typical response time?"
+  ],
+  "Electrical": [
+    "What is your Nevada contractor license number?",
+    "Which electrical work do you handle: lighting, panels, low voltage, EV chargers?"
+  ],
+  "Junk Removal / Hauling": [
+    "What truck and trailer capacity do you run?",
+    "Are dump and disposal fees included in your price?",
+    "How fast can you mobilize for a same-week haul?"
+  ],
+  "Water / Flood Restoration": [
+    "Are you IICRC certified? Which certifications?",
+    "Do you offer 24/7 emergency response? What is your response time?",
+    "What extraction and drying equipment do you own?"
   ],
   "Post-Construction Clean": [
     "How large a crew can you field for surge work?",
@@ -459,7 +491,34 @@ function fillTradeQs() {
   document.getElementById("questions").value = (TRADE_QS[t] || []).join("\n");
 }
 document.getElementById("questions").addEventListener("input", function () { qsTouched = true; });
-document.getElementById("trade").addEventListener("change", function () { fillTradeQs(); });
+
+/* trade-aware defaults: janitorial-family trades get the EnvirOx chemical set and
+   the final-walk expectation pre-checked; every other trade starts clean. The FSM
+   can still check or uncheck anything; manual edits stop the auto-reset. */
+var JAN_FAMILY = /janitorial|day porter|post-construction|specialty/i;
+var DEFAULT_CHEMS = ["EnvirOx H2Orange2 Hyper-Concentrate 112", "EnvirOx OxyGenesis", "EnvirOx Mineral Shock"];
+var chemTouched = false, stdTouched = false;
+function isJanFamily() { return JAN_FAMILY.test(document.getElementById("trade").value); }
+function applyTradeDefaults() {
+  var jan = isJanFamily();
+  if (!chemTouched) {
+    Array.prototype.forEach.call(document.querySelectorAll("#chemChecks input"), function (c) {
+      c.checked = jan && DEFAULT_CHEMS.indexOf(c.value) > -1;
+    });
+  }
+  if (!stdTouched) {
+    Array.prototype.forEach.call(document.querySelectorAll("#stdChecks input"), function (c) {
+      c.checked = jan && c.value.indexOf("Final walk") === 0;
+    });
+  }
+}
+Array.prototype.forEach.call(document.querySelectorAll("#chemChecks input"), function (c) {
+  c.addEventListener("change", function () { chemTouched = true; });
+});
+Array.prototype.forEach.call(document.querySelectorAll("#stdChecks input"), function (c) {
+  c.addEventListener("change", function () { stdTouched = true; });
+});
+document.getElementById("trade").addEventListener("change", function () { fillTradeQs(); applyTradeDefaults(); });
 
 function segInit(id, key, fn) {
   var seg = document.getElementById(id);
@@ -536,58 +595,7 @@ segInit("segRegion", "region");
 segInit("segType", "type", updateType);
 segInit("segPay", "pay_type", updatePay);
 segInit("segMode", "mode", updateModeFields);
-updateType(); updatePay(); updatePreview(); fillTradeQs();
-
-// Notify Available Vendors: one-time projects only. The Apps Script returns
-// notify_emails (Vendor Directory tab, matched on trade + region). Clicking a
-// button opens the FSM's mail client (Outlook) with every match in BCC.
-function renderNotify(r) {
-  if (state.type !== "project") return;
-  var box = document.getElementById("notifyBox");
-  var btns = document.getElementById("notifyBtns");
-  var hint = document.getElementById("notifyHint");
-  btns.innerHTML = ""; hint.textContent = "";
-  box.classList.remove("hidden");
-  var emails = (r && Object.prototype.toString.call(r.notify_emails) === "[object Array]") ? r.notify_emails : [];
-  var trade = document.getElementById("trade").value;
-  if (!emails.length) {
-    hint.textContent = "No vendors on the notify list yet for " + trade + " in " + state.region +
-      ". Add them on the Vendor Directory tab of the CW Solicitations Sheet and they get the next one.";
-    return;
-  }
-  var id = String(r.id || "");
-  var link = /^(LV|NNV)-/.test(id)
-    ? "https://citywidelv.github.io/cw-vendor-shop/respond.html?id=" + encodeURIComponent(id)
-    : "https://citywidelv.github.io/cw-vendor-shop/opportunities.html";
-  var subject = "New City Wide Opportunity: " + v("title");
-  var body = "Hi all,\r\n\r\n" +
-    "I just posted a new opportunity for " + trade + ": " + v("title") + " (" + state.region + ").\r\n\r\n" +
-    "View the details and respond here:\r\n" + link + "\r\n\r\n" +
-    (v("deadline") ? "Respond by " + v("deadline") + ". " : "") + "First qualified answers get the walkthrough.\r\n\r\n" +
-    v("contact_name") + "\r\nCity Wide Facility Solutions";
-  var base = "mailto:?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body) + "&bcc=";
-  // keep each mailto under ~1800 chars or mail clients truncate; batch if needed
-  var batches = [], cur = [];
-  emails.forEach(function (em) {
-    if (cur.length && (base + encodeURIComponent(cur.concat([em]).join(";"))).length > 1800) {
-      batches.push(cur); cur = [];
-    }
-    cur.push(em);
-  });
-  if (cur.length) batches.push(cur);
-  batches.forEach(function (b, i) {
-    var a = document.createElement("a");
-    a.className = "btn";
-    a.style.display = "inline-block"; a.style.textDecoration = "none"; a.style.margin = "4px 6px 2px";
-    a.href = base + encodeURIComponent(b.join(";"));
-    a.textContent = batches.length > 1
-      ? "Notify Available Vendors: Batch " + (i + 1) + " of " + batches.length + " (" + b.length + ")"
-      : "Notify Available Vendors (" + b.length + ")";
-    btns.appendChild(a);
-  });
-  hint.textContent = "Opens a new email in Outlook with every matching " + trade +
-    " vendor in BCC. Look it over, make it yours, and hit send.";
-}
+updateType(); updatePay(); updatePreview(); fillTradeQs(); applyTradeDefaults();
 
 document.getElementById("go").addEventListener("click", function () {
   var msg = document.getElementById("msg");
@@ -597,7 +605,6 @@ document.getElementById("go").addEventListener("click", function () {
     contact_name: "Your name", contact_email: "Your email", passcode: "Team passcode" };
   if (state.pay_type === "set" && !v("pay_amount")) { msg.className = "err"; msg.textContent = "Pay amount is required (or switch to Quote Requested)."; return; }
   if (state.type === "contract" && !v("frequency")) { msg.className = "err"; msg.textContent = "Frequency is required for contracts (type anything, e.g., 3x per week)."; return; }
-  if (!state.fsm) { msg.className = "err"; msg.textContent = "Pick the posting FSM (your card, most likely)."; return; }
   for (var k in required) {
     if (!v(k)) { msg.className = "err"; msg.textContent = required[k] + " is required."; return; }
   }
@@ -617,7 +624,7 @@ document.getElementById("go").addEventListener("click", function () {
     certifications: checks("certChecks", "cert_other"),
     special_requirements: (checks("stdChecks") ? checks("stdChecks") + ". " : "") + v("special_requirements"),
     contact_name: v("contact_name"), contact_email: v("contact_email"), contact_phone: v("contact_phone"),
-    notes: "", account_name: v("account_name"), fsm: state.fsm,
+    notes: "", account_name: v("account_name"),
     response_form: JSON.stringify({
       mode: state.mode,
       pricing: state.mode === "quote" ? document.getElementById("quote_basis_sel").value : "",
@@ -644,7 +651,6 @@ document.getElementById("go").addEventListener("click", function () {
       if (r && r.ok) {
         document.getElementById("f").classList.add("hidden");
         document.getElementById("doneId").textContent = r.id;
-        renderNotify(r);
         document.getElementById("done").classList.remove("hidden");
         window.scrollTo(0, 0);
       } else {
