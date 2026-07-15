@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Vendor Responses | CW Ops Hub</title>
+<!-- build 2026-07-15a -->
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+a{color:var(--red)}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.head .bar{max-width:1080px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  border-left:2px solid var(--border);padding-left:14px}
+.head .t a{color:inherit;text-decoration:none}
+.head .badge{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--black);color:#fff;border-left:3px solid var(--gold);padding:4px 10px}
+.wrap{max-width:1080px;margin:0 auto;padding:26px 20px 60px}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 20px;max-width:66ch}
+.gatebox{max-width:360px;background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.gatebox input{width:100%;font-family:inherit;font-size:14px;border:1.5px solid var(--border);
+  border-radius:8px;padding:10px 12px;margin:12px 0;text-align:center}
+.btn{font-family:inherit;font-size:14px;font-weight:700;background:var(--red);color:#fff;border:none;
+  border-radius:8px;padding:11px 22px;cursor:pointer}
+.btn:hover{background:var(--red-dark)}
+.btn.ghost{background:#fff;color:var(--black);border:2px solid var(--border)}
+.btn.sm{font-size:12px;padding:7px 14px}
+#gmsg{font-size:12.5px;font-weight:700;color:var(--red)}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 20px}
+.tools input[type=search]{font-family:inherit;font-size:13px;border:1.5px solid var(--border);
+  border-radius:20px;padding:9px 16px;min-width:220px;background:#fff}
+.tools .fbtn{font-family:inherit;font-size:12.5px;font-weight:700;background:#fff;color:var(--black);
+  border:2px solid var(--border);border-radius:20px;padding:8px 14px;cursor:pointer}
+.tools .fbtn.on{background:var(--black);border-color:var(--black);color:#fff}
+.pgroup{background:#fff;border:1px solid var(--border);border-left:5px solid var(--red);border-radius:12px;
+  box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
+.pgroup.filled{border-left-color:var(--grey)}
+.phead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 20px;cursor:pointer}
+.phead:hover{background:#FAFAFA}
+.phead h2{font-size:15.5px;flex:1;min-width:200px}
+.phead .meta{font-size:12px;color:var(--grey)}
+.pbadge{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:4px;padding:3px 9px}
+.pb-region{background:var(--black);color:#fff}
+.pb-open{background:var(--red);color:#fff}
+.pb-filled{background:var(--light);color:var(--grey);border:1px solid var(--border)}
+.pb-count{background:#FBF3D6;border:1px solid var(--gold);color:var(--black)}
+.pbody{display:none;border-top:1px solid var(--border);padding:6px 20px 18px}
+.pgroup.open .pbody{display:block}
+.rcard{border:1px solid var(--border);border-radius:10px;margin-top:14px;background:#fff}
+.rhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:13px 16px;cursor:pointer}
+.rhead:hover{background:#FAFAFA}
+.rhead b{font-size:14px}
+.rhead .sub{font-size:12px;color:var(--grey)}
+.rhead .amt{margin-left:auto;font-size:16px;font-weight:700;color:var(--red);white-space:nowrap}
+.rbody{display:none;border-top:1px solid var(--border);padding:14px 18px 18px}
+.rcard.open .rbody{display:block}
+.qa{margin:0 0 4px}
+.qa dt{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--grey);
+  margin-top:12px}
+.qa dd{margin:2px 0 0;white-space:pre-wrap;font-size:13.5px}
+.ractions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:12px;border-top:1px dashed var(--border)}
+.state{background:#fff;border:1px dashed var(--border);border-radius:12px;padding:44px 24px;
+  text-align:center;color:var(--grey)}
+.state b{display:block;color:var(--black);font-size:16px;margin-bottom:6px}
+.hidden{display:none!important}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:24px}
+@media print{
+  body{background:#fff}
+  .head,.tools,.gatebox,.foot,.ractions,.phead .meta{display:none!important}
+  .pgroup,.rcard{border:1px solid #ccc;box-shadow:none;page-break-inside:avoid}
+  .pbody,.rbody{display:block!important}
+  body.printing-one .pgroup:not(.print-target){display:none}
+  body.printing-one .rcard:not(.print-target){display:none}
+}
+</style>
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t"><a href="index.html">&larr; Ops Hub</a></span>
+  <span class="badge">Internal Team Use</span>
+</div></header>
+
+<div class="wrap">
+<h1>Vendor Responses</h1>
+<p class="lede">Every interest letter and quote, readable in full. Click a posting to see who raised their hand; click a response for the whole answer sheet, its PDF, or a clean printout.</p>
+
+<div id="gate" class="gatebox hidden">
+  <b>Team passcode</b>
+  <input type="password" id="gpass" placeholder="Team passcode">
+  <button class="btn" id="ggo">View Responses</button>
+  <div id="gmsg"></div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="tools">
+    <input type="search" id="q" placeholder="Search company, posting, trade&hellip;">
+    <button class="fbtn on" data-f="all">All Postings</button>
+    <button class="fbtn" data-f="open">Open</button>
+    <button class="fbtn" data-f="filled">Filled</button>
+    <button class="fbtn" data-f="responded">Has Responses</button>
+    <button class="btn ghost sm" id="reload" type="button">Refresh</button>
+  </div>
+  <div id="list"><div class="state">Loading&hellip;</div></div>
+</div>
+</div>
+
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
+
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var KEY = "cwOpsHubPass";
+var FILTER = "all", QUERY = "", DATA = null;
+
+function esc(s){var d=document.createElement("div");d.textContent=String(s==null?"":s);return d.innerHTML;}
+function fmtMoney(v){
+  if(v===null||v===undefined||v==="")return "";
+  var n=Number(String(v).replace(/[$,]/g,""));
+  if(!isNaN(n)&&n>0)return "$"+n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  return String(v);
+}
+function qa(label,val){
+  if(val===null||val===undefined||String(val).trim()==="")return "";
+  return "<dt>"+esc(label)+"</dt><dd>"+esc(val)+"</dd>";
+}
+function rCard(r){
+  var isQuote = String(r.mode||"").toLowerCase()==="quote";
+  var body = '<dl class="qa">'
+    + qa("Received", r.received)
+    + qa("Contact", (r.contact_name||"") + (r.email ? " | " + r.email : "") + (r.phone ? " | " + r.phone : ""))
+    + qa("Vendor packet on file", r.packet_on_file)
+    + qa("Earliest start", r.earliest_start)
+    + qa("Staffing plan", r.staffing_plan)
+    + qa("Crew size", r.crew_size)
+    + qa("Supervision plan: who performs the final walk", r.supervision_plan)
+    + qa("Who trains the crew", r.training_plan)
+    + qa("Equipment they bring", r.equipment)
+    + qa("Trade questions", r.confirmations)
+    + (isQuote ? qa("Quote", fmtMoney(r.quote_amount) + (r.quote_basis ? " " + r.quote_basis : "")) : "")
+    + (isQuote ? qa("Quote includes", r.quote_details) : "")
+    + qa("Comments", r.comments)
+    + qa("Response ID", r.response_id)
+    + "</dl>";
+  var actions = '<div class="ractions">'
+    + (r.pdf_url ? '<a class="btn sm" href="'+esc(r.pdf_url)+'" target="_blank" rel="noopener">Open PDF</a>' : "")
+    + '<button class="btn ghost sm" onclick="printOne(this)" type="button">Print This Response</button>'
+    + (r.email ? '<a class="btn ghost sm" href="mailto:'+esc(r.email)+'?subject='+encodeURIComponent("Re: "+(r.posting_title||"your response")+" ("+(r.posting_id||"")+")")+'">Email '+esc(r.contact_name||"Vendor")+'</a>' : "")
+    + "</div>";
+  return '<div class="rcard"><div class="rhead" onclick="this.parentNode.classList.toggle(\'open\')">'
+    + "<b>"+esc(r.company||r.contact_name||"Vendor")+"</b>"
+    + '<span class="sub">'+(isQuote?"Quote":"Interest letter")+(r.received?" &middot; "+esc(r.received):"")+"</span>"
+    + (isQuote && r.quote_amount ? '<span class="amt">'+esc(fmtMoney(r.quote_amount))+"</span>" : "")
+    + '</div><div class="rbody">'+body+actions+"</div></div>";
+}
+function pGroup(p, resps){
+  var filled = String(p.filled).toUpperCase()==="TRUE" || p.filled===true;
+  var rHtml = resps.length ? resps.map(rCard).join("")
+    : '<div class="state" style="padding:22px"><b>No responses yet</b>The posting is live; answers land here the moment they arrive.</div>';
+  return '<div class="pgroup'+(filled?" filled":"")+'" data-filled="'+(filled?1:0)+'" data-n="'+resps.length+'">'
+    + '<div class="phead" onclick="this.parentNode.classList.toggle(\'open\')">'
+    + '<span class="pbadge '+(filled?"pb-filled":"pb-open")+'">'+(filled?"Filled":"Open")+"</span>"
+    + '<span class="pbadge pb-region">'+esc(p.region||"")+"</span>"
+    + "<h2>"+esc(p.title||p.id)+(p.account_name?' <span style="font-weight:400;color:var(--grey);font-size:12px">('+esc(p.account_name)+")</span>":"")+"</h2>"
+    + '<span class="pbadge pb-count">'+resps.length+(resps.length===1?" response":" responses")+"</span>"
+    + '<span class="meta">'+esc(p.trade||"")+(p.posted?" &middot; posted "+esc(p.posted):"")+" &middot; "+esc(p.id||"")+"</span>"
+    + '</div><div class="pbody">'+rHtml+"</div></div>";
+}
+function render(){
+  if(!DATA)return;
+  var byPost={};
+  (DATA.responses||[]).forEach(function(r){
+    var k=String(r.posting_id||"");
+    (byPost[k]=byPost[k]||[]).push(r);
+  });
+  var posts=(DATA.postings||[]).slice().reverse(); // newest first
+  var q=QUERY.toLowerCase();
+  var html=posts.filter(function(p){
+    var resps=byPost[String(p.id)]||[];
+    var filled=String(p.filled).toUpperCase()==="TRUE"||p.filled===true;
+    if(FILTER==="open"&&filled)return false;
+    if(FILTER==="filled"&&!filled)return false;
+    if(FILTER==="responded"&&!resps.length)return false;
+    if(q){
+      var hay=(JSON.stringify(p)+JSON.stringify(resps)).toLowerCase();
+      if(hay.indexOf(q)<0)return false;
+    }
+    return true;
+  }).map(function(p){return pGroup(p,byPost[String(p.id)]||[]);}).join("");
+  document.getElementById("list").innerHTML = html ||
+    '<div class="state"><b>Nothing matches</b>Try a different filter or search.</div>';
+}
+function printOne(btn){
+  var card=btn.closest(".rcard"), group=btn.closest(".pgroup");
+  document.body.classList.add("printing-one");
+  card.classList.add("print-target","open");
+  group.classList.add("print-target","open");
+  window.print();
+  setTimeout(function(){
+    document.body.classList.remove("printing-one");
+    card.classList.remove("print-target");
+    group.classList.remove("print-target");
+  },400);
+}
+function load(pass){
+  document.getElementById("list").innerHTML='<div class="state">Loading&hellip;</div>';
+  fetch(WEBHOOK,{method:"POST",headers:{"Content-Type":"text/plain"},
+    body:JSON.stringify({kind:"responses_list",passcode:pass})})
+    .then(function(r){return r.json();})
+    .then(function(r){
+      if(r&&r.ok){
+        localStorage.setItem(KEY,pass);
+        DATA=r;
+        document.getElementById("gate").classList.add("hidden");
+        document.getElementById("app").classList.remove("hidden");
+        render();
+      }else{
+        localStorage.removeItem(KEY);
+        showGate((r&&r.error)||"Wrong passcode.");
+      }
+    })
+    .catch(function(){showGate("Could not reach the service. Try again.");});
+}
+function showGate(msg){
+  document.getElementById("app").classList.add("hidden");
+  document.getElementById("gate").classList.remove("hidden");
+  document.getElementById("gmsg").textContent=msg||"";
+}
+document.getElementById("ggo").addEventListener("click",function(){
+  var p=document.getElementById("gpass").value.trim();
+  if(p)load(p);
+});
+document.getElementById("gpass").addEventListener("keydown",function(e){
+  if(e.key==="Enter"){var p=this.value.trim();if(p)load(p);}
+});
+document.getElementById("reload").addEventListener("click",function(){
+  var p=localStorage.getItem(KEY);if(p)load(p);
+});
+document.getElementById("q").addEventListener("input",function(){QUERY=this.value.trim();render();});
+Array.prototype.forEach.call(document.querySelectorAll(".fbtn"),function(b){
+  b.addEventListener("click",function(){
+    Array.prototype.forEach.call(document.querySelectorAll(".fbtn"),function(x){x.classList.remove("on");});
+    b.classList.add("on");FILTER=b.getAttribute("data-f");render();
+  });
+});
+(function(){
+  var p=localStorage.getItem(KEY);
+  if(p)load(p);else showGate("");
+})();
+</script>
+</body>
+</html>
