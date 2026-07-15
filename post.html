@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Desk | Post an Opportunity</title>
-<!-- build 2026-07-15b: expanded trade list + trade-aware defaults, on top of notify available vendors -->
+<!-- build 2026-07-15c: add Flooring Installation / Repair trade -->
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
   --border:#E5E5E5;--gold:#E5B423;
@@ -136,7 +136,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
           <option>Trash Bin Cleaning</option>
         </optgroup>
         <optgroup label="Building Trades">
-          <option>Handyman / Repairs</option><option>Painting</option>
+          <option>Handyman / Repairs</option><option>Flooring Installation / Repair</option>
+          <option>Painting</option>
           <option>Pest Control</option><option>HVAC / Mechanical</option>
           <option>Plumbing</option><option>Electrical</option>
           <option>Junk Removal / Hauling</option><option>Water / Flood Restoration</option>
@@ -490,6 +491,12 @@ var TRADE_QS = {
   "Handyman / Repairs": [
     "Which trades are you licensed for?",
     "Do you carry your own materials, or bill materials separately?"
+  ],
+  "Flooring Installation / Repair": [
+    "What is your Nevada contractor license number and classification?",
+    "Which products do you install: laminate, glue-down LVT, sheet vinyl, carpet tile?",
+    "Do you perform concrete moisture testing (ASTM F2170 / F1869) in-house, or subcontract it?",
+    "Can you work after hours or weekends in occupied buildings?"
   ],
   "Painting": [
     "Are you a licensed Nevada painting contractor? Give us your license number.",
