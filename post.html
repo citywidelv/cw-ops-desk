@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Desk | Post an Opportunity</title>
-<!-- build 2026-07-13b -->
+<!-- build 2026-07-15a: notify available vendors on one-time projects -->
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
   --border:#E5E5E5;--gold:#E5B423;
@@ -341,6 +341,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
 <div id="done" class="success hidden">
   <h2>Posted!</h2>
   <p>ID <b id="doneId"></b> is live on the Vendor Resource Center and logged to the Sheet. A confirmation email is on the way to the service line and to you.</p>
+  <div id="notifyBox" class="hidden">
+    <div id="notifyBtns"></div>
+    <p id="notifyHint" style="font-size:12.5px;color:var(--grey);margin:10px auto 0;max-width:58ch"></p>
+  </div>
   <p><a href="https://citywidelv.github.io/cw-vendor-shop/opportunities.html" target="_blank" rel="noopener">View the live board</a></p>
   <p><button class="btn" onclick="location.reload()">Post Another</button></p>
 </div>
@@ -534,6 +538,57 @@ segInit("segPay", "pay_type", updatePay);
 segInit("segMode", "mode", updateModeFields);
 updateType(); updatePay(); updatePreview(); fillTradeQs();
 
+// Notify Available Vendors: one-time projects only. The Apps Script returns
+// notify_emails (Vendor Directory tab, matched on trade + region). Clicking a
+// button opens the FSM's mail client (Outlook) with every match in BCC.
+function renderNotify(r) {
+  if (state.type !== "project") return;
+  var box = document.getElementById("notifyBox");
+  var btns = document.getElementById("notifyBtns");
+  var hint = document.getElementById("notifyHint");
+  btns.innerHTML = ""; hint.textContent = "";
+  box.classList.remove("hidden");
+  var emails = (r && Object.prototype.toString.call(r.notify_emails) === "[object Array]") ? r.notify_emails : [];
+  var trade = document.getElementById("trade").value;
+  if (!emails.length) {
+    hint.textContent = "No vendors on the notify list yet for " + trade + " in " + state.region +
+      ". Add them on the Vendor Directory tab of the CW Solicitations Sheet and they get the next one.";
+    return;
+  }
+  var id = String(r.id || "");
+  var link = /^(LV|NNV)-/.test(id)
+    ? "https://citywidelv.github.io/cw-vendor-shop/respond.html?id=" + encodeURIComponent(id)
+    : "https://citywidelv.github.io/cw-vendor-shop/opportunities.html";
+  var subject = "New City Wide Opportunity: " + v("title");
+  var body = "Hi all,\r\n\r\n" +
+    "I just posted a new opportunity for " + trade + ": " + v("title") + " (" + state.region + ").\r\n\r\n" +
+    "View the details and respond here:\r\n" + link + "\r\n\r\n" +
+    (v("deadline") ? "Respond by " + v("deadline") + ". " : "") + "First qualified answers get the walkthrough.\r\n\r\n" +
+    v("contact_name") + "\r\nCity Wide Facility Solutions";
+  var base = "mailto:?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body) + "&bcc=";
+  // keep each mailto under ~1800 chars or mail clients truncate; batch if needed
+  var batches = [], cur = [];
+  emails.forEach(function (em) {
+    if (cur.length && (base + encodeURIComponent(cur.concat([em]).join(";"))).length > 1800) {
+      batches.push(cur); cur = [];
+    }
+    cur.push(em);
+  });
+  if (cur.length) batches.push(cur);
+  batches.forEach(function (b, i) {
+    var a = document.createElement("a");
+    a.className = "btn";
+    a.style.display = "inline-block"; a.style.textDecoration = "none"; a.style.margin = "4px 6px 2px";
+    a.href = base + encodeURIComponent(b.join(";"));
+    a.textContent = batches.length > 1
+      ? "Notify Available Vendors: Batch " + (i + 1) + " of " + batches.length + " (" + b.length + ")"
+      : "Notify Available Vendors (" + b.length + ")";
+    btns.appendChild(a);
+  });
+  hint.textContent = "Opens a new email in Outlook with every matching " + trade +
+    " vendor in BCC. Look it over, make it yours, and hit send.";
+}
+
 document.getElementById("go").addEventListener("click", function () {
   var msg = document.getElementById("msg");
   msg.className = ""; msg.textContent = "";
@@ -589,6 +644,7 @@ document.getElementById("go").addEventListener("click", function () {
       if (r && r.ok) {
         document.getElementById("f").classList.add("hidden");
         document.getElementById("doneId").textContent = r.id;
+        renderNotify(r);
         document.getElementById("done").classList.remove("hidden");
         window.scrollTo(0, 0);
       } else {
