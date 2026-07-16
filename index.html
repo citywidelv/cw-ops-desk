@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
+<!-- build 2026-07-15: quick-links ribbon with dropdowns, rendered from auth JSON -->
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
   --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
@@ -26,6 +27,22 @@ a{color:var(--red)}
 .head .out{font-size:11px;font-weight:700;color:var(--grey);cursor:pointer;text-decoration:none;
   border:1px solid var(--border);border-radius:14px;padding:5px 12px;background:var(--light)}
 .head .out:hover{background:var(--red);color:#fff;border-color:var(--red)}
+/* quick-links ribbon (rendered from auth JSON nav) */
+.ribbon{border-top:1px solid var(--border);background:#fff;display:none}
+.ribbon.show{display:block}
+.ribbon .in{max-width:1080px;margin:0 auto;padding:0 14px;display:flex;gap:2px;flex-wrap:wrap}
+.ribbon .in>a,.rdd>a{display:inline-block;font-size:12px;font-weight:700;color:var(--black);
+  text-decoration:none;padding:9px 12px;border-radius:6px;white-space:nowrap}
+.ribbon .in>a:hover,.rdd>a:hover{background:var(--light);color:var(--red)}
+.rdd{position:relative}
+.rdd>a::after{content:" \25BE";font-size:9px;color:var(--grey)}
+.rdd .menu{display:none;position:absolute;top:100%;left:0;min-width:240px;background:#fff;
+  border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lift);
+  padding:8px;z-index:60}
+.rdd:hover .menu,.rdd:focus-within .menu{display:block}
+.rdd .menu a{display:block;font-size:12.5px;font-weight:700;color:var(--black);
+  text-decoration:none;padding:9px 12px;border-radius:6px;white-space:nowrap}
+.rdd .menu a:hover{background:var(--light);color:var(--red)}
 .hero{background:linear-gradient(120deg,var(--black) 0%,#3a3733 100%);color:#fff;
   padding:40px 0 34px;border-bottom:5px solid var(--red)}
 .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
@@ -100,12 +117,15 @@ div.card{cursor:default}
 </div>
 
 <div id="app" class="hidden">
-<header class="head"><div class="bar">
+<header class="head">
+<div class="bar">
   <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
   <span class="t">Ops Hub</span>
   <span class="badge">Internal Team Use</span>
   <a class="out" id="signout" href="#">Sign out</a>
-</div></header>
+</div>
+<div class="ribbon" id="ribbon"><div class="in" id="ribbonIn"></div></div>
+</header>
 
 <section class="hero"><div class="wrap">
   <h1>City Wide Operations Hub</h1>
@@ -157,6 +177,28 @@ function iconSvg(k){
 }
 function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
+function navA(label, href){
+  var tgt = /^https?:/.test(href) ? ' target="_blank" rel="noopener"' : '';
+  return '<a href="' + esc(href) + '"' + tgt + '>' + esc(label) + '</a>';
+}
+function renderNav(nav){
+  var ribbon = document.getElementById("ribbon");
+  var host = document.getElementById("ribbonIn");
+  if(!nav || !nav.length){ ribbon.classList.remove("show"); return; }
+  var html = "";
+  nav.forEach(function(n){
+    if(n.items && n.items.length){
+      html += '<div class="rdd"><a href="#" onclick="return false;">' + esc(n.label) + '</a><div class="menu">';
+      n.items.forEach(function(it){ html += navA(it.label, it.href); });
+      html += '</div></div>';
+    } else if(n.href){
+      html += navA(n.label, n.href);
+    }
+  });
+  host.innerHTML = html;
+  ribbon.classList.add("show");
+}
+
 function render(sections){
   var html = "";
   sections.forEach(function(sec){
@@ -202,10 +244,11 @@ function loadPill(){
   }catch(e){}
 }
 
-function unlock(sections){
+function unlock(r){
   document.getElementById("gate").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
-  render(sections);
+  render(r.sections);
+  renderNav(r.nav);
 }
 
 function tryPass(pass, isAuto){
@@ -221,7 +264,7 @@ function tryPass(pass, isAuto){
       btn.disabled = false; btn.textContent = "Enter";
       if(r && r.ok && r.sections){
         try{ localStorage.setItem(KEY, pass); }catch(e){}
-        unlock(r.sections);
+        unlock(r);
       } else {
         if(isAuto){ try{ localStorage.removeItem(KEY); }catch(e){} }
         err.textContent = (r && r.error) ? r.error : "That passcode is not right.";
