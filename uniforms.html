@@ -353,7 +353,7 @@ function buildNav(){
     const btn = document.createElement("button");
     btn.className = "nav-btn" + (isActive?" active":"");
     btn.innerHTML = svg(grp.icon) + esc(grp.label) + ' <span class="caret">&#9660;</span>';
-    btn.onclick = (e)=>{ e.stopPropagation(); toggleDrop(gi); };
+    btn.onclick = ()=>toggleDrop(gi);
     const dd = document.createElement("div"); dd.className="dropdown"; dd.id="dd-"+gi;
     const allWrap = document.createElement("div"); allWrap.className="dd-all";
     const allBtn = document.createElement("button");
@@ -404,7 +404,11 @@ function closeDrops(){
   document.querySelectorAll(".dropdown.show").forEach(d=>d.classList.remove("show"));
   document.querySelectorAll(".nav-btn.open").forEach(b=>b.classList.remove("open"));
 }
-document.addEventListener("click", closeDrops);
+document.addEventListener("click", (e)=>{
+  if(e.isTrusted === false) return; /* synthetic clicks from extensions */
+  if(e.target && e.target.closest && e.target.closest(".nav-item")) return;
+  closeDrops();
+});
 function pickCat(c){ activeCat=c; groupCats=null; closeDrops(); buildNav(); render(); window.scrollTo({top:0,behavior:'smooth'}); }
 let groupCats = null;
 function pickGroup(grp){ activeCat='__GRP__'; groupCats=grp; closeDrops(); buildNav(); render(); window.scrollTo({top:0,behavior:'smooth'}); }

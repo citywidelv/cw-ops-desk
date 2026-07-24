@@ -288,22 +288,23 @@ function renderMainNav(sections, nav){
   });
   host.innerHTML = html;
 
-  host.querySelectorAll(".nbtn[data-dd]").forEach(function(btn){
-    btn.addEventListener("click", function(e){
-      e.stopPropagation();
-      var dd = document.getElementById("dd-" + btn.getAttribute("data-dd"));
-      var wasOpen = dd.classList.contains("show");
-      closeMenus();
-      if(!wasOpen){ dd.classList.add("show"); btn.classList.add("open"); }
-    });
-  });
-  host.querySelectorAll("[data-jump]").forEach(function(a){
-    a.addEventListener("click", function(e){
+  /* One delegated handler (idempotent across re-renders); toggling never depends on
+     stopPropagation, so stray synthetic clicks from extensions cannot break it. */
+  host.onclick = function(e){
+    var jump = e.target.closest ? e.target.closest("[data-jump]") : null;
+    if(jump){
       e.preventDefault(); closeMenus();
-      var el = document.getElementById(a.getAttribute("data-jump"));
+      var el = document.getElementById(jump.getAttribute("data-jump"));
       if(el) el.scrollIntoView({behavior:"smooth", block:"start"});
-    });
-  });
+      return;
+    }
+    var btn = e.target.closest ? e.target.closest(".nbtn[data-dd]") : null;
+    if(!btn) return;
+    var dd = document.getElementById("dd-" + btn.getAttribute("data-dd"));
+    var wasOpen = dd.classList.contains("show");
+    closeMenus();
+    if(!wasOpen){ dd.classList.add("show"); btn.classList.add("open"); }
+  };
 }
 function menuLink(label, href, icon){
   var tgt = /^https?:/.test(href) ? ' target="_blank" rel="noopener"' : '';
@@ -313,7 +314,11 @@ function closeMenus(){
   document.querySelectorAll(".nmenu.show").forEach(function(d){ d.classList.remove("show"); });
   document.querySelectorAll(".nbtn.open").forEach(function(b){ b.classList.remove("open"); });
 }
-document.addEventListener("click", closeMenus);
+document.addEventListener("click", function(e){
+  if(e.isTrusted === false) return; /* synthetic clicks from extensions */
+  if(e.target && e.target.closest && e.target.closest(".nitem")) return;
+  closeMenus();
+});
 document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeMenus(); });
 
 /* ---------- Sections/cards (same data contract as before) ---------- */
