@@ -228,6 +228,18 @@ function iconSvg(k, size){
 function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function slug(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-"); }
 
+/* Long section names get short nav labels so the whole bar fits on one line.
+   Unknown/new sections fall back to their full name automatically. */
+var NAV_SHORT = {
+  "Vendor Solicitations":"Solicitations",
+  "Night Manager & Route Outs":"Night Manager",
+  "Pricing & Bid Calculators":"Calculators",
+  "Analysis & Field Tools":"Field Tools",
+  "Team & Admin":"Back Office",
+  "Vendor Resource Center":"Resource Center"
+};
+function navLabel(h){ return NAV_SHORT[h] || h; }
+
 /* Section icon: use the first card's icon so the nav stays meaningful as sections change */
 function sectionIcon(sec){
   var c = (sec.cards || []).find(function(x){ return x.icon; });
@@ -240,7 +252,7 @@ function renderMainNav(sections, nav){
   var html = "";
   sections.forEach(function(sec, si){
     html += '<div class="nitem"><button class="nbtn" data-dd="' + si + '">' +
-      iconSvg(sectionIcon(sec), 14) + esc(sec.h) + ' <span class="caret">&#9660;</span></button>' +
+      iconSvg(sectionIcon(sec), 14) + esc(navLabel(sec.h)) + ' <span class="caret">&#9660;</span></button>' +
       '<div class="nmenu" id="dd-' + si + '">';
     (sec.cards || []).forEach(function(c){
       if(c.href){
