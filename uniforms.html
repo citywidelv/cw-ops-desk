@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>City Wide Uniform Storefront</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='16' fill='%23D22730'/><text x='50' y='68' font-size='52' font-family='Verdana' font-weight='bold' fill='white' text-anchor='middle'>CW</text></svg>">
+<style>
+:root{
+  --cw-red:#D22730; --cw-black:#2D2A26; --cw-grey:#636466; --cw-white:#FFFFFF;
+  --cw-light-grey:#F5F5F5; --cw-border:#E5E5E5;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--cw-black); background:var(--cw-white); font-size:13px; line-height:1.6;
+}
+img{max-width:100%;}
+button{font-family:inherit; cursor:pointer;}
+input,select,textarea{font-family:inherit; font-size:13px;}
+
+header{
+  position:sticky; top:0; z-index:50; background:var(--cw-white);
+  border-bottom:3px solid var(--cw-red); box-shadow:0 1px 6px rgba(0,0,0,.08);
+}
+.hdr-inner{max-width:1200px; margin:0 auto; padding:10px 16px; display:flex; align-items:center; gap:16px;}
+.hdr-logo img{height:42px; display:block;}
+.hdr-title{font-weight:700; font-size:15px; letter-spacing:.02em; white-space:nowrap;}
+.hdr-title small{display:block; font-weight:400; color:var(--cw-grey); font-size:10px;}
+.hdr-search{flex:1; display:flex; max-width:520px;}
+.hdr-search input{width:100%; padding:10px 14px; border:1.5px solid var(--cw-border); border-radius:6px 0 0 6px; outline:none;}
+.hdr-search input:focus{border-color:var(--cw-red);}
+.hdr-search .clear-btn{border:1.5px solid var(--cw-border); border-left:none; background:var(--cw-light-grey); border-radius:0 6px 6px 0; padding:0 12px; color:var(--cw-grey);}
+.cart-btn{
+  margin-left:auto; background:var(--cw-red); color:#fff; border:none; border-radius:6px;
+  padding:10px 18px; font-weight:700; font-size:13px; display:flex; align-items:center; gap:8px;
+}
+.cart-btn .count{background:#fff; color:var(--cw-red); border-radius:10px; padding:0 8px; font-size:12px; min-width:22px; text-align:center;}
+
+.filterbar{background:var(--cw-light-grey); border-bottom:1px solid var(--cw-border);}
+.filterbar-inner{max-width:1200px; margin:0 auto; padding:10px 16px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+.chip{border:1.5px solid var(--cw-border); background:#fff; border-radius:16px; padding:6px 14px; font-size:12px; white-space:nowrap; color:var(--cw-black);}
+.chip.active{background:var(--cw-black); color:#fff; border-color:var(--cw-black);}
+.sort-sel{margin-left:auto; padding:6px 10px; border:1.5px solid var(--cw-border); border-radius:6px; background:#fff;}
+
+main{max-width:1200px; margin:0 auto; padding:16px;}
+.section-title{font-size:18px; font-weight:700; margin:16px 0 4px;}
+.section-sub{color:var(--cw-grey); font-size:11px; margin-bottom:12px;}
+.accent{width:48px; height:4px; background:var(--cw-red); border-radius:2px; margin:6px 0 14px;}
+.loading{color:var(--cw-grey); text-align:center; padding:64px 0;}
+
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px;}
+.card{border:1.5px solid var(--cw-border); border-radius:10px; background:#fff; padding:12px; display:flex; flex-direction:column; transition:box-shadow .15s;}
+.card:hover{box-shadow:0 4px 14px rgba(0,0,0,.10);}
+.card .imgwrap{height:160px; display:flex; align-items:center; justify-content:center; background:#fff; border-radius:6px; margin-bottom:10px; overflow:hidden;}
+.card .imgwrap img{max-height:100%; object-fit:contain;}
+.card h3{font-size:12.5px; font-weight:700; line-height:1.35; margin-bottom:2px;}
+.card .sku{color:var(--cw-grey); font-size:10px; margin-bottom:4px;}
+.card .desc{color:var(--cw-grey); font-size:11px; line-height:1.45; margin-bottom:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.card .desc.open{display:block; -webkit-line-clamp:unset;}
+.more-link{font-size:10px; color:var(--cw-red); font-weight:700; background:none; border:none; padding:0; margin-bottom:8px; text-align:left;}
+.card .price{font-size:16px; font-weight:700; margin-bottom:8px;}
+.card .price small{color:var(--cw-grey); font-weight:400; font-size:10px;}
+.opt-grp{margin-bottom:6px;}
+.opt-grp label{display:block; font-size:10px; font-weight:700; color:var(--cw-grey); margin-bottom:2px;}
+.opt-grp select{width:100%; padding:7px 6px; border:1.5px solid var(--cw-border); border-radius:6px;}
+.controls{margin-top:auto; display:flex; gap:6px; align-items:center; padding-top:8px;}
+.qty{display:flex; border:1.5px solid var(--cw-border); border-radius:6px; overflow:hidden;}
+.qty button{width:28px; height:34px; border:none; background:var(--cw-light-grey); font-size:15px; font-weight:700;}
+.qty input{width:38px; border:none; text-align:center; outline:none; -moz-appearance:textfield;}
+.qty input::-webkit-outer-spin-button,.qty input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.add-btn{flex:1; background:var(--cw-black); color:#fff; border:none; border-radius:6px; padding:9px 0; font-weight:700; font-size:12px;}
+.add-btn:hover{background:var(--cw-red);}
+.add-btn.added{background:#1a7f37;}
+.empty{color:var(--cw-grey); text-align:center; padding:48px 0;}
+
+.overlay{position:fixed; inset:0; background:rgba(45,42,38,.5); z-index:90; display:none;}
+.overlay.show{display:block;}
+.drawer{
+  position:fixed; top:0; right:-460px; width:min(460px,100vw); height:100vh; background:#fff; z-index:100;
+  box-shadow:-4px 0 18px rgba(0,0,0,.18); transition:right .25s ease; display:flex; flex-direction:column;
+}
+.drawer.show{right:0;}
+.drawer-hd{padding:16px; border-bottom:3px solid var(--cw-red); display:flex; align-items:center; justify-content:space-between;}
+.drawer-hd h2{font-size:16px;}
+.drawer-hd button{background:none; border:none; font-size:22px; color:var(--cw-grey);}
+.drawer-body{flex:1; overflow-y:auto; padding:16px;}
+.ci{display:flex; gap:10px; border-bottom:1px solid var(--cw-border); padding:10px 0;}
+.ci img{width:52px; height:52px; object-fit:contain; border:1px solid var(--cw-border); border-radius:6px; background:#fff;}
+.ci .ci-name{font-size:12px; font-weight:700; line-height:1.3;}
+.ci .ci-meta{font-size:10px; color:var(--cw-grey);}
+.ci .ci-right{margin-left:auto; text-align:right;}
+.ci .ci-price{font-weight:700; font-size:13px;}
+.ci .rm{background:none; border:none; color:var(--cw-red); font-size:10px; font-weight:700; padding:2px 0;}
+.ci .qty{transform:scale(.85); transform-origin:left;}
+.drawer-ft{border-top:1px solid var(--cw-border); padding:16px; background:var(--cw-light-grey);}
+.totrow{display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;}
+.totrow.grand{font-size:16px; font-weight:700; margin-top:6px;}
+.checkout-btn{width:100%; background:var(--cw-red); color:#fff; border:none; border-radius:6px; padding:13px; font-weight:700; font-size:14px; margin-top:10px;}
+.checkout-btn:disabled{background:var(--cw-grey); cursor:not-allowed;}
+
+.form-grp{margin-bottom:12px;}
+.form-grp label{display:block; font-size:11px; font-weight:700; margin-bottom:4px;}
+.form-grp label .req{color:var(--cw-red);}
+.form-grp input,.form-grp textarea,.form-grp select{width:100%; padding:9px 10px; border:1.5px solid var(--cw-border); border-radius:6px; outline:none;}
+.form-grp input:focus,.form-grp textarea:focus{border-color:var(--cw-red);}
+.notice{background:#FDF3F3; border:1px solid var(--cw-red); border-radius:6px; padding:10px; font-size:10px; color:var(--cw-black); line-height:1.5; margin-bottom:12px;}
+.success{padding:32px 16px; text-align:center;}
+.success .check{font-size:44px; color:#1a7f37;}
+.back-link{background:none; border:none; color:var(--cw-red); font-weight:700; font-size:12px; padding:0; margin-bottom:12px;}
+.hp{position:absolute; left:-9999px; opacity:0; height:0; overflow:hidden;}
+
+footer{border-top:1px solid var(--cw-border); margin-top:40px; padding:20px 16px; text-align:center; color:var(--cw-grey); font-size:10px;}
+footer b{color:var(--cw-black);}
+
+@media(max-width:640px){
+  .hdr-inner{flex-wrap:wrap;}
+  .hdr-title{display:none;}
+  .hdr-search{order:3; max-width:none; width:100%;}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(165px,1fr));}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-inner">
+    <a class="hdr-logo" href="#" onclick="resetView();return false;">
+      <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+    </a>
+    <div class="hdr-title">Uniform Storefront<small>Employee Uniform Requests &middot; Bennett Uniform</small></div>
+    <div class="hdr-search">
+      <input id="search" type="search" placeholder="Search uniforms, brands, colors..." autocomplete="off">
+      <button class="clear-btn" onclick="document.getElementById('search').value='';render();">&#10005;</button>
+    </div>
+    <button class="cart-btn" onclick="openCart()">Request <span class="count" id="cartCount">0</span></button>
+  </div>
+</header>
+
+<div class="filterbar">
+  <div class="filterbar-inner" id="chips"></div>
+</div>
+
+<main>
+  <div class="section-title" id="gridTitle">All Uniform Items</div>
+  <div class="section-sub" id="gridCount"></div>
+  <div class="accent"></div>
+  <div class="loading" id="loading">Loading the uniform catalog...</div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none">No items match your search. Try fewer words or another category.</div>
+</main>
+
+<div class="overlay" id="overlay" onclick="closeCart()"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-hd">
+    <h2 id="drawerTitle">Your Request</h2>
+    <button onclick="closeCart()">&#10005;</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-ft" id="drawerFoot"></div>
+</aside>
+
+<footer>
+  <b>City Wide Facility Solutions</b> &middot; Employee Uniform Storefront<br>
+  Catalog synced nightly from Bennett Uniform &middot; Questions? Contact your City Wide manager &middot; GoCityWide.com
+</footer>
+
+<script>
+"use strict";
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbwqPqizsTZmsg1e2d0SblT8CPKRO_fKmRprD_-xVgHmEHvH1_vtqsdWuTmztm_8jvA6/exec";
+
+let PRODUCTS = [];
+let cart = [];            // {id, sel:[{label,value}], qty}
+let activeCat = "All";
+let sortMode = "az";
+let checkoutMode = false;
+
+const fmt = n => "$" + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+function esc(s){return (s||"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function upcharge(v){ const m = /\+\s*\$\s*([\d.]+)/.exec(v||""); return m ? parseFloat(m[1]) : 0; }
+
+async function load(){
+  try{
+    const res = await fetch(WEBHOOK + (WEBHOOK.includes("?") ? "&" : "?") + "cachebust=" + Date.now());
+    const data = await res.json();
+    PRODUCTS = (data.products||[]).filter(p=>p.name);
+  }catch(e){
+    document.getElementById("loading").innerHTML =
+      'Could not load the catalog. Check your connection and refresh.<br><a href="https://citywide.bennettuniform.com" style="color:var(--cw-red);font-weight:700">Browse Bennett Uniform directly</a>';
+    return;
+  }
+  document.getElementById("loading").style.display = "none";
+  cart = JSON.parse(localStorage.getItem("cw_uniform_cart")||"[]").filter(c=>PRODUCTS.some(p=>p.id===c.id));
+  buildChips(); render(); updateCartCount();
+}
+
+function catList(){
+  const counts = {};
+  PRODUCTS.forEach(p=>(p.categories||[]).forEach(c=>counts[c]=(counts[c]||0)+1));
+  const order = ["NEW ITEMS!","Polos & Wovens","Polos","Woven Shirts","Outerwear","Jackets",
+    "Quarter- and Half-Zips","Sweatshirts and Pullovers","Vests","T-Shirts","Uniform Apparel",
+    "Aprons & Safety Vests","Safety Apparel","Hats & Gloves","Bags & Accessories","Bags",
+    "Name Badges & Plates","Blankets & Towels","Men's","Ladies'"];
+  return Object.keys(counts).sort((a,b)=>{
+    const ia=order.indexOf(a), ib=order.indexOf(b);
+    return (ia<0?99:ia)-(ib<0?99:ib) || a.localeCompare(b);
+  });
+}
+function buildChips(){
+  const el=document.getElementById("chips");
+  el.innerHTML="";
+  const mk=(label,val)=>{
+    const b=document.createElement("button");
+    b.className="chip"+((activeCat===val)?" active":"");
+    b.textContent=label;
+    b.onclick=()=>{activeCat=val; buildChips(); render();};
+    el.appendChild(b);
+  };
+  mk("All","All");
+  catList().forEach(c=>mk(c,c));
+  const sel=document.createElement("select");
+  sel.className="sort-sel";
+  sel.innerHTML='<option value="az">Name A to Z</option><option value="za">Name Z to A</option><option value="lo">Price: Low to High</option><option value="hi">Price: High to Low</option>';
+  sel.value=sortMode;
+  sel.onchange=()=>{sortMode=sel.value; render();};
+  el.appendChild(sel);
+}
+
+function filtered(){
+  const q=(document.getElementById("search").value||"").toLowerCase().trim();
+  let list=PRODUCTS.filter(p=>{
+    if(activeCat!=="All" && !(p.categories||[]).includes(activeCat)) return false;
+    if(q){
+      const optText=(p.options||[]).map(o=>o.values.join(" ")).join(" ");
+      const hay=(p.name+" "+p.sku+" "+(p.description||"")+" "+(p.categories||[]).join(" ")+" "+optText).toLowerCase();
+      const tokens=hay.split(/[^a-z0-9]+/);
+      if(!q.split(/\s+/).every(w=>tokens.some(t=>t.startsWith(w)))) return false;
+    }
+    return true;
+  });
+  const by={
+    az:(a,b)=>a.name.localeCompare(b.name),
+    za:(a,b)=>b.name.localeCompare(a.name),
+    lo:(a,b)=>a.price-b.price,
+    hi:(a,b)=>b.price-a.price,
+  };
+  return list.sort(by[sortMode]||by.az);
+}
+
+function cardHTML(p){
+  const optsHTML=(p.options||[]).map((o,oi)=>`
+    <div class="opt-grp"><label>${esc(o.label)}${o.required?' *':''}</label>
+      <select id="opt-${p.id}-${oi}">${o.values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("")}</select>
+    </div>`).join("");
+  const hasUp=(p.options||[]).some(o=>o.values.some(v=>upcharge(v)>0));
+  const needsMore=(p.description||"").length>90;
+  return `<div class="card" data-id="${p.id}">
+    <div class="imgwrap"><img loading="lazy" src="${esc(p.image)}" alt="" onerror="this.style.display='none'"></div>
+    <h3>${esc(p.name)}</h3>
+    <div class="sku">SKU ${esc(p.sku)}</div>
+    <div class="desc" id="desc-${p.id}">${esc(p.description||"")}</div>
+    ${needsMore?`<button class="more-link" onclick="toggleDesc('${p.id}',this)">More</button>`:""}
+    <div class="price">${fmt(p.price)}${hasUp?' <small>larger sizes slightly more</small>':''}</div>
+    ${optsHTML}
+    <div class="controls">
+      <div class="qty">
+        <button onclick="stepQty('${p.id}',-1)">&minus;</button>
+        <input id="qty-${p.id}" type="number" value="1" min="1" max="99">
+        <button onclick="stepQty('${p.id}',1)">+</button>
+      </div>
+      <button class="add-btn" onclick="addToCart('${p.id}',this)">Add to Request</button>
+    </div>
+  </div>`;
+}
+
+function render(){
+  const list=filtered();
+  document.getElementById("grid").innerHTML=list.map(cardHTML).join("");
+  document.getElementById("empty").style.display=list.length||!PRODUCTS.length?"none":"";
+  const q=(document.getElementById("search").value||"").trim();
+  document.getElementById("gridTitle").textContent =
+    activeCat==="All" ? (q?`Results for "${q}"`:"All Uniform Items") : activeCat;
+  document.getElementById("gridCount").textContent=`${list.length} item${list.length===1?"":"s"}`;
+}
+function toggleDesc(id,btn){
+  const d=document.getElementById("desc-"+id);
+  d.classList.toggle("open");
+  btn.textContent=d.classList.contains("open")?"Less":"More";
+}
+function stepQty(id,d){
+  const el=document.getElementById("qty-"+id);
+  el.value=Math.max(1,(parseInt(el.value)||1)+d);
+}
+document.getElementById("search").addEventListener("input",render);
+function resetView(){activeCat="All";document.getElementById("search").value="";buildChips();render();window.scrollTo({top:0});}
+
+// ---------- Cart ----------
+function saveCart(){localStorage.setItem("cw_uniform_cart",JSON.stringify(cart));updateCartCount();}
+function updateCartCount(){document.getElementById("cartCount").textContent=cart.reduce((s,c)=>s+c.qty,0);}
+function selKey(sel){return sel.map(s=>s.label+"="+s.value).join("|");}
+function unitPrice(p,sel){return p.price + sel.reduce((s,x)=>s+upcharge(x.value),0);}
+
+function addToCart(id,btn){
+  const p=PRODUCTS.find(x=>x.id===id); if(!p)return;
+  const qty=parseInt(document.getElementById("qty-"+id).value)||1;
+  const sel=(p.options||[]).map((o,oi)=>({label:o.label, value:document.getElementById(`opt-${id}-${oi}`).value}));
+  const key=selKey(sel);
+  const ex=cart.find(c=>c.id===id&&selKey(c.sel)===key);
+  if(ex)ex.qty+=qty; else cart.push({id,sel,qty});
+  saveCart();
+  if(btn){btn.textContent="Added";btn.classList.add("added");
+    setTimeout(()=>{btn.textContent="Add to Request";btn.classList.remove("added");},900);}
+}
+function cartLines(){
+  return cart.map(c=>{
+    const p=PRODUCTS.find(x=>x.id===c.id);
+    const unit=unitPrice(p,c.sel);
+    return {...c,p,unit,line:unit*c.qty};
+  });
+}
+function cartTotal(){return cartLines().reduce((s,l)=>s+l.line,0);}
+
+function openCart(){checkoutMode=false;renderDrawer();
+  document.getElementById("drawer").classList.add("show");
+  document.getElementById("overlay").classList.add("show");}
+function closeCart(){
+  document.getElementById("drawer").classList.remove("show");
+  document.getElementById("overlay").classList.remove("show");}
+
+function renderDrawer(){
+  const body=document.getElementById("drawerBody");
+  const foot=document.getElementById("drawerFoot");
+  document.getElementById("drawerTitle").textContent=checkoutMode?"Submit Request":"Your Request";
+  if(!cart.length){
+    body.innerHTML='<div class="empty">Nothing here yet.<br>Add uniform items to get started.</div>';
+    foot.innerHTML=""; return;
+  }
+  if(!checkoutMode){
+    body.innerHTML=cartLines().map((l,i)=>`
+      <div class="ci">
+        <img src="${esc(l.p.image)}" alt="" onerror="this.style.visibility='hidden'">
+        <div>
+          <div class="ci-name">${esc(l.p.name)}</div>
+          <div class="ci-meta">${l.sel.map(s=>esc(s.value)).join(" &middot; ")}</div>
+          <div class="ci-meta">${fmt(l.unit)} each</div>
+          <div class="qty">
+            <button onclick="chQty(${i},-1)">&minus;</button>
+            <input value="${l.qty}" readonly>
+            <button onclick="chQty(${i},1)">+</button>
+          </div>
+        </div>
+        <div class="ci-right">
+          <div class="ci-price">${fmt(l.line)}</div>
+          <button class="rm" onclick="rmItem(${i})">Remove</button>
+        </div>
+      </div>`).join("");
+    foot.innerHTML=`
+      <div class="totrow grand"><span>Estimated Total</span><span>${fmt(cartTotal())}</span></div>
+      <button class="checkout-btn" onclick="checkoutMode=true;renderDrawer()">Continue</button>`;
+  } else {
+    const saved=JSON.parse(localStorage.getItem("cw_uniform_who")||"{}");
+    const today=new Date(); today.setDate(today.getDate()+1);
+    const minDate=today.toISOString().slice(0,10);
+    body.innerHTML=`
+      <button class="back-link" onclick="checkoutMode=false;renderDrawer()">&larr; Back to items</button>
+      <div class="form-grp"><label>Your Name <span class="req">*</span></label><input id="f-name" value="${esc(saved.name||"")}"></div>
+      <div class="form-grp"><label>Your Email <span class="req">*</span></label><input id="f-email" type="email" value="${esc(saved.email||"")}"></div>
+      <div class="form-grp"><label>When do you need it by? <span class="req">*</span></label><input id="f-needby" type="date" min="${minDate}"></div>
+      <div class="form-grp"><label>Why are you requesting this? <span class="req">*</span></label>
+        <textarea id="f-reason" rows="3" placeholder="New hire, replacement, damaged item, new account, etc."></textarea></div>
+      <div class="form-grp"><label>Anything else we should know?</label><textarea id="f-notes" rows="2"></textarea></div>
+      <input class="hp" id="f-website" tabindex="-1" autocomplete="off">
+      <div class="notice"><b>Heads up:</b> This sends a request to City Wide management for approval. It is not a purchase, and nothing ships until it is approved and placed with Bennett Uniform. Prices shown are estimates.</div>
+      <div id="f-err" style="color:var(--cw-red);font-size:11px;font-weight:700;"></div>`;
+    foot.innerHTML=`
+      <div class="totrow grand"><span>Estimated Total</span><span>${fmt(cartTotal())}</span></div>
+      <button class="checkout-btn" id="submitBtn" onclick="submitRequest()">Submit Request</button>`;
+  }
+}
+function chQty(i,d){
+  const c=cart[i]; if(!c)return; c.qty+=d;
+  if(c.qty<1)cart.splice(i,1);
+  saveCart();renderDrawer();
+}
+function rmItem(i){cart.splice(i,1);saveCart();renderDrawer();}
+
+function val(id){return (document.getElementById(id).value||"").trim();}
+async function submitRequest(){
+  const info={name:val("f-name"), email:val("f-email"), need_by:val("f-needby"), reason:val("f-reason"), notes:val("f-notes")};
+  const err=document.getElementById("f-err");
+  if(!info.name||!info.email||!info.need_by||!info.reason){err.textContent="Please fill in your name, email, need-by date, and reason.";return;}
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(info.email)){err.textContent="That email doesn't look right.";return;}
+  err.textContent="";
+  localStorage.setItem("cw_uniform_who",JSON.stringify({name:info.name,email:info.email}));
+  const btn=document.getElementById("submitBtn");
+  btn.disabled=true;btn.textContent="Submitting...";
+  const payload={
+    requester:info.name, email:info.email, need_by:info.need_by, reason:info.reason, notes:info.notes,
+    website:val("f-website"),
+    total:+cartTotal().toFixed(2),
+    items:cartLines().map(l=>({sku:l.p.sku,name:l.p.name,qty:l.qty,unit:+l.unit.toFixed(2),line:+l.line.toFixed(2),options:l.sel,url:l.p.url})),
+  };
+  try{
+    const res=await fetch(WEBHOOK,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload)});
+    const out=await res.json();
+    if(!out.ok) throw new Error(out.error||"Request failed");
+    requestSuccess(out.id);
+  }catch(e){
+    btn.disabled=false;btn.textContent="Submit Request";
+    err.textContent="Could not submit right now. Check your connection and try again, or email your manager directly.";
+  }
+}
+function requestSuccess(id){
+  cart=[];saveCart();
+  document.getElementById("drawerBody").innerHTML=`
+    <div class="success">
+      <div class="check">&#10003;</div>
+      <h3 style="margin:8px 0">Request submitted</h3>
+      <p style="color:var(--cw-grey);font-size:12px">Your uniform request${id?" ("+esc(id)+")":""} went to City Wide management.
+      You'll get a confirmation copy by email, and someone will follow up once it's approved.</p>
+    </div>`;
+  document.getElementById("drawerFoot").innerHTML="";
+}
+
+load();
+</script>
+</body>
+</html>
