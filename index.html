@@ -5,52 +5,79 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
-<!-- build 2026-07-15: quick-links ribbon with dropdowns, rendered from auth JSON -->
+<!-- build 2026-07-24: nav dropdowns auto-generated from sections JSON + tool search.
+     Data contract with the Apps Script is unchanged: add a card in handleAuth and it
+     appears in the grid, the nav menus, and the search index automatically. -->
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
-  --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
+  --border:#E5E5E5;--gold:#E5B423;
   --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06);
   --shadow-lift:0 4px 10px rgba(45,42,38,.10),0 10px 28px rgba(45,42,38,.10)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
   color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
 a{color:var(--red)}
-.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
-.head .bar{max-width:1080px;margin:0 auto;padding:0 20px;height:64px;display:flex;
+.head{background:#fff;position:sticky;top:0;z-index:50;box-shadow:0 1px 8px rgba(45,42,38,.10)}
+.head .bar{max-width:1160px;margin:0 auto;padding:0 20px;height:60px;display:flex;
   align-items:center;gap:14px}
-.head img{height:38px;width:auto;max-width:none;flex:none}
+.head img{height:36px;width:auto;max-width:none;flex:none}
 .head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--grey);border-left:2px solid var(--border);padding-left:14px}
-.head .badge{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.1em;
-  text-transform:uppercase;background:var(--black);color:#fff;border-left:3px solid var(--gold);
-  padding:4px 10px}
+  color:var(--grey);border-left:2px solid var(--border);padding-left:14px;white-space:nowrap}
+.hsearch{flex:1;display:flex;max-width:420px;margin-left:auto;position:relative}
+.hsearch svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--grey)}
+.hsearch input{width:100%;font-family:inherit;font-size:13px;border:1.5px solid var(--border);
+  border-radius:18px;padding:8px 32px 8px 34px;background:var(--light);outline:none}
+.hsearch input:focus{border-color:var(--red);background:#fff}
+.hsearch .x{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;
+  background:none;color:var(--grey);font-size:14px;cursor:pointer;padding:4px 6px;display:none}
+.hsearch .x.show{display:block}
+.head .badge{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--black);color:#fff;border-left:3px solid var(--gold);padding:4px 10px;white-space:nowrap}
 .head .out{font-size:11px;font-weight:700;color:var(--grey);cursor:pointer;text-decoration:none;
-  border:1px solid var(--border);border-radius:14px;padding:5px 12px;background:var(--light)}
+  border:1px solid var(--border);border-radius:14px;padding:5px 12px;background:var(--light);white-space:nowrap}
 .head .out:hover{background:var(--red);color:#fff;border-color:var(--red)}
-/* quick-links ribbon (rendered from auth JSON nav) */
-.ribbon{border-top:1px solid var(--border);background:#fff;display:none}
-.ribbon.show{display:block}
-.ribbon .in{max-width:1080px;margin:0 auto;padding:0 14px;display:flex;gap:2px;flex-wrap:wrap}
-.ribbon .in>a,.rdd>a{display:inline-block;font-size:12px;font-weight:700;color:var(--black);
-  text-decoration:none;padding:9px 12px;border-radius:6px;white-space:nowrap}
-.ribbon .in>a:hover,.rdd>a:hover{background:var(--light);color:var(--red)}
-.rdd{position:relative}
-.rdd>a::after{content:" \25BE";font-size:9px;color:var(--grey)}
-.rdd .menu{display:none;position:absolute;top:100%;left:0;min-width:240px;background:#fff;
-  border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lift);
-  padding:8px;z-index:60}
-.rdd:hover .menu,.rdd:focus-within .menu{display:block}
-.rdd .menu a{display:block;font-size:12.5px;font-weight:700;color:var(--black);
-  text-decoration:none;padding:9px 12px;border-radius:6px;white-space:nowrap}
-.rdd .menu a:hover{background:var(--light);color:var(--red)}
-.hero{background:linear-gradient(120deg,var(--black) 0%,#3a3733 100%);color:#fff;
-  padding:40px 0 34px;border-bottom:5px solid var(--red)}
-.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
-.hero h1{font-size:clamp(24px,4vw,34px);line-height:1.25}
+
+/* nav bar: dropdowns generated from the sections payload */
+nav.mainnav{background:var(--black);border-bottom:3px solid var(--red)}
+.nav-in{max-width:1160px;margin:0 auto;padding:0 12px;display:flex;align-items:stretch;
+  gap:2px;overflow-x:auto;scrollbar-width:thin}
+.nitem{position:relative;flex:none}
+.nbtn{background:none;border:none;color:#fff;font-family:inherit;font-size:11.5px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;padding:12px 13px;display:flex;align-items:center;
+  gap:7px;white-space:nowrap;cursor:pointer}
+.nbtn svg{opacity:.9;flex:none}
+.nbtn .caret{font-size:8px;opacity:.8}
+.nbtn:hover,.nbtn.open{background:var(--red)}
+.nbtn .pill{background:var(--red);color:#fff;font-size:9px;border-radius:8px;padding:1px 6px}
+.nbtn.open .pill{background:#fff;color:var(--red)}
+.nmenu{display:none;position:absolute;top:100%;left:0;min-width:250px;max-width:320px;background:#fff;
+  border:1px solid var(--border);border-top:3px solid var(--red);border-radius:0 0 10px 10px;
+  box-shadow:var(--shadow-lift);padding:6px 0;z-index:70;max-height:70vh;overflow-y:auto}
+.nmenu.show{display:block}
+.nmenu a{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:700;
+  color:var(--black);text-decoration:none;padding:9px 16px}
+.nmenu a:hover{background:var(--light);color:var(--red)}
+.nmenu a svg{color:var(--red);flex:none}
+.nmenu .sub{font-weight:400;color:var(--grey);font-size:11px;padding:8px 16px 2px;
+  text-transform:uppercase;letter-spacing:.08em}
+.nmenu .jump{border-top:1px solid var(--border);margin-top:4px}
+.nmenu .jump a{color:var(--grey);font-size:11.5px}
+.nmenu .jump a:hover{color:var(--red)}
+
+/* hero: greyscale building photography per brand, people stay full color elsewhere */
+.hero{position:relative;color:#fff;padding:30px 0 26px;border-bottom:5px solid var(--red);
+  background:linear-gradient(rgba(45,42,38,.88),rgba(45,42,38,.82)),
+    url('https://emailer.emfluence.com/clients/citywide/uploadedfiles/2020_Rebrand/Image_Library/bigstock-Ceo-Office-Interior-With-Glass-430518427_small.jpg') center 40%/cover;
+  background-blend-mode:normal}
+.hero .bwfix{position:absolute;inset:0;backdrop-filter:grayscale(100%);pointer-events:none}
+.wrap{max-width:1160px;margin:0 auto;padding:0 20px}
+.hero .wrap{position:relative;z-index:1}
+.hero h1{font-size:clamp(22px,3.4vw,30px);line-height:1.25}
 .hero h1::after{content:"";display:block;width:56px;height:4px;background:var(--red);
-  border-radius:2px;margin-top:14px}
-.hero p{color:#cfcdca;margin-top:12px;max-width:640px;font-size:15px}
-.section{padding:34px 0 6px}
+  border-radius:2px;margin-top:12px}
+.hero p{color:#d9d7d4;margin-top:10px;max-width:640px;font-size:14px}
+
+.section{padding:30px 0 6px}
 .section-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}
 .section-head h2{font-size:19px}
 .section-head .tag{font-size:11px;font-weight:700;color:var(--grey);letter-spacing:.1em;
@@ -58,9 +85,9 @@ a{color:var(--red)}
 .section p.sub{color:var(--grey);font-size:13.5px;max-width:640px;margin-bottom:18px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
 .card{position:relative;display:flex;flex-direction:column;background:#fff;
-  border:1px solid var(--border);border-radius:12px;padding:20px;text-decoration:none;
+  border:1px solid var(--border);border-radius:12px;padding:18px;text-decoration:none;
   color:var(--black);transition:all .15s;box-shadow:var(--shadow)}
-a.card:hover{box-shadow:var(--shadow-lift);transform:translateY(-2px)}
+a.card:hover{box-shadow:var(--shadow-lift);transform:translateY(-2px);border-color:var(--red)}
 .card .icon{width:42px;height:42px;border-radius:10px;background:var(--light);display:flex;
   align-items:center;justify-content:center;margin-bottom:12px;color:var(--red);flex:none}
 .card.primary{border-left:5px solid var(--red)}
@@ -79,10 +106,20 @@ div.card{cursor:default}
   border:1px solid var(--border);border-radius:16px;padding:6px 12px;background:var(--light);
   transition:all .15s}
 .card .links a:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.noresults{display:none;text-align:center;color:var(--grey);padding:56px 20px}
+.noresults b{display:block;color:var(--black);font-size:15px;margin-bottom:6px}
+.noresults.show{display:block}
+.totop{position:fixed;right:22px;bottom:22px;z-index:45;display:none;background:var(--black);
+  color:#fff;border:none;border-radius:50%;width:46px;height:46px;font-size:17px;font-weight:700;
+  cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+.totop:hover{background:var(--red)}
+.totop.show{display:block}
 .foot{text-align:center;font-size:11px;color:var(--grey);padding:36px 20px 28px}
 .foot b{color:var(--black)}
-/* Gate */
-.gate{position:fixed;inset:0;z-index:100;background:linear-gradient(120deg,var(--black) 0%,#3a3733 100%);
+
+/* Gate (unchanged behavior) */
+.gate{position:fixed;inset:0;z-index:100;background:linear-gradient(rgba(45,42,38,.92),rgba(45,42,38,.88)),
+  url('https://emailer.emfluence.com/clients/citywide/uploadedfiles/2020_Rebrand/Image_Library/bigstock-Ceo-Office-Interior-With-Glass-430518427_small.jpg') center/cover;
   display:flex;align-items:center;justify-content:center;padding:20px}
 .gate.hidden{display:none}
 .gate .box{background:#fff;border-radius:14px;box-shadow:var(--shadow-lift);
@@ -100,6 +137,10 @@ div.card{cursor:default}
 .gate .err{color:var(--red);font-size:12.5px;font-weight:700;margin-top:12px;min-height:16px}
 .gate .note{font-size:11px;color:var(--grey);margin-top:16px}
 #app.hidden{display:none}
+@media(max-width:820px){
+  .head .t,.head .badge{display:none}
+  .hsearch{max-width:none}
+}
 </style>
 </head>
 <body>
@@ -121,19 +162,27 @@ div.card{cursor:default}
 <div class="bar">
   <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
   <span class="t">Ops Hub</span>
+  <div class="hsearch">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+    <input id="toolsearch" type="search" placeholder="Find a tool, form, or calculator..." autocomplete="off">
+    <button class="x" id="searchX">&#10005;</button>
+  </div>
   <span class="badge">Internal Team Use</span>
   <a class="out" id="signout" href="#">Sign out</a>
 </div>
-<div class="ribbon" id="ribbon"><div class="in" id="ribbonIn"></div></div>
+<nav class="mainnav"><div class="nav-in" id="mainnav"></div></nav>
 </header>
 
-<section class="hero"><div class="wrap">
+<section class="hero"><div class="bwfix"></div><div class="wrap">
   <h1>City Wide Operations Hub</h1>
-  <p>Every tool the operations team uses, one page. Post vendor opportunities, price the
-  work, check your margins, and get to the resources without hunting for links.</p>
+  <p>Every tool the operations team uses, one page. Use the menus or start typing in the
+  search box to jump straight to what you need.</p>
 </div></section>
 
 <div class="wrap" id="content"></div>
+<div class="wrap"><div class="noresults" id="noresults"><b>No tools match.</b>Try fewer words, or clear the search.</div></div>
+
+<button class="totop" id="totop" title="Back to top">&#8593;</button>
 
 <div class="foot"><b>City Wide Facility Solutions</b> &middot; Operations Hub &middot; Internal use only<br>
 Something missing from this page? Tell TJ.</div>
@@ -172,42 +221,92 @@ var ICONS = {
   plan:'<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h4"/>',
   shop:'<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>'
 };
-function iconSvg(k){
-  return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[k] || ICONS.home) + '</svg>';
+function iconSvg(k, size){
+  size = size || 22;
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[k] || ICONS.home) + '</svg>';
 }
 function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function slug(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-"); }
 
-function navA(label, href){
-  var tgt = /^https?:/.test(href) ? ' target="_blank" rel="noopener"' : '';
-  return '<a href="' + esc(href) + '"' + tgt + '>' + esc(label) + '</a>';
+/* Section icon: use the first card's icon so the nav stays meaningful as sections change */
+function sectionIcon(sec){
+  var c = (sec.cards || []).find(function(x){ return x.icon; });
+  return c ? c.icon : 'home';
 }
-function renderNav(nav){
-  var ribbon = document.getElementById("ribbon");
-  var host = document.getElementById("ribbonIn");
-  if(!nav || !nav.length){ ribbon.classList.remove("show"); return; }
+
+/* ---------- Nav: generated from sections + optional custom nav from the payload ---------- */
+function renderMainNav(sections, nav){
+  var host = document.getElementById("mainnav");
   var html = "";
-  nav.forEach(function(n){
+  sections.forEach(function(sec, si){
+    html += '<div class="nitem"><button class="nbtn" data-dd="' + si + '">' +
+      iconSvg(sectionIcon(sec), 14) + esc(sec.h) + ' <span class="caret">&#9660;</span></button>' +
+      '<div class="nmenu" id="dd-' + si + '">';
+    (sec.cards || []).forEach(function(c){
+      if(c.href){
+        html += menuLink(c.title, c.href, c.icon);
+      } else if(c.links && c.links.length){
+        c.links.forEach(function(l){
+          html += menuLink(c.title + ": " + l.label, l.href, c.icon);
+        });
+      }
+    });
+    html += '<div class="jump"><a href="#sec-' + si + '" data-jump="sec-' + si + '">View this section &darr;</a></div>';
+    html += '</div></div>';
+  });
+  /* custom quick links from the payload keep working (rendered after the section menus) */
+  (nav || []).forEach(function(n, ni){
     if(n.items && n.items.length){
-      html += '<div class="rdd"><a href="#" onclick="return false;">' + esc(n.label) + '</a><div class="menu">';
-      n.items.forEach(function(it){ html += navA(it.label, it.href); });
+      html += '<div class="nitem"><button class="nbtn" data-dd="x' + ni + '">' + esc(n.label) +
+        ' <span class="caret">&#9660;</span></button><div class="nmenu" id="dd-x' + ni + '">';
+      n.items.forEach(function(it){ html += menuLink(it.label, it.href, null); });
       html += '</div></div>';
     } else if(n.href){
-      html += navA(n.label, n.href);
+      var tgt = /^https?:/.test(n.href) ? ' target="_blank" rel="noopener"' : '';
+      html += '<div class="nitem"><a class="nbtn" style="text-decoration:none" href="' + esc(n.href) + '"' + tgt + '>' + esc(n.label) + '</a></div>';
     }
   });
   host.innerHTML = html;
-  ribbon.classList.add("show");
-}
 
+  host.querySelectorAll(".nbtn[data-dd]").forEach(function(btn){
+    btn.addEventListener("click", function(e){
+      e.stopPropagation();
+      var dd = document.getElementById("dd-" + btn.getAttribute("data-dd"));
+      var wasOpen = dd.classList.contains("show");
+      closeMenus();
+      if(!wasOpen){ dd.classList.add("show"); btn.classList.add("open"); }
+    });
+  });
+  host.querySelectorAll("[data-jump]").forEach(function(a){
+    a.addEventListener("click", function(e){
+      e.preventDefault(); closeMenus();
+      var el = document.getElementById(a.getAttribute("data-jump"));
+      if(el) el.scrollIntoView({behavior:"smooth", block:"start"});
+    });
+  });
+}
+function menuLink(label, href, icon){
+  var tgt = /^https?:/.test(href) ? ' target="_blank" rel="noopener"' : '';
+  return '<a href="' + esc(href) + '"' + tgt + '>' + (icon ? iconSvg(icon, 14) : '') + esc(label) + '</a>';
+}
+function closeMenus(){
+  document.querySelectorAll(".nmenu.show").forEach(function(d){ d.classList.remove("show"); });
+  document.querySelectorAll(".nbtn.open").forEach(function(b){ b.classList.remove("open"); });
+}
+document.addEventListener("click", closeMenus);
+document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeMenus(); });
+
+/* ---------- Sections/cards (same data contract as before) ---------- */
 function render(sections){
   var html = "";
-  sections.forEach(function(sec){
-    html += '<section class="section"><div class="section-head"><h2>' + esc(sec.h) +
+  sections.forEach(function(sec, si){
+    html += '<section class="section" id="sec-' + si + '"><div class="section-head"><h2>' + esc(sec.h) +
       '</h2><span class="tag">' + esc(sec.tag) + '</span></div>';
     if(sec.sub) html += '<p class="sub">' + esc(sec.sub) + '</p>';
     html += '<div class="grid">';
     sec.cards.forEach(function(c){
       var cls = "card" + (c.primary ? " primary" : "");
+      var hay = [c.title, c.desc, (c.links||[]).map(function(l){return l.label;}).join(" "), sec.h, sec.tag].join(" ").toLowerCase();
       var inner = '<span class="icon">' + iconSvg(c.icon) + '</span>';
       if(c.pill) inner = '<span class="pill" id="openPill"></span>' + inner;
       inner += '<h3>' + esc(c.title) + '</h3>';
@@ -222,9 +321,9 @@ function render(sections){
       if(c.go) inner += '<span class="go">' + esc(c.go) + '</span>';
       if(c.href){
         var tgt = /^https?:/.test(c.href) ? ' target="_blank" rel="noopener"' : '';
-        html += '<a class="' + cls + '" href="' + esc(c.href) + '"' + tgt + '>' + inner + '</a>';
+        html += '<a class="' + cls + '" data-hay="' + esc(hay) + '" href="' + esc(c.href) + '"' + tgt + '>' + inner + '</a>';
       } else {
-        html += '<div class="' + cls + '">' + inner + '</div>';
+        html += '<div class="' + cls + '" data-hay="' + esc(hay) + '">' + inner + '</div>';
       }
     });
     html += '</div></section>';
@@ -232,6 +331,43 @@ function render(sections){
   document.getElementById("content").innerHTML = html;
   loadPill();
 }
+
+/* ---------- Search: filters every card across every section ---------- */
+function applySearch(){
+  var q = (document.getElementById("toolsearch").value || "").toLowerCase().trim();
+  document.getElementById("searchX").classList.toggle("show", !!q);
+  var words = q.split(/\s+/).filter(Boolean);
+  var any = false;
+  document.querySelectorAll("#content .section").forEach(function(sec){
+    var vis = 0;
+    sec.querySelectorAll(".card").forEach(function(card){
+      var hay = card.getAttribute("data-hay") || "";
+      var show = words.every(function(w){ return hay.indexOf(w) >= 0; });
+      card.style.display = show ? "" : "none";
+      if(show) vis++;
+    });
+    sec.style.display = vis ? "" : "none";
+    if(vis) any = true;
+  });
+  document.getElementById("noresults").classList.toggle("show", !any && !!q);
+}
+document.getElementById("toolsearch").addEventListener("input", applySearch);
+document.getElementById("searchX").addEventListener("click", function(){
+  document.getElementById("toolsearch").value = ""; applySearch();
+});
+document.addEventListener("keydown", function(e){
+  if(e.key === "/" && document.activeElement !== document.getElementById("toolsearch") &&
+     document.activeElement.tagName !== "INPUT"){
+    e.preventDefault(); document.getElementById("toolsearch").focus();
+  }
+});
+
+window.addEventListener("scroll", function(){
+  document.getElementById("totop").classList.toggle("show", window.scrollY > 600);
+});
+document.getElementById("totop").addEventListener("click", function(){
+  window.scrollTo({top:0, behavior:"smooth"});
+});
 
 function loadPill(){
   try{
@@ -248,7 +384,7 @@ function unlock(r){
   document.getElementById("gate").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
   render(r.sections);
-  renderNav(r.nav);
+  renderMainNav(r.sections, r.nav);
 }
 
 function tryPass(pass, isAuto){
