@@ -266,14 +266,22 @@ function renderMainNav(sections, nav){
     html += '<div class="jump"><a href="#sec-' + si + '" data-jump="sec-' + si + '">View this section &darr;</a></div>';
     html += '</div></div>';
   });
-  /* custom quick links from the payload keep working (rendered after the section menus) */
+  /* Custom quick links from the payload still render, but only when they add a
+     destination the section menus do not already cover. Keeps the bar to one line. */
+  var seen = {};
+  sections.forEach(function(sec){ (sec.cards || []).forEach(function(c){
+    if(c.href) seen[c.href] = 1;
+    (c.links || []).forEach(function(l){ seen[l.href] = 1; });
+  }); });
   (nav || []).forEach(function(n, ni){
     if(n.items && n.items.length){
+      var fresh = n.items.filter(function(it){ return !seen[it.href]; });
+      if(!fresh.length) return;
       html += '<div class="nitem"><button class="nbtn" data-dd="x' + ni + '">' + esc(n.label) +
         ' <span class="caret">&#9660;</span></button><div class="nmenu" id="dd-x' + ni + '">';
-      n.items.forEach(function(it){ html += menuLink(it.label, it.href, null); });
+      fresh.forEach(function(it){ html += menuLink(it.label, it.href, null); });
       html += '</div></div>';
-    } else if(n.href){
+    } else if(n.href && !seen[n.href]){
       var tgt = /^https?:/.test(n.href) ? ' target="_blank" rel="noopener"' : '';
       html += '<div class="nitem"><a class="nbtn" style="text-decoration:none" href="' + esc(n.href) + '"' + tgt + '>' + esc(n.label) + '</a></div>';
     }
