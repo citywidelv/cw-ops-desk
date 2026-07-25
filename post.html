@@ -372,6 +372,7 @@ citywidelv.github.io/cw-vendor-shop/opportunities.html</div>
 
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var BS_WEBHOOK = "https://script.google.com/macros/s/AKfycbwQKATsO_nRIKKaCJYqtjVDn3kPs5h71ChFdGudR8zYkxSeLOKufEvlRXWNNMxfG-oIKQ/exec";
 var state = { region: "Las Vegas", type: "contract", pay_type: "set", mode: "interest", fsm: "" };
 var FSM_ROSTER = {
   alex:   { name:"Alex Manon",     title:"Facility Solutions Manager",  region:"Las Vegas" },
@@ -757,6 +758,13 @@ document.getElementById("go").addEventListener("click", function () {
     .then(function (t) { try { return JSON.parse(t); } catch (e) { return { ok: true, id: "posted (check the Sheet for the ID)" }; } })
     .then(function (r) {
       if (r && r.ok) {
+        // Fire-and-forget Slack ping (relay validates the passcode server-side).
+        try {
+          fetch(BS_WEBHOOK, { method: "POST", headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({ kind: "slack_notify", event: "opportunity",
+              passcode: v("passcode"), title: v("title"), region: state.region,
+              trade: document.getElementById("trade").value, id: String(r.id || "") }) });
+        } catch (se) {}
         document.getElementById("f").classList.add("hidden");
         document.getElementById("doneId").textContent = r.id;
         renderNotify(r);
