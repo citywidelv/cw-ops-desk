@@ -408,6 +408,12 @@ function loadPill(){
 function unlock(r){
   document.getElementById("gate").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
+  try{ (r.sections||[]).splice(1,0,{ h:"Building Information Sheets", tag:"Account Records",
+    sub:"One living sheet per account: access, schedule, alarm procedure, locations, tenants, and photos. Print-ready for walkthroughs and crew turnover.",
+    cards:[
+      { title:"Sheet Library", desc:"Every account's building sheet. Search by name, open the print view, or edit.", icon:"map", href:"building-sheets.html", go:"Browse the sheets", primary:true },
+      { title:"New / Update a Sheet", desc:"Fill out or refresh the Detailed Building Information Sheet for an account.", icon:"sheet", href:"building-sheet.html", go:"Open the form" }
+    ]}); }catch(e){}
   render(r.sections);
   renderMainNav(r.sections, r.nav);
 }

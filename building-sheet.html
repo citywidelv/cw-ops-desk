@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Building Information Sheet | CW Ops Desk</title>
+<style>
+:root{--red:#D22730;--redd:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;--border:#E5E5E5;--teal:#0AA6A9;
+--shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06);--lift:0 4px 10px rgba(45,42,38,.10),0 10px 28px rgba(45,42,38,.10)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans',Geneva,Tahoma,sans-serif;color:var(--black);background:#FAFAFA;font-size:14px;line-height:1.55}
+.head{position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid var(--border);box-shadow:0 1px 2px rgba(45,42,38,.05)}
+.bar{max-width:1020px;margin:0 auto;display:flex;align-items:center;gap:14px;height:60px;padding:0 20px}
+.bar img{height:34px;width:auto}
+.bar .t{font-size:12.5px;font-weight:700;color:var(--grey)}
+.badge{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:var(--black);color:#fff;border-radius:4px;padding:4px 9px}
+.hero{position:relative;background:var(--black);color:#fff;overflow:hidden}
+.hero .bg{position:absolute;inset:0;background:url('https://citywidelv.github.io/cw-vendor-shop/images/hero-building.jpg') center 40%/cover no-repeat}
+.hero .scrim{position:absolute;inset:0;background:linear-gradient(100deg,rgba(20,18,16,.93) 0%,rgba(20,18,16,.72) 55%,rgba(20,18,16,.42) 100%)}
+.hero .in{position:relative;z-index:2;max-width:1020px;margin:0 auto;padding:34px 20px 30px}
+.hero .kick{display:inline-flex;align-items:center;gap:8px;font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px}
+.hero .kick::before{content:"";width:20px;height:3px;background:var(--red);border-radius:2px}
+.hero h1{font-size:clamp(22px,3.6vw,30px);line-height:1.2}
+.hero p{margin-top:8px;font-size:13.5px;color:#e6e4e1;max-width:640px}
+.wrap{max-width:1020px;margin:0 auto;padding:22px 20px 60px}
+.hidden{display:none!important}
+.gate{max-width:420px;margin:40px auto;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--lift);padding:26px}
+.gate h2{font-size:17px;margin-bottom:6px}.gate p{font-size:12.5px;color:var(--grey);margin-bottom:14px}
+label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin:0 0 5px}
+input[type=text],input[type=date],select,textarea{width:100%;font-family:inherit;font-size:13.5px;color:var(--black);background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px}
+textarea{min-height:64px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
+.req{color:var(--red)}
+.btn{display:inline-flex;align-items:center;gap:8px;font-family:inherit;font-size:13.5px;font-weight:700;border-radius:8px;padding:11px 18px;cursor:pointer;border:2px solid transparent;text-decoration:none;transition:all .15s}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{background:var(--redd)}
+.btn-ghost{background:#fff;color:var(--black);border-color:var(--border)}.btn-ghost:hover{border-color:var(--black)}
+.btn[disabled]{opacity:.55;cursor:default}
+.err{color:var(--red);font-weight:700;font-size:12.5px}.okmsg{color:#1E7B34;font-weight:700;font-size:12.5px}
+.loadbar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:20px}
+.loadbar .f{flex:1;min-width:220px}
+details.step{border:1px solid var(--border);border-radius:12px;background:#fff;box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+details.step summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;padding:15px 18px;user-select:none}
+details.step summary::-webkit-details-marker{display:none}
+details.step summary:hover{background:#FAFAFA}
+.stepnum{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--red);color:#fff;font-size:14px;font-weight:700;flex:none}
+details.step summary h2{font-size:15.5px;flex:1}
+details.step summary .chev{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--grey);font-size:11px;transition:transform .2s}
+details.step[open] summary .chev{transform:rotate(180deg);border-color:var(--red);color:var(--red)}
+.body{padding:4px 18px 20px;border-top:1px solid var(--border)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding-top:14px}
+.grid .full{grid-column:1/-1}
+@media(max-width:680px){.grid{grid-template-columns:1fr}}
+.hint{font-size:11.5px;color:var(--grey);margin-top:4px}
+.note{border-left:4px solid var(--black);background:var(--light);border-radius:0 8px 8px 0;padding:12px 14px;font-size:12.5px;margin-top:14px}
+.note b{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+table.sched{width:100%;border-collapse:collapse;margin-top:14px;font-size:12.5px}
+table.sched th{background:var(--black);color:#fff;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;text-align:left}
+table.sched td{border:1px solid var(--border);padding:6px;background:#fff}
+table.sched td:first-child{font-weight:700;width:96px;background:#FAFAFA;padding:6px 10px}
+table.sched input{border-radius:6px;padding:8px 9px;font-size:12.5px}
+.rows{margin-top:14px}
+.rowline{display:grid;grid-template-columns:150px 130px 1fr 34px;gap:8px;margin-bottom:8px;align-items:start}
+.rowline.cline{grid-template-columns:130px 130px 1fr 1fr 34px}
+.rowline .del{align-self:center;background:none;border:1px solid var(--border);border-radius:6px;color:var(--grey);cursor:pointer;font-size:14px;height:34px}
+.rowline .del:hover{color:var(--red);border-color:var(--red)}
+@media(max-width:680px){.rowline,.rowline.cline{grid-template-columns:1fr 1fr;grid-auto-rows:auto}}
+.addrow{margin-top:4px;background:none;border:1.5px dashed var(--border);border-radius:8px;color:var(--grey);font-family:inherit;font-size:12.5px;font-weight:700;padding:9px 14px;cursor:pointer;width:100%}
+.addrow:hover{color:var(--red);border-color:var(--red)}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;padding-top:14px}
+.pslot{border:1.5px dashed var(--border);border-radius:10px;background:#fff;padding:12px;text-align:center}
+.pslot.filled{border-style:solid;border-color:var(--teal)}
+.pslot b{display:block;font-size:12px;margin-bottom:8px}
+.pslot img{width:100%;height:110px;object-fit:cover;border-radius:8px;margin-bottom:8px}
+.pslot .pbtns{display:flex;gap:6px;justify-content:center}
+.pslot .pb{font-family:inherit;font-size:11.5px;font-weight:700;border:1px solid var(--border);background:#fff;border-radius:6px;padding:6px 10px;cursor:pointer}
+.pslot .pb:hover{border-color:var(--red);color:var(--red)}
+.submit-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:22px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px}
+.success{background:#fff;border:2px solid #1E7B34;border-radius:12px;padding:26px;box-shadow:var(--lift)}
+.success h2{color:#1E7B34;margin-bottom:8px}
+.success .links{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.foot{max-width:1020px;margin:0 auto;padding:18px 20px 30px;font-size:11.5px;color:var(--grey)}
+</style></head><body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t"><a href="index.html" style="color:inherit;text-decoration:none">&larr; Ops Hub</a> &nbsp;/&nbsp; <a href="building-sheets.html" style="color:inherit;text-decoration:none">Sheet Library</a></span>
+  <span class="badge">Internal Team Use</span>
+</div></header>
+
+<section class="hero"><div class="bg"></div><div class="scrim"></div><div class="in">
+<span class="kick">Detailed Building Information Sheet</span>
+<h1>Building Information Sheet</h1>
+<p>One sheet per account: access, schedule, alarm procedure, locations, tenants, and photos. Saving files it to the Sheet library and drops a PDF snapshot in Google Drive under the account name.</p>
+</div></section>
+
+<div class="gate" id="gate">
+  <h2>Team Passcode</h2>
+  <p>Same passcode as the Ops Hub. If you unlocked the hub on this device, this opens automatically.</p>
+  <label>Passcode</label><input type="text" id="gpc" placeholder="Ask TJ if you do not have it">
+  <div style="display:flex;gap:10px;align-items:center;margin-top:12px"><button class="btn btn-red" id="genter">Enter</button><span class="err" id="gerr"></span></div>
+</div>
+
+<div class="wrap hidden" id="app">
+
+<div class="loadbar">
+  <div class="f"><label>Working on an existing account? Load it</label><input type="text" id="loadAcct" placeholder="Exact account name, e.g. Desert Ridge Plaza"></div>
+  <button class="btn btn-ghost" id="loadBtn">Load Sheet</button>
+  <a class="btn btn-ghost" href="building-sheets.html">Browse the Library</a>
+  <span id="loadMsg" class="hint"></span>
+</div>
+
+<form id="f" onsubmit="return false">
+
+<details class="step" open><summary><span class="stepnum">1</span><h2>Account Basics</h2><span class="chev">&#9660;</span></summary><div class="body"><div class="grid">
+<div><label>Account Name <span class="req">*</span></label><input type="text" id="account"><p class="hint">Exact name. This is the key the sheet files under.</p></div>
+<div><label>Region <span class="req">*</span></label><select id="region"><option value="">Choose</option><option>Las Vegas</option><option>Northern Nevada</option></select></div>
+<div><label>Address</label><input type="text" id="address"></div>
+<div><label>City / State / Zip</label><input type="text" id="citystatezip"></div>
+<div><label>Building Type</label><select id="building_type"><option value=""></option><option>Office</option><option>Medical</option><option>Industrial / Warehouse</option><option>Retail</option><option>School / Church</option><option>Gym / Fitness</option><option>Dealership</option><option>Mixed Use / Multi-Tenant</option><option>Other</option></select></div>
+<div><label>Cleanable Square Feet</label><input type="text" id="sqft"></div>
+<div><label>Floors</label><input type="text" id="floors"></div>
+<div><label>Restroom Count</label><input type="text" id="restrooms"></div>
+<div><label>Key Number</label><input type="text" id="key_number"></div>
+<div><label>Day Porter</label><select id="day_porter"><option value=""></option><option>No</option><option>Yes, see notes</option></select></div>
+<div><label>FSM</label><input type="text" id="fsm"></div>
+<div><label>FSM Visit Day &amp; Set Frequency</label><input type="text" id="fsm_visit"></div>
+</div></div></details>
+
+<details class="step"><summary><span class="stepnum">2</span><h2>People &amp; Contacts</h2><span class="chev">&#9660;</span></summary><div class="body"><div class="grid">
+<div class="full"><label>Building Contact (name, title, phone, email)</label><input type="text" id="contact"></div>
+<div class="full"><label>IC / Vendor on the Account (company, lead, phone)</label><input type="text" id="ic"></div>
+<div class="full"><label>Emergency Contacts (client side and City Wide)</label><textarea id="emergency_contacts"></textarea></div>
+<div class="full"><label>Who Has Keys</label><input type="text" id="who_has_keys"></div>
+</div></div></details>
+
+<details class="step"><summary><span class="stepnum">3</span><h2>Access &amp; Schedule</h2><span class="chev">&#9660;</span></summary><div class="body">
+<table class="sched"><thead><tr><th>Day</th><th>Client Access Window</th><th>Cleaning Window</th><th>Notes</th></tr></thead><tbody id="schedBody"></tbody></table>
+<div class="grid">
+<div class="full"><label>Time Restrictions</label><textarea id="time_restrictions"></textarea></div>
+<div class="full"><label>Occupied Office Process</label><textarea id="occupied_process"></textarea></div>
+<div class="full"><label>Entry / Exit Instructions</label><textarea id="entry_exit"></textarea></div>
+<div class="full"><label>Parking &amp; Loading Dock</label><input type="text" id="parking"></div>
+</div></div></details>
+
+<details class="step"><summary><span class="stepnum">4</span><h2>Alarm &amp; Keys</h2><span class="chev">&#9660;</span></summary><div class="body"><div class="grid">
+<div><label>Alarm Location</label><input type="text" id="alarm_location"></div>
+<div><label>Lockbox Location</label><input type="text" id="lockbox"></div>
+<div class="full"><label>Arming / Disarming Procedure</label><textarea id="alarm_procedure"></textarea></div>
+<div class="full"><label>Alarm Entry / Exit Instructions</label><textarea id="alarm_entry_exit"></textarea></div>
+<div class="full"><label>Emergency Procedure (false alarm, lockout, incident)</label><textarea id="emergency_procedure"></textarea></div>
+<div><label>Key Type</label><input type="text" id="key_type"></div>
+<div><label>Number of Keys</label><input type="text" id="key_count"></div>
+</div>
+<div class="note"><b>Codes are never stored here</b>Alarm and gate codes live on the Alarm &amp; Key Tracker only. This sheet records where the alarm is and how the procedure works, never the code itself.</div>
+</div></details>
+
+<details class="step"><summary><span class="stepnum">5</span><h2>Locations &amp; Procedures</h2><span class="chev">&#9660;</span></summary><div class="body"><div class="grid">
+<div class="full"><label>Janitor Closet(s)</label><input type="text" id="closets"></div>
+<div><label>Supply Storage &amp; Who Stocks It</label><input type="text" id="supply_storage"></div>
+<div><label>Supply Ordering Process</label><input type="text" id="supply_order"></div>
+<div><label>Trash Dumpster Location</label><input type="text" id="dumpster"></div>
+<div><label>Trash Pickup Days</label><input type="text" id="trash_days"></div>
+<div><label>Recycling</label><input type="text" id="recycling"></div>
+<div><label>Private Restrooms</label><input type="text" id="private_restrooms"></div>
+<div class="full"><label>Light Instructions (including closing the building)</label><textarea id="lights"></textarea></div>
+<div><label>Executive Office Location</label><input type="text" id="exec_office"></div>
+<div><label>Water Shutoff Location</label><input type="text" id="water_shutoff"></div>
+<div><label>Electrical Panel Location</label><input type="text" id="electrical_panel"></div>
+<div class="full"><label>Hot Spots (areas the client watches closely)</label><textarea id="hot_spots"></textarea></div>
+<div class="full"><label>Additional Information</label><textarea id="additional"></textarea></div>
+</div></div></details>
+
+<details class="step"><summary><span class="stepnum">6</span><h2>Suites &amp; Tenants</h2><span class="chev">&#9660;</span></summary><div class="body">
+<p class="hint" style="padding-top:12px">Multi-tenant buildings only. One row per suite or company.</p>
+<div class="rows" id="suiteRows"></div>
+<button type="button" class="addrow" id="addSuite">+ Add a suite</button>
+</div></details>
+
+<details class="step"><summary><span class="stepnum">7</span><h2>Special Requests &amp; Complaints Log</h2><span class="chev">&#9660;</span></summary><div class="body">
+<div class="grid"><div class="full"><label>Account-Level Special Requests</label><textarea id="special_requests"></textarea></div></div>
+<p class="hint" style="margin-top:12px">Log complaints and requests as they happen so the history stays with the building.</p>
+<div class="rows" id="compRows"></div>
+<button type="button" class="addrow" id="addComp">+ Add a log entry</button>
+</div></details>
+
+<details class="step"><summary><span class="stepnum">8</span><h2>Photos</h2><span class="chev">&#9660;</span></summary><div class="body">
+<p class="hint" style="padding-top:12px">Photos make this sheet worth printing. They compress automatically before upload.</p>
+<div class="photos" id="photoSlots"></div>
+</div></details>
+
+<div class="submit-row">
+  <div style="flex:1;min-width:200px"><label>Filled Out / Updated By <span class="req">*</span></label><input type="text" id="filled_by" placeholder="Your name"></div>
+  <button class="btn btn-red" id="go">Save the Building Sheet</button>
+  <span id="msg" class="hint"></span>
+</div>
+</form>
+
+<div class="success hidden" id="done">
+  <h2>Sheet saved</h2>
+  <p>Filed under <b id="doneAcct"></b> and snapshotted to Google Drive.</p>
+  <div class="links">
+    <a class="btn btn-red" id="donePrint" href="#">Open the Print View</a>
+    <a class="btn btn-ghost" href="building-sheets.html">Go to the Library</a>
+    <a class="btn btn-ghost" id="doneFolder" href="#" target="_blank" rel="noopener">Drive Folder</a>
+    <button class="btn btn-ghost" id="doneAgain">Edit This Sheet Again</button>
+  </div>
+</div>
+
+</div>
+<div class="foot"><b>City Wide Facility Solutions</b> &middot; Ops Desk &middot; Internal use only. Codes live on the Alarm &amp; Key Tracker.</div>
+
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbwQKATsO_nRIKKaCJYqtjVDn3kPs5h71ChFdGudR8zYkxSeLOKufEvlRXWNNMxfG-oIKQ/exec";
+var KEY = "cwOpsHubPass";
+var PASS = "";
+var DAYS = [["mon","Monday"],["tue","Tuesday"],["wed","Wednesday"],["thu","Thursday"],["fri","Friday"],["sat","Saturday"],["sun","Sunday"]];
+var SLOTS = [["front","Building Front"],["closet","Janitor Closet"],["alarm","Alarm Panel"],["dumpster","Dumpster Area"],["supply","Supply Storage"],["hotspot","Hot Spot"],["extra1","Extra 1"],["extra2","Extra 2"]];
+var photoState = {}; // slot -> {label, dataUrl} or {label, id, url}
+
+function q(id){return document.getElementById(id);}
+function post(payload){
+  return fetch(WEBHOOK,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload)})
+    .then(function(r){return r.text();})
+    .then(function(t){try{return JSON.parse(t);}catch(e){return {ok:false,error:"Bad response"};}});
+}
+
+/* ---------- gate ---------- */
+function unlock(){ q("gate").classList.add("hidden"); q("app").classList.remove("hidden"); var m=location.search.match(/account=([^&]+)/); if(m){ q("loadAcct").value=decodeURIComponent(m[1].replace(/\+/g," ")); loadSheet(); } }
+function tryPass(pc,auto){
+  q("gerr").textContent="";
+  if(!pc){q("gerr").textContent="Enter the passcode.";return;}
+  post({kind:"building_sheet_list",passcode:pc}).then(function(r){
+    if(r&&r.ok){PASS=pc;try{localStorage.setItem(KEY,pc);}catch(e){} unlock();}
+    else {if(auto){try{localStorage.removeItem(KEY);}catch(e){}} q("gerr").textContent=(r&&r.error)||"That passcode is not right.";}
+  }).catch(function(){q("gerr").textContent="Could not reach the server.";});
+}
+q("genter").addEventListener("click",function(){tryPass(q("gpc").value.trim(),false);});
+q("gpc").addEventListener("keydown",function(e){if(e.key==="Enter")tryPass(this.value.trim(),false);});
+(function(){var s="";try{s=localStorage.getItem(KEY)||"";}catch(e){} if(s)tryPass(s,true);})();
+
+/* ---------- dynamic UI ---------- */
+DAYS.forEach(function(d){
+  var tr=document.createElement("tr");
+  tr.innerHTML='<td>'+d[1]+'</td><td><input type="text" id="acc_'+d[0]+'" placeholder="e.g. 8a to 6p"></td><td><input type="text" id="cln_'+d[0]+'" placeholder="e.g. after 6p"></td><td><input type="text" id="nts_'+d[0]+'"></td>';
+  q("schedBody").appendChild(tr);
+});
+function addSuiteRow(v){
+  v=v||{};
+  var div=document.createElement("div");div.className="rowline";
+  div.innerHTML='<input type="text" class="s-suite" placeholder="Suite # / company" value=""><input type="text" class="s-area" placeholder="Area" value=""><input type="text" class="s-req" placeholder="Special requests" value=""><button type="button" class="del" title="Remove">&times;</button>';
+  div.querySelector(".s-suite").value=v.suite||"";div.querySelector(".s-area").value=v.area||"";div.querySelector(".s-req").value=v.requests||"";
+  div.querySelector(".del").addEventListener("click",function(){div.remove();});
+  q("suiteRows").appendChild(div);
+}
+function addCompRow(v){
+  v=v||{};
+  var div=document.createElement("div");div.className="rowline cline";
+  div.innerHTML='<input type="date" class="c-date"><input type="text" class="c-by" placeholder="Logged by"><input type="text" class="c-issue" placeholder="Complaint or request"><input type="text" class="c-res" placeholder="Resolution / status"><button type="button" class="del" title="Remove">&times;</button>';
+  div.querySelector(".c-date").value=v.date||"";div.querySelector(".c-by").value=v.by||"";div.querySelector(".c-issue").value=v.issue||"";div.querySelector(".c-res").value=v.resolution||"";
+  div.querySelector(".del").addEventListener("click",function(){div.remove();});
+  q("compRows").appendChild(div);
+}
+q("addSuite").addEventListener("click",function(){addSuiteRow();});
+q("addComp").addEventListener("click",function(){addCompRow();});
+
+function renderSlots(){
+  var host=q("photoSlots");host.innerHTML="";
+  SLOTS.forEach(function(s){
+    var st=photoState[s[0]];
+    var div=document.createElement("div");div.className="pslot"+(st?" filled":"");
+    var img=st?('<img src="'+(st.dataUrl||st.url)+'" alt="">'):'';
+    div.innerHTML='<b>'+s[1]+'</b>'+img+'<div class="pbtns"><button type="button" class="pb pick">'+(st?"Replace":"Add photo")+'</button>'+(st?'<button type="button" class="pb rm">Remove</button>':'')+'</div><input type="file" accept="image/*" class="hidden pfile">';
+    var file=div.querySelector(".pfile");
+    div.querySelector(".pick").addEventListener("click",function(){file.click();});
+    if(st)div.querySelector(".rm").addEventListener("click",function(){delete photoState[s[0]];renderSlots();});
+    file.addEventListener("change",function(){
+      var f=file.files[0];if(!f)return;
+      var rd=new FileReader();
+      rd.onload=function(){
+        var im=new Image();
+        im.onload=function(){
+          var w=Math.min(1280,im.width),h=Math.round(im.height*w/im.width);
+          var cv=document.createElement("canvas");cv.width=w;cv.height=h;
+          cv.getContext("2d").drawImage(im,0,0,w,h);
+          photoState[s[0]]={slot:s[0],label:s[1],dataUrl:cv.toDataURL("image/jpeg",0.75)};
+          renderSlots();
+        };
+        im.src=rd.result;
+      };
+      rd.readAsDataURL(f);
+    });
+    host.appendChild(div);
+  });
+}
+renderSlots();
+
+/* ---------- collect / fill ---------- */
+var TEXT_IDS=["account","address","citystatezip","sqft","floors","restrooms","key_number","fsm","fsm_visit","contact","ic","emergency_contacts","who_has_keys","time_restrictions","occupied_process","entry_exit","parking","alarm_location","lockbox","alarm_procedure","alarm_entry_exit","emergency_procedure","key_type","key_count","closets","supply_storage","supply_order","dumpster","trash_days","recycling","private_restrooms","lights","exec_office","water_shutoff","electrical_panel","hot_spots","additional","special_requests"];
+var SEL_IDS=["region","building_type","day_porter"];
+function collect(){
+  var s={};
+  TEXT_IDS.concat(SEL_IDS).forEach(function(id){s[id]=q(id).value.trim();});
+  s.schedule={};
+  DAYS.forEach(function(d){s.schedule[d[0]]={access:q("acc_"+d[0]).value.trim(),clean:q("cln_"+d[0]).value.trim(),notes:q("nts_"+d[0]).value.trim()};});
+  s.suites=[];
+  q("suiteRows").querySelectorAll(".rowline").forEach(function(r){
+    var v={suite:r.querySelector(".s-suite").value.trim(),area:r.querySelector(".s-area").value.trim(),requests:r.querySelector(".s-req").value.trim()};
+    if(v.suite||v.area||v.requests)s.suites.push(v);
+  });
+  s.complaints=[];
+  q("compRows").querySelectorAll(".rowline").forEach(function(r){
+    var v={date:r.querySelector(".c-date").value,by:r.querySelector(".c-by").value.trim(),issue:r.querySelector(".c-issue").value.trim(),resolution:r.querySelector(".c-res").value.trim()};
+    if(v.date||v.issue)s.complaints.push(v);
+  });
+  s.photos=[];
+  Object.keys(photoState).forEach(function(k){s.photos.push(photoState[k]);});
+  return s;
+}
+function fill(s){
+  s=s||{};
+  TEXT_IDS.concat(SEL_IDS).forEach(function(id){q(id).value=s[id]||"";});
+  DAYS.forEach(function(d){var a=(s.schedule||{})[d[0]]||{};q("acc_"+d[0]).value=a.access||"";q("cln_"+d[0]).value=a.clean||"";q("nts_"+d[0]).value=a.notes||"";});
+  q("suiteRows").innerHTML="";(s.suites||[]).forEach(addSuiteRow);
+  q("compRows").innerHTML="";(s.complaints||[]).forEach(addCompRow);
+  photoState={};(s.photos||[]).forEach(function(p){if(p&&p.slot)photoState[p.slot]={slot:p.slot,label:p.label,id:p.id,url:p.url};});
+  renderSlots();
+  document.querySelectorAll("details.step").forEach(function(d){d.open=true;});
+  window.scrollTo(0,0);
+}
+
+/* ---------- load existing ---------- */
+function loadSheet(){
+  var a=q("loadAcct").value.trim();
+  if(!a){q("loadMsg").textContent="Type the account name first.";return;}
+  q("loadMsg").textContent="Loading...";
+  post({kind:"building_sheet_get",passcode:PASS,account:a}).then(function(r){
+    if(r&&r.ok){fill(r.sheet);q("loadMsg").textContent="Loaded. Make your changes and save.";}
+    else q("loadMsg").textContent=(r&&r.error)||"Not found.";
+  });
+}
+q("loadBtn").addEventListener("click",loadSheet);
+
+/* ---------- save ---------- */
+q("go").addEventListener("click",function(){
+  var msg=q("msg");msg.className="hint";msg.textContent="";
+  var s=collect();
+  if(!s.account){msg.className="err";msg.textContent="Account name is required.";return;}
+  if(!s.region){msg.className="err";msg.textContent="Pick the region.";return;}
+  if(!q("filled_by").value.trim()){msg.className="err";msg.textContent="Add your name so we know who updated it.";return;}
+  var btn=q("go");btn.disabled=true;msg.textContent="Saving (photos upload now, give it a moment)...";
+  post({kind:"building_sheet",passcode:PASS,updated_by:q("filled_by").value.trim(),sheet:s}).then(function(r){
+    btn.disabled=false;
+    if(r&&r.ok){
+      q("doneAcct").textContent=r.account;
+      q("donePrint").href="building-sheet-print.html?account="+encodeURIComponent(r.account);
+      q("doneFolder").href=r.folder||"#";
+      q("f").classList.add("hidden");q("done").classList.remove("hidden");
+      document.querySelector(".loadbar").classList.add("hidden");
+      window.scrollTo(0,0);
+    } else {msg.className="err";msg.textContent=(r&&r.error)||"Something went wrong. Try again.";}
+  }).catch(function(){btn.disabled=false;msg.className="err";msg.textContent="Could not reach the server.";});
+});
+q("doneAgain").addEventListener("click",function(){
+  q("done").classList.add("hidden");q("f").classList.remove("hidden");
+  document.querySelector(".loadbar").classList.remove("hidden");
+  q("loadAcct").value=q("account").value;loadSheet();
+});
+</script>
+</body></html>
