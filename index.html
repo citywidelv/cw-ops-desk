@@ -52,7 +52,7 @@ nav.mainnav{background:var(--black);border-bottom:3px solid var(--red)}
 .nbtn.open .pill{background:#fff;color:var(--red)}
 .nmenu{display:none;position:absolute;top:100%;left:0;min-width:250px;max-width:320px;background:#fff;
   border:1px solid var(--border);border-top:3px solid var(--red);border-radius:0 0 10px 10px;
-  box-shadow:var(--shadow-lift);padding:6px 0;z-index:70;max-height:70vh;overflow-y:auto}
+  box-shadow:var(--shadow-lift);padding:6px 0;z-index:70}
 .nmenu.show{display:block}
 .nmenu a{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:700;
   color:var(--black);text-decoration:none;padding:9px 16px}
@@ -137,6 +137,29 @@ div.card{cursor:default}
 .gate .err{color:var(--red);font-size:12.5px;font-weight:700;margin-top:12px;min-height:16px}
 .gate .note{font-size:11px;color:var(--grey);margin-top:16px}
 #app.hidden{display:none}
+
+/* static menu tree (July 25, 2026): group heads + flyout submenus */
+.nmenu .ghead{font-weight:700;color:var(--grey);font-size:10px;padding:9px 16px 3px;
+  text-transform:uppercase;letter-spacing:.1em}
+.nmenu .ghead:not(:first-child){border-top:1px solid var(--border);margin-top:5px}
+.nsub{position:relative}
+.nsub>a.subbtn{justify-content:space-between}
+.nsub>a.subbtn::after{content:"\25B8";color:var(--grey);font-size:10px;margin-left:10px}
+.nsubmenu{display:none;position:absolute;left:100%;top:-7px;min-width:240px;background:#fff;
+  border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lift);
+  padding:6px 0;z-index:80}
+.nsubmenu.show{display:block}
+@media(hover:hover){
+  .nitem:hover>.nmenu{display:block}
+  .nsub:hover>.nsubmenu{display:block}
+}
+@media(max-width:820px){
+  .nav-in{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .nmenu{position:fixed;left:10px;right:10px;top:auto;max-width:none;border-radius:10px}
+  .nsubmenu{position:static;border:none;box-shadow:none;padding:0 0 4px 14px}
+  .nmenu{max-height:70vh;overflow-y:auto}
+}
+
 @media(max-width:820px){
   .head .t,.head .badge{display:none}
   .hsearch{max-width:none}
@@ -248,54 +271,108 @@ function sectionIcon(sec){
 
 /* ---------- Nav: generated from sections + optional custom nav from the payload ---------- */
 function renderMainNav(sections, nav){
+  /* Static menu tree (approved map, July 25 2026). The sections payload still
+     drives the cards + search below; this bar is maintained in the repo. */
+  var VS = "https://citywidelv.github.io/cw-vendor-shop/";
+  var MENU = [
+    { label:"Opportunities", icon:"board", items:[
+      {label:"Post an Opportunity", href:"post.html"},
+      {label:"Live Board", href:VS+"opportunities.html"},
+      {label:"Vendor Responses", href:"responses.html"},
+      {label:"Request a Walkthrough Email", href:"mailto:tjroberts@gocitywide.com?subject=Walkthrough%20email%20request%20-%20(account%20name)&body=Account%3A%0AAddress%3A%0AWalkthrough%20day%20and%20time%3A%0ATrades%20needed%3A%0ANotes%3A"},
+      {ghead:"Tracking"},
+      {label:"Opportunities Tracker (Sheet)", href:"https://docs.google.com/spreadsheets/d/1ymbqR7LMvA7sbgZe2Ro5o2dNiXhP08Tn9Hw1b-H5AeQ/edit"}
+    ]},
+    { label:"Vendors", icon:"clip", items:[
+      {sub:"Request a Vendor Packet", items:[
+        {ghead:"Las Vegas"},
+        {label:"Janitorial Packet", href:"https://form.pandadoc.com/form/QTrR2sJpKKSuYddrWMEFYA"},
+        {label:"Other Services Packet", href:"https://form.pandadoc.com/form/orcStVWa5uC7hG6Z3DAa7d"},
+        {ghead:"Northern Nevada"},
+        {label:"Janitorial Packet", href:"https://form.pandadoc.com/form/uyVugBTcDqcGJWCXUPUXpM"},
+        {label:"Other Services Packet", href:"https://form.pandadoc.com/form/5FKqAU7yMqYtwa9Wui6wzf"}
+      ]},
+      {label:"New Vendor Page", href:VS+"new-vendors.html"},
+      {sub:"Vendor Resources", items:[
+        {label:"Resource Home", href:VS+"resources.html"},
+        {label:"Crew Guides", href:VS+"resources.html"},
+        {label:"Vendor Shop", href:VS},
+        {label:"Invoice Page", href:VS+"invoice.html"},
+        {label:"Building Supplies", href:VS+"building-supplies.html"}
+      ]}
+    ]},
+    { label:"Accounts & Buildings", icon:"map", items:[
+      {ghead:"DBIS - Building Info Sheets"},
+      {label:"New / Update a Sheet", href:"building-sheet.html"},
+      {label:"Sheet Library", href:"building-sheets.html"},
+      {ghead:"Field Tools"},
+      {label:"Building Survey", href:"https://citywidelv.github.io/BuildingSurvey/"},
+      {ghead:"Accounts Map"},
+      {label:"Las Vegas", href:"https://www.google.com/maps/d/viewer?mid=1ewhUmSrFCo0--ALiJP0O1pLTbH0qlk4"},
+      {label:"Northern Nevada", href:"https://www.google.com/maps/d/viewer?mid=1_o8DPUf6zH9kiAcZuNEOCAbZLq93nnc"}
+    ]},
+    { label:"Pricing & Bids", icon:"margin", items:[
+      {ghead:"Bid Calculators"},
+      {label:"Strip & Wax", href:"https://citywidelv.github.io/strip-and-wax-calculator/"},
+      {label:"Carpet Cleaning", href:"https://citywidelv.github.io/Carpet-Cleaning/"},
+      {label:"Window Cleaning", href:"https://citywidelv.github.io/windowcleaningcalculator/"},
+      {label:"Pressure Washing", href:"https://citywidelv.github.io/powerwashing/"},
+      {label:"Post-Construction Clean", href:"https://citywidelv.github.io/post-construction-clean/"},
+      {label:"Restaurant Cleaning", href:"https://citywidelv.github.io/restaurants/"},
+      {label:"Landscaping Maintenance", href:"https://citywidelv.github.io/landscapingmaintenance/"},
+      {label:"Exterior Porter", href:"https://citywidelv.github.io/porter-exterior/"},
+      {ghead:"Business Numbers"},
+      {label:"Margin Calculator", href:"https://citywidelv.github.io/margincalculator/"},
+      {label:"Revenue Retention (TRR)", href:"https://citywidelv.github.io/retentioncalculator/"}
+    ]},
+    { label:"Night Ops", icon:"clock", items:[
+      {label:"Night Manager Inspection", href:"https://form.jotform.com/233486327771060"},
+      {ghead:"Route Outs"},
+      {label:"SouthEast", href:"https://form.jotform.com/241294883910159"},
+      {label:"SouthWest", href:"https://form.jotform.com/241566167038157"},
+      {label:"North", href:"https://form.jotform.com/241440730763149"},
+      {label:"Northern Nevada", href:"https://form.jotform.com/team/253234894174059/nnv-night-manager-route-out"},
+      {ghead:"More"},
+      {label:"Comprehensive Cancer Work Orders", href:"https://form.jotform.com/252935932465163"},
+      {label:"Night Manager AI Tool", href:"https://chatgpt.com/g/g-681233262c3c81918605de9bd3edf7be-city-wide-night-manager-tool"}
+    ]},
+    { label:"Team & Admin", icon:"home", items:[
+      {label:"Asana", href:"https://app.asana.com/"},
+      {label:"ADP TotalSource", href:"https://workforcenow.adp.com/"},
+      {label:"Order CW Merch", href:"https://cwlv.printful.me/"}
+    ]}
+  ];
+  function items(list, depth){
+    var out = "";
+    list.forEach(function(it, ii){
+      if(it.ghead){ out += '<div class="ghead">' + esc(it.ghead) + '</div>'; }
+      else if(it.sub){
+        out += '<div class="nsub"><a class="subbtn" href="#" data-sub="1">' + esc(it.sub) + '</a>' +
+          '<div class="nsubmenu">' + items(it.items, depth + 1) + '</div></div>';
+      } else { out += menuLink(it.label, it.href, null); }
+    });
+    return out;
+  }
   var host = document.getElementById("mainnav");
   var html = "";
-  sections.forEach(function(sec, si){
-    html += '<div class="nitem"><button class="nbtn" data-dd="' + si + '">' +
-      iconSvg(sectionIcon(sec), 14) + esc(navLabel(sec.h)) + ' <span class="caret">&#9660;</span></button>' +
-      '<div class="nmenu" id="dd-' + si + '">';
-    (sec.cards || []).forEach(function(c){
-      if(c.href){
-        html += menuLink(c.title, c.href, c.icon);
-      } else if(c.links && c.links.length){
-        c.links.forEach(function(l){
-          html += menuLink(c.title + ": " + l.label, l.href, c.icon);
-        });
-      }
-    });
-    html += '<div class="jump"><a href="#sec-' + si + '" data-jump="sec-' + si + '">View this section &darr;</a></div>';
-    html += '</div></div>';
-  });
-  /* Custom quick links from the payload still render, but only when they add a
-     destination the section menus do not already cover. Keeps the bar to one line. */
-  var seen = {};
-  sections.forEach(function(sec){ (sec.cards || []).forEach(function(c){
-    if(c.href) seen[c.href] = 1;
-    (c.links || []).forEach(function(l){ seen[l.href] = 1; });
-  }); });
-  (nav || []).forEach(function(n, ni){
-    if(n.items && n.items.length){
-      var fresh = n.items.filter(function(it){ return !seen[it.href]; });
-      if(!fresh.length) return;
-      html += '<div class="nitem"><button class="nbtn" data-dd="x' + ni + '">' + esc(n.label) +
-        ' <span class="caret">&#9660;</span></button><div class="nmenu" id="dd-x' + ni + '">';
-      fresh.forEach(function(it){ html += menuLink(it.label, it.href, null); });
-      html += '</div></div>';
-    } else if(n.href && !seen[n.href]){
-      var tgt = /^https?:/.test(n.href) ? ' target="_blank" rel="noopener"' : '';
-      html += '<div class="nitem"><a class="nbtn" style="text-decoration:none" href="' + esc(n.href) + '"' + tgt + '>' + esc(n.label) + '</a></div>';
-    }
+  MENU.forEach(function(m, mi){
+    html += '<div class="nitem"><button class="nbtn" data-dd="' + mi + '">' +
+      iconSvg(m.icon, 14) + esc(m.label) + ' <span class="caret">&#9660;</span></button>' +
+      '<div class="nmenu" id="dd-' + mi + '">' + items(m.items, 0) + '</div></div>';
   });
   host.innerHTML = html;
 
-  /* One delegated handler (idempotent across re-renders); toggling never depends on
-     stopPropagation, so stray synthetic clicks from extensions cannot break it. */
+  /* One delegated handler; toggling never depends on stopPropagation, so stray
+     synthetic clicks from extensions cannot break it. Hover works via CSS on
+     devices that have hover; taps use these toggles. */
   host.onclick = function(e){
-    var jump = e.target.closest ? e.target.closest("[data-jump]") : null;
-    if(jump){
-      e.preventDefault(); closeMenus();
-      var el = document.getElementById(jump.getAttribute("data-jump"));
-      if(el) el.scrollIntoView({behavior:"smooth", block:"start"});
+    var sub = e.target.closest ? e.target.closest("a.subbtn") : null;
+    if(sub){
+      e.preventDefault();
+      var menu = sub.parentElement.querySelector(".nsubmenu");
+      var was = menu.classList.contains("show");
+      document.querySelectorAll(".nsubmenu.show").forEach(function(s){ s.classList.remove("show"); });
+      if(!was) menu.classList.add("show");
       return;
     }
     var btn = e.target.closest ? e.target.closest(".nbtn[data-dd]") : null;
@@ -312,6 +389,7 @@ function menuLink(label, href, icon){
 }
 function closeMenus(){
   document.querySelectorAll(".nmenu.show").forEach(function(d){ d.classList.remove("show"); });
+  document.querySelectorAll(".nsubmenu.show").forEach(function(d){ d.classList.remove("show"); });
   document.querySelectorAll(".nbtn.open").forEach(function(b){ b.classList.remove("open"); });
 }
 document.addEventListener("click", function(e){
