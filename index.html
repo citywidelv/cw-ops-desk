@@ -435,7 +435,7 @@ function render(sections){
       if(c.links){
         inner += '<div class="links">';
         c.links.forEach(function(l){
-          inner += '<a href="' + esc(l.href) + (String(l.href).indexOf("citywidelv.github.io")<0 ? '" target="_blank" rel="noopener">' : '">') + esc(l.label) + '</a>';
+          inner += '<a href="' + esc(l.href) + ((/^https?:/.test(l.href) && String(l.href).indexOf("citywidelv.github.io")<0) ? '" target="_blank" rel="noopener">' : '">') + esc(l.label) + '</a>';
         });
         inner += '</div>';
       }
