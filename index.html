@@ -5,9 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
-<!-- build 2026-07-24: nav dropdowns auto-generated from sections JSON + tool search.
-     Data contract with the Apps Script is unchanged: add a card in handleAuth and it
-     appears in the grid, the nav menus, and the search index automatically. -->
+<!-- build 2026-07-29: visual overhaul of the landing page.
+     Top bar + dropdown nav kept as-is (approved). Below the nav:
+     compact hero with Las Vegas / Reno skyline art, a Most Used quick bar,
+     a slim Building Information Sheets feature band, and a dense link
+     directory replacing the old card grid. Data contract with the Apps
+     Script is unchanged: add a card in handleAuth and it appears in the
+     directory and the search index automatically. -->
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
   --border:#E5E5E5;--gold:#E5B423;
@@ -37,7 +41,7 @@ a{color:var(--red)}
   border:1px solid var(--border);border-radius:14px;padding:5px 12px;background:var(--light);white-space:nowrap}
 .head .out:hover{background:var(--red);color:#fff;border-color:var(--red)}
 
-/* nav bar: dropdowns generated from the sections payload */
+/* nav bar: static menu tree (approved) */
 nav.mainnav{background:var(--black);border-bottom:3px solid var(--red)}
 .nav-in{max-width:1160px;margin:0 auto;padding:0 12px;display:flex;align-items:stretch;
   gap:2px;flex-wrap:wrap}
@@ -58,54 +62,104 @@ nav.mainnav{background:var(--black);border-bottom:3px solid var(--red)}
   color:var(--black);text-decoration:none;padding:9px 16px}
 .nmenu a:hover{background:var(--light);color:var(--red)}
 .nmenu a svg{color:var(--red);flex:none}
-.nmenu .sub{font-weight:400;color:var(--grey);font-size:11px;padding:8px 16px 2px;
-  text-transform:uppercase;letter-spacing:.08em}
-.nmenu .jump{border-top:1px solid var(--border);margin-top:4px}
-.nmenu .jump a{color:var(--grey);font-size:11.5px}
-.nmenu .jump a:hover{color:var(--red)}
+.nmenu .ghead{font-weight:700;color:var(--grey);font-size:10px;padding:9px 16px 3px;
+  text-transform:uppercase;letter-spacing:.1em}
+.nmenu .ghead:not(:first-child){border-top:1px solid var(--border);margin-top:5px}
+.nsub{position:relative}
+.nsub>a.subbtn{justify-content:space-between}
+.nsub>a.subbtn::after{content:"\25B8";color:var(--grey);font-size:10px;margin-left:10px}
+.nsubmenu{display:none;position:absolute;left:100%;top:-7px;min-width:240px;background:#fff;
+  border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lift);
+  padding:6px 0;z-index:80}
+.nsubmenu.show{display:block}
+@media(hover:hover){
+  .nitem:hover>.nmenu{display:block}
+  .nsub:hover>.nsubmenu{display:block}
+}
 
-/* hero: greyscale building photography per brand, people stay full color elsewhere */
-.hero{position:relative;color:#fff;padding:30px 0 26px;border-bottom:5px solid var(--red);
-  background:linear-gradient(rgba(45,42,38,.88),rgba(45,42,38,.82)),
-    url('https://emailer.emfluence.com/clients/citywide/uploadedfiles/2020_Rebrand/Image_Library/bigstock-Ceo-Office-Interior-With-Glass-430518427_small.jpg') center 40%/cover;
-  background-blend-mode:normal}
-.hero .bwfix{position:absolute;inset:0;backdrop-filter:grayscale(100%);pointer-events:none}
+/* ---------- Hero: Las Vegas + Reno skyline, greyscale per brand ---------- */
 .wrap{max-width:1160px;margin:0 auto;padding:0 20px}
-.hero .wrap{position:relative;z-index:1}
-.hero h1{font-size:clamp(22px,3.4vw,30px);line-height:1.25}
+.hero{position:relative;color:#fff;background:linear-gradient(180deg,#26231f 0%,var(--black) 70%);
+  overflow:hidden}
+.hero .sky{position:absolute;left:0;right:0;bottom:0;width:100%;height:170px;display:block;
+  pointer-events:none}
+.hero .wrap{position:relative;z-index:1;padding-top:32px;padding-bottom:150px}
+.hero h1{font-size:clamp(22px,3.2vw,29px);line-height:1.25;letter-spacing:.01em}
 .hero h1::after{content:"";display:block;width:56px;height:4px;background:var(--red);
-  border-radius:2px;margin-top:12px}
-.hero p{color:#d9d7d4;margin-top:10px;max-width:640px;font-size:14px}
+  border-radius:2px;margin-top:11px}
+.hero p{color:#cfcdc9;margin-top:10px;max-width:600px;font-size:13.5px}
+.hero .cities{margin-top:14px;font-size:10.5px;font-weight:700;letter-spacing:.22em;
+  text-transform:uppercase;color:#8f8b85}
+.hero .cities b{color:#fff;font-weight:700}
+.hero .cities .dot{color:var(--red);padding:0 8px}
 
-.section{padding:30px 0 6px}
-.section-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}
-.section-head h2{font-size:19px}
-.section-head .tag{font-size:11px;font-weight:700;color:var(--grey);letter-spacing:.1em;
-  text-transform:uppercase}
-.section p.sub{color:var(--grey);font-size:13.5px;max-width:640px;margin-bottom:18px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
-.card{position:relative;display:flex;flex-direction:column;background:#fff;
-  border:1px solid var(--border);border-radius:12px;padding:18px;text-decoration:none;
-  color:var(--black);transition:all .15s;box-shadow:var(--shadow)}
-a.card:hover{box-shadow:var(--shadow-lift);transform:translateY(-2px);border-color:var(--red)}
-.card .icon{width:42px;height:42px;border-radius:10px;background:var(--light);display:flex;
-  align-items:center;justify-content:center;margin-bottom:12px;color:var(--red);flex:none}
-.card.primary{border-left:5px solid var(--red)}
-.card.primary .icon{background:var(--red);color:#fff}
-.card h3{font-size:14.5px;font-weight:700;margin-bottom:4px}
-.card p{font-size:12.5px;color:var(--grey);flex:1}
-.card .go{margin-top:12px;font-size:12.5px;font-weight:700;color:var(--red)}
-.card .go::after{content:" \2192"}
-.card .pill{position:absolute;top:14px;right:14px;font-size:10px;font-weight:700;
-  letter-spacing:.06em;text-transform:uppercase;background:var(--red);color:#fff;
-  border-radius:10px;padding:3px 9px;display:none}
-.card .pill.show{display:block}
-div.card{cursor:default}
-.card .links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.card .links a{font-size:12px;font-weight:700;color:var(--red);text-decoration:none;
-  border:1px solid var(--border);border-radius:16px;padding:6px 12px;background:var(--light);
-  transition:all .15s}
-.card .links a:hover{background:var(--red);color:#fff;border-color:var(--red)}
+/* ---------- Most Used quick bar, overlapping the hero ---------- */
+.quick{position:relative;z-index:5;margin-top:-44px}
+.quick .qcard{background:#fff;border:1px solid var(--border);border-radius:14px;
+  box-shadow:var(--shadow-lift);padding:16px 18px 14px}
+.quick .qhead{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.quick .qhead h2{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--grey)}
+.quick .qhead .bar-accent{flex:none;width:18px;height:3px;background:var(--red);border-radius:2px;
+  align-self:center}
+.qrow{display:flex;flex-wrap:wrap;gap:10px}
+.qbtn{position:relative;display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:700;
+  color:var(--black);text-decoration:none;border:1.5px solid var(--border);border-radius:10px;
+  padding:10px 15px;background:#fff;transition:all .15s;white-space:nowrap}
+.qbtn svg{color:var(--red);flex:none}
+.qbtn:hover{border-color:var(--red);color:var(--red);box-shadow:var(--shadow)}
+.qbtn.primary{background:var(--red);border-color:var(--red);color:#fff}
+.qbtn.primary svg{color:#fff}
+.qbtn.primary:hover{background:var(--red-dark);border-color:var(--red-dark);color:#fff}
+.qbtn .pill{font-size:9.5px;font-weight:700;background:var(--black);color:#fff;border-radius:9px;
+  padding:2px 8px;display:none}
+.qbtn .pill.show{display:inline-block}
+
+/* ---------- Feature band: Building Information Sheets ---------- */
+.feature{margin-top:18px}
+.fcard{display:flex;align-items:center;gap:22px;background:#fff;border:1px solid var(--border);
+  border-left:5px solid var(--red);border-radius:14px;box-shadow:var(--shadow);padding:18px 22px;
+  flex-wrap:wrap}
+.fcard .ficon{width:44px;height:44px;border-radius:10px;background:var(--red);color:#fff;
+  display:flex;align-items:center;justify-content:center;flex:none}
+.fcard .ftext{flex:1;min-width:240px}
+.fcard h3{font-size:15px;margin-bottom:2px}
+.fcard p{font-size:12.5px;color:var(--grey)}
+.fcard .fbtns{display:flex;gap:10px;flex-wrap:wrap}
+.fbtn{font-size:12.5px;font-weight:700;text-decoration:none;border-radius:10px;padding:10px 16px;
+  white-space:nowrap;transition:all .15s}
+.fbtn.solid{background:var(--black);color:#fff}
+.fbtn.solid:hover{background:var(--red)}
+.fbtn.line{border:1.5px solid var(--border);color:var(--black);background:#fff}
+.fbtn.line:hover{border-color:var(--red);color:var(--red)}
+
+/* ---------- Directory: dense link panels replacing the old card grid ---------- */
+.dir{padding:22px 0 8px}
+.dirgrid{columns:4 255px;column-gap:14px;column-fill:balance}
+.panel{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+  padding:6px 0 8px;break-inside:avoid;margin-bottom:14px;width:100%}
+.panel .phead{display:flex;align-items:center;gap:9px;padding:11px 16px 8px;
+  border-bottom:1px solid var(--border);margin-bottom:5px}
+.panel .phead svg{color:var(--red);flex:none}
+.panel .phead h2{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.panel .phead .tag{margin-left:auto;font-size:9px;font-weight:700;color:var(--grey);
+  letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.row{display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:700;color:var(--black);
+  text-decoration:none;padding:7px 16px;transition:background .12s}
+.row svg{color:var(--grey);flex:none;transition:color .12s}
+.row:hover{background:var(--light);color:var(--red)}
+.row:hover svg{color:var(--red)}
+.row .pill{margin-left:auto;font-size:9px;font-weight:700;background:var(--red);color:#fff;
+  border-radius:8px;padding:1px 7px;display:none}
+.row .pill.show{display:inline-block}
+.glabel{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:700;color:var(--grey);
+  padding:8px 16px 2px;text-transform:uppercase;letter-spacing:.06em}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 16px 8px}
+.chips a{font-size:11px;font-weight:700;color:var(--black);text-decoration:none;
+  border:1px solid var(--border);border-radius:12px;padding:4px 11px;background:var(--light);
+  transition:all .12s}
+.chips a:hover{background:var(--red);border-color:var(--red);color:#fff}
+
 .noresults{display:none;text-align:center;color:var(--grey);padding:56px 20px}
 .noresults b{display:block;color:var(--black);font-size:15px;margin-bottom:6px}
 .noresults.show{display:block}
@@ -114,8 +168,12 @@ div.card{cursor:default}
   cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.28)}
 .totop:hover{background:var(--red)}
 .totop.show{display:block}
-.foot{text-align:center;font-size:11px;color:var(--grey);padding:36px 20px 28px}
+.foot{border-top:1px solid var(--border);margin-top:26px;background:#fff}
+.foot .fin{max-width:1160px;margin:0 auto;padding:20px;display:flex;align-items:center;gap:14px;
+  font-size:11px;color:var(--grey);flex-wrap:wrap}
 .foot b{color:var(--black)}
+.foot .fr{margin-left:auto;font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+.foot .fr span{color:var(--red);padding:0 6px}
 
 /* Gate (unchanged behavior) */
 .gate{position:fixed;inset:0;z-index:100;background:linear-gradient(rgba(45,42,38,.92),rgba(45,42,38,.88)),
@@ -138,21 +196,6 @@ div.card{cursor:default}
 .gate .note{font-size:11px;color:var(--grey);margin-top:16px}
 #app.hidden{display:none}
 
-/* static menu tree (July 25, 2026): group heads + flyout submenus */
-.nmenu .ghead{font-weight:700;color:var(--grey);font-size:10px;padding:9px 16px 3px;
-  text-transform:uppercase;letter-spacing:.1em}
-.nmenu .ghead:not(:first-child){border-top:1px solid var(--border);margin-top:5px}
-.nsub{position:relative}
-.nsub>a.subbtn{justify-content:space-between}
-.nsub>a.subbtn::after{content:"\25B8";color:var(--grey);font-size:10px;margin-left:10px}
-.nsubmenu{display:none;position:absolute;left:100%;top:-7px;min-width:240px;background:#fff;
-  border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lift);
-  padding:6px 0;z-index:80}
-.nsubmenu.show{display:block}
-@media(hover:hover){
-  .nitem:hover>.nmenu{display:block}
-  .nsub:hover>.nsubmenu{display:block}
-}
 @media(max-width:820px){
   .nav-in{flex-wrap:wrap;padding:2px 6px}
   .nbtn{padding:9px 8px;font-size:10.5px;gap:5px}
@@ -160,11 +203,11 @@ div.card{cursor:default}
     border-top:3px solid var(--red);max-height:65vh;overflow-y:auto}
   .nsubmenu{position:static;border:none;box-shadow:none;padding:0 0 4px 14px;display:none}
   .nsubmenu.show{display:block}
-}
-
-@media(max-width:820px){
   .head .t,.head .badge{display:none}
   .hsearch{max-width:none}
+  .hero .wrap{padding-bottom:120px}
+  .quick{margin-top:-40px}
+  .fcard{gap:14px}
 }
 </style>
 </head>
@@ -198,19 +241,86 @@ div.card{cursor:default}
 <nav class="mainnav"><div class="nav-in" id="mainnav"></div></nav>
 </header>
 
-<section class="hero"><div class="bwfix"></div><div class="wrap">
-  <h1>City Wide Operations Hub</h1>
-  <p>Every tool the operations team uses, one page. Use the menus or start typing in the
-  search box to jump straight to what you need.</p>
-</div></section>
+<section class="hero">
+  <svg class="sky" viewBox="0 0 1400 170" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <!-- Sierra Nevada ridge behind Reno, far layer -->
+    <path fill="#3f3b34" d="M660 170v-62l64-36 50 28 44-24 58 32 48-20 52 28 64-30 74 36 74-24 64 28 42-16 66 24v56z" opacity=".85"/>
+    <!-- Las Vegas cluster -->
+    <g fill="#5c564d">
+      <rect x="20" y="104" width="34" height="66"/>
+      <rect x="64" y="88" width="26" height="82"/>
+      <rect x="100" y="112" width="42" height="58"/>
+      <!-- Stratosphere -->
+      <rect x="166" y="40" width="6" height="130"/>
+      <path d="M156 52h26l-5-14h-16z"/>
+      <circle cx="169" cy="36" r="8"/>
+      <rect x="167.4" y="10" width="3.2" height="20"/>
+      <!-- Luxor pyramid -->
+      <path d="M198 170l42-64 42 64z"/>
+      <!-- hotel slabs -->
+      <rect x="292" y="76" width="24" height="94"/>
+      <rect x="322" y="94" width="32" height="76"/>
+      <path d="M366 170V84l17-11 17 11v86z"/>
+      <!-- High Roller wheel -->
+      <g stroke="#5c564d" fill="none" stroke-width="4.5">
+        <circle cx="470" cy="96" r="44"/>
+        <path d="M470 52v88M426 96h88M439 65l62 62M501 65l-62 62"/>
+      </g>
+      <path d="M450 170l20-62 20 62z"/>
+      <rect x="530" y="98" width="28" height="72"/>
+      <rect x="566" y="116" width="46" height="54"/>
+      <rect x="622" y="90" width="20" height="80"/>
+    </g>
+    <!-- Reno cluster -->
+    <g fill="#544e45">
+      <rect x="880" y="106" width="30" height="64"/>
+      <rect x="918" y="88" width="24" height="82"/>
+      <rect x="950" y="112" width="38" height="58"/>
+      <rect x="996" y="96" width="22" height="74"/>
+      <!-- Reno arch -->
+      <g stroke="#6e675c" fill="none" stroke-width="5">
+        <path d="M1044 170v-40a47 30 0 0 1 94 0v40"/>
+      </g>
+      <rect x="1040" y="120" width="8" height="12" fill="#6e675c"/>
+      <rect x="1134" y="120" width="8" height="12" fill="#6e675c"/>
+      <rect x="1160" y="100" width="30" height="70"/>
+      <rect x="1198" y="116" width="42" height="54"/>
+      <rect x="1250" y="92" width="22" height="78"/>
+      <rect x="1280" y="110" width="36" height="60"/>
+      <rect x="1326" y="96" width="26" height="74"/>
+      <rect x="1360" y="118" width="30" height="52"/>
+    </g>
+    <!-- red horizon accent -->
+    <rect x="0" y="166" width="1400" height="4" fill="#D22730"/>
+  </svg>
+  <div class="wrap">
+    <h1>City Wide Operations Hub</h1>
+    <p>Every tool the operations team uses, one page. Use the menus above or type in the
+    search box to jump straight to what you need.</p>
+    <div class="cities"><b>Las Vegas</b><span class="dot">&bull;</span><b>Northern Nevada</b>
+      &nbsp;&nbsp;Proudly serving the Silver State</div>
+  </div>
+</section>
 
-<div class="wrap" id="content"></div>
+<div class="wrap quick" id="quickwrap">
+  <div class="qcard">
+    <div class="qhead"><span class="bar-accent"></span><h2>Most Used</h2></div>
+    <div class="qrow" id="quickrow"></div>
+  </div>
+</div>
+
+<div class="wrap feature" id="featurewrap"></div>
+
+<div class="wrap dir"><div class="dirgrid" id="content"></div></div>
 <div class="wrap"><div class="noresults" id="noresults"><b>No tools match.</b>Try fewer words, or clear the search.</div></div>
 
 <button class="totop" id="totop" title="Back to top">&#8593;</button>
 
-<div class="foot"><b>City Wide Facility Solutions</b> &middot; Operations Hub &middot; Internal use only<br>
-Something missing from this page? Tell TJ.</div>
+<footer class="foot"><div class="fin">
+  <b>City Wide Facility Solutions</b> &middot; Operations Hub &middot; Internal use only
+  &middot; Something missing? Tell TJ.
+  <span class="fr">Las Vegas<span>&bull;</span>Reno</span>
+</div></footer>
 </div>
 
 <script>
@@ -247,34 +357,13 @@ var ICONS = {
   shop:'<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>'
 };
 function iconSvg(k, size){
-  size = size || 22;
+  size = size || 15;
   return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[k] || ICONS.home) + '</svg>';
 }
 function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function slug(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-"); }
 
-/* Long section names get short nav labels so the whole bar fits on one line.
-   Unknown/new sections fall back to their full name automatically. */
-var NAV_SHORT = {
-  "Vendor Solicitations":"Solicitations",
-  "Night Manager & Route Outs":"Night Manager",
-  "Pricing & Bid Calculators":"Calculators",
-  "Analysis & Field Tools":"Field Tools",
-  "Team & Admin":"Back Office",
-  "Vendor Resource Center":"Resource Center"
-};
-function navLabel(h){ return NAV_SHORT[h] || h; }
-
-/* Section icon: use the first card's icon so the nav stays meaningful as sections change */
-function sectionIcon(sec){
-  var c = (sec.cards || []).find(function(x){ return x.icon; });
-  return c ? c.icon : 'home';
-}
-
-/* ---------- Nav: generated from sections + optional custom nav from the payload ---------- */
+/* ---------- Nav: static menu tree (approved map, July 25 2026) ---------- */
 function renderMainNav(sections, nav){
-  /* Static menu tree (approved map, July 25 2026). The sections payload still
-     drives the cards + search below; this bar is maintained in the repo. */
   var VS = "https://citywidelv.github.io/cw-vendor-shop/";
   var MENU = [
     { label:"Opportunities", icon:"board", items:[
@@ -373,9 +462,6 @@ function renderMainNav(sections, nav){
   });
   host.innerHTML = html;
 
-  /* One delegated handler; toggling never depends on stopPropagation, so stray
-     synthetic clicks from extensions cannot break it. Hover works via CSS on
-     devices that have hover; taps use these toggles. */
   host.onclick = function(e){
     var sub = e.target.closest ? e.target.closest("a.subbtn") : null;
     if(sub){
@@ -411,65 +497,112 @@ function closeMenus(){
   document.querySelectorAll(".nbtn.open").forEach(function(b){ b.classList.remove("open"); });
 }
 document.addEventListener("click", function(e){
-  if(e.isTrusted === false) return; /* synthetic clicks from extensions */
+  if(e.isTrusted === false) return;
   if(e.target && e.target.closest && e.target.closest(".nitem")) return;
   closeMenus();
 });
 document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeMenus(); });
 
-/* ---------- Sections/cards (same data contract as before) ---------- */
+/* ---------- Most Used quick bar (maintained in the repo) ---------- */
+var QUICK = [
+  { label:"Post an Opportunity", href:"post.html", icon:"plus", primary:true },
+  { label:"Live Board", href:"https://citywidelv.github.io/cw-vendor-shop/opportunities.html", icon:"board", pill:true },
+  { label:"Sheet Library", href:"building-sheets.html", icon:"map" },
+  { label:"Night Inspection", href:"https://form.jotform.com/233486327771060", icon:"clip" },
+  { label:"CW Sales CRM", href:"https://gocitywide.crm.dynamics.com/main.aspx", icon:"work" },
+  { label:"Margin Calculator", href:"https://citywidelv.github.io/margincalculator/", icon:"margin" }
+];
+function renderQuick(){
+  var html = "";
+  QUICK.forEach(function(q){
+    var tgt = (/^https?:/.test(q.href) && q.href.indexOf("citywidelv.github.io")<0) ? ' target="_blank" rel="noopener"' : '';
+    html += '<a class="qbtn' + (q.primary ? ' primary' : '') + '" data-hay="' + esc(q.label.toLowerCase()) + '" href="' + esc(q.href) + '"' + tgt + '>' +
+      iconSvg(q.icon, 15) + esc(q.label) +
+      (q.pill ? ' <span class="pill qpill"></span>' : '') + '</a>';
+  });
+  document.getElementById("quickrow").innerHTML = html;
+}
+
+/* ---------- Directory: dense panels from the sections payload ---------- */
+function linkTarget(href){
+  return (/^https?:/.test(href) && String(href).indexOf("citywidelv.github.io")<0) ? ' target="_blank" rel="noopener"' : '';
+}
 function render(sections){
   var html = "";
   sections.forEach(function(sec, si){
-    html += '<section class="section" id="sec-' + si + '"><div class="section-head"><h2>' + esc(sec.h) +
-      '</h2><span class="tag">' + esc(sec.tag) + '</span></div>';
-    if(sec.sub) html += '<p class="sub">' + esc(sec.sub) + '</p>';
-    html += '<div class="grid">';
-    sec.cards.forEach(function(c){
-      var cls = "card" + (c.primary ? " primary" : "");
+    /* DBIS renders as the feature band above the directory, not a panel */
+    if(sec.h === "Building Information Sheets"){ renderFeature(sec); return; }
+    var icon = (sec.cards || []).length && sec.cards[0].icon ? sec.cards[0].icon : 'home';
+    var rows = "";
+    (sec.cards || []).forEach(function(c){
       var hay = [c.title, c.desc, (c.links||[]).map(function(l){return l.label;}).join(" "), sec.h, sec.tag].join(" ").toLowerCase();
-      var inner = '<span class="icon">' + iconSvg(c.icon) + '</span>';
-      if(c.pill) inner = '<span class="pill" id="openPill"></span>' + inner;
-      inner += '<h3>' + esc(c.title) + '</h3>';
-      if(c.desc) inner += '<p>' + esc(c.desc) + '</p>';
-      if(c.links){
-        inner += '<div class="links">';
+      if(c.links && c.links.length){
+        rows += '<div class="group" data-hay="' + esc(hay) + '"><div class="glabel">' + iconSvg(c.icon, 14) + esc(c.title) + '</div><div class="chips">';
         c.links.forEach(function(l){
-          inner += '<a href="' + esc(l.href) + ((/^https?:/.test(l.href) && String(l.href).indexOf("citywidelv.github.io")<0) ? '" target="_blank" rel="noopener">' : '">') + esc(l.label) + '</a>';
+          rows += '<a href="' + esc(l.href) + '"' + linkTarget(l.href) + ' title="' + esc(c.desc || c.title) + '">' + esc(l.label) + '</a>';
         });
-        inner += '</div>';
-      }
-      if(c.go) inner += '<span class="go">' + esc(c.go) + '</span>';
-      if(c.href){
-        var tgt = (/^https?:/.test(c.href) && c.href.indexOf("citywidelv.github.io")<0) ? ' target="_blank" rel="noopener"' : '';
-        html += '<a class="' + cls + '" data-hay="' + esc(hay) + '" href="' + esc(c.href) + '"' + tgt + '>' + inner + '</a>';
-      } else {
-        html += '<div class="' + cls + '" data-hay="' + esc(hay) + '">' + inner + '</div>';
+        rows += '</div></div>';
+      } else if(c.href){
+        rows += '<a class="row" data-hay="' + esc(hay) + '" href="' + esc(c.href) + '"' + linkTarget(c.href) + ' title="' + esc(c.desc || "") + '">' +
+          iconSvg(c.icon, 15) + esc(c.title) +
+          (c.pill ? '<span class="pill dirpill"></span>' : '') + '</a>';
       }
     });
-    html += '</div></section>';
+    html += '<section class="panel" id="sec-' + si + '"><div class="phead">' + iconSvg(icon, 16) +
+      '<h2>' + esc(sec.h) + '</h2></div>' + rows + '</section>';
   });
   document.getElementById("content").innerHTML = html;
   loadPill();
 }
 
-/* ---------- Search: filters every card across every section ---------- */
+/* ---------- Feature band: Building Information Sheets ---------- */
+function renderFeature(sec){
+  var lib = null, form = null;
+  (sec.cards || []).forEach(function(c){
+    if(/library/i.test(c.title)) lib = c; else form = c;
+  });
+  var html = '<div class="fcard" data-hay="building information sheets dbis account records sheet library new update">' +
+    '<span class="ficon">' + iconSvg("map", 22) + '</span>' +
+    '<div class="ftext"><h3>Building Information Sheets</h3>' +
+    '<p>' + esc(sec.sub || "One living sheet per account: access, schedule, alarm procedure, locations, tenants, and photos.") + '</p></div>' +
+    '<div class="fbtns">';
+  if(lib) html += '<a class="fbtn solid" href="' + esc(lib.href) + '">Browse the Sheet Library</a>';
+  if(form) html += '<a class="fbtn line" href="' + esc(form.href) + '">New / Update a Sheet</a>';
+  html += '</div></div>';
+  document.getElementById("featurewrap").innerHTML = html;
+}
+
+/* ---------- Search: filters quick bar, feature band, and directory rows ---------- */
 function applySearch(){
   var q = (document.getElementById("toolsearch").value || "").toLowerCase().trim();
   document.getElementById("searchX").classList.toggle("show", !!q);
   var words = q.split(/\s+/).filter(Boolean);
+  function match(hay){ return words.every(function(w){ return hay.indexOf(w) >= 0; }); }
   var any = false;
-  document.querySelectorAll("#content .section").forEach(function(sec){
+  document.querySelectorAll("#content .panel").forEach(function(sec){
     var vis = 0;
-    sec.querySelectorAll(".card").forEach(function(card){
-      var hay = card.getAttribute("data-hay") || "";
-      var show = words.every(function(w){ return hay.indexOf(w) >= 0; });
-      card.style.display = show ? "" : "none";
+    sec.querySelectorAll(".row,.group").forEach(function(el){
+      var show = match(el.getAttribute("data-hay") || "");
+      el.style.display = show ? "" : "none";
       if(show) vis++;
     });
     sec.style.display = vis ? "" : "none";
     if(vis) any = true;
   });
+  var qvis = 0;
+  document.querySelectorAll("#quickrow .qbtn").forEach(function(b){
+    var show = !q || match(b.getAttribute("data-hay") || "");
+    b.style.display = show ? "" : "none";
+    if(show) qvis++;
+  });
+  document.getElementById("quickwrap").style.display = qvis ? "" : "none";
+  var f = document.querySelector("#featurewrap .fcard");
+  if(f){
+    var fshow = !q || match(f.getAttribute("data-hay") || "");
+    document.getElementById("featurewrap").style.display = fshow ? "" : "none";
+    if(fshow) any = true;
+  }
+  if(qvis) any = true;
   document.getElementById("noresults").classList.toggle("show", !any && !!q);
 }
 document.getElementById("toolsearch").addEventListener("input", applySearch);
@@ -494,8 +627,9 @@ function loadPill(){
   try{
     fetch(WEBHOOK).then(function(r){return r.json();}).then(function(r){
       if(r && r.ok){
-        var p = document.getElementById("openPill");
-        if(p){ p.textContent = r.count + " open"; p.classList.add("show"); }
+        document.querySelectorAll(".qpill,.dirpill").forEach(function(p){
+          p.textContent = r.count + " open"; p.classList.add("show");
+        });
       }
     }).catch(function(){});
   }catch(e){}
@@ -510,6 +644,7 @@ function unlock(r){
       { title:"Sheet Library", desc:"Every account's building sheet. Search by name, open the print view, or edit.", icon:"map", href:"building-sheets.html", go:"Browse the sheets", primary:true },
       { title:"New / Update a Sheet", desc:"Fill out or refresh the Detailed Building Information Sheet for an account.", icon:"sheet", href:"building-sheet.html", go:"Open the form" }
     ]}); }catch(e){}
+  renderQuick();
   render(r.sections);
   renderMainNav(r.sections, r.nav);
 }
