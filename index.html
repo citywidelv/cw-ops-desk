@@ -402,7 +402,7 @@ function renderMainNav(sections, nav){
   window.addEventListener("resize", closeMenus);
 }
 function menuLink(label, href, icon){
-  var tgt = /^https?:/.test(href) ? ' target="_blank" rel="noopener"' : '';
+  var tgt = (/^https?:/.test(href) && href.indexOf("citywidelv.github.io")<0) ? ' target="" rel="noopener"' : '';
   return '<a href="' + esc(href) + '"' + tgt + '>' + (icon ? iconSvg(icon, 14) : '') + esc(label) + '</a>';
 }
 function closeMenus(){
@@ -435,13 +435,13 @@ function render(sections){
       if(c.links){
         inner += '<div class="links">';
         c.links.forEach(function(l){
-          inner += '<a href="' + esc(l.href) + '" target="_blank" rel="noopener">' + esc(l.label) + '</a>';
+          inner += '<a href="' + esc(l.href) + (String(l.href).indexOf("citywidelv.github.io")<0 ? '" target="_blank" rel="noopener">' : '">') + esc(l.label) + '</a>';
         });
         inner += '</div>';
       }
       if(c.go) inner += '<span class="go">' + esc(c.go) + '</span>';
       if(c.href){
-        var tgt = /^https?:/.test(c.href) ? ' target="_blank" rel="noopener"' : '';
+        var tgt = (/^https?:/.test(c.href) && c.href.indexOf("citywidelv.github.io")<0) ? ' target="_blank" rel="noopener"' : '';
         html += '<a class="' + cls + '" data-hay="' + esc(hay) + '" href="' + esc(c.href) + '"' + tgt + '>' + inner + '</a>';
       } else {
         html += '<div class="' + cls + '" data-hay="' + esc(hay) + '">' + inner + '</div>';
