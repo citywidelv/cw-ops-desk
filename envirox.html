@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>CW Ops Desk | Order More EnvirOx</title>
+<!-- build 2026-07-30a: EnvirOx order guide. Catalog lives in the "EnvirOx Catalog" tab of the
+     CW Solicitations Sheet, served by the Apps Script (kind:envirox_catalog, passcode-gated).
+     EMBEDDED_CATALOG below is a snapshot fallback only - edit prices in the Sheet, not here. -->
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--green:#1E7B34;--green-bg:#EDF7EF;--red-bg:#FBEAEB;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
+.head .bar{max-width:980px;margin:0 auto;padding:0 20px;height:64px;display:flex;
+  align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--grey);border-left:2px solid var(--border);padding-left:14px}
+.head .badge{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;background:var(--black);color:#fff;border-left:3px solid var(--gold);
+  padding:4px 10px;white-space:nowrap}
+.wrap{max-width:980px;margin:0 auto;padding:24px 20px 80px}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);
+  border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 6px;max-width:70ch}
+.src{font-size:11.5px;color:var(--grey);background:#fff;border:1px dashed var(--border);
+  border-radius:8px;padding:8px 12px;margin:14px 0 8px;display:inline-block}
+.src.live{border-color:#BFE3C6;background:var(--green-bg);color:var(--green)}
+.src.snap{border-color:#F0C8CB;background:var(--red-bg);color:var(--red-dark)}
+
+/* sticky order status */
+.statusbar{position:sticky;top:64px;z-index:15;background:#fff;border:1px solid var(--border);
+  border-radius:12px;box-shadow:var(--shadow);padding:12px 18px;margin:18px 0 22px}
+.statusbar .row{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center}
+.statusbar .cell{font-size:12px;color:var(--grey)}
+.statusbar .cell b{display:block;font-size:16px;color:var(--black)}
+.statusbar .cell b.bad{color:var(--red)}
+.statusbar .cell b.ok{color:var(--green)}
+.meter{flex:1 1 180px;min-width:150px}
+.meter .track{height:10px;background:var(--light);border:1px solid var(--border);
+  border-radius:6px;overflow:hidden}
+.meter .fill{height:100%;width:0%;background:var(--red);transition:width .25s,background .25s}
+.meter .fill.ok{background:var(--green)}
+.meter .lbl{font-size:10.5px;color:var(--grey);margin-top:3px}
+.statusbar .go{margin-left:auto}
+.minwarn{display:none;margin-top:10px;font-size:12px;font-weight:700;color:var(--red-dark);
+  background:var(--red-bg);border:1px solid #F0C8CB;border-radius:8px;padding:8px 12px}
+.minwarn.show{display:block}
+
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+  padding:22px;margin-bottom:18px}
+.card h2{font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px}
+.card h2 .n{width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;
+  font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.card .sub{font-size:12.5px;color:var(--grey);margin-bottom:14px;max-width:75ch}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid .full{grid-column:1/-1}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--grey);margin-bottom:5px}
+label .req{color:var(--red)}
+input[type=text],input[type=email],input[type=tel],textarea{width:100%;font-family:inherit;
+  font-size:14px;color:var(--black);border:1.5px solid var(--border);border-radius:8px;
+  padding:10px 12px;background:#fff}
+textarea{min-height:70px;resize:vertical}
+input:focus,textarea:focus{outline:none;border-color:var(--red)}
+
+/* item tables */
+.ghead{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--grey);border-bottom:2px solid var(--black);padding:14px 0 6px;margin-bottom:2px}
+.item{display:grid;grid-template-columns:1fr 118px 96px 96px;gap:10px;align-items:center;
+  padding:9px 8px;border-bottom:1px solid var(--border);border-radius:6px}
+.item:last-child{border-bottom:none}
+.item .nm{font-size:13px;font-weight:700;line-height:1.4}
+.item .nm .sku{font-weight:400;color:var(--grey);font-size:11px}
+.item .nm .tag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;background:var(--light);border:1px solid var(--border);
+  border-radius:4px;padding:1px 6px;margin-left:6px;color:var(--grey);vertical-align:1px}
+.item .nm .tag.star{background:#FDF6E3;border-color:#EAD9A0;color:#8a6d1a}
+.item .nm .note{display:block;font-weight:400;font-size:11px;color:var(--grey)}
+.item .pr{font-size:12.5px;text-align:right;white-space:nowrap}
+.item .pr small{display:block;color:var(--grey);font-size:10.5px}
+.item .pr .free{color:var(--green);font-weight:700}
+.item .sug{font-size:12px;text-align:center;color:var(--grey)}
+.item .sug b{color:var(--black)}
+.item .sug .rst{display:inline-block;cursor:pointer;color:var(--red);font-weight:700;
+  margin-left:4px;text-decoration:none}
+.qty{display:flex;align-items:center;justify-content:flex-end;gap:0}
+.qty button{width:30px;height:34px;border:1.5px solid var(--border);background:#fff;
+  font-size:16px;font-weight:700;color:var(--black);cursor:pointer;font-family:inherit}
+.qty button:first-child{border-radius:8px 0 0 8px}
+.qty button:last-child{border-radius:0 8px 8px 0}
+.qty button:hover{background:var(--light)}
+.qty input{width:52px;height:34px;text-align:center;border:1.5px solid var(--border);
+  border-left:none;border-right:none;font-family:inherit;font-size:14px;font-weight:700;
+  color:var(--black);border-radius:0;padding:0}
+.qty input:focus{outline:none;border-color:var(--red)}
+.item.under{background:var(--red-bg)}
+.item.under .qty input{border-color:var(--red);color:var(--red-dark)}
+.item.has{background:var(--green-bg)}
+.item.has.under{background:var(--red-bg)}
+.underlbl{display:none;font-size:10px;font-weight:700;color:var(--red-dark);text-transform:uppercase;
+  letter-spacing:.05em}
+.item.under .underlbl{display:block}
+.cols-h{display:grid;grid-template-columns:1fr 118px 96px 96px;gap:10px;padding:0 8px 4px;
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey)}
+.cols-h span:nth-child(2){text-align:right}
+.cols-h span:nth-child(3){text-align:center}
+.cols-h span:nth-child(4){text-align:right}
+@media(max-width:640px){
+  .item,.cols-h{grid-template-columns:1fr 86px;grid-auto-rows:auto}
+  .cols-h span:nth-child(2),.cols-h span:nth-child(3){display:none}
+  .item .pr{grid-column:1;text-align:left}
+  .item .sug{grid-column:1;text-align:left}
+  .item .qty{grid-column:2;grid-row:1/span 3}
+}
+
+/* summary */
+.sum{width:100%;border-collapse:collapse;font-size:13px}
+.sum td{padding:6px 8px;border-bottom:1px solid var(--border)}
+.sum td:last-child{text-align:right;white-space:nowrap}
+.sum tr.tot td{font-weight:700;font-size:15px;border-top:2px solid var(--black);border-bottom:none}
+.sendbox{margin-top:16px;background:var(--light);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;font-size:12.5px;line-height:1.7}
+.sendbox b.h{display:block;text-transform:uppercase;letter-spacing:.08em;font-size:11px;
+  color:var(--red);margin-bottom:4px}
+.btn{display:inline-block;font-family:inherit;font-size:14px;font-weight:700;color:#fff;
+  background:var(--red);border:none;border-radius:8px;padding:12px 22px;cursor:pointer}
+.btn:hover{background:var(--red-dark)}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.btn.sec{background:#fff;color:var(--black);border:2px solid var(--border);padding:10px 20px}
+.btn.sec:hover{border-color:var(--red);color:var(--red);background:#fff}
+.err{display:none;margin-top:10px;font-size:12.5px;font-weight:700;color:var(--red-dark);
+  background:var(--red-bg);border:1px solid #F0C8CB;border-radius:8px;padding:8px 12px}
+.err.show{display:block}
+.okmsg{display:none;margin-top:10px;font-size:12.5px;color:var(--green);font-weight:700}
+.okmsg.show{display:block}
+
+/* gate */
+#gate{max-width:420px;margin:80px auto;background:#fff;border:1px solid var(--border);
+  border-radius:12px;box-shadow:var(--shadow);padding:28px;text-align:center}
+#gate h1{font-size:18px}#gate h1:after{margin:12px auto 0}
+#gate p{color:var(--grey);font-size:13px;margin:14px 0 18px}
+.hidden{display:none!important}
+.foot{border-top:1px solid var(--border);background:#fff;margin-top:40px}
+.foot .fin{max-width:980px;margin:0 auto;padding:18px 20px;font-size:11.5px;color:var(--grey)}
+@media print{body *{visibility:hidden}}
+</style>
+</head>
+<body>
+
+<header class="head"><div class="bar">
+  <a href="index.html"><img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"></a>
+  <span class="t">Ops Desk &middot; EnvirOx Order Guide</span>
+  <span class="badge">Internal</span>
+</div></header>
+
+<div id="gate" class="hidden">
+  <h1>Team access required</h1>
+  <p>This order guide holds our distributor pricing. Sign in through the Ops Hub first and
+  come back here from the Team &amp; Admin menu.</p>
+  <a class="btn" href="index.html">Go to the Ops Hub</a>
+</div>
+
+<div class="wrap hidden" id="app">
+  <h1>Order More EnvirOx</h1>
+  <p class="lede">Build a supplier order for OxiGenesis and H2Orange2. Pick your chemical cases
+  and the guide auto-adds the dispensers, spray bottles, labels, charts, and paperwork every
+  order should carry &mdash; those are suggested minimums you can adjust. Both lines ship together
+  from the same EnvirOx warehouse, so mixing is fine and every chemical pound counts toward the
+  250 lb freight-free minimum.</p>
+  <span class="src" id="srcbadge">Loading catalog&hellip;</span>
+
+  <div class="statusbar">
+    <div class="row">
+      <div class="meter">
+        <div class="track"><div class="fill" id="wfill"></div></div>
+        <div class="lbl" id="wlbl">0 lbs of 250 lb chemical minimum</div>
+      </div>
+      <div class="cell">Chemical weight<b id="wnum" class="bad">0 lbs</b></div>
+      <div class="cell">Price tier<b id="tier">250&ndash;499 lbs</b></div>
+      <div class="cell">Order total<b id="total">$0.00</b></div>
+      <div class="go"><button class="btn" id="gen">Generate Order Sheet (PDF)</button></div>
+    </div>
+    <div class="minwarn" id="minwarn">Below the EnvirOx minimum: orders under 250 lbs of chemical
+    ship with freight added to the invoice. Add cases until the bar turns green.</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">1</span> Who is ordering</h2>
+    <div class="sub">This lands on the order sheet and the confirmation email.</div>
+    <div class="grid">
+      <div><label>Your name <span class="req">*</span></label><input type="text" id="oname" autocomplete="name"></div>
+      <div><label>Your email <span class="req">*</span></label><input type="email" id="oemail" autocomplete="email"></div>
+      <div><label>Phone</label><input type="tel" id="ophone" autocomplete="tel"></div>
+      <div><label>PO number</label><input type="text" id="opo" placeholder="e.g. 7.30.26"></div>
+      <div class="full"><label>Notes for this order</label><textarea id="onotes" placeholder="Anything EnvirOx or the receiving team should know."></textarea></div>
+    </div>
+    <input type="text" id="website" style="display:none" tabindex="-1" autocomplete="off">
+  </div>
+
+  <div class="card">
+    <h2><span class="n">2</span> H2Orange2 &mdash; chemical cases</h2>
+    <div class="sub">Hyper-Concentrate half gallons only &mdash; that is the version we use (no
+    gallons). Product #1 (112) is our standard. Simple Measures portion packs are below.</div>
+    <div class="cols-h"><span>Product</span><span>Price / case</span><span>&nbsp;</span><span>Qty</span></div>
+    <div id="chemH"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">3</span> OxiGenesis &mdash; chemical cases</h2>
+    <div class="sub">Hyper-Concentrate half gallons and ready-to-use quarts. Zone 3 pricing starts
+    at the 500 lb tier, so OxiGenesis rides along at that price even on smaller mixed orders.</div>
+    <div class="cols-h"><span>Product</span><span>Price / case</span><span>&nbsp;</span><span>Qty</span></div>
+    <div id="chemO"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">4</span> Dispensers, bottles &amp; the wall packet</h2>
+    <div class="sub">Auto-added from your cases: at least one TRIO dispenser per case, four green
+    and four red silk-screened spray bottles per Hyper-Concentrate case, plus stickers, extra
+    labels, wall charts, pocket charts, product literature and SDS sheets &mdash; the full
+    hang-it-on-the-wall packet. Suggested quantities are minimums; raise them any time. A row
+    turns red if you drop below the suggestion.</div>
+    <div class="cols-h"><span>Item</span><span>Price</span><span>Suggested</span><span>Qty</span></div>
+    <div id="support"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">5</span> Review &amp; send</h2>
+    <div class="sub">Generating the order sheet also logs this order for the team and emails you
+    a copy to forward.</div>
+    <table class="sum" id="sumtbl"></table>
+    <div class="sendbox">
+      <b class="h">Where this order goes</b>
+      Email the order sheet to <b>orders@enviroxclean.com</b> &middot; or call
+      <b>1-800-281-9604</b> &middot; or fax <b>217-442-2568</b>.<br>
+      Customer No. <b>CWLASVEGAS</b> &middot; Terms 1% 20 / Net 30 &middot; ships R&amp;L Carriers,
+      truck with liftgate, deliveries M&ndash;F 11 AM&ndash;5 PM.<br>
+      Ship to: 3215 W Charleston Blvd, Suite 130, Las Vegas, NV 89102.
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" id="gen2">Generate Order Sheet (PDF)</button>
+      <button class="btn sec" id="reset">Start over</button>
+    </div>
+    <div class="err" id="err"></div>
+    <div class="okmsg" id="okmsg">Order logged. Your copy is on its way by email &mdash; print or
+    save the sheet that just opened and send it to EnvirOx.</div>
+  </div>
+</div>
+
+<footer class="foot"><div class="fin">
+  <b>City Wide Facility Solutions</b> &middot; Ops Desk &middot; Internal use only &middot;
+  Prices live in the EnvirOx Catalog tab of the CW Solicitations Sheet &middot; Something off? Tell TJ.
+</div></footer>
+
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var KEY = "cwOpsHubPass";
+var MIN_LBS = 250;
+
+/* Snapshot fallback (July 2026 price sheets). The live catalog is the Sheet tab. */
+/* [sku, name, line H|O, cat, pack, uom, lbs, tiers "floor:price;...", auto, note, star] */
+var EMBEDDED_CATALOG = [
+["A-112-02H","H2Orange2 Hyper-Concentrate 112 Sanitizer/Virucide Cleaner","H","chem","(2) 1/2 Gal","Case of 2",11,"250:88.79;500:82.23;1000:78.61","","Our standard - Product #1. EPA, NSF C1.",1],
+["A-113-02H","Green Certified Multi-Purpose Cleaner Hyper-Concentrate","H","chem","(2) 1/2 Gal","Case of 2",11,"250:76.65;500:70.99;1000:67.04","","Green Seal GS-37, NSF C1.",0],
+["A-114-02H","Green Certified Neutral Floor Cleaner Hyper-Concentrate","H","chem","(2) 1/2 Gal","Case of 2",11,"250:71.93;500:66.60;1000:62.51","","Green Seal GS-37.",0],
+["A-116-02H","Green Certified H2Orange2 Classic Hyper-Concentrate","H","chem","(2) 1/2 Gal","Case of 2",11,"250:76.65;500:70.99;1000:67.04","","EcoLogo UL2759, NSF C1.",0],
+["A-121-02H","Green Certified H2O2 Lavender Multi-Purpose Hyper-Concentrate","H","chem","(2) 1/2 Gal","Case of 2",11,"250:74.48;500:68.96;1000:65.15","","Green Seal GS-37, NSF C1.",0],
+["A-130-02H","Green Certified H2O2 Orange Tile & Grout Renovator Hyper-Concentrate","H","chem","(2) 1/2 Gal","Case of 2",11,"250:95.05;500:88.01;1000:84.38","","EcoLogo UL2759, NSF C1.",0],
+["A-141-02H","Green Certified Mineral Shock Concentrate","H","chem","(2) 1/2 Gal","Case of 2",11,"250:63.16;500:58.47;1000:56.46","","EcoLogo UL2759.",0],
+["A-143-02H","Green Certified Industrial Degreaser Hyper-Concentrate","H","chem","(2) 1/2 Gal","Case of 2",11,"250:48.47;500:44.87;1000:41.01","","EcoLogo UL2759, NSF A1.",0],
+["8-272-4PKSQ","H2Orange2 Concentrate 117 Kit - Simple Measures","H","chem","1 Kit","Each",15,"250:101.50;500:96.88;1000:94.37","","Portion-pack starter kit.",0],
+["117-06SQ","H2Orange2 Concentrate 117 - Simple Measures","H","chem","(6) 32 oz","Case",15,"250:94.22;500:89.74;1000:87.47","","EPA, NSF C1, CRI.",0],
+["115-06SQ","OxiFresh Odor Eliminator - Simple Measures","H","chem","(6) 32 oz","Case",15,"250:62.37;500:65.49;1000:58.65","","Tier prices as published by EnvirOx.",0],
+["119-06SQ","LVT Renew - Simple Measures","H","chem","(6) 32 oz","Case",15,"250:78.57;500:74.57;1000:73.09","","EcoLogo, NSF C1.",0],
+["A-252-MDD-YGR","Absolute TRIO Dispenser (YGR)","H","disp","1 Count","Each",0,"0","hcAll*1","No charge: EnvirOx earns you 1 dispenser per 2 chemical cases and has credited extras on our past orders.",0],
+["A-IN-112-YGR-KIT","Trio Installation Kit - H2Orange2 112","H","kit","1 Count","Each",0,"0","hcH*1","One per new TRIO going on a wall.",0],
+["A8-112L","Bottle & Spray Head - Light Duty Green, 112 Silk-Screened","H","bottle","1 Count","Each",0,"250:2.60","hcH*4","",0],
+["A8-112H","Bottle & Spray Head - Heavy Duty Red, 112 Silk-Screened","H","bottle","1 Count","Each",0,"250:2.60","hcH*4","",0],
+["AS-112","Bottle Sticker - H2Orange2 H-C 112","H","sticker","1 Count","Each",0,"0","hcH*8","One per spray bottle in service.",0],
+["A9-112L","Secondary Label - Light Duty Green 112","H","label","1 Count","Each",0,"250:0.27","hcH*4","Extra labels for relabeling bottles.",0],
+["A9-112H","Secondary Label - Heavy Duty Red 112","H","label","1 Count","Each",0,"250:0.27","hcH*4","Extra labels for relabeling bottles.",0],
+["ACW-112-YGR-1","Wall Chart - H2Orange2 112 YGR TRIO","H","chart","1 Count","Each",0,"0","hcH*1","Hangs next to each TRIO dispenser.",0],
+["ACP-112-YGR-PCK","Pocket Chart - 112 YGR TRIO with Lanyard","H","chart","1 Count","Each",0,"0","hcH*1","",0],
+["A9-855-112","Product Literature - H2Orange2 H-C 112","H","lit","1 Count","Each",0,"0","lit:hcH","Packs of 25.",0],
+["A9-855-BEN","Literature - SIX Great Benefits","H","lit","1 Count","Each",0,"0","lit:hcH","Packs of 25.",0],
+["SDS-112","SDS Sheets - H2Orange2 H-C 112","H","sds","1 Count","Each",0,"0","flat10:hcH","No-charge; EnvirOx bills it as MISCNOCHARGE.",0],
+["4-252-KEY","Wall Mount Dispenser Key","H","equip","1 Count","Each",0,"250:2.48","","",0],
+["7-644-N","Trigger Spray Head (fits 28mm)","H","equip","1 Count","Each",0,"250:1.18","","",0],
+["A-145-02H","OxiGenesis Hyper-Concentrate Disinfectant - Light Floral","O","chem","(2) 1/2 Gal","Case of 2",11,"500:104.57;1000:99.98;2000:93.89;5000:88.15;10000:82.44;20000:81.68","","EPA, NSF D1. Zone 3 pricing.",1],
+["A-145-02HUN","OxiGenesis Hyper-Concentrate Disinfectant - Fragrance Free","O","chem","(2) 1/2 Gal","Case of 2",11,"500:104.57;1000:99.98;2000:93.89;5000:88.15;10000:82.44;20000:81.68","","EPA, NSF D1. Zone 3 pricing.",0],
+["122-06Q","OxiGenesis Disinfectant RTU","O","chem","(6) 32 oz","Case",16,"500:30.70;1000:29.27;2000:27.39;5000:25.63;10000:23.85;20000:23.63","","Ready to use - no dispenser needed.",0],
+["122-12Q","OxiGenesis Disinfectant RTU","O","chem","(12) 32 oz","Case",29,"500:55.25;1000:52.71;2000:49.31;5000:46.13;10000:42.95;20000:42.52","","Ready to use - no dispenser needed.",0],
+["A-IN-145-YGBR-KIT","Installation Kit - OxiGenesis Hyper-Concentrate","O","kit","1 Count","Each",0,"0","hcO*1","One per dispenser running OxiGenesis.",0],
+["A8-145G","OxiGenesis Bottle & Spray Head - Light Duty Green","O","bottle","1 Count","Each",0,"500:2.60","hcO*4","",0],
+["A8-145R","OxiGenesis Bottle & Spray Head - Heavy Duty Red","O","bottle","1 Count","Each",0,"500:2.60","hcO*4","",0],
+["A8-145B","OxiGenesis Bottle & Spray Head - Regular Duty Blue","O","bottle","1 Count","Each",0,"500:2.60","","Optional third color.",0],
+["A9-145G","OxiGenesis Secondary Label - Light Duty Green","O","label","1 Count","Each",0,"500:0.27","hcO*4","Extra labels.",0],
+["A9-145R","OxiGenesis Secondary Label - Heavy Duty Red","O","label","1 Count","Each",0,"500:0.27","hcO*4","Extra labels.",0],
+["A9-145B","OxiGenesis Secondary Label - Regular Duty Blue","O","label","1 Count","Each",0,"500:0.27","","",0],
+["ACW-145-DIS","Wall Chart - OxiGenesis Disinfectant Cleaner","O","chart","1 Count","Each",0,"0","hcO*1","",0],
+["ACW-145-SM","Wall Chart - OxiGenesis Bathroom/Floor","O","chart","1 Count","Each",0,"0","hcO*1","",0],
+["ACW-145-YGBR-1","Wall Chart - OxiGenesis General","O","chart","1 Count","Each",0,"0","hcO*1","",0],
+["ACP-145-YGBR-PCK","Pocket Chart - OxiGenesis YGBR with Lanyard","O","chart","1 Count","Each",0,"0","hcO*1","",0],
+["A9-855-145","Product Literature - OxiGenesis Hyper-Concentrate","O","lit","1 Count","Each",0,"0","lit:hcO","Packs of 25.",0],
+["A9-855-BEN-145","Literature - OxiGenesis 6 Great Benefits","O","lit","1 Count","Each",0,"0","lit:hcO","Packs of 25.",0],
+["SDS-145","SDS Sheets - OxiGenesis","O","sds","1 Count","Each",0,"0","flat10:hcO","No-charge; EnvirOx bills it as MISCNOCHARGE.",0],
+["A-252-MDD-YGBR","Absolute Multi Dispenser for OxiGenesis (YGBR)","O","disp","1 Count","Each",0,"500:187.00","","Billed at $187 unless EnvirOx credits it - the TRIO above is the no-charge route.",0]
+];
+var SNAPSHOT_DATE = "July 2026";
+
+var CAT = [];          /* working catalog: objects */
+var qty = {};          /* sku -> qty */
+var dirty = {};        /* sku -> user overrode suggestion */
+var SUPPORT_ORDER = ["disp","kit","bottle","sticker","label","chart","lit","sds","equip"];
+var GROUP_LABELS = {disp:"Dispensers",kit:"Installation kits (free)",bottle:"Silk-screened spray bottles",
+  sticker:"Bottle stickers (free)",label:"Extra secondary labels",chart:"Wall & pocket charts (free)",
+  lit:"Product literature (free)",sds:"SDS sheets (free)",equip:"Equipment (optional)"};
+
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function money(n){return "$"+(Math.round(n*100)/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",");}
+
+function rowsToCat(rows){
+  return rows.map(function(r){
+    var tiers = {};
+    String(r[7]).split(";").forEach(function(p){
+      var kv = p.split(":");
+      if(kv.length===2) tiers[parseInt(kv[0],10)] = parseFloat(kv[1]);
+    });
+    var free = String(r[7]).replace(/\s/g,"")==="0";
+    return {sku:r[0],name:r[1],line:r[2],cat:r[3],pack:r[4],uom:r[5],lbs:parseFloat(r[6])||0,
+      tiers:tiers,free:free,auto:String(r[8]||""),note:r[9]||"",star:!!(+r[10])};
+  });
+}
+
+function chemLbs(){
+  var w = 0;
+  CAT.forEach(function(it){ if(it.cat==="chem") w += (qty[it.sku]||0)*it.lbs; });
+  return w;
+}
+function priceFor(it, w){
+  var floors = Object.keys(it.tiers).map(Number).sort(function(a,b){return a-b;});
+  if(!floors.length) return 0;
+  var p = it.tiers[floors[0]];
+  floors.forEach(function(f){ if(w >= f) p = it.tiers[f]; });
+  return p;
+}
+function drivers(){
+  var hcH=0, hcO=0;
+  CAT.forEach(function(it){
+    if(it.cat!=="chem") return;
+    var q = qty[it.sku]||0;
+    if(!q) return;
+    var isHC = it.pack.indexOf("1/2 Gal") >= 0;
+    if(it.line==="H" && isHC) hcH += q;
+    if(it.line==="O" && isHC) hcO += q;
+  });
+  return {hcH:hcH, hcO:hcO, hcAll:hcH+hcO};
+}
+function suggested(it, d){
+  var a = it.auto;
+  if(!a) return 0;
+  var m = a.match(/^(hcH|hcO|hcAll)\*(\d+)$/);
+  if(m) return d[m[1]] * parseInt(m[2],10);
+  m = a.match(/^lit:(hcH|hcO)$/);
+  if(m){ var c = d[m[1]]; return c>0 ? Math.max(25, Math.ceil(c*4/25)*25) : 0; }
+  m = a.match(/^flat(\d+):(hcH|hcO)$/);
+  if(m) return d[m[2]]>0 ? parseInt(m[1],10) : 0;
+  return 0;
+}
+
+function qtyControl(sku){
+  return '<div class="qty"><button type="button" data-dec="'+esc(sku)+'">&minus;</button>'+
+    '<input type="text" inputmode="numeric" data-q="'+esc(sku)+'" value="'+(qty[sku]||0)+'">'+
+    '<button type="button" data-inc="'+esc(sku)+'">+</button></div>';
+}
+
+function renderChem(){
+  ["H","O"].forEach(function(line){
+    var host = document.getElementById(line==="H"?"chemH":"chemO");
+    var w = chemLbs(), html = "";
+    CAT.filter(function(it){return it.cat==="chem" && it.line===line;}).forEach(function(it){
+      var p = priceFor(it, Math.max(w, 0));
+      html += '<div class="item'+((qty[it.sku]||0)>0?' has':'')+'">'+
+        '<div class="nm">'+esc(it.name)+(it.star?' <span class="tag star">Our standard</span>':'')+
+        ' <span class="tag">'+esc(it.pack)+'</span>'+
+        '<span class="sku">'+esc(it.sku)+' &middot; '+it.lbs+' lbs/case'+(it.note?' &middot; '+esc(it.note):'')+'</span></div>'+
+        '<div class="pr">'+money(p)+'<small>per '+esc(it.uom)+'</small></div>'+
+        '<div class="sug"></div>'+ qtyControl(it.sku) + '</div>';
+    });
+    host.innerHTML = html;
+  });
+}
+
+function renderSupport(){
+  var host = document.getElementById("support");
+  var d = drivers(), w = chemLbs(), html = "";
+  SUPPORT_ORDER.forEach(function(cat){
+    var items = CAT.filter(function(it){return it.cat===cat;});
+    if(!items.length) return;
+    html += '<div class="ghead">'+esc(GROUP_LABELS[cat]||cat)+'</div>';
+    items.forEach(function(it){
+      var sug = suggested(it, d);
+      var q = qty[it.sku]||0;
+      var under = q < sug;
+      var p = priceFor(it, w);
+      html += '<div class="item'+(under?' under':'')+(q>0&&!under?' has':'')+'">'+
+        '<div class="nm">'+esc(it.name)+' <span class="tag">'+esc(it.line==="H"?"H2Orange2":"OxiGenesis")+'</span>'+
+        '<span class="sku">'+esc(it.sku)+(it.note?' &middot; '+esc(it.note):'')+'</span>'+
+        '<span class="underlbl">Below suggested minimum</span></div>'+
+        '<div class="pr">'+(it.free?'<span class="free">No charge</span>':money(p))+
+        (it.free?'':'<small>per '+esc(it.uom)+'</small>')+'</div>'+
+        '<div class="sug">'+(it.auto?('min <b>'+sug+'</b>'+(dirty[it.sku]?' <a class="rst" data-rst="'+esc(it.sku)+'" title="Back to suggested">&#8634;</a>':'')):'&mdash;')+'</div>'+
+        qtyControl(it.sku)+'</div>';
+    });
+  });
+  host.innerHTML = html;
+}
+
+function renderSummary(){
+  var w = chemLbs(), tbl = document.getElementById("sumtbl"), html = "", total = 0, lines = 0;
+  CAT.forEach(function(it){
+    var q = qty[it.sku]||0;
+    if(!q) return;
+    var p = priceFor(it, w), ext = p*q;
+    total += ext; lines++;
+    html += '<tr><td>'+esc(it.sku)+' &middot; '+esc(it.name)+' <span style="color:var(--grey)">&times; '+q+'</span></td>'+
+      '<td>'+(it.free?'No charge':money(ext))+'</td></tr>';
+  });
+  html += '<tr class="tot"><td>Order total ('+lines+' line'+(lines===1?'':'s')+', '+w+' lbs chemical)</td><td>'+money(total)+'</td></tr>';
+  tbl.innerHTML = html;
+
+  var pct = Math.min(100, Math.round(w/MIN_LBS*100));
+  var ok = w >= MIN_LBS;
+  document.getElementById("wfill").style.width = pct+"%";
+  document.getElementById("wfill").className = "fill"+(ok?" ok":"");
+  document.getElementById("wnum").textContent = w+" lbs";
+  document.getElementById("wnum").className = ok?"ok":"bad";
+  document.getElementById("wlbl").textContent = ok ? "250 lb minimum met - freight prepaid"
+    : w+" lbs of "+MIN_LBS+" lb chemical minimum";
+  document.getElementById("minwarn").className = "minwarn"+(w>0&&!ok?" show":"");
+  document.getElementById("total").textContent = money(total);
+  var t = "250–499 lbs";
+  if(w>=20000)t="20,000+ lbs";else if(w>=10000)t="10,000–19,999 lbs";
+  else if(w>=5000)t="5,000–9,999 lbs";else if(w>=2000)t="2,000–4,999 lbs";
+  else if(w>=1000)t="1,000–1,999 lbs";else if(w>=500)t="500–999 lbs";
+  document.getElementById("tier").textContent = t;
+}
+
+function syncSuggestions(){
+  var d = drivers();
+  CAT.forEach(function(it){
+    if(!it.auto) return;
+    if(!dirty[it.sku]) qty[it.sku] = suggested(it, d);
+  });
+}
+function renderAll(){ renderChem(); renderSupport(); renderSummary(); }
+
+function setQty(sku, v, fromUser){
+  v = Math.max(0, Math.floor(+v||0));
+  var it = CAT.filter(function(x){return x.sku===sku;})[0];
+  if(!it) return;
+  qty[sku] = v;
+  if(fromUser && it.auto) dirty[sku] = true;
+  if(it.cat==="chem") syncSuggestions();
+  renderAll();
+}
+
+document.addEventListener("click", function(e){
+  var t = e.target;
+  if(t.hasAttribute && t.hasAttribute("data-inc")) setQty(t.getAttribute("data-inc"),(qty[t.getAttribute("data-inc")]||0)+1,true);
+  else if(t.hasAttribute && t.hasAttribute("data-dec")) setQty(t.getAttribute("data-dec"),(qty[t.getAttribute("data-dec")]||0)-1,true);
+  else if(t.hasAttribute && t.hasAttribute("data-rst")){
+    e.preventDefault();
+    var sku = t.getAttribute("data-rst");
+    delete dirty[sku]; syncSuggestions(); renderAll();
+  }
+});
+document.addEventListener("change", function(e){
+  var t = e.target;
+  if(t.hasAttribute && t.hasAttribute("data-q")) setQty(t.getAttribute("data-q"), t.value, true);
+});
+
+/* ---------- order sheet (print to PDF) ---------- */
+function buildSheetHTML(){
+  var w = chemLbs(), total = 0, rows = "";
+  CAT.forEach(function(it){
+    var q = qty[it.sku]||0;
+    if(!q) return;
+    var p = priceFor(it, w), ext = p*q; total += ext;
+    rows += "<tr><td>"+esc(it.sku)+"</td><td>"+esc(it.name)+(it.note&&it.cat==="sds"?" (MISCNOCHARGE)":"")+"</td>"+
+      "<td>"+esc(it.uom)+"</td><td class='r'>"+q+"</td><td class='r'>"+(it.free?"0.00":p.toFixed(2))+"</td>"+
+      "<td class='r'>"+(it.free?"0.00":ext.toFixed(2))+"</td></tr>";
+  });
+  var d = new Date();
+  var ds = (d.getMonth()+1)+"/"+d.getDate()+"/"+d.getFullYear();
+  var name = document.getElementById("oname").value.trim();
+  var email = document.getElementById("oemail").value.trim();
+  var phone = document.getElementById("ophone").value.trim();
+  var po = document.getElementById("opo").value.trim() || ((d.getMonth()+1)+"."+d.getDate()+"."+String(d.getFullYear()).slice(2));
+  var notes = document.getElementById("onotes").value.trim();
+  var ok = w >= MIN_LBS;
+  return "<!DOCTYPE html><html><head><meta charset='utf-8'><title>EnvirOx Order - City Wide Las Vegas - "+esc(ds)+"</title><style>"+
+    "body{font-family:Verdana,Geneva,sans-serif;font-size:11px;color:#2D2A26;margin:32px;line-height:1.5}"+
+    "h1{font-size:17px;margin:0 0 2px}h1 span{color:#D22730}"+
+    ".sub{color:#636466;font-size:10px;margin-bottom:14px}"+
+    ".meta{width:100%;border-collapse:collapse;margin-bottom:14px}"+
+    ".meta td{border:1px solid #ccc;padding:5px 8px;font-size:10.5px;vertical-align:top}"+
+    ".meta b{display:block;font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;color:#636466}"+
+    "table.items{width:100%;border-collapse:collapse}"+
+    ".items th{background:#2D2A26;color:#fff;font-size:9px;text-transform:uppercase;letter-spacing:.05em;padding:5px 7px;text-align:left}"+
+    ".items td{border-bottom:1px solid #ddd;padding:4.5px 7px}"+
+    ".items .r,.items th.r{text-align:right}"+
+    ".tot td{font-weight:bold;border-top:2px solid #2D2A26;border-bottom:none;font-size:12px}"+
+    ".send{margin-top:16px;border:2px solid #D22730;border-radius:6px;padding:10px 14px}"+
+    ".send b.h{display:block;color:#D22730;text-transform:uppercase;font-size:9.5px;letter-spacing:.08em;margin-bottom:4px}"+
+    ".flag{margin-top:10px;padding:8px 12px;border-radius:6px;font-weight:bold;"+(ok?"background:#EDF7EF;color:#1E7B34":"background:#FBEAEB;color:#B01F27")+"}"+
+    ".fine{margin-top:14px;color:#636466;font-size:9px}"+
+    "@media print{body{margin:14mm}}"+
+    "</style></head><body>"+
+    "<h1>EnvirOx Product Order <span>&bull;</span> City Wide Facility Solutions Las Vegas</h1>"+
+    "<div class='sub'>Prepared "+esc(ds)+(name?" by "+esc(name):"")+" &middot; generated from the CW Ops Desk EnvirOx Order Guide</div>"+
+    "<table class='meta'><tr>"+
+    "<td><b>Customer No.</b>CWLASVEGAS</td>"+
+    "<td><b>Customer PO</b>"+esc(po)+"</td>"+
+    "<td><b>Ordered by</b>"+esc(name||"&nbsp;")+(phone?"<br>"+esc(phone):"")+(email?"<br>"+esc(email):"")+"</td>"+
+    "<td><b>Payment</b>1% 20 / Net 30</td></tr><tr>"+
+    "<td colspan='2'><b>Ship to</b>City Wide Facility Solutions Las Vegas<br>3215 W Charleston Blvd, Suite 130<br>Las Vegas, NV 89102</td>"+
+    "<td colspan='2'><b>Bill to</b>City Wide Facility Solutions Las Vegas<br>2101 Gateway Centre Blvd, Ste 104<br>Morrisville, NC 27560</td>"+
+    "</tr></table>"+
+    "<table class='items'><tr><th>Item #</th><th>Description</th><th>U of M</th><th class='r'>Qty</th><th class='r'>Unit $</th><th class='r'>Ext $</th></tr>"+
+    rows+
+    "<tr class='tot'><td colspan='5'>Order total &middot; chemical weight "+w+" lbs</td><td class='r'>"+money(total)+"</td></tr></table>"+
+    "<div class='flag'>"+(ok?"250 lb chemical minimum met &mdash; freight prepaid.":"UNDER the 250 lb chemical minimum &mdash; EnvirOx will add freight to the invoice. Consider adding cases.")+"</div>"+
+    (notes?"<div style='margin-top:10px'><b>Order notes:</b> "+esc(notes)+"</div>":"")+
+    "<div class='send'><b class='h'>How to place this order</b>"+
+    "Email this sheet to <b>orders@enviroxclean.com</b> &middot; or call <b>1-800-281-9604</b> &middot; or fax <b>217-442-2568</b>.<br>"+
+    "EnvirOx, LLC &middot; P.O. Box 2327, Danville, IL 61834-2327 &middot; ships via R&amp;L Carriers &middot; truck with liftgate &middot; deliveries M&ndash;F 11 AM&ndash;5 PM.</div>"+
+    "<div class='fine'>Dispensers &amp; ancillary items ship with chemical orders. TRIO dispensers are no-charge at 1 per 2 chemical cases (extras have been credited on past orders). Wall charts, pocket charts, literature and SDS sheets are no-charge. Orders modifiable until noon CST the day of shipment. Distributor pricing &mdash; internal use only.</div>"+
+    "</body></html>";
+}
+
+function generate(){
+  var err = document.getElementById("err");
+  err.className = "err";
+  var name = document.getElementById("oname").value.trim();
+  var email = document.getElementById("oemail").value.trim();
+  if(!name){ err.textContent = "Add your name first."; err.className="err show"; return; }
+  if(!email || email.indexOf("@")<1){ err.textContent = "Add a valid email so you get your copy."; err.className="err show"; return; }
+  var any = CAT.some(function(it){ return (qty[it.sku]||0) > 0; });
+  if(!any){ err.textContent = "Pick at least one item."; err.className="err show"; return; }
+
+  var win = window.open("", "_blank");
+  if(win){
+    win.document.write(buildSheetHTML());
+    win.document.close();
+    setTimeout(function(){ try{ win.print(); }catch(e){} }, 400);
+  } else {
+    err.textContent = "Your browser blocked the order sheet pop-up. Allow pop-ups for this site and try again.";
+    err.className = "err show";
+  }
+  logOrder();
+}
+
+function logOrder(){
+  var pass = "";
+  try{ pass = localStorage.getItem(KEY) || ""; }catch(e){}
+  var w = chemLbs(), total = 0, items = [];
+  CAT.forEach(function(it){
+    var q = qty[it.sku]||0;
+    if(!q) return;
+    var p = priceFor(it, w);
+    total += p*q;
+    items.push({sku:it.sku, name:it.name, qty:q, price:p, free:it.free?1:0});
+  });
+  var data = {
+    kind: "envirox_order", passcode: pass,
+    website: document.getElementById("website").value,
+    requester: document.getElementById("oname").value.trim(),
+    email: document.getElementById("oemail").value.trim(),
+    phone: document.getElementById("ophone").value.trim(),
+    po: document.getElementById("opo").value.trim(),
+    notes: document.getElementById("onotes").value.trim(),
+    chem_lbs: w, total: Math.round(total*100)/100, min_met: w>=MIN_LBS ? 1 : 0,
+    items: items
+  };
+  fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
+    body: JSON.stringify(data) })
+  .then(function(r){ return r.json(); })
+  .then(function(r){
+    if(r && r.ok) document.getElementById("okmsg").className = "okmsg show";
+  }).catch(function(){});
+}
+
+document.getElementById("gen").addEventListener("click", generate);
+document.getElementById("gen2").addEventListener("click", generate);
+document.getElementById("reset").addEventListener("click", function(){
+  if(!confirm("Clear this order and start over?")) return;
+  qty = {}; dirty = {}; renderAll();
+  document.getElementById("okmsg").className = "okmsg";
+});
+
+/* ---------- boot: passcode + catalog ---------- */
+function useCatalog(rows, live){
+  CAT = rowsToCat(rows);
+  CAT.forEach(function(it){ if(qty[it.sku]==null) qty[it.sku] = 0; });
+  var b = document.getElementById("srcbadge");
+  if(live){ b.textContent = "Live pricing from the EnvirOx Catalog Sheet"; b.className = "src live"; }
+  else { b.textContent = "Sheet unreachable - using the "+SNAPSHOT_DATE+" price snapshot"; b.className = "src snap"; }
+  renderAll();
+}
+(function boot(){
+  var pass = "";
+  try{ pass = localStorage.getItem(KEY) || ""; }catch(e){}
+  if(!pass){
+    document.getElementById("gate").classList.remove("hidden");
+    return;
+  }
+  document.getElementById("app").classList.remove("hidden");
+  fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
+    body: JSON.stringify({ kind:"envirox_catalog", passcode: pass }) })
+  .then(function(r){ return r.json(); })
+  .then(function(r){
+    if(r && r.ok && r.rows && r.rows.length) useCatalog(r.rows, true);
+    else if(r && r.error === "bad_passcode"){
+      document.getElementById("app").classList.add("hidden");
+      document.getElementById("gate").classList.remove("hidden");
+      try{ localStorage.removeItem(KEY); }catch(e){}
+    }
+    else useCatalog(EMBEDDED_CATALOG, false);
+  })
+  .catch(function(){ useCatalog(EMBEDDED_CATALOG, false); });
+})();
+</script>
+</body>
+</html>
