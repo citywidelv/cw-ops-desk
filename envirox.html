@@ -21,9 +21,14 @@ body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-seri
 .head img{height:38px;width:auto;max-width:none;flex:none}
 .head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
   color:var(--grey);border-left:2px solid var(--border);padding-left:14px}
-.head .badge{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.1em;
+.head .badge{font-size:10px;font-weight:700;letter-spacing:.1em;
   text-transform:uppercase;background:var(--black);color:#fff;border-left:3px solid var(--gold);
   padding:4px 10px;white-space:nowrap}
+.head .backbtn{margin-left:auto;font-size:12px;font-weight:700;color:var(--black);
+  text-decoration:none;border:2px solid var(--border);border-radius:8px;padding:8px 14px;
+  white-space:nowrap;margin-right:12px}
+.head .backbtn:hover{border-color:var(--red);color:var(--red)}
+@media(max-width:640px){.head .t{display:none}}
 .wrap{max-width:980px;margin:0 auto;padding:24px 20px 80px}
 h1{font-size:24px;line-height:1.25}
 h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);
@@ -160,6 +165,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
 <header class="head"><div class="bar">
   <a href="index.html"><img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"></a>
   <span class="t">Ops Desk &middot; EnvirOx Order Guide</span>
+  <a class="backbtn" href="index.html">&larr; Back to the Ops Hub</a>
   <span class="badge">Internal</span>
 </div></header>
 
@@ -186,7 +192,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
         <div class="lbl" id="wlbl">0 lbs of 250 lb chemical minimum</div>
       </div>
       <div class="cell">Chemical weight<b id="wnum" class="bad">0 lbs</b></div>
-      <div class="cell">Price tier<b id="tier">250&ndash;499 lbs</b><span class="thint" id="tierhint"></span></div>
+      <div class="cell">Price tier<b id="tier">1,000&ndash;1,999 lbs</b><span class="thint" id="tierhint"></span></div>
       <div class="cell">Order total<b id="total">$0.00</b></div>
       <div class="go"><button class="btn" id="gen">Generate Order Sheet (PDF)</button></div>
     </div>
@@ -250,7 +256,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
       <b class="h">Where this order goes</b>
       Email the order sheet to <b>orders@enviroxclean.com</b> &middot; or call
       <b>1-800-281-9604</b> &middot; or fax <b>217-442-2568</b>.<br>
-      Customer No. <b>CWLASVEGAS</b> &middot; Terms 1% 20 / Net 30 &middot; ships R&amp;L Carriers,
+      Customer No. <b id="custno">CWLASVEGAS</b> &middot; Terms 1% 20 / Net 30 &middot; ships R&amp;L Carriers,
       truck with liftgate, deliveries M&ndash;F 11 AM&ndash;5 PM.<br>
       <span id="shipline"></span>
     </div>
@@ -329,13 +335,17 @@ var CAT = [];          /* working catalog: objects */
 var qty = {};          /* sku -> qty */
 var dirty = {};        /* sku -> user overrode suggestion */
 var ENTITIES = {
-  LV:  { region:"Las Vegas", entity:"Low Drag LLC",
+  LV:  { region:"Las Vegas", entity:"Low Drag LLC", custno:"CWLASVEGAS",
          name:"City Wide Facility Solutions - Las Vegas (Low Drag LLC)",
          addr:"3215 W Charleston Blvd, Suite 130", city:"Las Vegas, NV 89102", phone:"702-483-1874" },
-  NNV: { region:"Northern Nevada", entity:"Dash Two LLC",
+  NNV: { region:"Northern Nevada", entity:"Dash Two LLC", custno:"CWRENONV",
          name:"City Wide Facility Solutions - Northern Nevada (Dash Two LLC)",
          addr:"1000 Bible Way, Suite 5", city:"Reno, NV 89502", phone:"775-453-4718" }
 };
+/* EnvirOx bills City Wide at the 1,000-1,999 lb column regardless of order size
+   (see invoice 155420: 24 cases invoiced at the 1,000-lb rate). Larger real
+   weights still earn the deeper columns. */
+var PRICE_FLOOR_LBS = 1000;
 function curEnt(){ return ENTITIES[document.getElementById("oregion").value] || ENTITIES.LV; }
 function renderEntity(){
   var e = curEnt();
@@ -343,6 +353,7 @@ function renderEntity(){
     esc(e.addr) + ", " + esc(e.city) + " &middot; " + esc(e.phone);
   document.getElementById("shipline").innerHTML = "Ship to: " + esc(e.addr) + ", " + esc(e.city) +
     " (" + esc(e.entity) + ", " + esc(e.phone) + ").";
+  document.getElementById("custno").textContent = e.custno;
 }
 var SUPPORT_ORDER = ["disp","kit","bottle","sticker","label","chart","lit","sds","equip"];
 var GROUP_LABELS = {disp:"Dispensers (free to City Wide)",kit:"Installation kits (free)",bottle:"Silk-screened spray bottles",
@@ -371,6 +382,7 @@ function chemLbs(){
   return w;
 }
 function priceFor(it, w){
+  w = Math.max(w, PRICE_FLOOR_LBS);
   var floors = Object.keys(it.tiers).map(Number).sort(function(a,b){return a-b;});
   if(!floors.length) return 0;
   var p = it.tiers[floors[0]];
@@ -472,19 +484,23 @@ function renderSummary(){
     : w+" lbs of "+MIN_LBS+" lb chemical minimum";
   document.getElementById("minwarn").className = "minwarn"+(w>0&&!ok?" show":"");
   document.getElementById("total").textContent = money(total);
-  var t = "250–499 lbs";
-  if(w>=20000)t="20,000+ lbs";else if(w>=10000)t="10,000–19,999 lbs";
-  else if(w>=5000)t="5,000–9,999 lbs";else if(w>=2000)t="2,000–4,999 lbs";
-  else if(w>=1000)t="1,000–1,999 lbs";else if(w>=500)t="500–999 lbs";
+  var ew = Math.max(w, PRICE_FLOOR_LBS);
+  var t = "1,000–1,999 lbs";
+  if(ew>=20000)t="20,000+ lbs";else if(ew>=10000)t="10,000–19,999 lbs";
+  else if(ew>=5000)t="5,000–9,999 lbs";else if(ew>=2000)t="2,000–4,999 lbs";
   document.getElementById("tier").textContent = t;
-  var breaks = [500,1000,2000,5000,10000,20000], nb = null;
-  for(var i=0;i<breaks.length;i++){ if(w < breaks[i]){ nb = breaks[i]; break; } }
   var hint = "";
-  if(nb){
-    var casesAway = Math.ceil((nb - w) / 11);
-    hint = "Next price break at " + nb.toLocaleString() + " lbs - about " + casesAway +
-      " more half-gal case" + (casesAway===1?"":"s") + " drops every unit price.";
-  } else { hint = "Top pricing tier."; }
+  if(w < PRICE_FLOOR_LBS){
+    hint = "EnvirOx bills us at the 1,000 lb rate on any size order; deeper breaks start at 2,000 lbs.";
+  } else {
+    var breaks = [2000,5000,10000,20000], nb = null;
+    for(var i=0;i<breaks.length;i++){ if(ew < breaks[i]){ nb = breaks[i]; break; } }
+    if(nb){
+      var casesAway = Math.ceil((nb - w) / 11);
+      hint = "Next price break at " + nb.toLocaleString() + " lbs - about " + casesAway +
+        " more half-gal case" + (casesAway===1?"":"s") + " drops every unit price.";
+    } else { hint = "Top pricing tier."; }
+  }
   document.getElementById("tierhint").textContent = hint;
 }
 
@@ -563,7 +579,7 @@ function buildSheetHTML(){
     "<h1>EnvirOx Product Order <span>&bull;</span> City Wide Facility Solutions "+esc(ent.region)+"</h1>"+
     "<div class='sub'>Prepared "+esc(ds)+(name?" by "+esc(name):"")+" &middot; generated from the CW Ops Desk EnvirOx Order Guide</div>"+
     "<table class='meta'><tr>"+
-    "<td><b>Customer No.</b>CWLASVEGAS</td>"+
+    "<td><b>Customer No.</b>"+esc(ent.custno)+"</td>"+
     "<td><b>Customer PO</b>"+esc(po)+"</td>"+
     "<td><b>Ordered by</b>"+esc(name||"&nbsp;")+(phone?"<br>"+esc(phone):"")+(email?"<br>"+esc(email):"")+"</td>"+
     "<td><b>Payment</b>1% 20 / Net 30</td></tr><tr>"+
@@ -624,7 +640,7 @@ function logOrder(){
     phone: document.getElementById("ophone").value.trim(),
     po: document.getElementById("opo").value.trim(),
     notes: document.getElementById("onotes").value.trim(),
-    region: ent.region, entity: ent.entity,
+    region: ent.region, entity: ent.entity, custno: ent.custno,
     ship_to: ent.name + ", " + ent.addr + ", " + ent.city + ", " + ent.phone,
     chem_lbs: w, total: Math.round(total*100)/100, min_met: w>=MIN_LBS ? 1 : 0,
     items: items
