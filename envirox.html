@@ -342,9 +342,13 @@ var ENTITIES = {
          name:"City Wide Facility Solutions - Northern Nevada (Dash Two LLC)",
          addr:"1000 Bible Way, Suite 5", city:"Reno, NV 89502", phone:"775-453-4718" }
 };
-/* EnvirOx bills City Wide at the 1,000-1,999 lb column regardless of order size
-   (see invoice 155420: 24 cases invoiced at the 1,000-lb rate). Larger real
-   weights still earn the deeper columns. */
+/* EnvirOx bills City Wide at the 1,000-1,999 lb column on ANY order size, for BOTH
+   Low Drag (LV) and Dash Two (NNV). Confirmed by TJ, July 2026, and matched line for
+   line on invoice 155420: A-112-02H 78.61, 122-12Q 49.71, 138-12Q 74.80, 117-06SQ
+   87.47 - all the 1,000 lb column, on a 264 lb order. NOTE: the 2025 LV invoices
+   (152587, 153087) show 86.62, the old base-column rate - that pricing predates this
+   arrangement, so do not "fix" the floor back to actual weight on the strength of
+   those. Real weights above 2,000 lbs still earn the deeper columns normally. */
 var PRICE_FLOOR_LBS = 1000;
 function curEnt(){ return ENTITIES[document.getElementById("oregion").value] || ENTITIES.LV; }
 function renderEntity(){
