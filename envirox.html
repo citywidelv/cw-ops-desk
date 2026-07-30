@@ -42,6 +42,7 @@ p.lede{color:var(--grey);margin:12px 0 6px;max-width:70ch}
 .statusbar .cell b{display:block;font-size:16px;color:var(--black)}
 .statusbar .cell b.bad{color:var(--red)}
 .statusbar .cell b.ok{color:var(--green)}
+.statusbar .cell .thint{display:block;font-size:10px;color:var(--grey);max-width:190px;line-height:1.4}
 .meter{flex:1 1 180px;min-width:150px}
 .meter .track{height:10px;background:var(--light);border:1px solid var(--border);
   border-radius:6px;overflow:hidden}
@@ -65,11 +66,12 @@ p.lede{color:var(--grey);margin:12px 0 6px;max-width:70ch}
 label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
   color:var(--grey);margin-bottom:5px}
 label .req{color:var(--red)}
-input[type=text],input[type=email],input[type=tel],textarea{width:100%;font-family:inherit;
+input[type=text],input[type=email],input[type=tel],select,textarea{width:100%;font-family:inherit;
   font-size:14px;color:var(--black);border:1.5px solid var(--border);border-radius:8px;
   padding:10px 12px;background:#fff}
 textarea{min-height:70px;resize:vertical}
-input:focus,textarea:focus{outline:none;border-color:var(--red)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
+.entinfo{font-size:11.5px;color:var(--grey);margin-top:6px;line-height:1.5}
 
 /* item tables */
 .ghead{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
@@ -184,7 +186,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--red)}
         <div class="lbl" id="wlbl">0 lbs of 250 lb chemical minimum</div>
       </div>
       <div class="cell">Chemical weight<b id="wnum" class="bad">0 lbs</b></div>
-      <div class="cell">Price tier<b id="tier">250&ndash;499 lbs</b></div>
+      <div class="cell">Price tier<b id="tier">250&ndash;499 lbs</b><span class="thint" id="tierhint"></span></div>
       <div class="cell">Order total<b id="total">$0.00</b></div>
       <div class="go"><button class="btn" id="gen">Generate Order Sheet (PDF)</button></div>
     </div>
@@ -196,6 +198,13 @@ input:focus,textarea:focus{outline:none;border-color:var(--red)}
     <h2><span class="n">1</span> Who is ordering</h2>
     <div class="sub">This lands on the order sheet and the confirmation email.</div>
     <div class="grid">
+      <div class="full"><label>This order is for <span class="req">*</span></label>
+        <select id="oregion">
+          <option value="LV">Las Vegas &mdash; Low Drag LLC</option>
+          <option value="NNV">Northern Nevada &mdash; Dash Two LLC</option>
+        </select>
+        <div class="entinfo" id="entinfo"></div>
+      </div>
       <div><label>Your name <span class="req">*</span></label><input type="text" id="oname" autocomplete="name"></div>
       <div><label>Your email <span class="req">*</span></label><input type="email" id="oemail" autocomplete="email"></div>
       <div><label>Phone</label><input type="tel" id="ophone" autocomplete="tel"></div>
@@ -243,7 +252,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--red)}
       <b>1-800-281-9604</b> &middot; or fax <b>217-442-2568</b>.<br>
       Customer No. <b>CWLASVEGAS</b> &middot; Terms 1% 20 / Net 30 &middot; ships R&amp;L Carriers,
       truck with liftgate, deliveries M&ndash;F 11 AM&ndash;5 PM.<br>
-      Ship to: 3215 W Charleston Blvd, Suite 130, Las Vegas, NV 89102.
+      <span id="shipline"></span>
     </div>
     <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn" id="gen2">Generate Order Sheet (PDF)</button>
@@ -280,7 +289,7 @@ var EMBEDDED_CATALOG = [
 ["117-06SQ","H2Orange2 Concentrate 117 - Simple Measures","H","chem","(6) 32 oz","Case",15,"250:94.22;500:89.74;1000:87.47","","EPA, NSF C1, CRI.",0],
 ["115-06SQ","OxiFresh Odor Eliminator - Simple Measures","H","chem","(6) 32 oz","Case",15,"250:62.37;500:65.49;1000:58.65","","Tier prices as published by EnvirOx.",0],
 ["119-06SQ","LVT Renew - Simple Measures","H","chem","(6) 32 oz","Case",15,"250:78.57;500:74.57;1000:73.09","","EcoLogo, NSF C1.",0],
-["A-252-MDD-YGR","Absolute TRIO Dispenser (YGR)","H","disp","1 Count","Each",0,"0","hcAll*1","No charge: EnvirOx earns you 1 dispenser per 2 chemical cases and has credited extras on our past orders.",0],
+["A-252-MDD-YGR","Absolute TRIO Dispenser (YGR)","H","disp","1 Count","Each",0,"0","hcAll*1","Always no charge to City Wide - ships free with chemical orders.",0],
 ["A-IN-112-YGR-KIT","Trio Installation Kit - H2Orange2 112","H","kit","1 Count","Each",0,"0","hcH*1","One per new TRIO going on a wall.",0],
 ["A8-112L","Bottle & Spray Head - Light Duty Green, 112 Silk-Screened","H","bottle","1 Count","Each",0,"250:2.60","hcH*4","",0],
 ["A8-112H","Bottle & Spray Head - Heavy Duty Red, 112 Silk-Screened","H","bottle","1 Count","Each",0,"250:2.60","hcH*4","",0],
@@ -312,15 +321,31 @@ var EMBEDDED_CATALOG = [
 ["A9-855-145","Product Literature - OxiGenesis Hyper-Concentrate","O","lit","1 Count","Each",0,"0","lit:hcO","Packs of 25.",0],
 ["A9-855-BEN-145","Literature - OxiGenesis 6 Great Benefits","O","lit","1 Count","Each",0,"0","lit:hcO","Packs of 25.",0],
 ["SDS-145","SDS Sheets - OxiGenesis","O","sds","1 Count","Each",0,"0","flat10:hcO","No-charge; EnvirOx bills it as MISCNOCHARGE.",0],
-["A-252-MDD-YGBR","Absolute Multi Dispenser for OxiGenesis (YGBR)","O","disp","1 Count","Each",0,"500:187.00","","Billed at $187 unless EnvirOx credits it - the TRIO above is the no-charge route.",0]
+["A-252-MDD-YGBR","Absolute Multi Dispenser for OxiGenesis (YGBR)","O","disp","1 Count","Each",0,"0","","Always no charge to City Wide - ships free with chemical orders.",0]
 ];
 var SNAPSHOT_DATE = "July 2026";
 
 var CAT = [];          /* working catalog: objects */
 var qty = {};          /* sku -> qty */
 var dirty = {};        /* sku -> user overrode suggestion */
+var ENTITIES = {
+  LV:  { region:"Las Vegas", entity:"Low Drag LLC",
+         name:"City Wide Facility Solutions - Las Vegas (Low Drag LLC)",
+         addr:"3215 W Charleston Blvd, Suite 130", city:"Las Vegas, NV 89102", phone:"702-483-1874" },
+  NNV: { region:"Northern Nevada", entity:"Dash Two LLC",
+         name:"City Wide Facility Solutions - Northern Nevada (Dash Two LLC)",
+         addr:"1000 Bible Way, Suite 5", city:"Reno, NV 89502", phone:"775-453-4718" }
+};
+function curEnt(){ return ENTITIES[document.getElementById("oregion").value] || ENTITIES.LV; }
+function renderEntity(){
+  var e = curEnt();
+  document.getElementById("entinfo").innerHTML = "Ships to: <b>" + esc(e.name) + "</b>, " +
+    esc(e.addr) + ", " + esc(e.city) + " &middot; " + esc(e.phone);
+  document.getElementById("shipline").innerHTML = "Ship to: " + esc(e.addr) + ", " + esc(e.city) +
+    " (" + esc(e.entity) + ", " + esc(e.phone) + ").";
+}
 var SUPPORT_ORDER = ["disp","kit","bottle","sticker","label","chart","lit","sds","equip"];
-var GROUP_LABELS = {disp:"Dispensers",kit:"Installation kits (free)",bottle:"Silk-screened spray bottles",
+var GROUP_LABELS = {disp:"Dispensers (free to City Wide)",kit:"Installation kits (free)",bottle:"Silk-screened spray bottles",
   sticker:"Bottle stickers (free)",label:"Extra secondary labels",chart:"Wall & pocket charts (free)",
   lit:"Product literature (free)",sds:"SDS sheets (free)",equip:"Equipment (optional)"};
 
@@ -452,6 +477,15 @@ function renderSummary(){
   else if(w>=5000)t="5,000–9,999 lbs";else if(w>=2000)t="2,000–4,999 lbs";
   else if(w>=1000)t="1,000–1,999 lbs";else if(w>=500)t="500–999 lbs";
   document.getElementById("tier").textContent = t;
+  var breaks = [500,1000,2000,5000,10000,20000], nb = null;
+  for(var i=0;i<breaks.length;i++){ if(w < breaks[i]){ nb = breaks[i]; break; } }
+  var hint = "";
+  if(nb){
+    var casesAway = Math.ceil((nb - w) / 11);
+    hint = "Next price break at " + nb.toLocaleString() + " lbs - about " + casesAway +
+      " more half-gal case" + (casesAway===1?"":"s") + " drops every unit price.";
+  } else { hint = "Top pricing tier."; }
+  document.getElementById("tierhint").textContent = hint;
 }
 
 function syncSuggestions(){
@@ -506,8 +540,9 @@ function buildSheetHTML(){
   var phone = document.getElementById("ophone").value.trim();
   var po = document.getElementById("opo").value.trim() || ((d.getMonth()+1)+"."+d.getDate()+"."+String(d.getFullYear()).slice(2));
   var notes = document.getElementById("onotes").value.trim();
+  var ent = curEnt();
   var ok = w >= MIN_LBS;
-  return "<!DOCTYPE html><html><head><meta charset='utf-8'><title>EnvirOx Order - City Wide Las Vegas - "+esc(ds)+"</title><style>"+
+  return "<!DOCTYPE html><html><head><meta charset='utf-8'><title>EnvirOx Order - City Wide "+esc(ent.region)+" - "+esc(ds)+"</title><style>"+
     "body{font-family:Verdana,Geneva,sans-serif;font-size:11px;color:#2D2A26;margin:32px;line-height:1.5}"+
     "h1{font-size:17px;margin:0 0 2px}h1 span{color:#D22730}"+
     ".sub{color:#636466;font-size:10px;margin-bottom:14px}"+
@@ -525,14 +560,14 @@ function buildSheetHTML(){
     ".fine{margin-top:14px;color:#636466;font-size:9px}"+
     "@media print{body{margin:14mm}}"+
     "</style></head><body>"+
-    "<h1>EnvirOx Product Order <span>&bull;</span> City Wide Facility Solutions Las Vegas</h1>"+
+    "<h1>EnvirOx Product Order <span>&bull;</span> City Wide Facility Solutions "+esc(ent.region)+"</h1>"+
     "<div class='sub'>Prepared "+esc(ds)+(name?" by "+esc(name):"")+" &middot; generated from the CW Ops Desk EnvirOx Order Guide</div>"+
     "<table class='meta'><tr>"+
     "<td><b>Customer No.</b>CWLASVEGAS</td>"+
     "<td><b>Customer PO</b>"+esc(po)+"</td>"+
     "<td><b>Ordered by</b>"+esc(name||"&nbsp;")+(phone?"<br>"+esc(phone):"")+(email?"<br>"+esc(email):"")+"</td>"+
     "<td><b>Payment</b>1% 20 / Net 30</td></tr><tr>"+
-    "<td colspan='2'><b>Ship to</b>City Wide Facility Solutions Las Vegas<br>3215 W Charleston Blvd, Suite 130<br>Las Vegas, NV 89102</td>"+
+    "<td colspan='2'><b>Ship to</b>"+esc(ent.name)+"<br>"+esc(ent.addr)+"<br>"+esc(ent.city)+"<br>Phone "+esc(ent.phone)+"</td>"+
     "<td colspan='2'><b>Bill to</b>City Wide Facility Solutions Las Vegas<br>2101 Gateway Centre Blvd, Ste 104<br>Morrisville, NC 27560</td>"+
     "</tr></table>"+
     "<table class='items'><tr><th>Item #</th><th>Description</th><th>U of M</th><th class='r'>Qty</th><th class='r'>Unit $</th><th class='r'>Ext $</th></tr>"+
@@ -580,6 +615,7 @@ function logOrder(){
     total += p*q;
     items.push({sku:it.sku, name:it.name, qty:q, price:p, free:it.free?1:0});
   });
+  var ent = curEnt();
   var data = {
     kind: "envirox_order", passcode: pass,
     website: document.getElementById("website").value,
@@ -588,6 +624,8 @@ function logOrder(){
     phone: document.getElementById("ophone").value.trim(),
     po: document.getElementById("opo").value.trim(),
     notes: document.getElementById("onotes").value.trim(),
+    region: ent.region, entity: ent.entity,
+    ship_to: ent.name + ", " + ent.addr + ", " + ent.city + ", " + ent.phone,
     chem_lbs: w, total: Math.round(total*100)/100, min_met: w>=MIN_LBS ? 1 : 0,
     items: items
   };
@@ -624,6 +662,8 @@ function useCatalog(rows, live){
     return;
   }
   document.getElementById("app").classList.remove("hidden");
+  renderEntity();
+  document.getElementById("oregion").addEventListener("change", renderEntity);
   fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
     body: JSON.stringify({ kind:"envirox_catalog", passcode: pass }) })
   .then(function(r){ return r.json(); })
