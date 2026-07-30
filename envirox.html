@@ -192,7 +192,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
         <div class="lbl" id="wlbl">0 lbs of 250 lb chemical minimum</div>
       </div>
       <div class="cell">Chemical weight<b id="wnum" class="bad">0 lbs</b></div>
-      <div class="cell">Price basis<b id="tier">Our contract rate</b><span class="thint" id="tierhint"></span></div>
+      <div class="cell">Shipment weight<b id="swnum">0 lbs</b></div>
+      <div class="cell">Price tier<b id="tier">250&ndash;499 lbs</b><span class="thint" id="tierhint"></span></div>
       <div class="cell">Order total<b id="total">$0.00</b></div>
       <div class="go"><button class="btn" id="gen">Generate Order Sheet (PDF)</button></div>
     </div>
@@ -295,7 +296,7 @@ var EMBEDDED_CATALOG = [
 ["117-06SQ","H2Orange2 Concentrate 117 - Simple Measures","H","chem","(6) 32 oz","Case",15,"250:94.22;500:89.74;1000:87.47","","EPA, NSF C1, CRI.",0],
 ["115-06SQ","OxiFresh Odor Eliminator - Simple Measures","H","chem","(6) 32 oz","Case",15,"250:62.37;500:65.49;1000:58.65","","Tier prices as published by EnvirOx.",0],
 ["119-06SQ","LVT Renew - Simple Measures","H","chem","(6) 32 oz","Case",15,"250:78.57;500:74.57;1000:73.09","","EcoLogo, NSF C1.",0],
-["A-252-MDD-YGR","Absolute TRIO Dispenser (YGR)","H","disp","1 Count","Each",0,"0","hcAll*1","Always no charge to City Wide - ships free with chemical orders.",0],
+["A-252-MDD-YGR","Absolute TRIO Dispenser (YGR)","H","disp","1 Count","Each",8,"0","hcAll*1","Always no charge to City Wide. 8 lbs each - counts toward the price break.",0],
 ["A-IN-112-YGR-KIT","Trio Installation Kit - H2Orange2 112","H","kit","1 Count","Each",0,"0","hcH*1","One per new TRIO going on a wall.",0],
 ["A8-112L","Bottle & Spray Head - Light Duty Green, 112 Silk-Screened","H","bottle","1 Count","Each",0,"250:2.60","hcH*4","",0],
 ["A8-112H","Bottle & Spray Head - Heavy Duty Red, 112 Silk-Screened","H","bottle","1 Count","Each",0,"250:2.60","hcH*4","",0],
@@ -327,7 +328,7 @@ var EMBEDDED_CATALOG = [
 ["A9-855-145","Product Literature - OxiGenesis Hyper-Concentrate","O","lit","1 Count","Each",0,"0","lit:hcO","Packs of 25.",0],
 ["A9-855-BEN-145","Literature - OxiGenesis 6 Great Benefits","O","lit","1 Count","Each",0,"0","lit:hcO","Packs of 25.",0],
 ["SDS-145","SDS Sheets - OxiGenesis","O","sds","1 Count","Each",0,"0","flat10:hcO","No-charge; EnvirOx bills it as MISCNOCHARGE.",0],
-["A-252-MDD-YGBR","Absolute Multi Dispenser for OxiGenesis (YGBR)","O","disp","1 Count","Each",0,"0","","Always no charge to City Wide - ships free with chemical orders.",0]
+["A-252-MDD-YGBR","Absolute Multi Dispenser for OxiGenesis (YGBR)","O","disp","1 Count","Each",8,"0","","Always no charge to City Wide. 8 lbs each - counts toward the price break.",0]
 ];
 var SNAPSHOT_DATE = "July 2026";
 
@@ -342,14 +343,15 @@ var ENTITIES = {
          name:"City Wide Facility Solutions - Northern Nevada (Dash Two LLC)",
          addr:"1000 Bible Way, Suite 5", city:"Reno, NV 89502", phone:"775-453-4718" }
 };
-/* EnvirOx bills City Wide at the 1,000-1,999 lb column on ANY order size, for BOTH
-   Low Drag (LV) and Dash Two (NNV). Confirmed by TJ, July 2026, and matched line for
-   line on invoice 155420: A-112-02H 78.61, 122-12Q 49.71, 138-12Q 74.80, 117-06SQ
-   87.47 - all the 1,000 lb column, on a 264 lb order. NOTE: the 2025 LV invoices
-   (152587, 153087) show 86.62, the old base-column rate - that pricing predates this
-   arrangement, so do not "fix" the floor back to actual weight on the strength of
-   those. Real weights above 2,000 lbs still earn the deeper columns normally. */
-var PRICE_FLOOR_LBS = 1000;
+/* PRICE TIERS ARE DRIVEN BY TOTAL SHIPMENT WEIGHT, NOT CHEMICAL WEIGHT.
+   Proven on invoice 155420: 803 lbs of chemical would be the 500-999 column ($82.23),
+   but the shipment also carried 23 TRIO dispensers (8 lb each) and 12 portables
+   (2 lb each) = 208 lbs, for 1,011 lbs total. That crosses 1,000, and every line on
+   that invoice billed at the 1,000-1,999 column: A-112-02H 78.61, 122-12Q 49.71,
+   138-12Q 74.80, 117-06SQ 87.47. The 2025 LV invoices (152587, 153087) fit the same
+   rule from the other side - ~296 lbs total, billed at the base column.
+   So: dispensers carry real weight and count toward the price break. The separate
+   250 lb minimum for free freight is CHEMICAL ONLY - two different numbers. */
 function curEnt(){ return ENTITIES[document.getElementById("oregion").value] || ENTITIES.LV; }
 function renderEntity(){
   var e = curEnt();
@@ -380,13 +382,19 @@ function rowsToCat(rows){
   });
 }
 
+/* Chemical only - drives the 250 lb free-freight minimum. */
 function chemLbs(){
   var w = 0;
   CAT.forEach(function(it){ if(it.cat==="chem") w += (qty[it.sku]||0)*it.lbs; });
   return w;
 }
+/* Everything on the pallet - drives which price column EnvirOx bills. */
+function totalLbs(){
+  var w = 0;
+  CAT.forEach(function(it){ w += (qty[it.sku]||0)*it.lbs; });
+  return w;
+}
 function priceFor(it, w){
-  w = Math.max(w, PRICE_FLOOR_LBS);
   var floors = Object.keys(it.tiers).map(Number).sort(function(a,b){return a-b;});
   if(!floors.length) return 0;
   var p = it.tiers[floors[0]];
@@ -426,9 +434,9 @@ function qtyControl(sku){
 function renderChem(){
   ["H","O"].forEach(function(line){
     var host = document.getElementById(line==="H"?"chemH":"chemO");
-    var w = chemLbs(), html = "";
+    var w = totalLbs(), html = "";
     CAT.filter(function(it){return it.cat==="chem" && it.line===line;}).forEach(function(it){
-      var p = priceFor(it, Math.max(w, 0));
+      var p = priceFor(it, w);
       html += '<div class="item'+((qty[it.sku]||0)>0?' has':'')+'">'+
         '<div class="nm">'+esc(it.name)+(it.star?' <span class="tag star">Our standard</span>':'')+
         ' <span class="tag">'+esc(it.pack)+'</span>'+
@@ -442,7 +450,7 @@ function renderChem(){
 
 function renderSupport(){
   var host = document.getElementById("support");
-  var d = drivers(), w = chemLbs(), html = "";
+  var d = drivers(), w = totalLbs(), html = "";
   SUPPORT_ORDER.forEach(function(cat){
     var items = CAT.filter(function(it){return it.cat===cat;});
     if(!items.length) return;
@@ -466,16 +474,18 @@ function renderSupport(){
 }
 
 function renderSummary(){
-  var w = chemLbs(), tbl = document.getElementById("sumtbl"), html = "", total = 0, lines = 0;
+  var w = chemLbs(), tw = totalLbs();
+  var tbl = document.getElementById("sumtbl"), html = "", total = 0, lines = 0;
   CAT.forEach(function(it){
     var q = qty[it.sku]||0;
     if(!q) return;
-    var p = priceFor(it, w), ext = p*q;
+    var p = priceFor(it, tw), ext = p*q;
     total += ext; lines++;
     html += '<tr><td>'+esc(it.sku)+' &middot; '+esc(it.name)+' <span style="color:var(--grey)">&times; '+q+'</span></td>'+
       '<td>'+(it.free?'No charge':money(ext))+'</td></tr>';
   });
-  html += '<tr class="tot"><td>Order total ('+lines+' line'+(lines===1?'':'s')+', '+w+' lbs chemical)</td><td>'+money(total)+'</td></tr>';
+  html += '<tr class="tot"><td>Order total ('+lines+' line'+(lines===1?'':'s')+', '+w+
+    ' lbs chemical, '+tw+' lbs shipped)</td><td>'+money(total)+'</td></tr>';
   tbl.innerHTML = html;
 
   var pct = Math.min(100, Math.round(w/MIN_LBS*100));
@@ -488,29 +498,22 @@ function renderSummary(){
     : w+" lbs of "+MIN_LBS+" lb chemical minimum";
   document.getElementById("minwarn").className = "minwarn"+(w>0&&!ok?" show":"");
   document.getElementById("total").textContent = money(total);
-  var ew = Math.max(w, PRICE_FLOOR_LBS);
-  var t;
-  if(w < PRICE_FLOOR_LBS){
-    /* Don't print a weight bracket the order hasn't earned - it reads as a claim. */
-    t = "Our contract rate";
-  } else {
-    t = "1,000–1,999 lbs";
-    if(ew>=20000)t="20,000+ lbs";else if(ew>=10000)t="10,000–19,999 lbs";
-    else if(ew>=5000)t="5,000–9,999 lbs";else if(ew>=2000)t="2,000–4,999 lbs";
-  }
+  document.getElementById("swnum").textContent = tw+" lbs";
+
+  /* Price column is set by TOTAL shipped weight - dispensers included. */
+  var t = "250–499 lbs";
+  if(tw>=20000)t="20,000+ lbs";else if(tw>=10000)t="10,000–19,999 lbs";
+  else if(tw>=5000)t="5,000–9,999 lbs";else if(tw>=2000)t="2,000–4,999 lbs";
+  else if(tw>=1000)t="1,000–1,999 lbs";else if(tw>=500)t="500–999 lbs";
   document.getElementById("tier").textContent = t;
-  var hint = "";
-  if(w < PRICE_FLOOR_LBS){
-    hint = "EnvirOx bills City Wide at their 1,000 lb column on any order size, so these are the real prices at any quantity. Deeper breaks start at 2,000 lbs.";
-  } else {
-    var breaks = [2000,5000,10000,20000], nb = null;
-    for(var i=0;i<breaks.length;i++){ if(ew < breaks[i]){ nb = breaks[i]; break; } }
-    if(nb){
-      var casesAway = Math.ceil((nb - w) / 11);
-      hint = "Next price break at " + nb.toLocaleString() + " lbs - about " + casesAway +
-        " more half-gal case" + (casesAway===1?"":"s") + " drops every unit price.";
-    } else { hint = "Top pricing tier."; }
-  }
+
+  var breaks = [500,1000,2000,5000,10000,20000], nb = null;
+  for(var i=0;i<breaks.length;i++){ if(tw < breaks[i]){ nb = breaks[i]; break; } }
+  var hint;
+  if(nb){
+    hint = (nb - tw) + " lbs short of the " + nb.toLocaleString() +
+      " lb break, which drops every unit price. Dispensers count toward this (8 lbs each).";
+  } else { hint = "Top pricing tier."; }
   document.getElementById("tierhint").textContent = hint;
 }
 
@@ -550,11 +553,11 @@ document.addEventListener("change", function(e){
 
 /* ---------- order sheet (print to PDF) ---------- */
 function buildSheetHTML(){
-  var w = chemLbs(), total = 0, rows = "";
+  var w = chemLbs(), tw = totalLbs(), total = 0, rows = "";
   CAT.forEach(function(it){
     var q = qty[it.sku]||0;
     if(!q) return;
-    var p = priceFor(it, w), ext = p*q; total += ext;
+    var p = priceFor(it, tw), ext = p*q; total += ext;
     rows += "<tr><td>"+esc(it.sku)+"</td><td>"+esc(it.name)+(it.note&&it.cat==="sds"?" (MISCNOCHARGE)":"")+"</td>"+
       "<td>"+esc(it.uom)+"</td><td class='r'>"+q+"</td><td class='r'>"+(it.free?"0.00":p.toFixed(2))+"</td>"+
       "<td class='r'>"+(it.free?"0.00":ext.toFixed(2))+"</td></tr>";
@@ -598,7 +601,7 @@ function buildSheetHTML(){
     "</tr></table>"+
     "<table class='items'><tr><th>Item #</th><th>Description</th><th>U of M</th><th class='r'>Qty</th><th class='r'>Unit $</th><th class='r'>Ext $</th></tr>"+
     rows+
-    "<tr class='tot'><td colspan='5'>Order total &middot; chemical weight "+w+" lbs</td><td class='r'>"+money(total)+"</td></tr></table>"+
+    "<tr class='tot'><td colspan='5'>Order total &middot; "+w+" lbs chemical &middot; "+tw+" lbs shipped</td><td class='r'>"+money(total)+"</td></tr></table>"+
     "<div class='flag'>"+(ok?"250 lb chemical minimum met &mdash; freight prepaid.":"UNDER the 250 lb chemical minimum &mdash; EnvirOx will add freight to the invoice. Consider adding cases.")+"</div>"+
     (notes?"<div style='margin-top:10px'><b>Order notes:</b> "+esc(notes)+"</div>":"")+
     "<div class='send'><b class='h'>How to place this order</b>"+
@@ -633,11 +636,11 @@ function generate(){
 function logOrder(){
   var pass = "";
   try{ pass = localStorage.getItem(KEY) || ""; }catch(e){}
-  var w = chemLbs(), total = 0, items = [];
+  var w = chemLbs(), tw = totalLbs(), total = 0, items = [];
   CAT.forEach(function(it){
     var q = qty[it.sku]||0;
     if(!q) return;
-    var p = priceFor(it, w);
+    var p = priceFor(it, tw);
     total += p*q;
     items.push({sku:it.sku, name:it.name, qty:q, price:p, free:it.free?1:0});
   });
