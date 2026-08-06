@@ -6,126 +6,127 @@
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
 <!-- build 2026-07-29b: landing page v2 per TJ.
-     Kept: top bar, dropdown nav (now cascading groups), skyline hero, Most Used
-     bar (new picks), Building Information Sheets band. Removed: the link
-     directory. Added: the Ops Wall (team announcements) fed by the Apps Script
-     (auth response carries `announcements`; POST kind:"announcement" adds one).
-     Every tool that was in the old directory is reachable from the dropdowns.
-     Search now indexes the dropdown menus. -->
+Kept: top bar, dropdown nav (now cascading groups), skyline hero, Most Used
+bar (new picks), Building Information Sheets band. Removed: the link
+directory. Added: the Ops Wall (team announcements) fed by the Apps Script
+(auth response carries `announcements`; POST kind:"announcement" adds one).
+Every tool that was in the old directory is reachable from the dropdowns.
+Search now indexes the dropdown menus.
+build 2026-08-06: added Back to the Nevada Team Portal links (gate + header). -->
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
-  --border:#E5E5E5;--gold:#E5B423;
-  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06);
-  --shadow-lift:0 4px 10px rgba(45,42,38,.10),0 10px 28px rgba(45,42,38,.10)}
+--border:#E5E5E5;--gold:#E5B423;
+--shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06);
+--shadow-lift:0 4px 10px rgba(45,42,38,.10),0 10px 28px rgba(45,42,38,.10)}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
-  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
 a{color:var(--red)}
 .head{background:#fff;position:sticky;top:0;z-index:50;box-shadow:0 1px 8px rgba(45,42,38,.10)}
 .head .bar{max-width:1160px;margin:0 auto;padding:0 20px;height:60px;display:flex;
-  align-items:center;gap:14px}
+align-items:center;gap:14px}
 .head img{height:36px;width:auto;max-width:none;flex:none}
 .head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--grey);border-left:2px solid var(--border);padding-left:14px;white-space:nowrap}
+color:var(--grey);border-left:2px solid var(--border);padding-left:14px;white-space:nowrap}
 .hsearch{flex:1;display:flex;max-width:420px;margin-left:auto;position:relative}
 .hsearch svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--grey)}
 .hsearch input{width:100%;font-family:inherit;font-size:13px;border:1.5px solid var(--border);
-  border-radius:18px;padding:8px 32px 8px 34px;background:var(--light);outline:none}
+border-radius:18px;padding:8px 32px 8px 34px;background:var(--light);outline:none}
 .hsearch input:focus{border-color:var(--red);background:#fff}
 .hsearch .x{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;
-  background:none;color:var(--grey);font-size:14px;cursor:pointer;padding:4px 6px;display:none}
+background:none;color:var(--grey);font-size:14px;cursor:pointer;padding:4px 6px;display:none}
 .hsearch .x.show{display:block}
 .head .badge{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-  background:var(--black);color:#fff;border-left:3px solid var(--gold);padding:4px 10px;white-space:nowrap}
+background:var(--black);color:#fff;border-left:3px solid var(--gold);padding:4px 10px;white-space:nowrap}
 .head .out{font-size:11px;font-weight:700;color:var(--grey);cursor:pointer;text-decoration:none;
-  border:1px solid var(--border);border-radius:14px;padding:5px 12px;background:var(--light);white-space:nowrap}
+border:1px solid var(--border);border-radius:14px;padding:5px 12px;background:var(--light);white-space:nowrap}
 .head .out:hover{background:var(--red);color:#fff;border-color:var(--red)}
 
 /* nav bar: cascading dropdowns (static menu tree in this repo) */
 nav.mainnav{background:var(--black);border-bottom:3px solid var(--red)}
 .nav-in{max-width:1160px;margin:0 auto;padding:0 12px;display:flex;align-items:stretch;
-  gap:2px;flex-wrap:wrap}
+gap:2px;flex-wrap:wrap}
 .nitem{position:relative;flex:none}
 .nbtn{background:none;border:none;color:#fff;font-family:inherit;font-size:11.5px;font-weight:700;
-  letter-spacing:.04em;text-transform:uppercase;padding:12px 13px;display:flex;align-items:center;
-  gap:7px;white-space:nowrap;cursor:pointer}
+letter-spacing:.04em;text-transform:uppercase;padding:12px 13px;display:flex;align-items:center;
+gap:7px;white-space:nowrap;cursor:pointer}
 .nbtn svg{opacity:.9;flex:none}
 .nbtn .caret{font-size:8px;opacity:.8}
 .nbtn:hover,.nbtn.open{background:var(--red)}
 .nmenu{display:none;position:absolute;top:100%;left:0;min-width:250px;max-width:320px;background:#fff;
-  border:1px solid var(--border);border-top:3px solid var(--red);border-radius:0 0 10px 10px;
-  box-shadow:var(--shadow-lift);padding:6px 0;z-index:70}
+border:1px solid var(--border);border-top:3px solid var(--red);border-radius:0 0 10px 10px;
+box-shadow:var(--shadow-lift);padding:6px 0;z-index:70}
 .nmenu.show{display:block}
 .nmenu a{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:700;
-  color:var(--black);text-decoration:none;padding:9px 16px}
+color:var(--black);text-decoration:none;padding:9px 16px}
 .nmenu a:hover{background:var(--light);color:var(--red)}
 .nmenu a svg{color:var(--red);flex:none}
 .nmenu .ghead{font-weight:700;color:var(--grey);font-size:10px;padding:9px 16px 3px;
-  text-transform:uppercase;letter-spacing:.1em}
+text-transform:uppercase;letter-spacing:.1em}
 .nmenu .ghead:not(:first-child){border-top:1px solid var(--border);margin-top:5px}
 .nsub{position:relative}
 .nsub>a.subbtn{justify-content:space-between}
 .nsub>a.subbtn::after{content:"\25B8";color:var(--grey);font-size:10px;margin-left:10px}
 .nsubmenu{display:none;position:absolute;left:100%;top:-7px;min-width:240px;background:#fff;
-  border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lift);
-  padding:6px 0;z-index:80}
+border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lift);
+padding:6px 0;z-index:80}
 .nsubmenu.show{display:block}
 @media(hover:hover){
-  .nitem:hover>.nmenu{display:block}
-  .nsub:hover>.nsubmenu{display:block}
+.nitem:hover>.nmenu{display:block}
+.nsub:hover>.nsubmenu{display:block}
 }
 
 /* ---------- Hero: Las Vegas + Reno skyline, greyscale per brand ---------- */
 .wrap{max-width:1160px;margin:0 auto;padding:0 20px}
 .hero{position:relative;color:#fff;background:linear-gradient(180deg,#26231f 0%,var(--black) 70%);
-  overflow:hidden}
+overflow:hidden}
 .hero .sky{position:absolute;left:0;right:0;bottom:0;width:100%;height:170px;display:block;
-  pointer-events:none}
+pointer-events:none}
 .hero .wrap{position:relative;z-index:1;padding-top:32px;padding-bottom:150px}
 .hero h1{font-size:clamp(22px,3.2vw,29px);line-height:1.25;letter-spacing:.01em}
 .hero h1::after{content:"";display:block;width:56px;height:4px;background:var(--red);
-  border-radius:2px;margin-top:11px}
+border-radius:2px;margin-top:11px}
 .hero p{color:#cfcdc9;margin-top:10px;max-width:600px;font-size:13.5px}
 .hero .cities{margin-top:14px;font-size:10.5px;font-weight:700;letter-spacing:.22em;
-  text-transform:uppercase;color:#8f8b85}
+text-transform:uppercase;color:#8f8b85}
 .hero .cities b{color:#fff;font-weight:700}
 .hero .cities .dot{color:var(--red);padding:0 8px}
 
 /* ---------- Most Used quick bar, overlapping the hero ---------- */
 .quick{position:relative;z-index:5;margin-top:-44px}
 .quick .qcard{background:#fff;border:1px solid var(--border);border-radius:14px;
-  box-shadow:var(--shadow-lift);padding:16px 18px 14px}
+box-shadow:var(--shadow-lift);padding:16px 18px 14px}
 .quick .qhead{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
 .quick .qhead h2{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--grey)}
+color:var(--grey)}
 .quick .qhead .bar-accent{flex:none;width:18px;height:3px;background:var(--red);border-radius:2px;
-  align-self:center}
+align-self:center}
 .qrow{display:flex;flex-wrap:wrap;gap:9px}
 .qbtn{position:relative;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;
-  color:var(--black);text-decoration:none;border:1.5px solid var(--border);border-radius:10px;
-  padding:9px 13px;background:#fff;transition:all .15s;white-space:nowrap}
+color:var(--black);text-decoration:none;border:1.5px solid var(--border);border-radius:10px;
+padding:9px 13px;background:#fff;transition:all .15s;white-space:nowrap}
 .qbtn svg{color:var(--red);flex:none}
 .qbtn:hover{border-color:var(--red);color:var(--red);box-shadow:var(--shadow)}
 .qbtn.primary{background:var(--red);border-color:var(--red);color:#fff}
 .qbtn.primary svg{color:#fff}
 .qbtn.primary:hover{background:var(--red-dark);border-color:var(--red-dark);color:#fff}
 .qbtn .pill{font-size:9.5px;font-weight:700;background:var(--black);color:#fff;border-radius:9px;
-  padding:2px 8px;display:none}
+padding:2px 8px;display:none}
 .qbtn .pill.show{display:inline-block}
 
 /* ---------- Feature band: Building Information Sheets ---------- */
 .feature{margin-top:18px}
 .fcard{display:flex;align-items:center;gap:22px;background:#fff;border:1px solid var(--border);
-  border-left:5px solid var(--red);border-radius:14px;box-shadow:var(--shadow);padding:18px 22px;
-  flex-wrap:wrap}
+border-left:5px solid var(--red);border-radius:14px;box-shadow:var(--shadow);padding:18px 22px;
+flex-wrap:wrap}
 .fcard .ficon{width:44px;height:44px;border-radius:10px;background:var(--red);color:#fff;
-  display:flex;align-items:center;justify-content:center;flex:none}
+display:flex;align-items:center;justify-content:center;flex:none}
 .fcard .ftext{flex:1;min-width:240px}
 .fcard h3{font-size:15px;margin-bottom:2px}
 .fcard p{font-size:12.5px;color:var(--grey)}
 .fcard .fbtns{display:flex;gap:10px;flex-wrap:wrap}
 .fbtn{font-size:12.5px;font-weight:700;text-decoration:none;border-radius:10px;padding:10px 16px;
-  white-space:nowrap;transition:all .15s}
+white-space:nowrap;transition:all .15s}
 .fbtn.solid{background:var(--black);color:#fff}
 .fbtn.solid:hover{background:var(--red)}
 .fbtn.line{border:1.5px solid var(--border);color:var(--black);background:#fff}
@@ -139,20 +140,20 @@ nav.mainnav{background:var(--black);border-bottom:3px solid var(--red)}
 .whead .bar-accent{flex:none;width:18px;height:3px;background:var(--red);border-radius:2px}
 .whead h2{font-size:15px}
 .whead .sub{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--grey);
-  letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
 .composer{display:flex;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);
-  align-items:flex-start;flex-wrap:wrap}
+align-items:flex-start;flex-wrap:wrap}
 .composer .cav{width:38px;height:38px;border-radius:50%;background:var(--black);color:#fff;
-  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none}
+display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none}
 .composer .cfields{flex:1;min-width:220px;display:flex;flex-direction:column;gap:8px}
 .composer input,.composer textarea{font-family:inherit;font-size:13px;border:1.5px solid var(--border);
-  border-radius:8px;padding:9px 12px;background:var(--light);outline:none;width:100%;resize:vertical}
+border-radius:8px;padding:9px 12px;background:var(--light);outline:none;width:100%;resize:vertical}
 .composer input:focus,.composer textarea:focus{border-color:var(--red);background:#fff}
 .composer input{max-width:240px}
 .composer textarea{min-height:44px}
 .composer .crow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .composer button{font-family:inherit;font-size:12.5px;font-weight:700;background:var(--red);
-  color:#fff;border:none;border-radius:8px;padding:10px 18px;cursor:pointer}
+color:#fff;border:none;border-radius:8px;padding:10px 18px;cursor:pointer}
 .composer button:hover{background:var(--red-dark)}
 .composer button[disabled]{opacity:.5;cursor:wait}
 .composer .werr{font-size:11.5px;font-weight:700;color:var(--red)}
@@ -160,7 +161,7 @@ nav.mainnav{background:var(--black);border-bottom:3px solid var(--red)}
 .wpost{display:flex;gap:12px;padding:13px 20px;border-bottom:1px solid var(--light)}
 .wpost:last-child{border-bottom:none}
 .wpost .pav{width:38px;height:38px;border-radius:50%;background:var(--grey);color:#fff;
-  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none}
+display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none}
 .wpost.pinned{background:#fdf8ea;border-left:4px solid var(--gold)}
 .wpost.pinned .pav{background:var(--black)}
 .wpost .pbody{flex:1;min-width:0}
@@ -168,21 +169,21 @@ nav.mainnav{background:var(--black);border-bottom:3px solid var(--red)}
 .wpost .pname{font-size:13px;font-weight:700}
 .wpost .pdate{font-size:10.5px;color:var(--grey)}
 .wpost .ppin{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  background:var(--gold);color:var(--black);border-radius:8px;padding:1px 7px}
+background:var(--gold);color:var(--black);border-radius:8px;padding:1px 7px}
 .wpost .pmsg{font-size:13px;color:var(--black);margin-top:2px;overflow-wrap:break-word}
 .wempty{text-align:center;color:var(--grey);font-size:12.5px;padding:30px 20px}
 .wempty b{display:block;color:var(--black);font-size:13.5px;margin-bottom:4px}
 
 /* helper card next to the wall */
 .helper{background:var(--black);color:#fff;border-radius:14px;box-shadow:var(--shadow);
-  padding:20px 22px;position:relative;overflow:hidden}
+padding:20px 22px;position:relative;overflow:hidden}
 .helper h3{font-size:14px;margin-bottom:6px}
 .helper h3::after{content:"";display:block;width:34px;height:3px;background:var(--red);
-  border-radius:2px;margin-top:8px}
+border-radius:2px;margin-top:8px}
 .helper p{font-size:12px;color:#cfcdc9;margin-top:8px}
 .helper .keys{margin-top:12px;font-size:11.5px;color:#cfcdc9}
 .helper .keys b{display:inline-block;background:#3d3934;color:#fff;border-radius:5px;
-  padding:1px 8px;font-size:11px;margin-right:6px}
+padding:1px 8px;font-size:11px;margin-right:6px}
 .helper ul{list-style:none;margin-top:10px}
 .helper li{font-size:12px;color:#e6e4e1;padding:3px 0}
 .helper li span{color:var(--gold);font-weight:700}
@@ -192,218 +193,223 @@ nav.mainnav{background:var(--black);border-bottom:3px solid var(--red)}
 #searchzone.show{display:block}
 #wallgrid.hidden{display:none}
 .scard{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);
-  padding:6px 0 8px}
+padding:6px 0 8px}
 .srow{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:var(--black);
-  text-decoration:none;padding:9px 20px}
+text-decoration:none;padding:9px 20px}
 .srow:hover{background:var(--light);color:var(--red)}
 .srow svg{color:var(--red);flex:none}
 .srow .path{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--grey);
-  letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .noresults{display:none;text-align:center;color:var(--grey);padding:40px 20px}
 .noresults b{display:block;color:var(--black);font-size:15px;margin-bottom:6px}
 .noresults.show{display:block}
 
 .totop{position:fixed;right:22px;bottom:22px;z-index:45;display:none;background:var(--black);
-  color:#fff;border:none;border-radius:50%;width:46px;height:46px;font-size:17px;font-weight:700;
-  cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+color:#fff;border:none;border-radius:50%;width:46px;height:46px;font-size:17px;font-weight:700;
+cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.28)}
 .totop:hover{background:var(--red)}
 .totop.show{display:block}
 .foot{border-top:1px solid var(--border);margin-top:26px;background:#fff}
 .foot .fin{max-width:1160px;margin:0 auto;padding:20px;display:flex;align-items:center;gap:14px;
-  font-size:11px;color:var(--grey);flex-wrap:wrap}
+font-size:11px;color:var(--grey);flex-wrap:wrap}
 .foot b{color:var(--black)}
 .foot .fr{margin-left:auto;font-size:10px;letter-spacing:.14em;text-transform:uppercase}
 .foot .fr span{color:var(--red);padding:0 6px}
 
 /* Gate (unchanged behavior) */
 .gate{position:fixed;inset:0;z-index:100;background:linear-gradient(rgba(45,42,38,.92),rgba(45,42,38,.88)),
-  url('https://emailer.emfluence.com/clients/citywide/uploadedfiles/2020_Rebrand/Image_Library/bigstock-Ceo-Office-Interior-With-Glass-430518427_small.jpg') center/cover;
-  display:flex;align-items:center;justify-content:center;padding:20px}
+url('https://emailer.emfluence.com/clients/citywide/uploadedfiles/2020_Rebrand/Image_Library/bigstock-Ceo-Office-Interior-With-Glass-430518427_small.jpg') center/cover;
+display:flex;align-items:center;justify-content:center;padding:20px}
 .gate.hidden{display:none}
 .gate .box{background:#fff;border-radius:14px;box-shadow:var(--shadow-lift);
-  border-top:5px solid var(--red);padding:34px 30px 30px;max-width:420px;width:100%;text-align:center}
+border-top:5px solid var(--red);padding:34px 30px 30px;max-width:420px;width:100%;text-align:center}
 .gate img{height:40px;width:auto;margin-bottom:18px}
 .gate h1{font-size:20px;margin-bottom:6px}
 .gate p{font-size:13px;color:var(--grey);margin-bottom:20px}
 .gate input{width:100%;font-family:inherit;font-size:16px;text-align:center;letter-spacing:.04em;
-  border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;background:#fff}
+border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;background:#fff}
 .gate input:focus{outline:none;border-color:var(--red)}
 .gate button{width:100%;margin-top:12px;font-family:inherit;font-size:15px;font-weight:700;
-  background:var(--red);color:#fff;border:none;border-radius:8px;padding:13px;cursor:pointer}
+background:var(--red);color:#fff;border:none;border-radius:8px;padding:13px;cursor:pointer}
 .gate button:hover{background:var(--red-dark)}
 .gate button[disabled]{opacity:.5;cursor:wait}
 .gate .err{color:var(--red);font-size:12.5px;font-weight:700;margin-top:12px;min-height:16px}
 .gate .note{font-size:11px;color:var(--grey);margin-top:16px}
+.gate .backlink{display:inline-block;margin-top:14px;font-size:11.5px;font-weight:700;
+color:var(--grey);text-decoration:none}
+.gate .backlink:hover{color:var(--red)}
 #app.hidden{display:none}
 
 @media(max-width:900px){
-  .wallgrid{grid-template-columns:1fr}
+.wallgrid{grid-template-columns:1fr}
 }
 @media(max-width:820px){
-  .nav-in{flex-wrap:wrap;padding:2px 6px}
-  .nbtn{padding:9px 8px;font-size:10.5px;gap:5px}
-  .nmenu{position:fixed;left:10px;right:10px;max-width:none;border-radius:10px;
-    border-top:3px solid var(--red);max-height:65vh;overflow-y:auto}
-  .nsubmenu{position:static;border:none;box-shadow:none;padding:0 0 4px 14px;display:none}
-  .nsubmenu.show{display:block}
-  .head .t,.head .badge{display:none}
-  .hsearch{max-width:none}
-  .hero .wrap{padding-bottom:120px}
-  .quick{margin-top:-40px}
-  .fcard{gap:14px}
+.nav-in{flex-wrap:wrap;padding:2px 6px}
+.nbtn{padding:9px 8px;font-size:10.5px;gap:5px}
+.nmenu{position:fixed;left:10px;right:10px;max-width:none;border-radius:10px;
+border-top:3px solid var(--red);max-height:65vh;overflow-y:auto}
+.nsubmenu{position:static;border:none;box-shadow:none;padding:0 0 4px 14px;display:none}
+.nsubmenu.show{display:block}
+.head .t,.head .badge{display:none}
+.hsearch{max-width:none}
+.hero .wrap{padding-bottom:120px}
+.quick{margin-top:-40px}
+.fcard{gap:14px}
 }
 </style>
-  <link rel="icon" href="favicon.ico" sizes="any">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-  <link rel="manifest" href="site.webmanifest">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
 </head>
 <body>
 
 <div id="gate" class="gate">
-  <div class="box">
-    <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
-    <h1>Operations Hub</h1>
-    <p>Internal team access. Enter the team passcode to continue.</p>
-    <input type="password" id="pc" placeholder="Team passcode" autocomplete="current-password" autofocus>
-    <button id="enter">Enter</button>
-    <div class="err" id="gerr"></div>
-    <div class="note">Ask TJ if you do not have the passcode.</div>
-  </div>
+<div class="box">
+<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+<h1>Operations Hub</h1>
+<p>Internal team access. Enter the team passcode to continue.</p>
+<input type="password" id="pc" placeholder="Team passcode" autocomplete="current-password" autofocus>
+<button id="enter">Enter</button>
+<div class="err" id="gerr"></div>
+<div class="note">Ask TJ if you do not have the passcode.</div>
+<a class="backlink" href="https://citywidelv.github.io/">&larr; Back to the Nevada Team Portal</a>
+</div>
 </div>
 
 <div id="app" class="hidden">
 <header class="head">
 <div class="bar">
-  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
-  <span class="t">Ops Hub</span>
-  <div class="hsearch">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-    <input id="toolsearch" type="search" placeholder="Find a tool, form, or calculator..." autocomplete="off">
-    <button class="x" id="searchX">&#10005;</button>
-  </div>
-  <span class="badge">Internal Team Use</span>
-  <a class="out" id="signout" href="#">Sign out</a>
+<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+<span class="t">Ops Hub</span>
+<div class="hsearch">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+<input id="toolsearch" type="search" placeholder="Find a tool, form, or calculator..." autocomplete="off">
+<button class="x" id="searchX">&#10005;</button>
+</div>
+<span class="badge">Internal Team Use</span>
+<a class="out" href="https://citywidelv.github.io/">&larr; Team Portal</a>
+<a class="out" id="signout" href="#">Sign out</a>
 </div>
 <nav class="mainnav"><div class="nav-in" id="mainnav"></div></nav>
 </header>
 
 <section class="hero">
-  <svg class="sky" viewBox="0 0 1400 170" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-    <path fill="#3f3b34" d="M660 170v-62l64-36 50 28 44-24 58 32 48-20 52 28 64-30 74 36 74-24 64 28 42-16 66 24v56z" opacity=".85"/>
-    <g fill="#5c564d">
-      <rect x="20" y="104" width="34" height="66"/>
-      <rect x="64" y="88" width="26" height="82"/>
-      <rect x="100" y="112" width="42" height="58"/>
-      <rect x="166" y="40" width="6" height="130"/>
-      <path d="M156 52h26l-5-14h-16z"/>
-      <circle cx="169" cy="36" r="8"/>
-      <rect x="167.4" y="10" width="3.2" height="20"/>
-      <path d="M198 170l42-64 42 64z"/>
-      <rect x="292" y="76" width="24" height="94"/>
-      <rect x="322" y="94" width="32" height="76"/>
-      <path d="M366 170V84l17-11 17 11v86z"/>
-      <g stroke="#5c564d" fill="none" stroke-width="4.5">
-        <circle cx="470" cy="96" r="44"/>
-        <path d="M470 52v88M426 96h88M439 65l62 62M501 65l-62 62"/>
-      </g>
-      <path d="M450 170l20-62 20 62z"/>
-      <rect x="530" y="98" width="28" height="72"/>
-      <rect x="566" y="116" width="46" height="54"/>
-      <rect x="622" y="90" width="20" height="80"/>
-    </g>
-    <g fill="#544e45">
-      <rect x="880" y="106" width="30" height="64"/>
-      <rect x="918" y="88" width="24" height="82"/>
-      <rect x="950" y="112" width="38" height="58"/>
-      <rect x="996" y="96" width="22" height="74"/>
-      <g stroke="#6e675c" fill="none" stroke-width="5">
-        <path d="M1044 170v-40a47 30 0 0 1 94 0v40"/>
-      </g>
-      <rect x="1040" y="120" width="8" height="12" fill="#6e675c"/>
-      <rect x="1134" y="120" width="8" height="12" fill="#6e675c"/>
-      <rect x="1160" y="100" width="30" height="70"/>
-      <rect x="1198" y="116" width="42" height="54"/>
-      <rect x="1250" y="92" width="22" height="78"/>
-      <rect x="1280" y="110" width="36" height="60"/>
-      <rect x="1326" y="96" width="26" height="74"/>
-      <rect x="1360" y="118" width="30" height="52"/>
-    </g>
-    <rect x="0" y="166" width="1400" height="4" fill="#D22730"/>
-  </svg>
-  <div class="wrap">
-    <h1>City Wide Operations Hub</h1>
-    <p>Every tool the operations team uses, one page. Use the menus above or type in the
-    search box to jump straight to what you need.</p>
-    <div class="cities"><b>Las Vegas</b><span class="dot">&bull;</span><b>Northern Nevada</b>
-      &nbsp;&nbsp;Proudly serving the Silver State</div>
-  </div>
+<svg class="sky" viewBox="0 0 1400 170" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+<path fill="#3f3b34" d="M660 170v-62l64-36 50 28 44-24 58 32 48-20 52 28 64-30 74 36 74-24 64 28 42-16 66 24v56z" opacity=".85"/>
+<g fill="#5c564d">
+<rect x="20" y="104" width="34" height="66"/>
+<rect x="64" y="88" width="26" height="82"/>
+<rect x="100" y="112" width="42" height="58"/>
+<rect x="166" y="40" width="6" height="130"/>
+<path d="M156 52h26l-5-14h-16z"/>
+<circle cx="169" cy="36" r="8"/>
+<rect x="167.4" y="10" width="3.2" height="20"/>
+<path d="M198 170l42-64 42 64z"/>
+<rect x="292" y="76" width="24" height="94"/>
+<rect x="322" y="94" width="32" height="76"/>
+<path d="M366 170V84l17-11 17 11v86z"/>
+<g stroke="#5c564d" fill="none" stroke-width="4.5">
+<circle cx="470" cy="96" r="44"/>
+<path d="M470 52v88M426 96h88M439 65l62 62M501 65l-62 62"/>
+</g>
+<path d="M450 170l20-62 20 62z"/>
+<rect x="530" y="98" width="28" height="72"/>
+<rect x="566" y="116" width="46" height="54"/>
+<rect x="622" y="90" width="20" height="80"/>
+</g>
+<g fill="#544e45">
+<rect x="880" y="106" width="30" height="64"/>
+<rect x="918" y="88" width="24" height="82"/>
+<rect x="950" y="112" width="38" height="58"/>
+<rect x="996" y="96" width="22" height="74"/>
+<g stroke="#6e675c" fill="none" stroke-width="5">
+<path d="M1044 170v-40a47 30 0 0 1 94 0v40"/>
+</g>
+<rect x="1040" y="120" width="8" height="12" fill="#6e675c"/>
+<rect x="1134" y="120" width="8" height="12" fill="#6e675c"/>
+<rect x="1160" y="100" width="30" height="70"/>
+<rect x="1198" y="116" width="42" height="54"/>
+<rect x="1250" y="92" width="22" height="78"/>
+<rect x="1280" y="110" width="36" height="60"/>
+<rect x="1326" y="96" width="26" height="74"/>
+<rect x="1360" y="118" width="30" height="52"/>
+</g>
+<rect x="0" y="166" width="1400" height="4" fill="#D22730"/>
+</svg>
+<div class="wrap">
+<h1>City Wide Operations Hub</h1>
+<p>Every tool the operations team uses, one page. Use the menus above or type in the
+search box to jump straight to what you need.</p>
+<div class="cities"><b>Las Vegas</b><span class="dot">&bull;</span><b>Northern Nevada</b>
+&nbsp;&nbsp;Proudly serving the Silver State</div>
+</div>
 </section>
 
 <div class="wrap quick" id="quickwrap">
-  <div class="qcard">
-    <div class="qhead"><span class="bar-accent"></span><h2>Most Used</h2></div>
-    <div class="qrow" id="quickrow"></div>
-  </div>
+<div class="qcard">
+<div class="qhead"><span class="bar-accent"></span><h2>Most Used</h2></div>
+<div class="qrow" id="quickrow"></div>
+</div>
 </div>
 
 <div class="wrap feature">
-  <div class="fcard">
-    <span class="ficon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
-    <div class="ftext"><h3>Building Information Sheets</h3>
-    <p>One living sheet per account: access, schedule, alarm procedure, locations, tenants, and photos. Print-ready for walkthroughs and crew turnover.</p></div>
-    <div class="fbtns">
-      <a class="fbtn solid" href="building-sheets.html">Browse the Sheet Library</a>
-      <a class="fbtn line" href="building-sheet.html">New / Update a Sheet</a>
-    </div>
-  </div>
+<div class="fcard">
+<span class="ficon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+<div class="ftext"><h3>Building Information Sheets</h3>
+<p>One living sheet per account: access, schedule, alarm procedure, locations, tenants, and photos. Print-ready for walkthroughs and crew turnover.</p></div>
+<div class="fbtns">
+<a class="fbtn solid" href="building-sheets.html">Browse the Sheet Library</a>
+<a class="fbtn line" href="building-sheet.html">New / Update a Sheet</a>
+</div>
+</div>
 </div>
 
 <div class="wrap wallzone">
-  <div id="searchzone">
-    <div class="scard" id="searchresults"></div>
-    <div class="noresults" id="noresults"><b>No tools match.</b>Try fewer words, or clear the search.</div>
-  </div>
-  <div class="wallgrid" id="wallgrid">
-    <section class="wcard">
-      <div class="whead"><span class="bar-accent"></span><h2>The Ops Wall</h2>
-        <span class="sub">Team announcements &amp; updates</span></div>
-      <div class="composer">
-        <span class="cav" id="cav">CW</span>
-        <div class="cfields">
-          <input id="wname" placeholder="Your name" maxlength="40">
-          <textarea id="wmsg" placeholder="Post an update for the team..." maxlength="1000"></textarea>
-          <div class="crow">
-            <button id="wpost">Post to the Wall</button>
-            <span class="werr" id="werr"></span>
-          </div>
-        </div>
-      </div>
-      <div id="wposts"></div>
-    </section>
-    <aside class="helper">
-      <h3>Finding your way around</h3>
-      <p>Every tool, form, and calculator now lives in the menus above. Grouped the way we work:</p>
-      <ul>
-        <li><span>Opportunities</span> &nbsp;post, board, responses</li>
-        <li><span>Vendors</span> &nbsp;packets, Exhibit A, resources</li>
-        <li><span>Accounts &amp; Buildings</span> &nbsp;sheets, maps, survey</li>
-        <li><span>Pricing &amp; Bids</span> &nbsp;every calculator</li>
-        <li><span>Night Ops</span> &nbsp;inspections &amp; route outs</li>
-        <li><span>Team &amp; Admin</span> &nbsp;CRM, billing, payroll</li>
-      </ul>
-      <div class="keys"><b>/</b>jumps to search from anywhere</div>
-    </aside>
-  </div>
+<div id="searchzone">
+<div class="scard" id="searchresults"></div>
+<div class="noresults" id="noresults"><b>No tools match.</b>Try fewer words, or clear the search.</div>
+</div>
+<div class="wallgrid" id="wallgrid">
+<section class="wcard">
+<div class="whead"><span class="bar-accent"></span><h2>The Ops Wall</h2>
+<span class="sub">Team announcements &amp; updates</span></div>
+<div class="composer">
+<span class="cav" id="cav">CW</span>
+<div class="cfields">
+<input id="wname" placeholder="Your name" maxlength="40">
+<textarea id="wmsg" placeholder="Post an update for the team..." maxlength="1000"></textarea>
+<div class="crow">
+<button id="wpost">Post to the Wall</button>
+<span class="werr" id="werr"></span>
+</div>
+</div>
+</div>
+<div id="wposts"></div>
+</section>
+<aside class="helper">
+<h3>Finding your way around</h3>
+<p>Every tool, form, and calculator now lives in the menus above. Grouped the way we work:</p>
+<ul>
+<li><span>Opportunities</span> &nbsp;post, board, responses</li>
+<li><span>Vendors</span> &nbsp;packets, Exhibit A, resources</li>
+<li><span>Accounts &amp; Buildings</span> &nbsp;sheets, maps, survey</li>
+<li><span>Pricing &amp; Bids</span> &nbsp;every calculator</li>
+<li><span>Night Ops</span> &nbsp;inspections &amp; route outs</li>
+<li><span>Team &amp; Admin</span> &nbsp;CRM, billing, payroll</li>
+</ul>
+<div class="keys"><b>/</b>jumps to search from anywhere</div>
+</aside>
+</div>
 </div>
 
 <button class="totop" id="totop" title="Back to top">&#8593;</button>
 
 <footer class="foot"><div class="fin">
-  <b>City Wide Facility Solutions</b> &middot; Operations Hub &middot; Internal use only
-  &middot; Something missing? Tell TJ.
-  <span class="fr">Las Vegas<span>&bull;</span>Reno</span>
+<b>City Wide Facility Solutions</b> &middot; Operations Hub &middot; Internal use only
+&middot; Something missing? Tell TJ.
+<span class="fr">Las Vegas<span>&bull;</span>Reno</span>
 </div></footer>
 </div>
 
@@ -413,406 +419,406 @@ var KEY = "cwOpsHubPass";
 var NAMEKEY = "cwOpsName";
 
 var ICONS = {
-  plus:'<path d="M12 5v14M5 12h14"/>',
-  mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/>',
-  board:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h8M8 17h5"/>',
-  sheet:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>',
-  clip:'<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12l2 2 4-4"/>',
-  route:'<path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6-3-6 3z"/><path d="M9 7v13M15 4v13"/>',
-  clock:'<path d="M12 22a10 10 0 1 0-10-10"/><path d="M2 12h10V2"/>',
-  margin:'<path d="M19 5L5 19M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM17.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>',
-  map:'<path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
-  home:'<path d="M3 12l9-8 9 8M5 10v10h14V10"/>',
-  work:'<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>'
+plus:'<path d="M12 5v14M5 12h14"/>',
+mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/>',
+board:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h8M8 17h5"/>',
+sheet:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>',
+clip:'<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12l2 2 4-4"/>',
+route:'<path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6-3-6 3z"/><path d="M9 7v13M15 4v13"/>',
+clock:'<path d="M12 22a10 10 0 1 0-10-10"/><path d="M2 12h10V2"/>',
+margin:'<path d="M19 5L5 19M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM17.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>',
+map:'<path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+home:'<path d="M3 12l9-8 9 8M5 10v10h14V10"/>',
+work:'<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>'
 };
 function iconSvg(k, size){
-  size = size || 15;
-  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[k] || ICONS.home) + '</svg>';
+size = size || 15;
+return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[k] || ICONS.home) + '</svg>';
 }
 function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
 /* ---------- Nav: cascading menu tree. EVERY hub tool must be reachable here. ---------- */
 var VS = "https://citywidelv.github.io/cw-vendor-shop/";
 var MENU = [
-  { label:"Opportunities", icon:"board", items:[
-    {label:"Post an Opportunity", href:"post.html"},
-    {label:"Live Board", href:VS+"opportunities.html"},
-    {label:"Vendor Responses", href:"responses.html"},
-    {label:"Request a Walkthrough Email", href:"https://form.asana.com/?k=lnuBJNlGrHJNAeW8QWbXzA&d=13140959242873"},
-    {ghead:"Tracking"},
-    {label:"Opportunities Tracker (Sheet)", href:"https://docs.google.com/spreadsheets/d/1ymbqR7LMvA7sbgZe2Ro5o2dNiXhP08Tn9Hw1b-H5AeQ/edit"}
-  ]},
-  { label:"Vendors", icon:"clip", items:[
-    {sub:"Request a Vendor Packet", items:[
-      {ghead:"Las Vegas"},
-      {label:"Janitorial Packet", href:"https://form.asana.com/?k=RdHag7PTO7L2imrLsWCCVQ&d=13140959242873"},
-      {label:"Other Services Packet", href:"https://form.asana.com/?k=uX5QbBSefsA-Gq34EmjeJA&d=13140959242873"},
-      {ghead:"Northern Nevada"},
-      {label:"Janitorial Packet", href:"https://form.asana.com/?k=fF2mqfxy9BFvXbF-pnLYJA&d=13140959242873"},
-      {label:"Other Services Packet", href:"https://form.asana.com/?k=J4_mbPCYb_6P2MesPMxUPw&d=13140959242873"}
-    ]},
-    {label:"Request an Exhibit A (LV)", href:"https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873"},
-    {label:"New Vendor Page", href:VS+"new-vendors.html"},
-    {sub:"Vendor Resources", items:[
-      {label:"Resource Home", href:VS+"resources.html"},
-      {label:"Crew Guides", href:VS+"resources.html"},
-      {label:"Workloading Guide", href:VS+"workloading.html"},
-      {label:"New Building Planner", href:VS+"planner.html"},
-      {label:"Vendor Shop", href:VS},
-      {label:"Invoice Page", href:VS+"invoice.html"},
-      {label:"Building Supplies", href:VS+"building-supplies.html"}
-    ]}
-  ]},
-  { label:"Accounts & Buildings", icon:"map", items:[
-    {sub:"Building Info Sheets (DBIS)", items:[
-      {label:"Sheet Library", href:"building-sheets.html"},
-      {label:"New / Update a Sheet", href:"building-sheet.html"}
-    ]},
-    {label:"Building Survey", href:"https://citywidelv.github.io/BuildingSurvey/"},
-    {sub:"Accounts Map", items:[
-      {label:"Las Vegas", href:"https://www.google.com/maps/d/viewer?mid=1ewhUmSrFCo0--ALiJP0O1pLTbH0qlk4"},
-      {label:"Northern Nevada", href:"https://www.google.com/maps/d/viewer?mid=1_o8DPUf6zH9kiAcZuNEOCAbZLq93nnc"}
-    ]}
-  ]},
-  { label:"Pricing & Bids", icon:"margin", items:[
-    {sub:"Bid Calculators", items:[
-      {label:"Apartment Turns", href:"https://citywidelv.github.io/apartment-turns/"},
-      {label:"Waxable Floors", href:"https://citywidelv.github.io/strip-and-wax-calculator/"},
-      {label:"Carpet Cleaning", href:"https://citywidelv.github.io/Carpet-Cleaning/"},
-      {label:"Window Cleaning", href:"https://citywidelv.github.io/windowcleaningcalculator/"},
-      {label:"Pressure Washing", href:"https://citywidelv.github.io/powerwashing/"},
-      {label:"Post-Construction Clean", href:"https://citywidelv.github.io/post-construction-clean/"},
-      {label:"Restaurant Cleaning", href:"https://citywidelv.github.io/restaurants/"},
-      {label:"Landscaping Maintenance", href:"https://citywidelv.github.io/landscapingmaintenance/"},
-      {label:"Exterior Porter", href:"https://citywidelv.github.io/porter-exterior/"}
-    ]},
-    {sub:"Business Numbers", items:[
-      {label:"Margin Calculator", href:"https://citywidelv.github.io/margincalculator/"},
-      {label:"Revenue Retention (TRR)", href:"https://citywidelv.github.io/retentioncalculator/"}
-    ]}
-  ]},
-  { label:"Night Ops", icon:"clock", items:[
-    {label:"Night Manager Inspection", href:"https://form.jotform.com/233486327771060"},
-    {sub:"Nightly Route Outs", items:[
-      {label:"Night Manager Route Out", href:"https://form.jotform.com/241440730763149"},
-      {label:"View Submissions Table", href:"https://www.jotform.com/tables/241440730763149"},
-      {label:"Northern Nevada", href:"https://form.jotform.com/team/253234894174059/nnv-night-manager-route-out"}
-    ]},
-    {label:"Comprehensive Cancer Work Orders", href:"https://form.jotform.com/252935932465163"},
-    {label:"Night Manager AI Tool", href:"https://chatgpt.com/g/g-681233262c3c81918605de9bd3edf7be-city-wide-night-manager-tool"}
-  ]},
-  { label:"Team & Admin", icon:"home", items:[
-    {sub:"CRM & Billing", items:[
-      {label:"Open CW Sales CRM", href:"https://gocitywide.crm.dynamics.com/main.aspx"},
-      {label:"Create a Supply Invoice", href:"https://supplysales.powerappsportals.com/SignIn?ReturnUrl=%2FCustomer-Select%2F"},
-      {label:"Request a Supply Item", href:"https://form.jotform.com/tjroberts/supply-item-request-for-field-sales"},
-      {label:"Create an Extra Charge", href:"https://apps.powerapps.com/play/e/58e2128b-deac-e675-8cd1-7d879ca63711/a/a052bc89-2125-4efd-88e5-682f1d2dbcd0?tenantId=3b214a92-dd33-4a9c-a070-43f6783d144c&hint=a842db25-40d4-46c0-b151-6ad085ee7345&sourcetime=1756059511414&source=portal"}
-    ]},
-    {sub:"Team", items:[
-      {label:"Asana", href:"https://app.asana.com/"},
-      {label:"Employee Uniforms", href:"uniforms.html"},
-      {label:"ADP TotalSource", href:"https://workforcenow.adp.com/"},
-      {label:"Order CW Merch", href:"https://cwlv.printful.me/"}
-    ]},
-    {sub:"Supplier Ordering", items:[
-      {label:"Order More EnvirOx", href:"envirox.html"},
-      {ghead:"Supply Distributors"},
-      {label:"Brady Industries", href:"https://www.bradyindustries.com/"},
-      {label:"Staples Advantage", href:"https://www.staplesadvantage.com/"},
-      {label:"HD Supply Solutions", href:"https://hdsupplysolutions.com/"}
-    ]}
-  ]}
+{ label:"Opportunities", icon:"board", items:[
+{label:"Post an Opportunity", href:"post.html"},
+{label:"Live Board", href:VS+"opportunities.html"},
+{label:"Vendor Responses", href:"responses.html"},
+{label:"Request a Walkthrough Email", href:"https://form.asana.com/?k=lnuBJNlGrHJNAeW8QWbXzA&d=13140959242873"},
+{ghead:"Tracking"},
+{label:"Opportunities Tracker (Sheet)", href:"https://docs.google.com/spreadsheets/d/1ymbqR7LMvA7sbgZe2Ro5o2dNiXhP08Tn9Hw1b-H5AeQ/edit"}
+]},
+{ label:"Vendors", icon:"clip", items:[
+{sub:"Request a Vendor Packet", items:[
+{ghead:"Las Vegas"},
+{label:"Janitorial Packet", href:"https://form.asana.com/?k=RdHag7PTO7L2imrLsWCCVQ&d=13140959242873"},
+{label:"Other Services Packet", href:"https://form.asana.com/?k=uX5QbBSefsA-Gq34EmjeJA&d=13140959242873"},
+{ghead:"Northern Nevada"},
+{label:"Janitorial Packet", href:"https://form.asana.com/?k=fF2mqfxy9BFvXbF-pnLYJA&d=13140959242873"},
+{label:"Other Services Packet", href:"https://form.asana.com/?k=J4_mbPCYb_6P2MesPMxUPw&d=13140959242873"}
+]},
+{label:"Request an Exhibit A (LV)", href:"https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873"},
+{label:"New Vendor Page", href:VS+"new-vendors.html"},
+{sub:"Vendor Resources", items:[
+{label:"Resource Home", href:VS+"resources.html"},
+{label:"Crew Guides", href:VS+"resources.html"},
+{label:"Workloading Guide", href:VS+"workloading.html"},
+{label:"New Building Planner", href:VS+"planner.html"},
+{label:"Vendor Shop", href:VS},
+{label:"Invoice Page", href:VS+"invoice.html"},
+{label:"Building Supplies", href:VS+"building-supplies.html"}
+]}
+]},
+{ label:"Accounts & Buildings", icon:"map", items:[
+{sub:"Building Info Sheets (DBIS)", items:[
+{label:"Sheet Library", href:"building-sheets.html"},
+{label:"New / Update a Sheet", href:"building-sheet.html"}
+]},
+{label:"Building Survey", href:"https://citywidelv.github.io/BuildingSurvey/"},
+{sub:"Accounts Map", items:[
+{label:"Las Vegas", href:"https://www.google.com/maps/d/viewer?mid=1ewhUmSrFCo0--ALiJP0O1pLTbH0qlk4"},
+{label:"Northern Nevada", href:"https://www.google.com/maps/d/viewer?mid=1_o8DPUf6zH9kiAcZuNEOCAbZLq93nnc"}
+]}
+]},
+{ label:"Pricing & Bids", icon:"margin", items:[
+{sub:"Bid Calculators", items:[
+{label:"Apartment Turns", href:"https://citywidelv.github.io/apartment-turns/"},
+{label:"Waxable Floors", href:"https://citywidelv.github.io/strip-and-wax-calculator/"},
+{label:"Carpet Cleaning", href:"https://citywidelv.github.io/Carpet-Cleaning/"},
+{label:"Window Cleaning", href:"https://citywidelv.github.io/windowcleaningcalculator/"},
+{label:"Pressure Washing", href:"https://citywidelv.github.io/powerwashing/"},
+{label:"Post-Construction Clean", href:"https://citywidelv.github.io/post-construction-clean/"},
+{label:"Restaurant Cleaning", href:"https://citywidelv.github.io/restaurants/"},
+{label:"Landscaping Maintenance", href:"https://citywidelv.github.io/landscapingmaintenance/"},
+{label:"Exterior Porter", href:"https://citywidelv.github.io/porter-exterior/"}
+]},
+{sub:"Business Numbers", items:[
+{label:"Margin Calculator", href:"https://citywidelv.github.io/margincalculator/"},
+{label:"Revenue Retention (TRR)", href:"https://citywidelv.github.io/retentioncalculator/"}
+]}
+]},
+{ label:"Night Ops", icon:"clock", items:[
+{label:"Night Manager Inspection", href:"https://form.jotform.com/233486327771060"},
+{sub:"Nightly Route Outs", items:[
+{label:"Night Manager Route Out", href:"https://form.jotform.com/241440730763149"},
+{label:"View Submissions Table", href:"https://www.jotform.com/tables/241440730763149"},
+{label:"Northern Nevada", href:"https://form.jotform.com/team/253234894174059/nnv-night-manager-route-out"}
+]},
+{label:"Comprehensive Cancer Work Orders", href:"https://form.jotform.com/252935932465163"},
+{label:"Night Manager AI Tool", href:"https://chatgpt.com/g/g-681233262c3c81918605de9bd3edf7be-city-wide-night-manager-tool"}
+]},
+{ label:"Team & Admin", icon:"home", items:[
+{sub:"CRM & Billing", items:[
+{label:"Open CW Sales CRM", href:"https://gocitywide.crm.dynamics.com/main.aspx"},
+{label:"Create a Supply Invoice", href:"https://supplysales.powerappsportals.com/SignIn?ReturnUrl=%2FCustomer-Select%2F"},
+{label:"Request a Supply Item", href:"https://form.jotform.com/tjroberts/supply-item-request-for-field-sales"},
+{label:"Create an Extra Charge", href:"https://apps.powerapps.com/play/e/58e2128b-deac-e675-8cd1-7d879ca63711/a/a052bc89-2125-4efd-88e5-682f1d2dbcd0?tenantId=3b214a92-dd33-4a9c-a070-43f6783d144c&hint=a842db25-40d4-46c0-b151-6ad085ee7345&sourcetime=1756059511414&source=portal"}
+]},
+{sub:"Team", items:[
+{label:"Asana", href:"https://app.asana.com/"},
+{label:"Employee Uniforms", href:"uniforms.html"},
+{label:"ADP TotalSource", href:"https://workforcenow.adp.com/"},
+{label:"Order CW Merch", href:"https://cwlv.printful.me/"}
+]},
+{sub:"Supplier Ordering", items:[
+{label:"Order More EnvirOx", href:"envirox.html"},
+{ghead:"Supply Distributors"},
+{label:"Brady Industries", href:"https://www.bradyindustries.com/"},
+{label:"Staples Advantage", href:"https://www.staplesadvantage.com/"},
+{label:"HD Supply Solutions", href:"https://hdsupplysolutions.com/"}
+]}
+]}
 ];
 function renderMainNav(){
-  function items(list, depth){
-    var out = "";
-    list.forEach(function(it){
-      if(it.ghead){ out += '<div class="ghead">' + esc(it.ghead) + '</div>'; }
-      else if(it.sub){
-        out += '<div class="nsub"><a class="subbtn" href="#" data-sub="1">' + esc(it.sub) + '</a>' +
-          '<div class="nsubmenu">' + items(it.items, depth + 1) + '</div></div>';
-      } else { out += menuLink(it.label, it.href, null); }
-    });
-    return out;
-  }
-  var host = document.getElementById("mainnav");
-  var html = "";
-  MENU.forEach(function(m, mi){
-    html += '<div class="nitem"><button class="nbtn" data-dd="' + mi + '">' +
-      iconSvg(m.icon, 14) + esc(m.label) + ' <span class="caret">&#9660;</span></button>' +
-      '<div class="nmenu" id="dd-' + mi + '">' + items(m.items, 0) + '</div></div>';
-  });
-  host.innerHTML = html;
+function items(list, depth){
+var out = "";
+list.forEach(function(it){
+if(it.ghead){ out += '<div class="ghead">' + esc(it.ghead) + '</div>'; }
+else if(it.sub){
+out += '<div class="nsub"><a class="subbtn" href="#" data-sub="1">' + esc(it.sub) + '</a>' +
+'<div class="nsubmenu">' + items(it.items, depth + 1) + '</div></div>';
+} else { out += menuLink(it.label, it.href, null); }
+});
+return out;
+}
+var host = document.getElementById("mainnav");
+var html = "";
+MENU.forEach(function(m, mi){
+html += '<div class="nitem"><button class="nbtn" data-dd="' + mi + '">' +
+iconSvg(m.icon, 14) + esc(m.label) + ' <span class="caret">&#9660;</span></button>' +
+'<div class="nmenu" id="dd-' + mi + '">' + items(m.items, 0) + '</div></div>';
+});
+host.innerHTML = html;
 
-  host.onclick = function(e){
-    var sub = e.target.closest ? e.target.closest("a.subbtn") : null;
-    if(sub){
-      e.preventDefault();
-      var menu = sub.parentElement.querySelector(".nsubmenu");
-      var was = menu.classList.contains("show");
-      document.querySelectorAll(".nsubmenu.show").forEach(function(s){ s.classList.remove("show"); });
-      if(!was) menu.classList.add("show");
-      return;
-    }
-    var btn = e.target.closest ? e.target.closest(".nbtn[data-dd]") : null;
-    if(!btn) return;
-    var dd = document.getElementById("dd-" + btn.getAttribute("data-dd"));
-    var wasOpen = dd.classList.contains("show");
-    closeMenus();
-    if(!wasOpen){
-      dd.classList.add("show"); btn.classList.add("open");
-      if(window.matchMedia && matchMedia("(max-width:820px)").matches){
-        var r = btn.getBoundingClientRect();
-        dd.style.top = Math.round(r.bottom + 6) + "px";
-      } else { dd.style.top = ""; }
-    }
-  };
-  window.addEventListener("resize", closeMenus);
+host.onclick = function(e){
+var sub = e.target.closest ? e.target.closest("a.subbtn") : null;
+if(sub){
+e.preventDefault();
+var menu = sub.parentElement.querySelector(".nsubmenu");
+var was = menu.classList.contains("show");
+document.querySelectorAll(".nsubmenu.show").forEach(function(s){ s.classList.remove("show"); });
+if(!was) menu.classList.add("show");
+return;
+}
+var btn = e.target.closest ? e.target.closest(".nbtn[data-dd]") : null;
+if(!btn) return;
+var dd = document.getElementById("dd-" + btn.getAttribute("data-dd"));
+var wasOpen = dd.classList.contains("show");
+closeMenus();
+if(!wasOpen){
+dd.classList.add("show"); btn.classList.add("open");
+if(window.matchMedia && matchMedia("(max-width:820px)").matches){
+var r = btn.getBoundingClientRect();
+dd.style.top = Math.round(r.bottom + 6) + "px";
+} else { dd.style.top = ""; }
+}
+};
+window.addEventListener("resize", closeMenus);
 }
 function menuLink(label, href, icon){
-  var tgt = (/^https?:/.test(href) && href.indexOf("citywidelv.github.io")<0) ? ' target="" rel="noopener"' : '';
-  return '<a href="' + esc(href) + '"' + tgt + '>' + (icon ? iconSvg(icon, 14) : '') + esc(label) + '</a>';
+var tgt = (/^https?:/.test(href) && href.indexOf("citywidelv.github.io")<0) ? ' target="" rel="noopener"' : '';
+return '<a href="' + esc(href) + '"' + tgt + '>' + (icon ? iconSvg(icon, 14) : '') + esc(label) + '</a>';
 }
 function closeMenus(){
-  document.querySelectorAll(".nmenu.show").forEach(function(d){ d.classList.remove("show"); d.style.top = ""; });
-  document.querySelectorAll(".nsubmenu.show").forEach(function(d){ d.classList.remove("show"); });
-  document.querySelectorAll(".nbtn.open").forEach(function(b){ b.classList.remove("open"); });
+document.querySelectorAll(".nmenu.show").forEach(function(d){ d.classList.remove("show"); d.style.top = ""; });
+document.querySelectorAll(".nsubmenu.show").forEach(function(d){ d.classList.remove("show"); });
+document.querySelectorAll(".nbtn.open").forEach(function(b){ b.classList.remove("open"); });
 }
 document.addEventListener("click", function(e){
-  if(e.isTrusted === false) return;
-  if(e.target && e.target.closest && e.target.closest(".nitem")) return;
-  closeMenus();
+if(e.isTrusted === false) return;
+if(e.target && e.target.closest && e.target.closest(".nitem")) return;
+closeMenus();
 });
 document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeMenus(); });
 
 /* ---------- Most Used quick bar (TJ-approved picks, July 2026) ---------- */
 var QUICK = [
-  { label:"Post an Opportunity", href:"post.html", icon:"plus", primary:true },
-  { label:"Live Board", href:"https://citywidelv.github.io/cw-vendor-shop/opportunities.html", icon:"board", pill:true },
-  { label:"Exhibit A Request", href:"https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873", icon:"clip" },
-  { label:"IC Walkthrough Email", href:"https://form.asana.com/?k=lnuBJNlGrHJNAeW8QWbXzA&d=13140959242873", icon:"mail" },
-  { label:"Night Inspection", href:"https://form.jotform.com/233486327771060", icon:"clip" },
-  { label:"CW Sales CRM", href:"https://gocitywide.crm.dynamics.com/main.aspx", icon:"work" },
-  { label:"Margin Calculator", href:"https://citywidelv.github.io/margincalculator/", icon:"margin" },
-  { label:"Vendor Resources", href:"https://citywidelv.github.io/cw-vendor-shop/resources.html", icon:"home" }
+{ label:"Post an Opportunity", href:"post.html", icon:"plus", primary:true },
+{ label:"Live Board", href:"https://citywidelv.github.io/cw-vendor-shop/opportunities.html", icon:"board", pill:true },
+{ label:"Exhibit A Request", href:"https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873", icon:"clip" },
+{ label:"IC Walkthrough Email", href:"https://form.asana.com/?k=lnuBJNlGrHJNAeW8QWbXzA&d=13140959242873", icon:"mail" },
+{ label:"Night Inspection", href:"https://form.jotform.com/233486327771060", icon:"clip" },
+{ label:"CW Sales CRM", href:"https://gocitywide.crm.dynamics.com/main.aspx", icon:"work" },
+{ label:"Margin Calculator", href:"https://citywidelv.github.io/margincalculator/", icon:"margin" },
+{ label:"Vendor Resources", href:"https://citywidelv.github.io/cw-vendor-shop/resources.html", icon:"home" }
 ];
 function renderQuick(){
-  var html = "";
-  QUICK.forEach(function(q){
-    var tgt = (/^https?:/.test(q.href) && q.href.indexOf("citywidelv.github.io")<0) ? ' target="_blank" rel="noopener"' : '';
-    html += '<a class="qbtn' + (q.primary ? ' primary' : '') + '" data-hay="' + esc(q.label.toLowerCase()) + '" href="' + esc(q.href) + '"' + tgt + '>' +
-      iconSvg(q.icon, 15) + esc(q.label) +
-      (q.pill ? ' <span class="pill qpill"></span>' : '') + '</a>';
-  });
-  document.getElementById("quickrow").innerHTML = html;
+var html = "";
+QUICK.forEach(function(q){
+var tgt = (/^https?:/.test(q.href) && q.href.indexOf("citywidelv.github.io")<0) ? ' target="_blank" rel="noopener"' : '';
+html += '<a class="qbtn' + (q.primary ? ' primary' : '') + '" data-hay="' + esc(q.label.toLowerCase()) + '" href="' + esc(q.href) + '"' + tgt + '>' +
+iconSvg(q.icon, 15) + esc(q.label) +
+(q.pill ? ' <span class="pill qpill"></span>' : '') + '</a>';
+});
+document.getElementById("quickrow").innerHTML = html;
 }
 
 /* ---------- Search: indexes the dropdown menus ---------- */
 var SEARCH_INDEX = [];
 function buildSearchIndex(){
-  SEARCH_INDEX = [];
-  MENU.forEach(function(m){
-    function walk(list, path){
-      list.forEach(function(it){
-        if(it.ghead) return;
-        if(it.sub){ walk(it.items, path + " > " + it.sub); return; }
-        SEARCH_INDEX.push({ label: it.label, href: it.href, path: path,
-          hay: (it.label + " " + path).toLowerCase(), icon: m.icon });
-      });
-    }
-    walk(m.items, m.label);
-  });
+SEARCH_INDEX = [];
+MENU.forEach(function(m){
+function walk(list, path){
+list.forEach(function(it){
+if(it.ghead) return;
+if(it.sub){ walk(it.items, path + " > " + it.sub); return; }
+SEARCH_INDEX.push({ label: it.label, href: it.href, path: path,
+hay: (it.label + " " + path).toLowerCase(), icon: m.icon });
+});
+}
+walk(m.items, m.label);
+});
 }
 function applySearch(){
-  var q = (document.getElementById("toolsearch").value || "").toLowerCase().trim();
-  document.getElementById("searchX").classList.toggle("show", !!q);
-  var zone = document.getElementById("searchzone");
-  var wall = document.getElementById("wallgrid");
-  if(!q){
-    zone.classList.remove("show"); wall.classList.remove("hidden");
-    document.querySelectorAll("#quickrow .qbtn").forEach(function(b){ b.style.display = ""; });
-    return;
-  }
-  var words = q.split(/\s+/).filter(Boolean);
-  function match(hay){ return words.every(function(w){ return hay.indexOf(w) >= 0; }); }
-  var hits = SEARCH_INDEX.filter(function(x){ return match(x.hay); }).slice(0, 14);
-  var html = "";
-  hits.forEach(function(h){
-    var tgt = (/^https?:/.test(h.href) && h.href.indexOf("citywidelv.github.io")<0) ? ' target="_blank" rel="noopener"' : '';
-    html += '<a class="srow" href="' + esc(h.href) + '"' + tgt + '>' + iconSvg(h.icon, 15) +
-      esc(h.label) + '<span class="path">' + esc(h.path) + '</span></a>';
-  });
-  document.getElementById("searchresults").innerHTML = html;
-  document.getElementById("noresults").classList.toggle("show", !hits.length);
-  zone.classList.add("show"); wall.classList.add("hidden");
-  document.querySelectorAll("#quickrow .qbtn").forEach(function(b){
-    b.style.display = match(b.getAttribute("data-hay") || "") ? "" : "none";
-  });
+var q = (document.getElementById("toolsearch").value || "").toLowerCase().trim();
+document.getElementById("searchX").classList.toggle("show", !!q);
+var zone = document.getElementById("searchzone");
+var wall = document.getElementById("wallgrid");
+if(!q){
+zone.classList.remove("show"); wall.classList.remove("hidden");
+document.querySelectorAll("#quickrow .qbtn").forEach(function(b){ b.style.display = ""; });
+return;
+}
+var words = q.split(/\s+/).filter(Boolean);
+function match(hay){ return words.every(function(w){ return hay.indexOf(w) >= 0; }); }
+var hits = SEARCH_INDEX.filter(function(x){ return match(x.hay); }).slice(0, 14);
+var html = "";
+hits.forEach(function(h){
+var tgt = (/^https?:/.test(h.href) && h.href.indexOf("citywidelv.github.io")<0) ? ' target="_blank" rel="noopener"' : '';
+html += '<a class="srow" href="' + esc(h.href) + '"' + tgt + '>' + iconSvg(h.icon, 15) +
+esc(h.label) + '<span class="path">' + esc(h.path) + '</span></a>';
+});
+document.getElementById("searchresults").innerHTML = html;
+document.getElementById("noresults").classList.toggle("show", !hits.length);
+zone.classList.add("show"); wall.classList.add("hidden");
+document.querySelectorAll("#quickrow .qbtn").forEach(function(b){
+b.style.display = match(b.getAttribute("data-hay") || "") ? "" : "none";
+});
 }
 document.getElementById("toolsearch").addEventListener("input", applySearch);
 document.getElementById("searchX").addEventListener("click", function(){
-  document.getElementById("toolsearch").value = ""; applySearch();
+document.getElementById("toolsearch").value = ""; applySearch();
 });
 document.addEventListener("keydown", function(e){
-  if(e.key === "/" && document.activeElement !== document.getElementById("toolsearch") &&
-     document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA"){
-    e.preventDefault(); document.getElementById("toolsearch").focus();
-  }
+if(e.key === "/" && document.activeElement !== document.getElementById("toolsearch") &&
+document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA"){
+e.preventDefault(); document.getElementById("toolsearch").focus();
+}
 });
 
 window.addEventListener("scroll", function(){
-  document.getElementById("totop").classList.toggle("show", window.scrollY > 600);
+document.getElementById("totop").classList.toggle("show", window.scrollY > 600);
 });
 document.getElementById("totop").addEventListener("click", function(){
-  window.scrollTo({top:0, behavior:"smooth"});
+window.scrollTo({top:0, behavior:"smooth"});
 });
 
 function loadPill(){
-  try{
-    fetch(WEBHOOK).then(function(r){return r.json();}).then(function(r){
-      if(r && r.ok){
-        document.querySelectorAll(".qpill").forEach(function(p){
-          p.textContent = r.count + " open"; p.classList.add("show");
-        });
-      }
-    }).catch(function(){});
-  }catch(e){}
+try{
+fetch(WEBHOOK).then(function(r){return r.json();}).then(function(r){
+if(r && r.ok){
+document.querySelectorAll(".qpill").forEach(function(p){
+p.textContent = r.count + " open"; p.classList.add("show");
+});
+}
+}).catch(function(){});
+}catch(e){}
 }
 
 /* ---------- The Ops Wall ---------- */
 function initials(name){
-  var p = String(name||"").trim().split(/\s+/);
-  var s = (p[0]||"").charAt(0) + (p.length>1 ? p[p.length-1].charAt(0) : "");
-  return (s || "CW").toUpperCase();
+var p = String(name||"").trim().split(/\s+/);
+var s = (p[0]||"").charAt(0) + (p.length>1 ? p[p.length-1].charAt(0) : "");
+return (s || "CW").toUpperCase();
 }
 function fmtDate(ts){
-  var d = new Date(ts);
-  if(isNaN(d)) return "";
-  var now = new Date();
-  var sameDay = d.toDateString() === now.toDateString();
-  var t = d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
-  if(sameDay) return "Today " + t;
-  var opts = {month:"short", day:"numeric"};
-  if(d.getFullYear() !== now.getFullYear()) opts.year = "numeric";
-  return d.toLocaleDateString([], opts) + " " + t;
+var d = new Date(ts);
+if(isNaN(d)) return "";
+var now = new Date();
+var sameDay = d.toDateString() === now.toDateString();
+var t = d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+if(sameDay) return "Today " + t;
+var opts = {month:"short", day:"numeric"};
+if(d.getFullYear() !== now.getFullYear()) opts.year = "numeric";
+return d.toLocaleDateString([], opts) + " " + t;
 }
 var wallPosts = [];
 function renderWall(list){
-  var posts = (list || []).slice();
-  posts.sort(function(a,b){
-    if(!!b.pinned !== !!a.pinned) return (!!b.pinned) - (!!a.pinned);
-    return new Date(b.ts) - new Date(a.ts);
-  });
-  var host = document.getElementById("wposts");
-  if(!posts.length){
-    host.innerHTML = '<div class="wempty"><b>Nothing on the Wall yet.</b>Post the first update for the team.</div>';
-    return;
-  }
-  var html = "";
-  posts.forEach(function(p){
-    html += '<div class="wpost' + (p.pinned ? ' pinned' : '') + '">' +
-      '<span class="pav">' + esc(initials(p.name)) + '</span>' +
-      '<div class="pbody"><div class="pmeta"><span class="pname">' + esc(p.name) + '</span>' +
-      (p.pinned ? '<span class="ppin">Pinned</span>' : '') +
-      '<span class="pdate">' + esc(fmtDate(p.ts)) + '</span></div>' +
-      '<div class="pmsg">' + esc(p.message).replace(/\n/g,"<br>") + '</div></div></div>';
-  });
-  host.innerHTML = html;
+var posts = (list || []).slice();
+posts.sort(function(a,b){
+if(!!b.pinned !== !!a.pinned) return (!!b.pinned) - (!!a.pinned);
+return new Date(b.ts) - new Date(a.ts);
+});
+var host = document.getElementById("wposts");
+if(!posts.length){
+host.innerHTML = '<div class="wempty"><b>Nothing on the Wall yet.</b>Post the first update for the team.</div>';
+return;
+}
+var html = "";
+posts.forEach(function(p){
+html += '<div class="wpost' + (p.pinned ? ' pinned' : '') + '">' +
+'<span class="pav">' + esc(initials(p.name)) + '</span>' +
+'<div class="pbody"><div class="pmeta"><span class="pname">' + esc(p.name) + '</span>' +
+(p.pinned ? '<span class="ppin">Pinned</span>' : '') +
+'<span class="pdate">' + esc(fmtDate(p.ts)) + '</span></div>' +
+'<div class="pmsg">' + esc(p.message).replace(/\n/g,"<br>") + '</div></div></div>';
+});
+host.innerHTML = html;
 }
 function postWall(){
-  var name = document.getElementById("wname").value.trim();
-  var msg = document.getElementById("wmsg").value.trim();
-  var err = document.getElementById("werr");
-  var btn = document.getElementById("wpost");
-  err.textContent = "";
-  if(!name){ err.textContent = "Add your name."; return; }
-  if(!msg){ err.textContent = "Write something first."; return; }
-  var pass = "";
-  try{ pass = localStorage.getItem(KEY) || ""; }catch(e){}
-  btn.disabled = true; btn.textContent = "Posting...";
-  fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
-      body: JSON.stringify({ kind:"announcement", passcode: pass, name: name, message: msg }) })
-    .then(function(r){ return r.json(); })
-    .then(function(r){
-      btn.disabled = false; btn.textContent = "Post to the Wall";
-      if(r && r.ok && r.announcement){
-        wallPosts.unshift(r.announcement);
-        renderWall(wallPosts);
-        document.getElementById("wmsg").value = "";
-        try{ localStorage.setItem(NAMEKEY, name); }catch(e){}
-        document.getElementById("cav").textContent = initials(name);
-      } else {
-        err.textContent = (r && r.error) ? r.error : "Could not post. Try again.";
-      }
-    })
-    .catch(function(){
-      btn.disabled = false; btn.textContent = "Post to the Wall";
-      err.textContent = "Could not reach the server. Try again.";
-    });
+var name = document.getElementById("wname").value.trim();
+var msg = document.getElementById("wmsg").value.trim();
+var err = document.getElementById("werr");
+var btn = document.getElementById("wpost");
+err.textContent = "";
+if(!name){ err.textContent = "Add your name."; return; }
+if(!msg){ err.textContent = "Write something first."; return; }
+var pass = "";
+try{ pass = localStorage.getItem(KEY) || ""; }catch(e){}
+btn.disabled = true; btn.textContent = "Posting...";
+fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
+body: JSON.stringify({ kind:"announcement", passcode: pass, name: name, message: msg }) })
+.then(function(r){ return r.json(); })
+.then(function(r){
+btn.disabled = false; btn.textContent = "Post to the Wall";
+if(r && r.ok && r.announcement){
+wallPosts.unshift(r.announcement);
+renderWall(wallPosts);
+document.getElementById("wmsg").value = "";
+try{ localStorage.setItem(NAMEKEY, name); }catch(e){}
+document.getElementById("cav").textContent = initials(name);
+} else {
+err.textContent = (r && r.error) ? r.error : "Could not post. Try again.";
+}
+})
+.catch(function(){
+btn.disabled = false; btn.textContent = "Post to the Wall";
+err.textContent = "Could not reach the server. Try again.";
+});
 }
 document.getElementById("wpost").addEventListener("click", postWall);
 document.getElementById("wname").addEventListener("input", function(){
-  document.getElementById("cav").textContent = initials(this.value || "CW");
+document.getElementById("cav").textContent = initials(this.value || "CW");
 });
 
 function unlock(r){
-  document.getElementById("gate").classList.add("hidden");
-  document.getElementById("app").classList.remove("hidden");
-  renderMainNav();
-  buildSearchIndex();
-  renderQuick();
-  loadPill();
-  wallPosts = (r && r.announcements) ? r.announcements : [];
-  renderWall(wallPosts);
-  var savedName = "";
-  try{ savedName = localStorage.getItem(NAMEKEY) || ""; }catch(e){}
-  if(savedName){
-    document.getElementById("wname").value = savedName;
-    document.getElementById("cav").textContent = initials(savedName);
-  }
+document.getElementById("gate").classList.add("hidden");
+document.getElementById("app").classList.remove("hidden");
+renderMainNav();
+buildSearchIndex();
+renderQuick();
+loadPill();
+wallPosts = (r && r.announcements) ? r.announcements : [];
+renderWall(wallPosts);
+var savedName = "";
+try{ savedName = localStorage.getItem(NAMEKEY) || ""; }catch(e){}
+if(savedName){
+document.getElementById("wname").value = savedName;
+document.getElementById("cav").textContent = initials(savedName);
+}
 }
 
 function tryPass(pass, isAuto){
-  var btn = document.getElementById("enter");
-  var err = document.getElementById("gerr");
-  err.textContent = "";
-  if(!pass){ err.textContent = "Enter the passcode."; return; }
-  btn.disabled = true; btn.textContent = "Checking...";
-  fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
-      body: JSON.stringify({ kind:"auth", passcode: pass }) })
-    .then(function(r){ return r.json(); })
-    .then(function(r){
-      btn.disabled = false; btn.textContent = "Enter";
-      if(r && r.ok && r.sections){
-        try{ localStorage.setItem(KEY, pass); }catch(e){}
-        unlock(r);
-      } else {
-        if(isAuto){ try{ localStorage.removeItem(KEY); }catch(e){} }
-        err.textContent = (r && r.error) ? r.error : "That passcode is not right.";
-      }
-    })
-    .catch(function(){
-      btn.disabled = false; btn.textContent = "Enter";
-      err.textContent = "Could not reach the server. Check your connection and try again.";
-    });
+var btn = document.getElementById("enter");
+var err = document.getElementById("gerr");
+err.textContent = "";
+if(!pass){ err.textContent = "Enter the passcode."; return; }
+btn.disabled = true; btn.textContent = "Checking...";
+fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
+body: JSON.stringify({ kind:"auth", passcode: pass }) })
+.then(function(r){ return r.json(); })
+.then(function(r){
+btn.disabled = false; btn.textContent = "Enter";
+if(r && r.ok && r.sections){
+try{ localStorage.setItem(KEY, pass); }catch(e){}
+unlock(r);
+} else {
+if(isAuto){ try{ localStorage.removeItem(KEY); }catch(e){} }
+err.textContent = (r && r.error) ? r.error : "That passcode is not right.";
+}
+})
+.catch(function(){
+btn.disabled = false; btn.textContent = "Enter";
+err.textContent = "Could not reach the server. Check your connection and try again.";
+});
 }
 
 document.getElementById("enter").addEventListener("click", function(){
-  tryPass(document.getElementById("pc").value.trim(), false);
+tryPass(document.getElementById("pc").value.trim(), false);
 });
 document.getElementById("pc").addEventListener("keydown", function(e){
-  if(e.key === "Enter") tryPass(this.value.trim(), false);
+if(e.key === "Enter") tryPass(this.value.trim(), false);
 });
 document.getElementById("signout").addEventListener("click", function(e){
-  e.preventDefault();
-  try{ localStorage.removeItem(KEY); }catch(e){}
-  location.reload();
+e.preventDefault();
+try{ localStorage.removeItem(KEY); }catch(e){}
+location.reload();
 });
 
 (function(){
-  var saved = "";
-  try{ saved = localStorage.getItem(KEY) || ""; }catch(e){}
-  if(saved) tryPass(saved, true);
+var saved = "";
+try{ saved = localStorage.getItem(KEY) || ""; }catch(e){}
+if(saved) tryPass(saved, true);
 })();
 </script>
 </body>
