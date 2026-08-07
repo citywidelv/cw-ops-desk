@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Handyman Work Order | City Wide Facility Solutions</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+--border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
+--shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+.head{background:#fff;box-shadow:0 1px 8px rgba(45,42,38,.10)}
+.head .bar{max-width:860px;margin:0 auto;padding:0 20px;height:60px;display:flex;align-items:center;gap:14px}
+.head img{height:36px;width:auto;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+border-left:2px solid var(--border);padding-left:14px;white-space:nowrap}
+.head a.back{margin-left:auto;font-size:11px;font-weight:700;color:var(--grey);text-decoration:none;
+border:1px solid var(--border);border-radius:14px;padding:5px 12px;background:var(--light);white-space:nowrap}
+.head a.back:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.hero{background:linear-gradient(180deg,#26231f 0%,var(--black) 85%);color:#fff;border-bottom:4px solid var(--red)}
+.hero .in{max-width:860px;margin:0 auto;padding:26px 20px 22px}
+.hero h1{font-size:clamp(20px,3vw,26px);line-height:1.25}
+.hero h1::after{content:"";display:block;width:52px;height:4px;background:var(--red);border-radius:2px;margin-top:10px}
+.hero p{color:#cfcdc9;margin-top:8px;font-size:13px;max-width:640px}
+.wrap{max-width:860px;margin:0 auto;padding:20px}
+.card{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);
+padding:20px 22px;margin-bottom:16px}
+.card h2{font-size:14px;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.card h2 .num{flex:none;width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;
+font-size:12px;display:flex;align-items:center;justify-content:center}
+label.f{display:block;font-size:12px;font-weight:700;margin:12px 0 5px}
+label.f .req{color:var(--red)}
+input[type=text],input[type=email],input[type=tel],select,textarea{
+width:100%;font-family:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:8px;
+padding:10px 12px;background:#fff;outline:none;color:var(--black)}
+input:focus,select:focus,textarea:focus{border-color:var(--red)}
+textarea{min-height:90px;resize:vertical}
+.hint{font-size:11px;color:var(--grey);margin-top:4px}
+.pills{display:flex;flex-wrap:wrap;gap:9px}
+.pill{border:1.5px solid var(--border);border-radius:10px;padding:11px 16px;font-size:13px;font-weight:700;
+cursor:pointer;background:#fff;user-select:none}
+.pill:hover{border-color:var(--red);color:var(--red)}
+.pill.on{background:var(--red);border-color:var(--red);color:#fff}
+.radio-list{display:flex;flex-direction:column;gap:8px}
+.radio-item{display:flex;align-items:flex-start;gap:10px;border:1.5px solid var(--border);border-radius:10px;
+padding:11px 14px;cursor:pointer;background:#fff}
+.radio-item:hover{border-color:var(--red)}
+.radio-item.on{border-color:var(--red);background:#fdf3f3}
+.radio-item input{margin-top:3px;accent-color:var(--red)}
+.radio-item .rt{font-size:13px;font-weight:700}
+.radio-item .rs{font-size:11px;color:var(--grey)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+.photo-drop{border:2px dashed var(--border);border-radius:12px;padding:22px;text-align:center;cursor:pointer;background:#fff}
+.photo-drop:hover{border-color:var(--red)}
+.photo-drop .big{font-size:14px;font-weight:700}
+.photo-drop .sm{font-size:11px;color:var(--grey);margin-top:4px}
+.thumbs{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.thumb{position:relative;width:86px;height:86px;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb button{position:absolute;top:4px;right:4px;width:22px;height:22px;border:none;border-radius:50%;
+background:rgba(45,42,38,.85);color:#fff;font-size:12px;font-weight:700;cursor:pointer;line-height:1}
+.submitbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:4px 0 30px}
+#send{font-family:inherit;font-size:16px;font-weight:700;background:var(--red);color:#fff;border:none;
+border-radius:10px;padding:15px 34px;cursor:pointer}
+#send:hover{background:var(--red-dark)}
+#send[disabled]{opacity:.55;cursor:wait}
+#err{font-size:12.5px;font-weight:700;color:var(--red)}
+#done{display:none;background:#fff;border:1px solid var(--border);border-top:6px solid var(--teal);
+border-radius:14px;box-shadow:var(--shadow);padding:38px 26px;text-align:center;margin-bottom:40px}
+#done .chk{width:58px;height:58px;border-radius:50%;background:var(--teal);color:#fff;font-size:30px;
+display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+#done h2{font-size:19px;margin-bottom:6px}
+#done p{font-size:13px;color:var(--grey)}
+#done .woid{display:inline-block;margin-top:12px;font-size:14px;font-weight:700;background:var(--light);
+border:1px solid var(--border);border-radius:8px;padding:8px 18px}
+#done a{display:inline-block;margin-top:18px;font-size:13px;font-weight:700;color:var(--red)}
+.foot{border-top:1px solid var(--border);background:#fff}
+.foot .fin{max-width:860px;margin:0 auto;padding:18px 20px;display:flex;align-items:center;gap:12px;
+font-size:11px;color:var(--grey);flex-wrap:wrap}
+.foot b{color:var(--black)}
+.hp{position:absolute;left:-9999px;top:-9999px}
+</style>
+</head>
+<body>
+
+<header class="head">
+<div class="bar">
+<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+<span class="t">Work Order</span>
+<a class="back" href="index.html">&larr; Ops Hub</a>
+</div>
+</header>
+
+<section class="hero">
+<div class="in">
+<h1>Handyman Work Order</h1>
+<p>For City Wide crews, vendors, and our in-house handyman. Fill this out completely and the
+work order goes straight to the service team with photos attached.</p>
+</div>
+</section>
+
+<main class="wrap" id="formzone">
+
+<div class="card">
+<h2><span class="num">1</span>Which site is this for?</h2>
+<div class="pills" id="siteTypePills">
+<span class="pill" data-v="KWP Site">KWP Site</span>
+<span class="pill" data-v="Comprehensive Cancer">Comprehensive Cancer</span>
+<span class="pill" data-v="American Airlines">American Airlines</span>
+<span class="pill" data-v="Other Site">Other Site</span>
+</div>
+<div id="ccWrap" style="display:none">
+<label class="f">Comprehensive Cancer location <span class="req">*</span></label>
+<select id="ccSite"><option value="">Select the location...</option></select>
+</div>
+<div id="freeWrap" style="display:none">
+<label class="f" id="freeLabel">Site / building name <span class="req">*</span></label>
+<input type="text" id="freeSite" placeholder="">
+<div class="hint" id="freeHint"></div>
+</div>
+</div>
+
+<div class="card">
+<h2><span class="num">2</span>Who is submitting this?</h2>
+<div class="grid2">
+<div>
+<label class="f">Your name <span class="req">*</span></label>
+<input type="text" id="name" autocomplete="name">
+</div>
+<div>
+<label class="f">You are</label>
+<select id="role">
+<option>In-House Handyman</option>
+<option>Vendor Crew</option>
+<option>Facility Solutions Manager</option>
+<option>Site Contact</option>
+<option>Other</option>
+</select>
+</div>
+<div>
+<label class="f">Email <span class="req">*</span></label>
+<input type="email" id="email" autocomplete="email" placeholder="you@example.com">
+</div>
+<div>
+<label class="f">Phone</label>
+<input type="tel" id="phone" autocomplete="tel" placeholder="(702) 555-0100">
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2><span class="num">3</span>What needs to be done?</h2>
+<label class="f">Task type</label>
+<input type="text" id="task" list="taskList" placeholder="Start typing to search the task list...">
+<datalist id="taskList"></datalist>
+<label class="f">Describe the work <span class="req">*</span></label>
+<textarea id="desc" placeholder="What needs to be fixed or done? Where in the building is it? Anything the crew should know before arriving?"></textarea>
+<label class="f">Invoicing instructions</label>
+<input type="text" id="invoicing" placeholder="Example: bill to Radiation Center">
+</div>
+
+<div class="card">
+<h2><span class="num">4</span>When can the work be done?</h2>
+<div class="radio-list" id="schedList">
+<label class="radio-item"><input type="radio" name="sched" value="Any Time During Business Hours" checked>
+<span><span class="rt">Any time during business hours</span><br><span class="rs">Crew handles it on the next visit or during the day.</span></span></label>
+<label class="radio-item"><input type="radio" name="sched" value="Evening Only">
+<span><span class="rt">Evening only</span></span></label>
+<label class="radio-item"><input type="radio" name="sched" value="Saturday Only">
+<span><span class="rt">Saturday only</span></span></label>
+<label class="radio-item"><input type="radio" name="sched" value="Sunday Only">
+<span><span class="rt">Sunday only</span></span></label>
+<label class="radio-item"><input type="radio" name="sched" value="Emergency Dispatch - ASAP">
+<span><span class="rt" style="color:var(--red)">Emergency dispatch &ndash; ASAP</span><br>
+<span class="rs">Additional rates may apply. The service team is flagged immediately.</span></span></label>
+</div>
+</div>
+
+<div class="card">
+<h2><span class="num">5</span>Photos</h2>
+<div class="photo-drop" id="drop">
+<div class="big">Tap to add photos</div>
+<div class="sm">Up to 8 photos. They ride along with the work order and are saved by site, date, and your name.</div>
+</div>
+<input type="file" id="file" accept="image/*" multiple style="display:none">
+<div class="thumbs" id="thumbs"></div>
+</div>
+
+<input type="text" name="website" id="website" class="hp" tabindex="-1" autocomplete="off">
+
+<div class="submitbar">
+<button id="send">Submit Work Order</button>
+<span id="err"></span>
+</div>
+</main>
+
+<div class="wrap" style="padding-top:0">
+<div id="done">
+<div class="chk">&#10003;</div>
+<h2>Work order submitted</h2>
+<p>The service team has it, with your photos. Keep this number if you need to follow up.</p>
+<div class="woid" id="woid"></div><br>
+<a href="work-order.html">Submit another work order</a>
+</div>
+</div>
+
+<footer class="foot"><div class="fin">
+<b>City Wide Facility Solutions</b> &middot; Las Vegas &amp; Northern Nevada &middot;
+Questions? Contact your FSM. <span style="margin-left:auto;font-style:italic;font-weight:700">GoCityWide.com</span>
+</div></footer>
+
+<script>
+"use strict";
+var WEBHOOK="https://script.google.com/macros/s/AKfycbyD91q07tfClt0QHxUtBjgZ-4ILTdCFi4QZJkuniLlS4NptqWtSL6zB21OiisYWfvcdrw/exec";
+
+var CC_SITES=[
+"562-0002 - Comprehensive Cancer Centers - CBO - 400 N Stephanie St, Suite 300, Henderson, NV 89074",
+"562-5613 - Comprehensive Cancer Centers - Peak - 7445 Peak Dr, Las Vegas, NV 89128",
+"562-5614 - Comprehensive Cancer Centers - Town Center - 653 N Town Center Ste 402, Las Vegas, NV 89144",
+"562-5615 - Comprehensive Cancer Centers - Southern Hills - 9280 W Sunset Rd Ste 100, Las Vegas, NV 89148",
+"562-5616 - Comprehensive Cancer Centers - Lung Ctr - 653 N Town Center Dr Ste 604, Las Vegas, NV 89144",
+"562-5617 - Comprehensive Cancer Centers - Medical District - 100 N City Pkwy Ste 160, Las Vegas, NV 89106",
+"562-5626 - Comprehensive Cancer Centers - Siena - 10001 S Eastern Ave Ste 108, Las Vegas, NV 89183",
+"562-5630 - Comprehensive Cancer Centers - Summerlin - 655 N Town Center, Las Vegas, NV 89144",
+"562-5640 - Comprehensive Cancer Centers - Twain - 3730 S Eastern Ave, Las Vegas, NV 89169",
+"562-5645 - Comprehensive Cancer Centers - Stephanie - 1505 Wigwam Suite 130, Henderson, NV 89074",
+"562-5654 - Special Billing - Comprehensive Cancer Centers - Town Center - 653 N Town Center Ste 402, Las Vegas, NV 89144",
+"562-5658 - Comprehensive Cancer Centers - Breast Center - 3131 La Canada St Ste 134, Las Vegas, NV 89169",
+"562-5670 - Comprehensive Cancer Centers - Horizon Ridge - 2460 W Horizon Ridge Pkwy, Henderson, NV 89052",
+"562-5674 - Special Billing - Comprehensive Cancer Centers - CBO - 400 N Stephanie St Ste 300, Henderson, NV 89014"
+];
+
+var TASKS=["Touch-up painting (scuffs, marks on walls)","Door hardware adjustments and repairs (handles, closers, hinges)",
+"Cabinet and drawer adjustments/repairs","Hanging whiteboards, bulletin boards, artwork, and signage",
+"Light bulb and ballast replacements","Minor drywall repairs (nail pops, small holes)",
+"Caulking (sinks, countertops, baseboards)","Baseboard and trim repairs","Furniture assembly and adjustments",
+"Window blind repairs and adjustments","Interior door repairs and adjustments","Ceiling tile replacement",
+"Weatherstripping replacement","Floor tile repairs (VCT, LVT replacements)",
+"Bathroom accessory repairs (paper holders, grab bars, soap dispensers)","Carpet repairs (re-stretching, patching)",
+"Chair rail and wall protection installation/repair","Shelving installation and repairs","Minor countertop repairs",
+"Threshold and transition strip replacement","Full room painting","Floor refinishing or coating",
+"Reception desk repairs","Signage installation (wayfinding, ADA compliance)","Furniture moving and reconfiguration",
+"Cork board and tack board installation","Wall-mounted equipment installation (TVs, monitors)",
+"Cubicle and partition adjustments","Handrail tightening and repair","Window casing and trim repair",
+"Office reconfiguration support","Flooring replacement projects","Millwork installation",
+"Exterior door hardware replacement","Access panel installation",
+"Safety equipment installation (fire extinguisher brackets, AED mounts)","Employee break room updates",
+"Storage solution installation","Privacy film installation on glass","Minor demolition for remodel prep",
+"Exterior touch-up painting","Roof access ladder repairs","Loading dock equipment minor repairs",
+"Parking lot sign post repairs","Exterior building number installation","Other"];
+
+var siteType="";
+var photos=[];
+
+// populate lists
+(function(){
+var sel=document.getElementById("ccSite");
+CC_SITES.forEach(function(s){var o=document.createElement("option");o.value=s;o.textContent=s;sel.appendChild(o);});
+var dl=document.getElementById("taskList");
+TASKS.forEach(function(t){var o=document.createElement("option");o.value=t;dl.appendChild(o);});
+})();
+
+document.getElementById("siteTypePills").addEventListener("click",function(e){
+var p=e.target.closest(".pill");if(!p)return;
+document.querySelectorAll("#siteTypePills .pill").forEach(function(x){x.classList.remove("on");});
+p.classList.add("on");
+siteType=p.getAttribute("data-v");
+var cc=document.getElementById("ccWrap"),fw=document.getElementById("freeWrap"),
+fl=document.getElementById("freeLabel"),fs=document.getElementById("freeSite"),fh=document.getElementById("freeHint");
+if(siteType==="Comprehensive Cancer"){cc.style.display="block";fw.style.display="none";}
+else{
+cc.style.display="none";fw.style.display="block";
+if(siteType==="KWP Site"){fl.innerHTML='KWP building / site <span class="req">*</span>';fs.placeholder="Which KWP building or suite?";fh.textContent="Include the building name or address so the crew knows exactly where to go.";}
+else if(siteType==="American Airlines"){fl.innerHTML='American Airlines location <span class="req">*</span>';fs.placeholder="Which AA facility or area?";fh.textContent="New account: include terminal, building, or office detail.";}
+else{fl.innerHTML='Site / building name <span class="req">*</span>';fs.placeholder="Account or building name and address";fh.textContent="";}
+}
+});
+
+document.querySelectorAll(".radio-item input").forEach(function(r){
+r.addEventListener("change",function(){
+document.querySelectorAll(".radio-item").forEach(function(x){x.classList.remove("on");});
+r.closest(".radio-item").classList.add("on");
+});
+});
+
+// photos
+var drop=document.getElementById("drop"),file=document.getElementById("file");
+drop.addEventListener("click",function(){file.click();});
+file.addEventListener("change",function(){addFiles(Array.from(file.files));file.value="";});
+drop.addEventListener("dragover",function(e){e.preventDefault();});
+drop.addEventListener("drop",function(e){e.preventDefault();addFiles(Array.from(e.dataTransfer.files));});
+
+function addFiles(list){
+list.filter(function(f){return /^image\//.test(f.type);}).forEach(function(f){
+if(photos.length>=8)return;
+compress(f,function(dataUrl){
+photos.push({name:f.name,type:"image/jpeg",data:dataUrl});
+renderThumbs();
+});
+});
+}
+function compress(f,cb){
+var img=new Image(),rd=new FileReader();
+rd.onload=function(){img.src=rd.result;};
+img.onload=function(){
+var max=1600,w=img.width,h=img.height;
+if(w>max||h>max){var k=Math.min(max/w,max/h);w=Math.round(w*k);h=Math.round(h*k);}
+var c=document.createElement("canvas");c.width=w;c.height=h;
+c.getContext("2d").drawImage(img,0,0,w,h);
+cb(c.toDataURL("image/jpeg",0.75));
+};
+rd.readAsDataURL(f);
+}
+function renderThumbs(){
+var t=document.getElementById("thumbs");t.innerHTML="";
+photos.forEach(function(p,i){
+var d=document.createElement("div");d.className="thumb";
+var im=document.createElement("img");im.src=p.data;d.appendChild(im);
+var b=document.createElement("button");b.textContent="×";
+b.onclick=function(){photos.splice(i,1);renderThumbs();};
+d.appendChild(b);t.appendChild(d);
+});
+}
+
+document.getElementById("send").addEventListener("click",function(){
+var err=document.getElementById("err");err.textContent="";
+var site="",detail="";
+if(!siteType){err.textContent="Pick which site this is for.";return;}
+if(siteType==="Comprehensive Cancer"){
+site=document.getElementById("ccSite").value;
+if(!site){err.textContent="Select the Comprehensive Cancer location.";return;}
+}else{
+site=document.getElementById("freeSite").value.trim();
+if(!site){err.textContent="Enter the site or building name.";return;}
+}
+var name=document.getElementById("name").value.trim();
+var email=document.getElementById("email").value.trim();
+var desc=document.getElementById("desc").value.trim();
+if(!name){err.textContent="Add your name.";return;}
+if(!email||email.indexOf("@")<1){err.textContent="Add a valid email.";return;}
+if(!desc){err.textContent="Describe the work.";return;}
+var sched=document.querySelector('input[name="sched"]:checked');
+var payload={
+kind:"work_order",
+website:document.getElementById("website").value,
+site_type:siteType, site:site, site_detail:detail,
+name:name, role:document.getElementById("role").value,
+email:email, phone:document.getElementById("phone").value.trim(),
+task_type:document.getElementById("task").value.trim(),
+description:desc,
+invoicing:document.getElementById("invoicing").value.trim(),
+schedule:sched?sched.value:"",
+photos:photos
+};
+var btn=document.getElementById("send");
+btn.disabled=true;btn.textContent="Submitting...";
+fetch(WEBHOOK,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)})
+.then(function(r){return r.json();})
+.then(function(j){
+btn.disabled=false;btn.textContent="Submit Work Order";
+if(j&&j.ok){
+document.getElementById("formzone").style.display="none";
+document.getElementById("done").style.display="block";
+document.getElementById("woid").textContent=j.wo_id||"Received";
+window.scrollTo({top:0,behavior:"smooth"});
+}else{
+err.textContent=(j&&j.error)?j.error:"Could not submit. Check the fields and try again.";
+}
+})
+.catch(function(){
+btn.disabled=false;btn.textContent="Submit Work Order";
+err.textContent="Could not reach the server. Check your connection and try again. Large photos can also time out - try removing one or two.";
+});
+});
+</script>
+</body>
+</html>
