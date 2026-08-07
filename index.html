@@ -12,7 +12,12 @@ directory. Added: the Ops Wall (team announcements) fed by the Apps Script
 (auth response carries `announcements`; POST kind:"announcement" adds one).
 Every tool that was in the old directory is reachable from the dropdowns.
 Search now indexes the dropdown menus.
-build 2026-08-06: added Back to the Nevada Team Portal links (gate + header). -->
+build 2026-08-06: added Back to the Nevada Team Portal links (gate + header).
+build 2026-08-07: the Ops Wall MOVED to the Nevada Team Portal (citywidelv.github.io)
+as the Team Wall. Same Apps Script feed (auth response `announcements`, POST
+kind:"announcement") - no script changes. This page keeps the wall space as a clean
+placeholder (id="opswallspace") reserved for ops team imagery + saying, coming next.
+Wall composer/render JS removed here; everything else untouched. -->
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
 --border:#E5E5E5;--gold:#E5B423;
@@ -372,21 +377,14 @@ search box to jump straight to what you need.</p>
 <div class="noresults" id="noresults"><b>No tools match.</b>Try fewer words, or clear the search.</div>
 </div>
 <div class="wallgrid" id="wallgrid">
-<section class="wcard">
-<div class="whead"><span class="bar-accent"></span><h2>The Ops Wall</h2>
-<span class="sub">Team announcements &amp; updates</span></div>
-<div class="composer">
-<span class="cav" id="cav">CW</span>
-<div class="cfields">
-<input id="wname" placeholder="Your name" maxlength="40">
-<textarea id="wmsg" placeholder="Post an update for the team..." maxlength="1000"></textarea>
-<div class="crow">
-<button id="wpost">Post to the Wall</button>
-<span class="werr" id="werr"></span>
+<section class="wcard" id="opswallspace">
+<!-- Space reserved: ops team imagery + saying go here next. Keep this section clean. -->
+<div class="whead"><span class="bar-accent"></span><h2>The Ops Wall</h2></div>
+<div class="wempty" style="padding:18px 0 12px">
+<b>The team conversation has a new home.</b>
+Post updates and announcements on the Team Wall at the Nevada Team Portal.
+<div style="margin-top:12px"><a href="https://citywidelv.github.io/" style="display:inline-block;background:var(--red);color:#fff;text-decoration:none;font-weight:700;font-size:12px;padding:10px 16px;border-radius:8px">Go to the Team Wall</a></div>
 </div>
-</div>
-</div>
-<div id="wposts"></div>
 </section>
 <aside class="helper">
 <h3>Finding your way around</h3>
@@ -440,16 +438,7 @@ function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace
 /* ---------- Nav: cascading menu tree. EVERY hub tool must be reachable here. ---------- */
 var VS = "https://citywidelv.github.io/cw-vendor-shop/";
 var MENU = [
-{ label:"Work Tickets", icon:"sheet", items:[
-{label:"Maintenance Work Ticket", href:"work-order.html"},
-{ghead:"CCCNV (Comprehensive Cancer)"},
-{label:"CCCNV Work Requests", href:"https://form.jotform.com/252935932465163"},
-{label:"CCCNV Requests Log", href:"https://www.jotform.com/tables/252935932465163"},
-{ghead:"Tracking"},
-{label:"Work Tickets Sheet", href:"https://docs.google.com/spreadsheets/d/17awrIV6X-Ugaxkw0VLDIH8WVpJ51Ux_5ntNxHu2tzBg/edit"}
-]},
-{ label:"Vendors", icon:"clip", items:[
-{sub:"Opportunities", items:[
+{ label:"Opportunities", icon:"board", items:[
 {label:"Post an Opportunity", href:"post.html"},
 {label:"Live Board", href:VS+"opportunities.html"},
 {label:"Vendor Responses", href:"responses.html"},
@@ -457,6 +446,13 @@ var MENU = [
 {ghead:"Tracking"},
 {label:"Opportunities Tracker (Sheet)", href:"https://docs.google.com/spreadsheets/d/1ymbqR7LMvA7sbgZe2Ro5o2dNiXhP08Tn9Hw1b-H5AeQ/edit"}
 ]},
+{ label:"Work Orders", icon:"sheet", items:[
+{label:"Handyman Work Order", href:"work-order.html"},
+{label:"Comprehensive Cancer (legacy Jotform)", href:"https://form.jotform.com/252935932465163"},
+{ghead:"Tracking"},
+{label:"Work Orders Sheet", href:"https://docs.google.com/spreadsheets/d/17awrIV6X-Ugaxkw0VLDIH8WVpJ51Ux_5ntNxHu2tzBg/edit"}
+]},
+{ label:"Vendors", icon:"clip", items:[
 {sub:"Request a Vendor Packet", items:[
 {ghead:"Las Vegas"},
 {label:"Janitorial Packet", href:"https://form.asana.com/?k=RdHag7PTO7L2imrLsWCCVQ&d=13140959242873"},
@@ -512,6 +508,7 @@ var MENU = [
 {label:"View Submissions Table", href:"https://www.jotform.com/tables/241440730763149"},
 {label:"Northern Nevada", href:"https://form.jotform.com/team/253234894174059/nnv-night-manager-route-out"}
 ]},
+{label:"Comprehensive Cancer Work Orders", href:"https://form.jotform.com/252935932465163"},
 {label:"Night Manager AI Tool", href:"https://chatgpt.com/g/g-681233262c3c81918605de9bd3edf7be-city-wide-night-manager-tool"}
 ]},
 { label:"Team & Admin", icon:"home", items:[
@@ -692,81 +689,9 @@ p.textContent = r.count + " open"; p.classList.add("show");
 }catch(e){}
 }
 
-/* ---------- The Ops Wall ---------- */
-function initials(name){
-var p = String(name||"").trim().split(/\s+/);
-var s = (p[0]||"").charAt(0) + (p.length>1 ? p[p.length-1].charAt(0) : "");
-return (s || "CW").toUpperCase();
-}
-function fmtDate(ts){
-var d = new Date(ts);
-if(isNaN(d)) return "";
-var now = new Date();
-var sameDay = d.toDateString() === now.toDateString();
-var t = d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
-if(sameDay) return "Today " + t;
-var opts = {month:"short", day:"numeric"};
-if(d.getFullYear() !== now.getFullYear()) opts.year = "numeric";
-return d.toLocaleDateString([], opts) + " " + t;
-}
-var wallPosts = [];
-function renderWall(list){
-var posts = (list || []).slice();
-posts.sort(function(a,b){
-if(!!b.pinned !== !!a.pinned) return (!!b.pinned) - (!!a.pinned);
-return new Date(b.ts) - new Date(a.ts);
-});
-var host = document.getElementById("wposts");
-if(!posts.length){
-host.innerHTML = '<div class="wempty"><b>Nothing on the Wall yet.</b>Post the first update for the team.</div>';
-return;
-}
-var html = "";
-posts.forEach(function(p){
-html += '<div class="wpost' + (p.pinned ? ' pinned' : '') + '">' +
-'<span class="pav">' + esc(initials(p.name)) + '</span>' +
-'<div class="pbody"><div class="pmeta"><span class="pname">' + esc(p.name) + '</span>' +
-(p.pinned ? '<span class="ppin">Pinned</span>' : '') +
-'<span class="pdate">' + esc(fmtDate(p.ts)) + '</span></div>' +
-'<div class="pmsg">' + esc(p.message).replace(/\n/g,"<br>") + '</div></div></div>';
-});
-host.innerHTML = html;
-}
-function postWall(){
-var name = document.getElementById("wname").value.trim();
-var msg = document.getElementById("wmsg").value.trim();
-var err = document.getElementById("werr");
-var btn = document.getElementById("wpost");
-err.textContent = "";
-if(!name){ err.textContent = "Add your name."; return; }
-if(!msg){ err.textContent = "Write something first."; return; }
-var pass = "";
-try{ pass = localStorage.getItem(KEY) || ""; }catch(e){}
-btn.disabled = true; btn.textContent = "Posting...";
-fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
-body: JSON.stringify({ kind:"announcement", passcode: pass, name: name, message: msg }) })
-.then(function(r){ return r.json(); })
-.then(function(r){
-btn.disabled = false; btn.textContent = "Post to the Wall";
-if(r && r.ok && r.announcement){
-wallPosts.unshift(r.announcement);
-renderWall(wallPosts);
-document.getElementById("wmsg").value = "";
-try{ localStorage.setItem(NAMEKEY, name); }catch(e){}
-document.getElementById("cav").textContent = initials(name);
-} else {
-err.textContent = (r && r.error) ? r.error : "Could not post. Try again.";
-}
-})
-.catch(function(){
-btn.disabled = false; btn.textContent = "Post to the Wall";
-err.textContent = "Could not reach the server. Try again.";
-});
-}
-document.getElementById("wpost").addEventListener("click", postWall);
-document.getElementById("wname").addEventListener("input", function(){
-document.getElementById("cav").textContent = initials(this.value || "CW");
-});
+/* ---------- The Ops Wall moved to the Team Portal (Team Wall). ----------
+Announcements still come back on the auth response and posting still works
+via kind:"announcement" - both are now used by citywidelv.github.io. ---------- */
 
 function unlock(r){
 document.getElementById("gate").classList.add("hidden");
@@ -775,14 +700,6 @@ renderMainNav();
 buildSearchIndex();
 renderQuick();
 loadPill();
-wallPosts = (r && r.announcements) ? r.announcements : [];
-renderWall(wallPosts);
-var savedName = "";
-try{ savedName = localStorage.getItem(NAMEKEY) || ""; }catch(e){}
-if(savedName){
-document.getElementById("wname").value = savedName;
-document.getElementById("cav").textContent = initials(savedName);
-}
 }
 
 function tryPass(pass, isAuto){
