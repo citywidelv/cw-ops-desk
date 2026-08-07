@@ -114,13 +114,8 @@ customer can be billed correctly.</p>
 <input type="text" id="name" autocomplete="name">
 </div>
 <div>
-<label class="f">You are</label>
-<select id="role">
-<option>In-House Handyman</option>
-<option>Vendor Crew</option>
-<option>Facility Solutions Manager</option>
-<option>Other</option>
-</select>
+<label class="f">Your company name</label>
+<input type="text" id="company" placeholder="City Wide Facility Solutions">
 </div>
 <div>
 <label class="f">Email <span class="req">*</span></label>
@@ -412,7 +407,7 @@ var chk=document.querySelector('input[name="chk"]:checked').value;
 var payload={
 kind:"work_order",
 website:document.getElementById("website").value,
-name:name, role:document.getElementById("role").value,
+name:name, company:val("company"),
 email:email, phone:val("phone"),
 property_name:property, address:address,
 date_of_work:dateOfWork, requested_by:requestedBy,
