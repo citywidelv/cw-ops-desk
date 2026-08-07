@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Snow Service Report | City Wide Facility Solutions</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+--border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
+--shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+.head{background:#fff;box-shadow:0 1px 8px rgba(45,42,38,.10)}
+.head .bar{max-width:860px;margin:0 auto;padding:0 20px;height:60px;display:flex;align-items:center;gap:14px}
+.head img{height:36px;width:auto;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+border-left:2px solid var(--border);padding-left:14px;white-space:nowrap}
+.head a.back{margin-left:auto;font-size:11px;font-weight:700;color:var(--grey);text-decoration:none;
+border:1px solid var(--border);border-radius:14px;padding:5px 12px;background:var(--light);white-space:nowrap}
+.head a.back:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.hero{background:linear-gradient(180deg,#26231f 0%,var(--black) 85%);color:#fff;border-bottom:4px solid var(--red)}
+.hero .in{max-width:860px;margin:0 auto;padding:26px 20px 22px}
+.hero h1{font-size:clamp(20px,3vw,26px);line-height:1.25}
+.hero h1::after{content:"";display:block;width:52px;height:4px;background:var(--red);border-radius:2px;margin-top:10px}
+.hero p{color:#cfcdc9;margin-top:8px;font-size:13px;max-width:660px}
+.wrap{max-width:860px;margin:0 auto;padding:20px}
+.card{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);
+padding:20px 22px;margin-bottom:16px}
+.card h2{font-size:14px;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.card h2 .num{flex:none;width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;
+font-size:12px;display:flex;align-items:center;justify-content:center}
+label.f{display:block;font-size:12px;font-weight:700;margin:12px 0 5px}
+label.f .req{color:var(--red)}
+input[type=text],input[type=email],input[type=tel],input[type=date],input[type=time],input[type=number],select,textarea{
+width:100%;font-family:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:8px;
+padding:10px 12px;background:#fff;outline:none;color:var(--black)}
+input:focus,select:focus,textarea:focus{border-color:var(--red)}
+textarea{min-height:90px;resize:vertical}
+.hint{font-size:11px;color:var(--grey);margin-top:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+.check-item{display:flex;align-items:flex-start;gap:10px;border:1.5px solid var(--border);border-radius:10px;
+padding:11px 14px;cursor:pointer;background:#fff;margin-bottom:8px}
+.check-item:hover{border-color:var(--red)}
+.check-item.on{border-color:var(--red);background:#fdf3f3}
+.check-item input{margin-top:3px;accent-color:var(--red)}
+.check-item .rt{font-size:13px;font-weight:700}
+.check-item .rs{font-size:11px;color:var(--grey)}
+.rulebox{border-left:4px solid var(--red);background:#fdf3f3;border-radius:0 10px 10px 0;
+padding:14px 16px;margin:14px 0;font-size:12.5px}
+.rulebox b.title{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+color:var(--red);margin-bottom:5px}
+.rulebox ul{margin:6px 0 0 18px}
+.rulebox li{margin-bottom:4px}
+.geo-btn{font-family:inherit;font-size:13px;font-weight:700;background:var(--black);color:#fff;border:none;
+border-radius:8px;padding:11px 18px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.geo-btn:hover{background:#000}
+.geo-btn.ok{background:var(--teal)}
+#geoStatus{font-size:12px;margin-top:8px;font-weight:700}
+#geoStatus.ok{color:#067a7d}
+#geoStatus.bad{color:var(--red)}
+.certbox{display:flex;gap:12px;align-items:flex-start;border:2px solid var(--red);border-radius:12px;
+padding:16px 18px;background:#fff}
+.certbox input{margin-top:4px;accent-color:var(--red);width:18px;height:18px;flex:none}
+.certbox span{font-size:12.5px}
+.submitbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:18px 0 30px}
+#send{font-family:inherit;font-size:16px;font-weight:700;background:var(--red);color:#fff;border:none;
+border-radius:10px;padding:15px 34px;cursor:pointer}
+#send:hover{background:var(--red-dark)}
+#send[disabled]{opacity:.55;cursor:wait}
+#err{font-size:12.5px;font-weight:700;color:var(--red)}
+#done{display:none;background:#fff;border:1px solid var(--border);border-top:6px solid var(--teal);
+border-radius:14px;box-shadow:var(--shadow);padding:38px 26px;text-align:center;margin-bottom:40px}
+#done .chk{width:58px;height:58px;border-radius:50%;background:var(--teal);color:#fff;font-size:30px;
+display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+#done h2{font-size:19px;margin-bottom:6px}
+#done p{font-size:13px;color:var(--grey)}
+#done .woid{display:inline-block;margin-top:12px;font-size:14px;font-weight:700;background:var(--light);
+border:1px solid var(--border);border-radius:8px;padding:8px 18px}
+#done a{display:inline-block;margin-top:18px;font-size:13px;font-weight:700;color:var(--red)}
+.foot{border-top:1px solid var(--border);background:#fff}
+.foot .fin{max-width:860px;margin:0 auto;padding:18px 20px;display:flex;align-items:center;gap:12px;
+font-size:11px;color:var(--grey);flex-wrap:wrap}
+.foot b{color:var(--black)}
+.hp{position:absolute;left:-9999px;top:-9999px}
+</style>
+</head>
+<body>
+
+<header class="head">
+<div class="bar">
+<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+<span class="t">Snow Service Report</span>
+<a class="back" href="index.html">&larr; Ops Hub</a>
+</div>
+</header>
+
+<section class="hero">
+<div class="in">
+<h1>Snow &amp; Ice Service Report</h1>
+<p>Fill this out at the site, before you leave, for every snow visit. City Wide calculates
+your pay from this report: truck time while the truck is actually plowing or spreading,
+shovel labor per person while they are actually shoveling, and ice melt per bag used.</p>
+</div>
+</section>
+
+<main class="wrap" id="formzone">
+
+<div class="rulebox">
+<b class="title">Read this first: how you get paid</b>
+The truck is paid per hour only while it is actually plowing or spreading. A parked or
+idling truck is not paid. Shovel labor is paid per person, per hour, only while that person
+is actually shoveling. Anyone riding in or sitting in the truck is not paid. Never bill a
+person and the truck for the same block of time.
+<ul>
+<li>Example: three crew arrive in one truck. The truck plows 1 hour, then parks while two
+crew shovel 1 hour. Correct report: 1 truck hour, 2 shovel hours. Nothing else.</li>
+<li>Overbilling the truck while it sits, crew while they ride, or ice melt you did not use
+will be docked from your pay. Repeat violations can end your agreement.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2><span class="num">1</span>Who is submitting this report?</h2>
+<div class="grid2">
+<div>
+<label class="f">Your company name <span class="req">*</span></label>
+<input type="text" id="company" placeholder="Your crew or company name">
+</div>
+<div>
+<label class="f">Crew lead on site <span class="req">*</span></label>
+<input type="text" id="name" autocomplete="name" placeholder="First and last name">
+</div>
+<div>
+<label class="f">Email <span class="req">*</span></label>
+<input type="email" id="email" autocomplete="email" placeholder="you@example.com">
+</div>
+<div>
+<label class="f">Phone <span class="req">*</span></label>
+<input type="tel" id="phone" autocomplete="tel" placeholder="(775) 555-0100">
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2><span class="num">2</span>Where did you service?</h2>
+<label class="f">Property or business name <span class="req">*</span></label>
+<input type="text" id="property" placeholder="Business or building name">
+<label class="f">Full address of this report <span class="req">*</span></label>
+<input type="text" id="address" placeholder="Street, city, state, zip">
+<div class="hint">One report per address. If you serviced three addresses tonight, submit three reports.</div>
+<label class="f">Confirm your location <span class="req">*</span></label>
+<button type="button" class="geo-btn" id="geoBtn">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+Capture my GPS location
+</button>
+<div id="geoStatus">Location not captured yet. Tap the button while you are at the site.</div>
+<div class="hint">Snow reports are location verified. By capturing your location you consent to
+City Wide recording the GPS coordinates and time of this submission to verify service. Reports
+without a location are flagged for review and can hold up payment.</div>
+</div>
+
+<div class="card">
+<h2><span class="num">3</span>When were you on site?</h2>
+<div class="grid2">
+<div>
+<label class="f">Date of service <span class="req">*</span></label>
+<input type="date" id="dateOfWork">
+</div>
+<div>
+<label class="f">Total crew on site, including driver <span class="req">*</span></label>
+<input type="number" id="headcount" min="1" step="1" value="1">
+</div>
+<div>
+<label class="f">Time you arrived <span class="req">*</span></label>
+<input type="time" id="arrive">
+</div>
+<div>
+<label class="f">Time you left <span class="req">*</span></label>
+<input type="time" id="depart">
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2><span class="num">4</span>What did you actually do?</h2>
+<label class="f">Work performed <span class="req">*</span> <span style="font-weight:400;color:var(--grey)">(check all that apply)</span></label>
+<label class="check-item"><input type="checkbox" name="work" value="Truck plowing"><span><span class="rt">Truck plowing</span><br><span class="rs">Lots, drive lanes, accessible routes</span></span></label>
+<label class="check-item"><input type="checkbox" name="work" value="Truck spreading ice melt"><span><span class="rt">Truck spreading ice melt</span></span></label>
+<label class="check-item"><input type="checkbox" name="work" value="Hand shoveling"><span><span class="rt">Hand shoveling</span><br><span class="rs">Walkways, ramps, entrances</span></span></label>
+<label class="check-item"><input type="checkbox" name="work" value="Hand spreading ice melt"><span><span class="rt">Hand spreading ice melt</span></span></label>
+<label class="f">Describe exactly what was done <span class="req">*</span></label>
+<textarea id="desc" placeholder="What did you clear, where did you pile the snow, anything ops should know?"></textarea>
+</div>
+
+<div class="card">
+<h2><span class="num">5</span>Billable time, by the actual-use rules</h2>
+<label class="f">Hours the truck was actually plowing or spreading <span class="req">*</span></label>
+<input type="number" id="truckHours" min="0" step="0.25" placeholder="Example: 1.5">
+<div class="hint">Only time the truck was working. Parked, idling, or waiting time does not count. Enter 0 if no truck worked this site.</div>
+<div class="grid2">
+<div>
+<label class="f">How many people shoveled? <span class="req">*</span></label>
+<input type="number" id="shovelers" min="0" step="1" value="0">
+</div>
+<div>
+<label class="f">Total shovel labor hours, all people combined <span class="req">*</span></label>
+<input type="number" id="shovelHours" min="0" step="0.25" placeholder="Example: 2">
+<div class="hint">Count only time actually shoveling or hand spreading. Riding or sitting in the truck never counts. Enter 0 if nobody shoveled.</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2><span class="num">6</span>Ice melt used at this address</h2>
+<label class="f">Bags of ice melt actually used (50 lb. bags) <span class="req">*</span></label>
+<input type="number" id="bags" min="0" step="0.5" placeholder="Example: 3">
+<div class="hint">Only what you spread at this address on this visit. Enter 0 if none.</div>
+</div>
+
+<div class="card">
+<h2><span class="num">7</span>Anything else?</h2>
+<label class="f">Notes for the operations team</label>
+<textarea id="notes" style="min-height:60px" placeholder="Access issues, refreeze risk, damage you noticed, anything else"></textarea>
+</div>
+
+<div class="certbox">
+<input type="checkbox" id="cert">
+<span><b>I certify this report is true and complete.</b> I understand City Wide pays from this
+report, that a parked truck and crew riding in the truck are not payable time, and that
+inaccurate or inflated reporting will be docked from payment and can end my agreement.</span>
+</div>
+
+<input type="text" name="website" id="website" class="hp" tabindex="-1" autocomplete="off">
+
+<div class="submitbar">
+<button id="send">Submit Snow Report</button>
+<span id="err"></span>
+</div>
+</main>
+
+<div class="wrap" style="padding-top:0">
+<div id="done">
+<div class="chk">&#10003;</div>
+<h2>Snow report submitted</h2>
+<p>The operations team has your times, crew count, truck hours, and ice melt. Keep this number if you need to follow up.</p>
+<div class="woid" id="woid"></div><br>
+<a href="snow-report.html">Submit a report for another address</a>
+</div>
+</div>
+
+<footer class="foot"><div class="fin">
+<b>City Wide Facility Solutions</b> &middot; Northern Nevada &middot;
+Questions? Call the service line at (775) 453-4718. <span style="margin-left:auto;font-style:italic;font-weight:700">GoCityWide.com</span>
+</div></footer>
+
+<script>
+"use strict";
+var WEBHOOK="https://script.google.com/macros/s/AKfycbyD91q07tfClt0QHxUtBjgZ-4ILTdCFi4QZJkuniLlS4NptqWtSL6zB21OiisYWfvcdrw/exec";
+
+var geo=null;
+
+// Vendors arriving from the Vendor Resource Center should not see a path back
+// to the internal Ops Hub. Their links carry ?src=vendor; referrer is a fallback.
+(function(){
+var fromVendor=/[?&]src=vendor/.test(location.search)||/cw-vendor-shop/.test(document.referrer||"");
+if(fromVendor){
+var back=document.querySelector(".head a.back");
+if(back)back.style.display="none";
+var again=document.querySelector("#done a");
+if(again)again.setAttribute("href","snow-report.html?src=vendor");
+}
+})();
+
+// default date to today
+(function(){
+var d=new Date();
+var mm=("0"+(d.getMonth()+1)).slice(-2),dd=("0"+d.getDate()).slice(-2);
+document.getElementById("dateOfWork").value=d.getFullYear()+"-"+mm+"-"+dd;
+})();
+
+// checkbox highlight
+document.querySelectorAll(".check-item input").forEach(function(c){
+c.addEventListener("change",function(){
+c.closest(".check-item").classList.toggle("on",c.checked);
+});
+});
+
+// GPS capture
+document.getElementById("geoBtn").addEventListener("click",function(){
+var st=document.getElementById("geoStatus"),btn=document.getElementById("geoBtn");
+if(!navigator.geolocation){st.textContent="This device does not support location. Submit anyway; ops will follow up.";st.className="bad";return;}
+st.textContent="Getting your location...";st.className="";
+navigator.geolocation.getCurrentPosition(function(p){
+geo={lat:p.coords.latitude,lng:p.coords.longitude,accuracy_m:Math.round(p.coords.accuracy)};
+st.textContent="Location captured: "+geo.lat.toFixed(5)+", "+geo.lng.toFixed(5)+" (within about "+geo.accuracy_m+" m)";
+st.className="ok";btn.classList.add("ok");
+},function(){
+st.textContent="Could not get your location. Check that location is allowed for your browser and try again.";
+st.className="bad";
+},{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+});
+
+document.getElementById("send").addEventListener("click",function(){
+var err=document.getElementById("err");err.textContent="";
+function val(id){return document.getElementById(id).value.trim();}
+var company=val("company"),name=val("name"),email=val("email"),phone=val("phone"),
+property=val("property"),address=val("address"),dateOfWork=val("dateOfWork"),
+arrive=val("arrive"),depart=val("depart"),desc=val("desc"),
+headcount=val("headcount"),truckHours=val("truckHours"),
+shovelers=val("shovelers"),shovelHours=val("shovelHours"),bags=val("bags");
+if(!company){err.textContent="Add your company name.";return;}
+if(!name){err.textContent="Add the crew lead's name.";return;}
+if(!email||email.indexOf("@")<1){err.textContent="Add a valid email.";return;}
+if(!phone){err.textContent="Add a phone number.";return;}
+if(!property){err.textContent="Enter the property name.";return;}
+if(!address){err.textContent="Enter the service address.";return;}
+if(!geo){err.textContent="Capture your GPS location at the site before submitting.";return;}
+if(!dateOfWork){err.textContent="Add the date of service.";return;}
+if(!arrive||!depart){err.textContent="Add your arrival and departure times.";return;}
+if(!headcount||parseInt(headcount,10)<1){err.textContent="Add the crew headcount.";return;}
+var works=Array.prototype.map.call(document.querySelectorAll('input[name="work"]:checked'),function(c){return c.value;});
+if(!works.length){err.textContent="Check at least one type of work performed.";return;}
+if(!desc){err.textContent="Describe exactly what was done.";return;}
+if(truckHours===""){err.textContent="Add truck hours. Enter 0 if no truck worked.";return;}
+if(shovelers===""){err.textContent="Add how many people shoveled. Enter 0 if none.";return;}
+if(shovelHours===""){err.textContent="Add total shovel hours. Enter 0 if none.";return;}
+if(bags===""){err.textContent="Add bags of ice melt used. Enter 0 if none.";return;}
+var tH=parseFloat(truckHours)||0,sH=parseFloat(shovelHours)||0,
+sN=parseInt(shovelers,10)||0,hc=parseInt(headcount,10)||1;
+if(tH<=0&&sH<=0){err.textContent="Truck hours and shovel hours are both 0. At least one must be above 0 to bill a visit.";return;}
+if(sH>0&&sN<1){err.textContent="You entered shovel hours but 0 people shoveling. Fix one of them.";return;}
+if(sN>hc){err.textContent="More people shoveling than total crew on site. Fix the counts.";return;}
+// on-site window sanity check (overnight shifts roll past midnight)
+var am=arrive.split(":"),dm=depart.split(":");
+var mins=(parseInt(dm[0],10)*60+parseInt(dm[1],10))-(parseInt(am[0],10)*60+parseInt(am[1],10));
+if(mins<0)mins+=1440;
+var onsiteH=mins/60;
+if(onsiteH>0&&tH>onsiteH+0.01){err.textContent="Truck hours are more than your total time on site. Fix the times.";return;}
+if(onsiteH>0&&sH>(onsiteH*sN)+0.01){err.textContent="Shovel hours are more than the people shoveling could have worked in your on-site window. Fix the numbers.";return;}
+if(!document.getElementById("cert").checked){err.textContent="Check the certification box to submit.";return;}
+var payload={
+kind:"snow_report",
+website:document.getElementById("website").value,
+company:company, name:name, email:email, phone:phone,
+property_name:property, address:address,
+date_of_service:dateOfWork, arrive_time:arrive, depart_time:depart,
+onsite_hours:Math.round(onsiteH*100)/100,
+headcount:headcount,
+work_performed:works.join("; "),
+description:desc,
+truck_hours:truckHours,
+shovelers:shovelers,
+shovel_hours:shovelHours,
+ice_melt_bags:bags,
+notes:val("notes"),
+geo_lat:geo?geo.lat:"", geo_lng:geo?geo.lng:"", geo_accuracy_m:geo?geo.accuracy_m:"",
+maps_link:geo?("https://maps.google.com/?q="+geo.lat+","+geo.lng):"",
+certified:"Yes"
+};
+var btn=document.getElementById("send");
+btn.disabled=true;btn.textContent="Submitting...";
+fetch(WEBHOOK,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)})
+.then(function(r){return r.json();})
+.then(function(j){
+btn.disabled=false;btn.textContent="Submit Snow Report";
+if(j&&j.ok){
+document.getElementById("formzone").style.display="none";
+document.getElementById("done").style.display="block";
+document.getElementById("woid").textContent=j.report_id||"Received";
+window.scrollTo({top:0,behavior:"smooth"});
+}else{
+err.textContent=(j&&j.error)?j.error:"Could not submit. Check the fields and try again.";
+}
+})
+.catch(function(){
+btn.disabled=false;btn.textContent="Submit Snow Report";
+err.textContent="Could not reach the server. Check your connection and try again.";
+});
+});
+</script>
+</body>
+</html>
