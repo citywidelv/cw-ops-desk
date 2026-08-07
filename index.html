@@ -440,7 +440,16 @@ function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace
 /* ---------- Nav: cascading menu tree. EVERY hub tool must be reachable here. ---------- */
 var VS = "https://citywidelv.github.io/cw-vendor-shop/";
 var MENU = [
-{ label:"Opportunities", icon:"board", items:[
+{ label:"Work Tickets", icon:"sheet", items:[
+{label:"Maintenance Work Ticket", href:"work-order.html"},
+{ghead:"CCCNV (Comprehensive Cancer)"},
+{label:"CCCNV Work Requests", href:"https://form.jotform.com/252935932465163"},
+{label:"CCCNV Requests Log", href:"https://www.jotform.com/tables/252935932465163"},
+{ghead:"Tracking"},
+{label:"Work Tickets Sheet", href:"https://docs.google.com/spreadsheets/d/17awrIV6X-Ugaxkw0VLDIH8WVpJ51Ux_5ntNxHu2tzBg/edit"}
+]},
+{ label:"Vendors", icon:"clip", items:[
+{sub:"Opportunities", items:[
 {label:"Post an Opportunity", href:"post.html"},
 {label:"Live Board", href:VS+"opportunities.html"},
 {label:"Vendor Responses", href:"responses.html"},
@@ -448,13 +457,6 @@ var MENU = [
 {ghead:"Tracking"},
 {label:"Opportunities Tracker (Sheet)", href:"https://docs.google.com/spreadsheets/d/1ymbqR7LMvA7sbgZe2Ro5o2dNiXhP08Tn9Hw1b-H5AeQ/edit"}
 ]},
-{ label:"Work Orders", icon:"sheet", items:[
-{label:"Handyman Work Order", href:"work-order.html"},
-{label:"Comprehensive Cancer (legacy Jotform)", href:"https://form.jotform.com/252935932465163"},
-{ghead:"Tracking"},
-{label:"Work Orders Sheet", href:"https://docs.google.com/spreadsheets/d/17awrIV6X-Ugaxkw0VLDIH8WVpJ51Ux_5ntNxHu2tzBg/edit"}
-]},
-{ label:"Vendors", icon:"clip", items:[
 {sub:"Request a Vendor Packet", items:[
 {ghead:"Las Vegas"},
 {label:"Janitorial Packet", href:"https://form.asana.com/?k=RdHag7PTO7L2imrLsWCCVQ&d=13140959242873"},
@@ -510,7 +512,6 @@ var MENU = [
 {label:"View Submissions Table", href:"https://www.jotform.com/tables/241440730763149"},
 {label:"Northern Nevada", href:"https://form.jotform.com/team/253234894174059/nnv-night-manager-route-out"}
 ]},
-{label:"Comprehensive Cancer Work Orders", href:"https://form.jotform.com/252935932465163"},
 {label:"Night Manager AI Tool", href:"https://chatgpt.com/g/g-681233262c3c81918605de9bd3edf7be-city-wide-night-manager-tool"}
 ]},
 { label:"Team & Admin", icon:"home", items:[
