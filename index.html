@@ -17,7 +17,10 @@ build 2026-08-07: the Ops Wall MOVED to the Nevada Team Portal (citywidelv.githu
 as the Team Wall. Same Apps Script feed (auth response `announcements`, POST
 kind:"announcement") - no script changes. This page keeps the wall space as a clean
 placeholder (id="opswallspace") reserved for ops team imagery + saying, coming next.
-Wall composer/render JS removed here; everything else untouched. -->
+Wall composer/render JS removed here; everything else untouched.
+build 2026-08-07b: ops wall space now carries TJ's "Lead with gratitude" wall art,
+rebuilt as native HTML from his Wall Art PDF (crisper + responsive vs embedding
+the image). Small pointer link to the Team Wall kept under the art. -->
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
 --border:#E5E5E5;--gold:#E5B423;
@@ -178,6 +181,30 @@ background:var(--gold);color:var(--black);border-radius:8px;padding:1px 7px}
 .wpost .pmsg{font-size:13px;color:var(--black);margin-top:2px;overflow-wrap:break-word}
 .wempty{text-align:center;color:var(--grey);font-size:12.5px;padding:30px 20px}
 .wempty b{display:block;color:var(--black);font-size:13.5px;margin-bottom:4px}
+
+/* ---------- Ops Wall art: "Lead with gratitude" ---------- */
+.poster{padding:12px 8px 6px;max-width:560px;margin:0 auto}
+.poster .picon{width:62px;height:62px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.poster .pkick{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--grey)}
+.poster .pbig{font-size:clamp(34px,5.2vw,50px);line-height:1.05;color:var(--black);margin-top:10px;font-weight:700}
+.poster .pbig .dot{color:var(--red)}
+.poster .prule{width:88px;height:5px;background:var(--red);border-radius:2px;margin:16px 0 22px}
+.poster .plead{font-size:15.5px;line-height:1.7;color:var(--black)}
+.poster .strike{color:var(--grey);text-decoration:line-through;text-decoration-thickness:2px}
+.poster .pkick2{margin:26px 0 4px}
+.pswap .from{font-size:14px;margin-top:14px}
+.pswap .to{font-size:17px;font-weight:700;margin-top:2px}
+.pswap .to.big{font-size:21px;color:var(--red)}
+.pswap .arrow{color:var(--red);font-weight:700;margin-right:9px}
+.poster .pdiv{border-top:1px solid var(--border);margin:24px 0 18px}
+.poster .pclose{font-size:18.5px;font-weight:700;line-height:1.5}
+.poster .pclose em{font-style:normal;color:var(--red)}
+.poster .pfoot{text-align:center;margin-top:26px;padding-top:20px;border-top:1px solid var(--border)}
+.poster .pfoot img{height:38px;width:auto;display:inline-block}
+.poster .pfoot .pkick{display:block;margin-top:12px;letter-spacing:.22em}
+.poster .pnote{text-align:center;margin-top:16px}
+.poster .pnote a{font-size:11px;color:var(--grey);font-weight:700;text-decoration:none}
+.poster .pnote a:hover{color:var(--red)}
 
 /* helper card next to the wall */
 .helper{background:var(--black);color:#fff;border-radius:14px;box-shadow:var(--shadow);
@@ -378,12 +405,31 @@ search box to jump straight to what you need.</p>
 </div>
 <div class="wallgrid" id="wallgrid">
 <section class="wcard" id="opswallspace">
-<!-- Space reserved: ops team imagery + saying go here next. Keep this section clean. -->
-<div class="whead"><span class="bar-accent"></span><h2>The Ops Wall</h2></div>
-<div class="wempty" style="padding:18px 0 12px">
-<b>The team conversation has a new home.</b>
-Post updates and announcements on the Team Wall at the Nevada Team Portal.
-<div style="margin-top:12px"><a href="https://citywidelv.github.io/" style="display:inline-block;background:var(--red);color:#fff;text-decoration:none;font-weight:700;font-size:12px;padding:10px 16px;border-radius:8px">Go to the Team Wall</a></div>
+<div class="whead"><span class="bar-accent"></span><h2>The Ops Wall</h2>
+<span class="sub">For the operations team</span></div>
+<div class="poster">
+<div class="picon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h1v3l3.5-3H14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/><path d="M18 9h1a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-1v3l-3.5-3H12"/></svg></div>
+<div class="pkick">For Our Facility Solutions Managers</div>
+<div class="pbig">Lead with gratitude<span class="dot">.</span></div>
+<div class="prule"></div>
+<p class="plead"><span class="strike">&ldquo;I&rsquo;m sorry&rdquo;</span> puts you on the defensive.<br>
+<b>&ldquo;Thank you for letting me know&rdquo;</b> keeps you on the client&rsquo;s side of the table: equal stature, focused on the fix.</p>
+<div class="pkick pkick2">The Swap, In Practice</div>
+<div class="pswap">
+<div class="from"><span class="strike">&ldquo;I&rsquo;m sorry about that.&rdquo;</span></div>
+<div class="to big"><span class="arrow">&rarr;</span>&ldquo;Thank you for letting me know.&rdquo;</div>
+<div class="from"><span class="strike">&ldquo;I&rsquo;m sorry you waited.&rdquo;</span></div>
+<div class="to"><span class="arrow">&rarr;</span>&ldquo;Thank you for your patience.&rdquo;</div>
+<div class="from"><span class="strike">&ldquo;I&rsquo;m sorry for the trouble.&rdquo;</span></div>
+<div class="to"><span class="arrow">&rarr;</span>&ldquo;Thank you for letting us make it right.&rdquo;</div>
+</div>
+<div class="pdiv"></div>
+<p class="pclose">Gratitude isn&rsquo;t soft. It&rsquo;s the posture of the person <em>in control of the solution.</em></p>
+<div class="pfoot">
+<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+<span class="pkick">Your One Point of Contact</span>
+</div>
+<div class="pnote"><a href="https://citywidelv.github.io/">Team updates now live on the Team Wall &rarr;</a></div>
 </div>
 </section>
 <aside class="helper">
