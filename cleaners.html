@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Cleaner Roster | CW Ops Hub</title>
+<!-- build 2026-08-12a -->
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+a{color:var(--red)}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.head .bar{max-width:1080px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  border-left:2px solid var(--border);padding-left:14px}
+.head .back{margin-left:auto;font-size:12px;font-weight:700;background:var(--red);color:#fff;
+  text-decoration:none;border-radius:6px;padding:8px 14px;white-space:nowrap}
+.head .back:hover{background:var(--red-dark);color:#fff}
+.wrap{max-width:1080px;margin:0 auto;padding:26px 20px 60px}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 20px;max-width:70ch}
+.gatebox{max-width:360px;background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.gatebox input{width:100%;font-family:inherit;font-size:14px;border:1.5px solid var(--border);
+  border-radius:8px;padding:10px 12px;margin:12px 0;text-align:center}
+.btn{font-family:inherit;font-size:14px;font-weight:700;background:var(--red);color:#fff;border:none;
+  border-radius:8px;padding:11px 22px;cursor:pointer}
+.btn:hover{background:var(--red-dark)}
+.btn.ghost{background:#fff;color:var(--black);border:2px solid var(--border)}
+.btn.sm{font-size:12px;padding:7px 14px}
+#gmsg{font-size:12.5px;font-weight:700;color:var(--red)}
+.counts{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 16px;min-width:104px}
+.kpi b{display:block;font-size:21px;line-height:1.2}
+.kpi span{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--grey)}
+.kpi.alert{border-color:var(--red);border-left:4px solid var(--red)}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 18px}
+.tools input[type=search]{font-family:inherit;font-size:14px;border:1.5px solid var(--border);
+  border-radius:22px;padding:11px 18px;min-width:280px;flex:1;background:#fff}
+.tools .fbtn{font-family:inherit;font-size:12.5px;font-weight:700;background:#fff;color:var(--black);
+  border:2px solid var(--border);border-radius:20px;padding:8px 14px;cursor:pointer}
+.tools .fbtn.on{background:var(--black);border-color:var(--black);color:#fff}
+.section-h{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  margin:26px 0 10px}
+.acard{background:#fff;border:1px solid var(--border);border-left:5px solid var(--red);border-radius:12px;
+  box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.acard.unmatched{border-left-color:var(--gold)}
+.ahead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;cursor:pointer}
+.ahead:hover{background:#FAFAFA}
+.ahead h2{font-size:15.5px;flex:1;min-width:200px}
+.abody{display:none;border-top:1px solid var(--border);padding:4px 18px 14px}
+.acard.open .abody{display:block}
+.badge{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:4px;padding:3px 9px}
+.b-count{background:#2D2A26;color:#fff}
+.b-flag{background:#FBF3D6;border:1px solid var(--gold);color:var(--black)}
+.b-pend{background:var(--red);color:#fff}
+.prow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 0;border-bottom:1px dashed var(--border)}
+.prow:last-child{border-bottom:none}
+.prow .nm{font-weight:700;min-width:160px}
+.prow .co{font-size:12px;color:var(--grey);flex:1;min-width:140px}
+.prow .st{font-size:11px;font-weight:700}
+.st.active{color:var(--teal)}
+.st.pending{color:var(--red)}
+.st.review{color:#9A7B00}
+.st.removed{color:var(--grey)}
+.warn{font-size:11.5px;color:var(--red);width:100%}
+.rcard{background:#fff;border:1px solid var(--border);border-left:5px solid var(--red);border-radius:12px;
+  box-shadow:var(--shadow);margin-bottom:12px;padding:16px 18px}
+.rcard .rt{font-size:14.5px;font-weight:700}
+.rcard .rs{font-size:12.5px;color:var(--grey);margin:4px 0 10px}
+.rcard .why{font-size:12.5px;color:var(--red);margin-bottom:10px}
+.ract{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.ract input[type=text]{font-family:inherit;font-size:13px;border:1.5px solid var(--border);
+  border-radius:8px;padding:8px 10px;min-width:260px}
+.ract label{font-size:11.5px;color:var(--grey)}
+.state{background:#fff;border:1px dashed var(--border);border-radius:12px;padding:44px 24px;
+  text-align:center;color:var(--grey)}
+.state b{display:block;color:var(--black);font-size:16px;margin-bottom:6px}
+.hidden{display:none!important}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:24px}
+.foot a{color:var(--grey)}
+@media print{ .head,.tools,.gatebox,.foot,.ract,.counts{display:none!important}
+  .acard{border:1px solid #ccc;box-shadow:none;page-break-inside:avoid}
+  .abody{display:block!important} }
+</style>
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t">Cleaner Roster</span>
+  <a class="back" href="index.html">&larr; Back to Ops Hub</a>
+</div></header>
+
+<div class="wrap">
+<h1>Who Is In This Building</h1>
+<p class="lede">Every person a crew company has reported into a City Wide building, by building.
+Type a building name, a person, or a company to jump straight to it. Items that need a decision
+sit at the top. Nothing here is ever deleted; people who came off stay on the record.</p>
+
+<div id="gate" class="gatebox hidden">
+  <b>Team passcode</b>
+  <input type="password" id="gpass" placeholder="Team passcode">
+  <button class="btn" id="ggo">Open Roster</button>
+  <div id="gmsg"></div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="counts" id="counts"></div>
+  <div class="tools">
+    <input type="search" id="q" placeholder="Building, person, or crew company">
+    <button class="fbtn on" data-f="active">In Buildings Now</button>
+    <button class="fbtn" data-f="all">Everyone Ever</button>
+    <button class="fbtn" data-f="flagged">Flagged Only</button>
+    <button class="btn ghost sm" id="reload" type="button">Refresh</button>
+  </div>
+  <div id="queue"></div>
+  <div id="list"><div class="state">Loading...</div></div>
+  <p style="margin-top:18px;font-size:12px"><a id="sheetLink" href="#" target="_blank" rel="noopener">Open the Account Cleaner Tracker sheet</a> to export or audit the full event history.</p>
+</div>
+</div>
+
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
+
+<datalist id="acctList"></datalist>
+
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var KEY = "cwOpsHubPass";
+var FILTER = "active", QUERY = "", DATA = null, PASS = "";
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d=document.createElement("div"); d.textContent=String(s==null?"":s); return d.innerHTML; }
+function who(){ return localStorage.getItem("cwFsmName") || ""; }
+
+function post(body, cb){
+  body.passcode = PASS;
+  fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) })
+    .then(function(r){ return r.json(); }).then(cb)
+    .catch(function(){ cb({ ok:false, error:"Could not reach the service." }); });
+}
+
+function statusClass(s){
+  if (s === "Active") return "active";
+  if (s === "Pending Removal") return "pending";
+  if (s === "Needs Review") return "review";
+  return "removed";
+}
+
+function personRow(r){
+  var nm = ((r.cleaner_first || "") + " " + (r.cleaner_last || "")).trim();
+  var st = String(r.status || "");
+  var extra = [];
+  if (r.role) extra.push(r.role);
+  if (r.start_date) extra.push("started " + r.start_date);
+  if (r.last_day) extra.push("last day " + r.last_day);
+  return '<div class="prow">'
+    + '<span class="nm">' + esc(nm) + "</span>"
+    + '<span class="co">' + esc(r.company_matched || "company not matched") + (extra.length ? " &middot; " + esc(extra.join(" &middot; ")) : "") + "</span>"
+    + '<span class="st ' + statusClass(st) + '">' + esc(st) + "</span>"
+    + (r.flags ? '<span class="warn">' + esc(r.flags) + "</span>" : "")
+    + "</div>";
+}
+
+function buildingCard(name, rows, unmatched){
+  var pend = rows.filter(function(r){ return r.status === "Pending Removal"; }).length;
+  var flag = rows.filter(function(r){ return r.flags; }).length;
+  var live = rows.filter(function(r){ return r.status === "Active" || r.status === "Pending Removal"; }).length;
+  return '<div class="acard' + (unmatched ? " unmatched" : "") + '">'
+    + '<div class="ahead" onclick="this.parentNode.classList.toggle(\'open\')">'
+    + "<h2>" + esc(name) + (unmatched ? ' <span style="font-weight:400;font-size:12px;color:var(--grey)">(as typed, not matched to an account)</span>' : "") + "</h2>"
+    + '<span class="badge b-count">' + live + (live === 1 ? " person" : " people") + "</span>"
+    + (pend ? '<span class="badge b-pend">' + pend + " pending removal</span>" : "")
+    + (flag ? '<span class="badge b-flag">' + flag + " flagged</span>" : "")
+    + '</div><div class="abody">' + rows.map(personRow).join("") + "</div></div>";
+}
+
+function queueCard(e){
+  var nm = ((e.cleaner_first || "") + " " + (e.cleaner_last || "")).trim();
+  var isRemoval = String(e.action) === "remove";
+  var why = [];
+  if (!e.account_matched) why.push('Building typed as "' + e.account_raw + '" did not match an account');
+  if (String(e.background_check || "").toLowerCase() !== "yes" && !isRemoval) why.push("Background check: " + (e.background_check || "not answered"));
+  if (String(e.age_confirmed || "").toLowerCase() !== "yes" && !isRemoval) why.push("18 or older not confirmed");
+  if (isRemoval && e.status === "Needs Review") why.push("Could not tell which person or which building this removal is for");
+
+  var acts = "";
+  if (!e.account_matched){
+    acts += '<input type="text" list="acctList" placeholder="Pick the right building" id="fix_' + e.event_id + '">'
+      + '<label><input type="checkbox" id="rem_' + e.event_id + '" checked> Remember this spelling</label>'
+      + '<button class="btn sm" onclick="resolveAcct(\'' + e.event_id + '\')">Save Building</button>';
+  }
+  if (isRemoval && e.status === "Pending Removal"){
+    acts += '<button class="btn sm" onclick="act(\'' + e.event_id + '\',\'confirm_removal\')">Confirm Removal</button>'
+      + '<button class="btn ghost sm" onclick="act(\'' + e.event_id + '\',\'reject_removal\')">Reject</button>';
+  } else if (!isRemoval && e.account_matched){
+    acts += '<button class="btn sm" onclick="act(\'' + e.event_id + '\',\'clear_flag\')">Looks Fine, Clear It</button>';
+  }
+
+  return '<div class="rcard">'
+    + '<div class="rt">' + esc(nm) + " &middot; " + esc(e.company_raw || "") + "</div>"
+    + '<div class="rs">' + esc(isRemoval ? "Removal request" : "New cleaner")
+    + (e.account_matched ? " &middot; " + esc(e.account_matched) : "")
+    + " &middot; " + esc(e.received || "") + " &middot; " + esc(e.event_id) + "</div>"
+    + '<div class="why">' + esc(why.join(". ")) + "</div>"
+    + '<div class="ract">' + acts + "</div></div>";
+}
+
+function render(){
+  if (!DATA) return;
+  var c = DATA.counts || {};
+  $("counts").innerHTML =
+      '<div class="kpi"><b>' + (c.active || 0) + "</b><span>In buildings</span></div>"
+    + '<div class="kpi' + (c.pending ? " alert" : "") + '"><b>' + (c.pending || 0) + "</b><span>Pending removal</span></div>"
+    + '<div class="kpi' + (c.review ? " alert" : "") + '"><b>' + (c.review || 0) + "</b><span>Needs review</span></div>"
+    + '<div class="kpi"><b>' + (c.removed || 0) + "</b><span>Off the roster</span></div>";
+
+  $("acctList").innerHTML = (DATA.accounts || []).map(function(a){ return '<option value="' + esc(a) + '">'; }).join("");
+  $("sheetLink").href = DATA.sheet_url || "#";
+
+  var q = QUERY.toLowerCase();
+  var queue = (DATA.review || []).filter(function(e){ return String(e.action).indexOf("fsm_") !== 0; });
+  $("queue").innerHTML = queue.length
+    ? '<div class="section-h">Needs a decision (' + queue.length + ")</div>" + queue.map(queueCard).join("")
+    : "";
+
+  var rows = (DATA.roster || []).filter(function(r){
+    if (FILTER === "active" && r.status !== "Active" && r.status !== "Pending Removal") return false;
+    if (FILTER === "flagged" && !r.flags && r.status === "Active") return false;
+    if (q){
+      var hay = [r.account_matched, r.account_raw, r.company_matched, r.cleaner_first, r.cleaner_last, r.role]
+        .join(" ").toLowerCase();
+      if (hay.indexOf(q) < 0) return false;
+    }
+    return true;
+  });
+
+  var groups = {}, order = [];
+  rows.forEach(function(r){
+    var key = r.account_matched || ("~" + (r.account_raw || "No building given"));
+    if (!groups[key]){ groups[key] = []; order.push(key); }
+    groups[key].push(r);
+  });
+  order.sort(function(a, b){ return a.replace("~", "").toLowerCase() < b.replace("~", "").toLowerCase() ? -1 : 1; });
+
+  var html = order.map(function(k){
+    return buildingCard(k.charAt(0) === "~" ? k.slice(1) : k, groups[k], k.charAt(0) === "~");
+  }).join("");
+
+  $("list").innerHTML = html || '<div class="state"><b>Nothing here yet</b>'
+    + (q ? "No building, person, or company matches that search." : "Crew companies have not reported anyone into a building yet.") + "</div>";
+
+  if (q && order.length && order.length <= 6){
+    Array.prototype.forEach.call(document.querySelectorAll(".acard"), function(el){ el.classList.add("open"); });
+  }
+}
+
+function askWho(){
+  var n = who();
+  if (n) return n;
+  n = window.prompt("Your name, for the record on this decision:") || "";
+  n = n.trim();
+  if (n) localStorage.setItem("cwFsmName", n);
+  return n || "FSM";
+}
+
+function act(eventId, op){
+  var name = askWho();
+  post({ kind:"cleaner_review", op:op, event_id:eventId, reviewed_by:name }, function(r){
+    if (!r.ok) return alert(r.error || "That did not go through.");
+    load(PASS);
+  });
+}
+function resolveAcct(eventId){
+  var v = ($("fix_" + eventId) || {}).value || "";
+  v = v.trim();
+  if (!v) return alert("Pick the building first.");
+  var name = askWho();
+  var remember = $("rem_" + eventId) && $("rem_" + eventId).checked ? "1" : "0";
+  post({ kind:"cleaner_review", op:"resolve_account", event_id:eventId,
+         account_matched:v, remember:remember, reviewed_by:name }, function(r){
+    if (!r.ok) return alert(r.error || "That did not go through.");
+    load(PASS);
+  });
+}
+
+function showGate(msg){
+  $("app").classList.add("hidden");
+  $("gate").classList.remove("hidden");
+  $("gmsg").textContent = msg || "";
+}
+function load(pass){
+  PASS = pass;
+  $("list").innerHTML = '<div class="state">Loading...</div>';
+  post({ kind:"cleaner_admin" }, function(r){
+    if (r && r.ok){
+      localStorage.setItem(KEY, pass);
+      DATA = r;
+      $("gate").classList.add("hidden");
+      $("app").classList.remove("hidden");
+      render();
+    } else {
+      if (r && r.error === "Wrong passcode.") localStorage.removeItem(KEY);
+      showGate((r && r.error) || "Wrong passcode.");
+    }
+  });
+}
+
+$("ggo").addEventListener("click", function(){ var p = $("gpass").value.trim(); if (p) load(p); });
+$("gpass").addEventListener("keydown", function(e){ if (e.key === "Enter"){ var p = this.value.trim(); if (p) load(p); } });
+$("reload").addEventListener("click", function(){ if (PASS) load(PASS); });
+$("q").addEventListener("input", function(){ QUERY = this.value.trim(); render(); });
+Array.prototype.forEach.call(document.querySelectorAll(".fbtn"), function(b){
+  b.addEventListener("click", function(){
+    Array.prototype.forEach.call(document.querySelectorAll(".fbtn"), function(x){ x.classList.remove("on"); });
+    b.classList.add("on"); FILTER = b.getAttribute("data-f"); render();
+  });
+});
+(function(){ var p = localStorage.getItem(KEY); if (p) load(p); else showGate(""); })();
+</script>
+</body>
+</html>
