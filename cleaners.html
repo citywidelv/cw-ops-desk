@@ -139,6 +139,21 @@ function $(id){ return document.getElementById(id); }
 function esc(s){ var d=document.createElement("div"); d.textContent=String(s==null?"":s); return d.innerHTML; }
 function who(){ return localStorage.getItem("cwFsmName") || ""; }
 
+// Sheets hands dates back as ISO strings. Show Las Vegas local time instead.
+// Anything already formatted by the server passes straight through.
+function fmtWhen(v){
+  var s = String(v == null ? "" : v);
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(s)) return s;
+  var d = new Date(s);
+  if (isNaN(d.getTime())) return s;
+  var opt = { timeZone:"America/Los_Angeles", year:"numeric", month:"2-digit", day:"2-digit" };
+  var day = d.toLocaleDateString("en-US", opt);
+  var hasTime = /T(?!00:00:00)/.test(s) && !/T0[07]:00:00/.test(s);
+  if (!hasTime) return day;
+  return day + " " + d.toLocaleTimeString("en-US",
+    { timeZone:"America/Los_Angeles", hour:"numeric", minute:"2-digit" });
+}
+
 function post(body, cb){
   body.passcode = PASS;
   fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) })
@@ -158,8 +173,8 @@ function personRow(r){
   var st = String(r.status || "");
   var extra = [];
   if (r.role) extra.push(r.role);
-  if (r.start_date) extra.push("started " + r.start_date);
-  if (r.last_day) extra.push("last day " + r.last_day);
+  if (r.start_date) extra.push("started " + fmtWhen(r.start_date));
+  if (r.last_day) extra.push("last day " + fmtWhen(r.last_day));
   return '<div class="prow">'
     + '<span class="nm">' + esc(nm) + "</span>"
     + '<span class="co">' + esc(r.company_matched || "company not matched") + (extra.length ? " &middot; " + esc(extra.join(" &middot; ")) : "") + "</span>"
@@ -184,14 +199,26 @@ function buildingCard(name, rows, unmatched){
 function queueCard(e){
   var nm = ((e.cleaner_first || "") + " " + (e.cleaner_last || "")).trim();
   var isRemoval = String(e.action) === "remove";
+  var typedBldg = String(e.account_raw || "").trim();
+  var unresolvedRemoval = isRemoval && e.status === "Needs Review";
   var why = [];
-  if (!e.account_matched) why.push('Building typed as "' + e.account_raw + '" did not match an account');
+  if (unresolvedRemoval){
+    why.push("We could not match this removal to anyone currently on this crew's roster"
+      + (typedBldg ? ' for "' + typedBldg + '"' : ""));
+  } else if (!e.account_matched && typedBldg){
+    why.push('Building typed as "' + typedBldg + '" did not match an account');
+  } else if (!e.account_matched){
+    why.push("No building was given");
+  }
   if (String(e.background_check || "").toLowerCase() !== "yes" && !isRemoval) why.push("Background check: " + (e.background_check || "not answered"));
   if (String(e.age_confirmed || "").toLowerCase() !== "yes" && !isRemoval) why.push("18 or older not confirmed");
-  if (isRemoval && e.status === "Needs Review") why.push("Could not tell which person or which building this removal is for");
 
   var acts = "";
-  if (!e.account_matched){
+  if (unresolvedRemoval){
+    // A removal nobody can be matched to has no building to fix. Either the crew
+    // resubmits it or an FSM dismisses it. Dismissing keeps the row on the record.
+    acts += '<button class="btn sm" onclick="act(\'' + e.event_id + '\',\'reject_removal\')">Dismiss This Request</button>';
+  } else if (!e.account_matched && typedBldg){
     acts += '<input type="text" list="acctList" placeholder="Pick the right building" id="fix_' + e.event_id + '">'
       + '<label><input type="checkbox" id="rem_' + e.event_id + '" checked> Remember this spelling</label>'
       + '<button class="btn sm" onclick="resolveAcct(\'' + e.event_id + '\')">Save Building</button>';
@@ -207,7 +234,7 @@ function queueCard(e){
     + '<div class="rt">' + esc(nm) + " &middot; " + esc(e.company_raw || "") + "</div>"
     + '<div class="rs">' + esc(isRemoval ? "Removal request" : "New cleaner")
     + (e.account_matched ? " &middot; " + esc(e.account_matched) : "")
-    + " &middot; " + esc(e.received || "") + " &middot; " + esc(e.event_id) + "</div>"
+    + " &middot; " + esc(fmtWhen(e.received)) + " &middot; " + esc(e.event_id) + "</div>"
     + '<div class="why">' + esc(why.join(". ")) + "</div>"
     + '<div class="ract">' + acts + "</div></div>";
 }
