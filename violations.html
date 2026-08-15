@@ -92,6 +92,9 @@ textarea{min-height:60px;resize:vertical;}
     <input type="text" id="icSearch" list="icList" placeholder="Start typing a company or owner..." autocomplete="off">
     <datalist id="icList"></datalist>
     <p class="note" id="icPicked"></p>
+    <label>Notification email(s)</label>
+    <input type="text" id="notifyEmail" placeholder="Fills from the roster when you pick the IC. Edit freely.">
+    <p class="note">Separate more than one address with a comma or semicolon, for companies with two owners.</p>
     <div class="hist" id="hist"></div>
     <div class="row">
       <div><label>Account / building</label><input type="text" id="account" placeholder="Account name the vendor knows"></div>
@@ -148,11 +151,12 @@ var WEBHOOK='https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQ
 var LOGO='https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
 var DATA=null, IC=null, LEVEL=1;
 
+// Fallback only. The live lists come from the Dropdowns tab of the CW Violation Notices sheet.
 var FTYPES=[
- {type:'chemicals',label:'Incorrect or non-compliant chemicals',hint:'OSHA hazard communication. The formal one.',items:['Unlabeled chemical container on site','Chemical not on the client approved list','SDS sheet missing from the janitor closet','Improper secondary container or dilution','Prohibited chemical used on a protected surface'],extra:'client_mandate',extraLabel:'This account has a client chemical directive attached to Exhibit A'},
- {type:'background',label:'Person without a background check',hint:'Person may work pending results only after the request is submitted.',items:['Person on site with no approved background check on file','Unreported new crew member working the account','No badge issued for a person on site']},
- {type:'uniform',label:'Uniform or badge violation',hint:'Badges and uniforms are required in every client building.',items:['Crew member out of uniform','No City Wide badge worn','No photo ID matching the badge']},
- {type:'scope',label:'Scope of work not executed',hint:'Measured against the Exhibit A scope.',items:['Area not cleaned','Contracted task not performed','Building not finaled','Missed service entirely']}
+ {type:'chemicals',label:'Incorrect or non-compliant chemicals',hint:'OSHA hazard communication. The formal one.',items:['Unlabeled chemical container on site','Chemical not on the client approved list','SDS sheet missing from the janitor closet','Improper secondary container or dilution','Prohibited chemical used on a protected surface','Other (describe in the details box)']},
+ {type:'background',label:'Person without a background check',hint:'Person may work pending results only after the request is submitted.',items:['Person on site with no approved background check on file','Unreported new crew member working the account','No badge issued for a person on site','Other (describe in the details box)']},
+ {type:'uniform',label:'Uniform or badge violation',hint:'Badges and uniforms are required in every client building.',items:['Crew member out of uniform','No City Wide badge worn','No photo ID matching the badge','Other (describe in the details box)']},
+ {type:'scope',label:'Scope of work not executed',hint:'Measured against the Exhibit A scope.',items:['Area not cleaned','Contracted task not performed','Building not finaled','Missed service entirely','Other (describe in the details box)']}
 ];
 
 function el(id){return document.getElementById(id);}
@@ -174,19 +178,25 @@ function boot(){
   post({kind:'vio_roster'}).then(function(r){
     if(!r.ok){el('gateErr').textContent=r.error||'Could not load';el('gateErr').style.display='block';return;}
     DATA=r;
+    if(r.dropdowns&&r.dropdowns.length)FTYPES=r.dropdowns;
     el('gate').style.display='none';
     el('app').style.display='block';
     if(String(r.config.live).toUpperCase()!=='TRUE'){el('liveWarn').style.display='block';el('testChk').checked=true;}
     var iss=el('issuer'); iss.innerHTML='<option value="">Select your name</option>';
     r.issuers.forEach(function(p,i){var o=document.createElement('option');o.value=i;o.textContent=p.name;iss.appendChild(o);});
     iss.onchange=function(){var p=r.issuers[iss.value];el('issuerEmail').value=p?(p.email||''):'';};
-    el('doo').value=r.config.doo_name||'';
+    setDoo();
     el('idate').value=new Date().toISOString().slice(0,10);
     buildIcList(); buildFindings(); setLevel(1);
     el('cbAmt').value=Number(r.config.chargeback_rate||25)*Number(r.config.chargeback_min_hours||2);
-    el('market').onchange=buildIcList;
+    el('market').onchange=function(){setDoo();buildIcList();};
     el('icSearch').oninput=pickIc;
   }).catch(function(e){el('gateErr').textContent='Could not reach the server. '+e;el('gateErr').style.display='block';});
+}
+
+function setDoo(){
+  var m=el('market').value;
+  el('doo').value=m==='Northern Nevada'?(DATA.config.doo_nnv||'Jeremy Walker'):(DATA.config.doo_name||'Robert Krause');
 }
 
 function buildIcList(){
@@ -208,7 +218,8 @@ function pickIc(){
   var hit=DATA.roster.find(function(r){return r.market===m&&r.dba===dba;});
   if(!hit){IC=null;return;}
   IC=hit;
-  el('icPicked').textContent='Selected: '+hit.dba+(hit.owner?', '+hit.owner:'')+(hit.email?' ('+hit.email+')':' (NO EMAIL ON ROSTER)')+(hit.status&&hit.status!=='Active Independent Contractor'?' ['+hit.status+']':'');
+  el('icPicked').textContent='Selected: '+hit.dba+(hit.owner?', '+hit.owner:'')+(hit.status&&hit.status!=='Active Independent Contractor'?' ['+hit.status+']':'');
+  el('notifyEmail').value=hit.email||'';
   var key=(hit.vendor_no&&hit.vendor_no!=='TEST')?'v:'+hit.vendor_no:'d:'+hit.dba.toLowerCase();
   var h=(DATA.history||{})[key]||[];
   var box=el('hist');
@@ -230,7 +241,7 @@ function buildFindings(){
     f.items.forEach(function(it,ii){
       h+='<label class="chk"><input type="checkbox" data-f="'+fi+'" data-i="'+ii+'"> '+it+'</label>';
     });
-    if(f.extra){h+='<label class="chk"><input type="checkbox" id="x_'+f.extra+'"> <b>'+f.extraLabel+'</b></label>';}
+    if(f.type==='chemicals'){h+='<label class="chk"><input type="checkbox" id="x_client_mandate"> <b>This account has a client chemical directive attached to Exhibit A</b></label>';}
     h+='<label>Details (names, areas, what was seen)</label><textarea id="det_'+f.type+'"></textarea>';
     d.innerHTML=h; host.appendChild(d);
   });
@@ -251,7 +262,7 @@ function gather(){
     var det=el('det_'+f.type).value.trim();
     if(items.length||det){
       var obj={type:f.type,label:f.label,items:items,detail:det};
-      if(f.extra&&el('x_'+f.extra)&&el('x_'+f.extra).checked)obj.client_mandate=true;
+      if(f.type==='chemicals'&&el('x_client_mandate')&&el('x_client_mandate').checked)obj.client_mandate=true;
       findings.push(obj);
     }
   });
@@ -263,6 +274,7 @@ function gather(){
     issuer_name:iss.options[iss.selectedIndex]?iss.options[iss.selectedIndex].textContent:'',
     issuer_email:el('issuerEmail').value.trim(),
     ic:IC?{dba:IC.dba,owner:IC.owner,email:IC.email,vendor_no:IC.vendor_no}:null,
+    notify_email:el('notifyEmail').value.trim(),
     account:el('account').value.trim(),
     inspection_date:el('idate').value,
     findings:findings,
@@ -283,7 +295,11 @@ function validate(d){
   if(!d.account)return 'Enter the account name.';
   if(!d.findings.length)return 'Check at least one finding.';
   if(!d.fsm_name)return 'Enter the FSM name the vendor should call.';
-  if(!d.test&&!d.ic.email)return 'This IC has no email on the roster. Fix the Roster tab first or send as test.';
+  if(!d.test){
+    var toks=d.notify_email.split(/[,;]+/).map(function(s){return s.trim();}).filter(Boolean);
+    if(!toks.length)return 'Enter at least one notification email.';
+    for(var i=0;i<toks.length;i++){if(toks[i].indexOf('@')<1)return 'This does not look like an email: '+toks[i];}
+  }
   return '';
 }
 
