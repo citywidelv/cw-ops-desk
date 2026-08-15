@@ -99,7 +99,13 @@ textarea{min-height:60px;resize:vertical;}
     <div class="row">
       <div><label>Account / building</label><input type="text" id="account" placeholder="Account name the vendor knows"></div>
       <div><label>Inspection date</label><input type="date" id="idate"></div>
+      <div><label>How was this documented</label><select id="source"></select></div>
     </div>
+    <p class="note">The source stays on the internal log. The vendor email names it only when it was our own inspection.</p>
+    <label>Photos</label>
+    <input type="file" id="photoPick" accept="image/*" multiple>
+    <div id="photoThumbs" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;"></div>
+    <p class="note">Up to 6. Photos are shrunk in your browser, stored in the CW Violation Photos Drive folder, and shown in the notice.</p>
   </div>
 
   <div class="card">
@@ -149,7 +155,8 @@ textarea{min-height:60px;resize:vertical;}
 <script>
 var WEBHOOK='https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec';
 var LOGO='https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
-var DATA=null, IC=null, LEVEL=1;
+var DATA=null, IC=null, LEVEL=1, PHOTOS=[];
+var SOURCE_FALLBACK=['Night Manager inspection','FSM inspection','Customer email','Customer phone call','Customer walkthrough','Other'];
 
 // Fallback only. The live lists come from the Dropdowns tab of the CW Violation Notices sheet.
 var FTYPES=[
@@ -178,7 +185,17 @@ function boot(){
   post({kind:'vio_roster'}).then(function(r){
     if(!r.ok){el('gateErr').textContent=r.error||'Could not load';el('gateErr').style.display='block';return;}
     DATA=r;
-    if(r.dropdowns&&r.dropdowns.length)FTYPES=r.dropdowns;
+    var srcItems=SOURCE_FALLBACK;
+    if(r.dropdowns&&r.dropdowns.length){
+      var srcGroup=r.dropdowns.find(function(g){return g.type==='source';});
+      if(srcGroup&&srcGroup.items.length)srcItems=srcGroup.items;
+      var ft=r.dropdowns.filter(function(g){return g.type!=='source';});
+      if(ft.length)FTYPES=ft;
+    }
+    var srcSel=el('source');
+    srcSel.innerHTML='';
+    srcItems.forEach(function(s){var o=document.createElement('option');o.value=s;o.textContent=s;srcSel.appendChild(o);});
+    el('photoPick').onchange=addPhotos;
     el('gate').style.display='none';
     el('app').style.display='block';
     if(String(r.config.live).toUpperCase()!=='TRUE'){el('liveWarn').style.display='block';el('testChk').checked=true;}
@@ -247,6 +264,54 @@ function buildFindings(){
   });
 }
 
+function addPhotos(ev){
+  var files=Array.prototype.slice.call(ev.target.files||[]);
+  files.forEach(function(file){
+    if(PHOTOS.length>=6)return;
+    var img=new Image();
+    var url=URL.createObjectURL(file);
+    img.onload=function(){
+      var max=1000,w=img.width,h=img.height;
+      if(w>h&&w>max){h=Math.round(h*max/w);w=max;}else if(h>=w&&h>max){w=Math.round(w*max/h);h=max;}
+      var c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      var dataUrl=c.toDataURL('image/jpeg',0.65);
+      PHOTOS.push({name:(file.name||'photo').replace(/\.[^.]+$/,'')+'.jpg',dataUrl:dataUrl});
+      URL.revokeObjectURL(url);
+      drawThumbs();
+    };
+    img.src=url;
+  });
+  ev.target.value='';
+}
+
+function drawThumbs(){
+  var host=el('photoThumbs');host.innerHTML='';
+  PHOTOS.forEach(function(p,i){
+    var d=document.createElement('div');
+    d.style.cssText='position:relative;width:92px;';
+    d.innerHTML='<img src="'+p.dataUrl+'" style="width:92px;height:92px;object-fit:cover;border-radius:8px;border:1px solid #ddd;">'+
+      '<button data-i="'+i+'" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:11px;border:0;background:#D22730;color:#fff;font-weight:bold;cursor:pointer;">x</button>';
+    d.querySelector('button').onclick=function(){PHOTOS.splice(Number(this.dataset.i),1);drawThumbs();};
+    host.appendChild(d);
+  });
+}
+
+function uploadPhotos(){
+  var done=[];
+  var chain=Promise.resolve();
+  PHOTOS.forEach(function(p,i){
+    chain=chain.then(function(){
+      el('sendBtn').textContent='Uploading photo '+(i+1)+' of '+PHOTOS.length+'...';
+      return post({kind:'vio_photo',name:p.name,mime:'image/jpeg',data:p.dataUrl.split(',')[1]}).then(function(r){
+        if(!r.ok)throw new Error(r.error||'Photo upload failed');
+        done.push({id:r.id,img:r.img,view:r.view});
+      });
+    });
+  });
+  return chain.then(function(){return done;});
+}
+
 function setLevel(l){
   LEVEL=l;
   document.querySelectorAll('.lvl').forEach(function(d){d.classList.toggle('sel',Number(d.dataset.l)===l);});
@@ -277,6 +342,7 @@ function gather(){
     notify_email:el('notifyEmail').value.trim(),
     account:el('account').value.trim(),
     inspection_date:el('idate').value,
+    source:el('source').value,
     findings:findings,
     nature:(document.querySelector('input[name="nature"]:checked')||{}).value||'',
     level:LEVEL,
@@ -315,6 +381,13 @@ function preview(){
   var nature='';
   if(d.nature==='Disregard of a documented requirement')nature=P('The requirement at issue is documented and acknowledged in your agreement. City Wide is not treating this finding as an oversight.');
   else if(d.nature==='Repeat issue')nature=P('This condition repeats an issue previously brought to your attention.');
+  var sourceLine='';
+  if(d.source&&/inspection/i.test(d.source))sourceLine=P('Documented during a '+esc(d.source)+(d.inspection_date?' on '+esc(d.inspection_date):'')+'.');
+  var photoBlock='';
+  if(PHOTOS.length){
+    photoBlock='<p style="margin:0 0 6px;font-size:14px;font-weight:bold;color:#2d2a26;">Documentation</p>';
+    PHOTOS.forEach(function(p){photoBlock+='<img src="'+p.dataUrl+'" width="300" style="display:block;border:1px solid #ddd;margin:0 0 10px;max-width:100%;">';});
+  }
   var blocks='';
   d.findings.forEach(function(f,i){
     var items=f.items.length?'<ul style="margin:6px 0 10px 18px;padding:0;font-size:13px;line-height:1.55;color:#2d2a26;"><li>'+f.items.map(esc).join('</li><li>')+'</li></ul>':'';
@@ -348,7 +421,7 @@ function preview(){
     '<tr><td style="padding:16px 30px 28px;font-family:Verdana,Arial,sans-serif;">'+
     '<p style="margin:0 0 4px;font-size:13px;color:#636466;">'+esc(d.ic.dba)+(d.ic.owner?', attn '+esc(d.ic.owner):'')+'</p>'+
     '<p style="margin:0 0 16px;font-size:12px;color:#636466;">Account: '+esc(d.account)+' &middot; Inspection date: '+esc(d.inspection_date)+' &middot; Notice VN-PREVIEW</p>'+
-    P('This notice documents a compliance finding at '+esc(d.account)+'.')+nature+blocks+ladder+contact+
+    P('This notice documents a compliance finding at '+esc(d.account)+'.')+sourceLine+nature+blocks+photoBlock+ladder+contact+
     '<p style="margin:18px 0 0;font-size:11px;color:#999;">City Wide Facility Solutions &middot; GoCityWide.com &middot; Issued through the City Wide compliance program. Please do not reply to this address; replies route to the service desk.</p>'+
     '</td></tr></table></td></tr></table>';
   var pf=el('preview'); pf.style.display='block';
@@ -362,15 +435,21 @@ function send(){
   if(msg){eb.textContent=msg;eb.style.display='block';return;}
   eb.style.display='none';
   el('sendBtn').disabled=true;
-  post(d).then(function(r){
+  uploadPhotos().then(function(photos){
+    d.photos=photos;
+    el('sendBtn').textContent='Sending...';
+    return post(d);
+  }).then(function(r){
     el('sendBtn').disabled=false;
+    el('sendBtn').textContent='Send the notice';
     if(!r.ok){eb.textContent=r.error||'Send failed';eb.style.display='block';return;}
     var ok=el('okBox');
     ok.innerHTML='<b>Notice '+r.notice_id+' sent.</b> '+(r.test?'TEST mode: delivered to lvservicecall@gocitywide.com.':'Delivered to the vendor with a CC to you.')+' Logged on the CW Violation Notices sheet.'+(r.relay_missing?'<br><b>Heads up:</b> the Reno relay is not configured, so this went out from the Las Vegas account.':'')+
       '<br><br><button class="btn dark" onclick="another()">Issue another notice</button>';
     ok.style.display='block';
+    PHOTOS=[];drawThumbs();
     ok.scrollIntoView({behavior:'smooth'});
-  }).catch(function(e){el('sendBtn').disabled=false;eb.textContent='Could not reach the server. '+e;eb.style.display='block';});
+  }).catch(function(e){el('sendBtn').disabled=false;el('sendBtn').textContent='Send the notice';eb.textContent='Could not send. '+e;eb.style.display='block';});
 }
 
 function another(){
