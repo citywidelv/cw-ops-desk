@@ -110,12 +110,12 @@ textarea{min-height:60px;resize:vertical;}
 
   <div class="card">
     <h2>Nature and level</h2>
-    <p class="sub">The level is suggested from this vendor's 12-month history. You can escalate when the situation calls for it, for example a deliberate violation.</p>
+    <p class="sub">The level is suggested from this vendor's 12-month history. You can escalate when the situation calls for it, for example disregard of a requirement the vendor acknowledged in writing.</p>
     <label>Nature of the violation</label>
     <div class="radio">
       <label><input type="radio" name="nature" value="Neglect" checked> Neglect or oversight</label>
       <label><input type="radio" name="nature" value="Repeat issue"> Repeat issue</label>
-      <label><input type="radio" name="nature" value="Deliberate"> Deliberate</label>
+      <label><input type="radio" name="nature" value="Disregard of a documented requirement"> Disregard of a documented requirement</label>
     </div>
     <label style="margin-top:16px;">Notice level <span class="pill" id="suggestPill" style="display:none;"></span></label>
     <div class="row" id="levels">
@@ -313,7 +313,7 @@ function preview(){
   function P(t){return '<p style="margin:0 0 12px;font-family:Verdana,Arial,sans-serif;font-size:13px;line-height:1.55;color:#2d2a26;">'+t+'</p>';}
   function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
   var nature='';
-  if(d.nature==='Deliberate')nature=P('The condition reflects a deliberate departure from documented requirements. City Wide is treating it accordingly.');
+  if(d.nature==='Disregard of a documented requirement')nature=P('The requirement at issue is documented and acknowledged in your agreement. City Wide is not treating this finding as an oversight.');
   else if(d.nature==='Repeat issue')nature=P('This condition repeats an issue previously brought to your attention.');
   var blocks='';
   d.findings.forEach(function(f,i){
