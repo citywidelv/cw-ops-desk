@@ -162,6 +162,7 @@ table.rt td{padding:8px;border-bottom:1px solid #f0f0f0;vertical-align:top;}
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var DATA = null;
 var ROWS = [];      // {uid, dba, owner, email, vendor_no, coverage, manual}
+var HITS = [];      // current roster search results, indexed by the result list
 var UID = 0;
 var COVLABEL = { gl:'General Liability', wc:"Workers' Comp", both:'Both' };
 
@@ -231,17 +232,30 @@ function marketRoster(){
   return (DATA.roster||[]).filter(function(v){ return v.market === m; });
 }
 
+var LAST_MARKET = '';
 function onMarket(){
   var m = el('market').value;
+  // The market drives the legal entity, address, compliance mailbox and attached
+  // form on every email. Carrying a list built for one market into the other is
+  // exactly the mistake that makes an agent name the wrong certificate holder,
+  // so the batch is cleared rather than silently repointed.
+  if(LAST_MARKET && m !== LAST_MARKET && ROWS.length){
+    if(!confirm('Switching to ' + m + ' clears the ' + ROWS.length + ' vendor' +
+        (ROWS.length===1?'':'s') + ' already in the batch, because the entity, address, ' +
+        'compliance mailbox and attached form all change with the market.\n\nSwitch anyway?')){
+      el('market').value = LAST_MARKET;
+      return;
+    }
+    ROWS = [];
+  }
+  LAST_MARKET = m;
   var list = marketRoster();
   var withEmail = list.filter(function(v){ return (v.email||'').indexOf('@')>0; }).length;
   el('marketNote').innerHTML = esc(m) + ' roster: <b>' + list.length + '</b> vendors, ' +
     withEmail + ' with an email on file. Everything in the email (legal entity, address, ' +
     'compliance mailbox, attached request form) follows this market.';
-  if(ROWS.length){
-    el('vsearch').value='';
-    el('vresults').style.display='none';
-  }
+  el('vsearch').value='';
+  el('vresults').style.display='none';
   render();
 }
 
@@ -257,22 +271,30 @@ function doSearch(){
     return (v.dba||'').toLowerCase().indexOf(q)>=0 || (v.owner||'').toLowerCase().indexOf(q)>=0;
   }).slice(0,40);
 
+  HITS = hits;
   if(!hits.length){
     box.innerHTML = '<div class="none">' + (q ? 'No match on the ' + esc(el('market').value) +
       ' roster. Use the manual button below.' : 'Everyone on this roster is already in the batch.') + '</div>';
   } else {
-    box.innerHTML = hits.map(function(v){
+    // Index into HITS rather than serializing the row into the markup. Real vendor
+    // names contain & and quotes and would corrupt an inline attribute.
+    box.innerHTML = hits.map(function(v,i){
       var noEmail = (v.email||'').indexOf('@')<1;
-      return '<div onclick="addFromRoster(' + JSON.stringify(JSON.stringify(v)).replace(/"/g,'&quot;') + ')">' +
+      return '<div data-i="' + i + '">' +
         esc(v.dba) + (noEmail ? ' <span class="tag">no email</span>' : '') +
         '<small>' + esc(v.owner||'') + (v.status ? ' &middot; ' + esc(v.status) : '') + '</small></div>';
     }).join('');
+    box.onclick = function(e){
+      var row = e.target.closest ? e.target.closest('[data-i]') : null;
+      if(row) addFromRoster(Number(row.getAttribute('data-i')));
+    };
   }
   box.style.display='block';
 }
 
-function addFromRoster(json){
-  var v = JSON.parse(json);
+function addFromRoster(i){
+  var v = HITS[i];
+  if(!v) return;
   ROWS.push({ uid:++UID, dba:v.dba, owner:v.owner||'', email:v.email||'',
     vendor_no:v.vendor_no||'', coverage:'', manual:false });
   el('vsearch').value='';

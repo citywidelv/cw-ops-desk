@@ -322,7 +322,11 @@ function insAttachment_(cfg, mk) {
 function insLink_(cfg, mk, cov, company) {
   return (cfg.ins_upload_url || INS_UPLOAD_URL) +
     '?doc=coi&cov=' + cov.param + '&region=' + mk.region_param +
-    '&company=' + encodeURIComponent(String(company || ''));
+    // encodeURIComponent leaves ' and ! alone. Mail clients that auto-link plain
+    // text routinely stop at an apostrophe, which would truncate the URL for any
+    // vendor named like "O'Brien & Sons". Encode them too.
+    '&company=' + encodeURIComponent(String(company || ''))
+      .replace(/'/g, '%27').replace(/!/g, '%21');
 }
 
 function insSend_(d) {
