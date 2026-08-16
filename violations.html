@@ -144,7 +144,7 @@ textarea{min-height:60px;resize:vertical;}
     <div class="err" id="sendErr"></div>
     <p style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;">
       <button class="btn dark" onclick="preview()">Preview the notice</button>
-      <button class="btn" id="sendBtn" onclick="send()">Send the notice</button>
+      <button class="btn" id="sendBtn" onclick="send()">Submit for Director approval</button>
     </p>
     <iframe id="preview"></iframe>
     <div class="ok" id="okBox"></div>
@@ -162,6 +162,9 @@ var SOURCE_FALLBACK=['Night Manager inspection','FSM inspection','Customer email
 var FTYPES=[
  {type:'chemicals',label:'Incorrect or non-compliant chemicals',hint:'OSHA hazard communication. The formal one.',items:['Unlabeled chemical container on site','Chemical not on the client approved list','SDS sheet missing from the janitor closet','Improper secondary container or dilution','Prohibited chemical used on a protected surface','Other (describe in the details box)']},
  {type:'background',label:'Person without a background check',hint:'Person may work pending results only after the request is submitted.',items:['Person on site with no approved background check on file','Unreported new crew member working the account','No badge issued for a person on site','Other (describe in the details box)']},
+ {type:'unauthorized',label:'Unauthorized person on site',hint:'People who are not crew at all. A badge is what authorizes presence in a client building.',items:['Person on site who is not an employee of the IC (friend, family member, or other non-crew person)','Crew member brought a helper or guest not reported to City Wide','Person on site refused or was unable to identify themselves','Person remained on site after being denied access or asked to leave','Other (describe in the details box)']},
+ {type:'ineligible',label:'Person not cleared to work City Wide accounts',hint:'Screening based. The finding is clearance, never the person\'s history. Do not name records in the details.',items:['Person working after background screening returned disqualifying results','Person previously denied a badge found working a City Wide account','Person removed from an account found back on a City Wide site','Person appears to have been screened under a different name or identity','Other (describe in the details box)']},
+ {type:'minor',label:'Person under 18 on site',hint:'Labor law. Zero tolerance; suggested level starts at 2.',items:['Person under the age of 18 performing work at the account','Person under the age of 18 present during service (including children of crew members)','Other (describe in the details box)']},
  {type:'uniform',label:'Uniform or badge violation',hint:'Badges and uniforms are required in every client building.',items:['Crew member out of uniform','No City Wide badge worn','No photo ID matching the badge','Other (describe in the details box)']},
  {type:'scope',label:'Scope of work not executed',hint:'Measured against the Exhibit A scope.',items:['Area not cleaned','Contracted task not performed','Building not finaled','Missed service entirely','Other (describe in the details box)']},
  {type:'meeting',label:'Missed meeting or scheduled inspection',hint:'Communication Guidelines: 15-minute grace, then $55.38 per hour or portion thereof.',items:['Failed to meet the Night Manager at the scheduled time','Failed to meet the Facility Solutions Manager at the scheduled time','Failed to appear for a scheduled corrective action meeting with the FSM','Work not complete when the Night Manager arrived for a scheduled inspection','Other (describe in the details box)']},
@@ -262,6 +265,8 @@ function currentSuggest(){
   boxes.forEach(function(b){
     var lb=b.parentElement?b.parentElement.textContent:'';
     if(/corrective action/i.test(lb))bump=true;
+    var fi=b.getAttribute('data-f');
+    if(fi!==null&&FTYPES[fi]&&FTYPES[fi].type==='minor')bump=true; // under-18: never first-offense posture
   });
   return Math.min(bump?Math.max(SUGBASE,2):SUGBASE,3);
 }
@@ -474,19 +479,19 @@ function send(){
   el('sendBtn').disabled=true;
   uploadPhotos().then(function(photos){
     d.photos=photos;
-    el('sendBtn').textContent='Sending...';
+    el('sendBtn').textContent='Submitting...';
     return post(d);
   }).then(function(r){
     el('sendBtn').disabled=false;
-    el('sendBtn').textContent='Send the notice';
+    el('sendBtn').textContent='Submit for Director approval';
     if(!r.ok){eb.textContent=r.error||'Send failed';eb.style.display='block';return;}
     var ok=el('okBox');
-    ok.innerHTML='<b>Notice '+r.notice_id+' sent.</b> '+(r.test?'TEST mode: delivered to lvservicecall@gocitywide.com.':'Delivered to the vendor with a CC to you.')+' Logged on the CW Violation Notices sheet.'+(r.relay_missing?'<br><b>Heads up:</b> the Reno relay is not configured, so this went out from the Las Vegas account.':'')+
+    ok.innerHTML='<b>Notice '+r.notice_id+' staged for approval.</b> '+(r.test?'TEST mode: the approval request went to lvservicecall@gocitywide.com.':'Sent to '+(r.approver||'the Director of Operations')+' for review. Nothing reaches the vendor until it is approved.')+' Logged on the CW Violation Notices sheet as Pending approval.'+(r.relay_missing?'<br><b>Heads up:</b> the Reno relay is not configured, so this went out from the Las Vegas account.':'')+
       '<br><br><button class="btn dark" onclick="another()">Issue another notice</button>';
     ok.style.display='block';
     PHOTOS=[];drawThumbs();
     ok.scrollIntoView({behavior:'smooth'});
-  }).catch(function(e){el('sendBtn').disabled=false;el('sendBtn').textContent='Send the notice';eb.textContent='Could not send. '+e;eb.style.display='block';});
+  }).catch(function(e){el('sendBtn').disabled=false;el('sendBtn').textContent='Submit for Director approval';eb.textContent='Could not send. '+e;eb.style.display='block';});
 }
 
 function another(){

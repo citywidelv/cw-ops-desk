@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Violation Notice Approval | City Wide</title>
+<style>
+:root{--red:#D22730;--black:#2D2A26;--grey:#636466;--bg:#f4f5f7;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;background:var(--bg);color:var(--black);font-size:14px;}
+.head{background:#fff;border-bottom:3px solid var(--red);}
+.bar{max-width:900px;margin:0 auto;padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.bar img{height:38px;width:auto;display:block;}
+.bar .t{font-size:17px;font-weight:bold;}
+.badge{background:var(--black);color:#fff;font-size:11px;padding:3px 9px;border-radius:10px;}
+.wrap{max-width:900px;margin:0 auto;padding:20px 18px 60px;}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:20px;margin:0 0 16px;}
+.card h2{margin:0 0 4px;font-size:15px;}
+.card .sub{margin:0 0 14px;font-size:12px;color:var(--grey);}
+.meta{width:100%;border-collapse:collapse;font-size:13px;}
+.meta td{padding:4px 12px 4px 0;vertical-align:top;}
+.meta td:first-child{color:var(--grey);white-space:nowrap;width:130px;}
+.btn{background:var(--red);color:#fff;border:0;border-radius:6px;font-family:inherit;font-size:14px;font-weight:bold;padding:13px 24px;cursor:pointer;}
+.btn.dark{background:var(--black);}
+.btn.ghost{background:#fff;color:var(--grey);border:1px solid #ccc;font-weight:normal;}
+.btn:disabled{background:#bbb;cursor:default;}
+.warn{background:#fff6d8;border:1px solid #e5b423;border-radius:8px;padding:10px 14px;font-size:12.5px;margin:0 0 16px;}
+.ok{background:#e8f6ea;border:1px solid #7fc68b;border-radius:8px;padding:14px;font-size:13px;margin:0 0 16px;display:none;}
+.err{background:#fdeaec;border:1px solid var(--red);border-radius:8px;padding:10px 14px;font-size:12.5px;margin:10px 0;display:none;}
+.note{font-size:12px;color:var(--grey);}
+#editor{border:2px dashed #c9c9c9;border-radius:10px;background:#f4f4f4;padding:6px;}
+#editor:focus-within{border-color:var(--red);}
+#editBody{outline:none;}
+.editflag{background:#fdf5f5;border:1px solid #f0c6ca;border-radius:8px;padding:8px 12px;font-size:12px;color:var(--red);margin:10px 0 0;display:none;}
+</style>
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t">Violation Notice Approval</span>
+  <span class="badge">Director Review</span>
+</div></header>
+<div class="wrap">
+
+<div class="card" id="loading"><h2>Loading the notice...</h2><p class="sub">One moment.</p><div class="err" id="loadErr"></div></div>
+
+<div id="app" style="display:none;">
+  <div class="warn" id="testWarn" style="display:none;">TEST notice. On approval it goes to lvservicecall@gocitywide.com, not to the vendor.</div>
+  <div class="warn" id="doneWarn" style="display:none;"></div>
+
+  <div class="card">
+    <h2>Notice <span id="nid"></span></h2>
+    <p class="sub">Submitted for your approval. Nothing has been sent to the vendor.</p>
+    <table class="meta">
+      <tr><td>Vendor</td><td id="mVendor"></td></tr>
+      <tr><td>Vendor email</td><td id="mEmail"></td></tr>
+      <tr><td>Account</td><td id="mAccount"></td></tr>
+      <tr><td>Market</td><td id="mMarket"></td></tr>
+      <tr><td>Level</td><td id="mLevel"></td></tr>
+      <tr><td>Submitted by</td><td id="mIssuer"></td></tr>
+      <tr><td>Submitted</td><td id="mIssued"></td></tr>
+    </table>
+  </div>
+
+  <div class="card" id="reviewCard">
+    <h2>Review and edit</h2>
+    <p class="sub">This is exactly what the vendor receives. Click into any text below to edit it before approving.</p>
+    <div id="editor"><div id="editBody" contenteditable="true"></div></div>
+    <div class="editflag" id="editFlag">You have edited the notice. The edited version is what will be sent.</div>
+    <div class="err" id="actErr"></div>
+    <div class="ok" id="okBox"></div>
+    <p style="margin:18px 0 0;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+      <button class="btn" id="approveBtn" onclick="approve()">Approved by Director. Send the Notice</button>
+      <button class="btn ghost" id="discardBtn" onclick="discard()">Discard without sending</button>
+    </p>
+    <p class="note" style="margin-top:12px;">Approving sends the notice to the vendor with a CC to the issuer and logs your approval. Discarding cancels it; the vendor never sees it and it does not count against their history.</p>
+  </div>
+</div>
+</div>
+
+<script>
+var WEBHOOK='https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec';
+var TOKEN=new URLSearchParams(location.search).get('t')||'';
+var EDITED=false, DISCARM=false;
+
+function el(id){return document.getElementById(id);}
+function post(payload){
+  return fetch(WEBHOOK,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).then(function(r){return r.json();});
+}
+
+function boot(){
+  if(!TOKEN){el('loadErr').textContent='This link is missing its key. Use the link from the approval email.';el('loadErr').style.display='block';return;}
+  post({kind:'vio_pending',token:TOKEN}).then(function(r){
+    if(!r.ok){el('loadErr').textContent=r.error||'Could not load the notice.';el('loadErr').style.display='block';return;}
+    var n=r.notice;
+    el('loading').style.display='none';
+    el('app').style.display='block';
+    el('nid').textContent=n.notice_id;
+    el('mVendor').textContent=n.ic_dba+(n.ic_owner?', '+n.ic_owner:'');
+    el('mEmail').textContent=n.ic_email||'';
+    el('mAccount').textContent=n.account||'';
+    el('mMarket').textContent=n.market||'';
+    el('mLevel').textContent='Level '+n.level+(n.level===3?' (final, account reassignment)':n.level===2?' (Compliance Chargeback)':' (formal warning)');
+    el('mIssuer').textContent=n.issuer_name||'';
+    el('mIssued').textContent=n.issued||'';
+    if(n.test)el('testWarn').style.display='block';
+    el('editBody').innerHTML=n.html;
+    if(r.status!=='Pending approval'){
+      el('doneWarn').textContent='This notice was already handled. Status: '+r.status+(n.approved_by?' by '+n.approved_by:'')+'. No further action is possible from this link.';
+      el('doneWarn').style.display='block';
+      el('editBody').setAttribute('contenteditable','false');
+      el('approveBtn').disabled=true;
+      el('discardBtn').disabled=true;
+      document.querySelector('#reviewCard .sub').textContent='Read-only record of the notice.';
+    }
+    el('editBody').addEventListener('input',function(){EDITED=true;el('editFlag').style.display='block';});
+  }).catch(function(e){el('loadErr').textContent='Could not reach the server. '+e;el('loadErr').style.display='block';});
+}
+
+function approve(){
+  el('actErr').style.display='none';
+  var b=el('approveBtn');
+  b.disabled=true;b.textContent='Sending...';
+  var payload={kind:'vio_approve',token:TOKEN};
+  if(EDITED)payload.html=el('editBody').innerHTML;
+  post(payload).then(function(r){
+    if(!r.ok){
+      b.disabled=false;b.textContent='Approved by Director. Send the Notice';
+      el('actErr').textContent=r.error||'Could not send.';el('actErr').style.display='block';return;
+    }
+    b.textContent='Approved and sent';
+    el('discardBtn').style.display='none';
+    el('editBody').setAttribute('contenteditable','false');
+    var ok=el('okBox');
+    ok.innerHTML='<b>Notice '+r.notice_id+' approved and sent.</b> '+(r.test?'TEST mode: it went to lvservicecall@gocitywide.com.':'Delivered to the vendor with a CC to the issuer.')+' Your approval is logged on the CW Violation Notices sheet.'+(r.relay_missing?'<br><b>Heads up:</b> the Reno relay is not configured, so this went out from the Las Vegas account.':'');
+    ok.style.display='block';
+  }).catch(function(e){
+    b.disabled=false;b.textContent='Approved by Director. Send the Notice';
+    el('actErr').textContent='Could not send. '+e;el('actErr').style.display='block';
+  });
+}
+
+function discard(){
+  var b=el('discardBtn');
+  if(!DISCARM){DISCARM=true;b.textContent='Click again to confirm the discard';b.style.color='#D22730';b.style.borderColor='#D22730';return;}
+  b.disabled=true;b.textContent='Discarding...';
+  post({kind:'vio_discard',token:TOKEN}).then(function(r){
+    if(!r.ok){b.disabled=false;b.textContent='Discard without sending';DISCARM=false;el('actErr').textContent=r.error||'Could not discard.';el('actErr').style.display='block';return;}
+    b.textContent='Discarded';
+    el('approveBtn').disabled=true;
+    el('editBody').setAttribute('contenteditable','false');
+    var ok=el('okBox');
+    ok.innerHTML='<b>Notice '+r.notice_id+' discarded.</b> The vendor never sees it and it does not count against their history.';
+    ok.style.display='block';
+  }).catch(function(e){b.disabled=false;b.textContent='Discard without sending';DISCARM=false;el('actErr').textContent='Could not discard. '+e;el('actErr').style.display='block';});
+}
+
+boot();
+</script>
+</body>
+</html>
