@@ -40,7 +40,8 @@ var INS_MARKETS = {
     addr2: 'Las Vegas, NV 89102',
     compliance: 'LVCompliance@gocitywide.com',
     region_param: 'lv',
-    form_cfg: 'ins_form_lv'
+    form_cfg: 'ins_form_lv',
+    form_drive_cfg: 'ins_form_drive_lv'
   },
   'Northern Nevada': {
     key: 'NNV',
@@ -51,7 +52,8 @@ var INS_MARKETS = {
     addr2: 'Reno, NV 89502',
     compliance: 'rncompliance@gocitywide.com',
     region_param: 'nnv',
-    form_cfg: 'ins_form_nnv'
+    form_cfg: 'ins_form_nnv',
+    form_drive_cfg: 'ins_form_drive_nnv'
   }
 };
 
@@ -75,7 +77,9 @@ var INS_DEFAULTS = [
   ['ins_dup_days', '14'],
   ['ins_upload_url', INS_UPLOAD_URL],
   ['ins_form_lv', 'https://citywidelv.github.io/cw-vendor-shop/pdfs/COI-Request-Las-Vegas.pdf'],
-  ['ins_form_nnv', 'https://citywidelv.github.io/cw-vendor-shop/pdfs/COI-Request-Northern-Nevada.pdf']
+  ['ins_form_nnv', 'https://citywidelv.github.io/cw-vendor-shop/pdfs/COI-Request-Northern-Nevada.pdf'],
+  ['ins_form_drive_lv', ''],
+  ['ins_form_drive_nnv', '']
 ];
 
 function insPass_() {
@@ -89,6 +93,7 @@ function insDispatch(data) {
   if (kind === 'ins_setup') return insSetup_(data);
   if (kind === 'ins_roster') return insRoster_(data);
   if (kind === 'ins_send') return insSend_(data);
+  if (kind === 'ins_form') return insForm_(data);
   return _json({ ok: false, error: 'Unknown ins kind' });
 }
 
@@ -234,6 +239,85 @@ function insRoster_(data) {
   });
 }
 
+// ------------------------------------------------------- request form -----
+// The request form is stored in Drive, not fetched over the network at send
+// time. Two reasons: the deployment is not authorized for UrlFetchApp (the same
+// gap that would break the violations Reno relay), and an outbound fetch is one
+// more thing that can fail mid-batch. Refresh a form with kind ins_form.
+function insFormFolder_() {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('INS_FORM_FOLDER');
+  if (id) {
+    try { return DriveApp.getFolderById(id); } catch (e) {}
+  }
+  var f = DriveApp.createFolder('CW Insurance Request Forms');
+  props.setProperty('INS_FORM_FOLDER', f.getId());
+  return f;
+}
+
+// Accepts the PDF as base64 and files it in Drive, then points the market's
+// config key at it. Same pattern the violations photo upload already uses.
+function insForm_(data) {
+  var mk = insMarket_(data.market);
+  if (!mk) return _json({ ok: false, error: 'Pick a market: Las Vegas or Northern Nevada' });
+  if (!data.data) return _json({ ok: false, error: 'No file data' });
+  var name = String(data.name || ('COI-Request-' + mk.key + '.pdf'));
+  var folder = insFormFolder_();
+
+  // Replace any earlier copy rather than piling up revisions.
+  var old = folder.getFilesByName(name);
+  while (old.hasNext()) { old.next().setTrashed(true); }
+
+  var blob = Utilities.newBlob(Utilities.base64Decode(String(data.data)),
+    String(data.mime || 'application/pdf'), name);
+  var file = folder.createFile(blob);
+
+  var ss = insSS_();
+  var cfg = ss.getSheetByName(INS_TABS.CONFIG);
+  var vals = cfg.getDataRange().getValues();
+  var wrote = false;
+  for (var i = 1; i < vals.length; i++) {
+    if (String(vals[i][0]).trim() === mk.form_drive_cfg) {
+      cfg.getRange(i + 1, 2).setValue(file.getId());
+      wrote = true;
+      break;
+    }
+  }
+  if (!wrote) {
+    cfg.getRange(cfg.getLastRow() + 1, 1, 1, 2).setValues([[mk.form_drive_cfg, file.getId()]]);
+  }
+  return _json({ ok: true, market: data.market, file_id: file.getId(), name: name,
+    bytes: blob.getBytes().length });
+}
+
+// Drive first, network second, and a clear failure third. Never sends an email
+// without the form, because the body tells the vendor to hand it to their agent.
+function insAttachment_(cfg, mk) {
+  var driveId = String(cfg[mk.form_drive_cfg] || '').trim();
+  var name = 'Certificate of Insurance Request - ' +
+    (mk.key === 'NNV' ? 'Northern Nevada' : 'Las Vegas') + '.pdf';
+  if (driveId) {
+    try {
+      var blob = DriveApp.getFileById(driveId).getBlob().setName(name);
+      return { blob: blob, name: name, source: 'drive' };
+    } catch (de) {
+      return { error: 'the stored form file could not be opened (' + String(de) + ')' };
+    }
+  }
+  var url = String(cfg[mk.form_cfg] || '');
+  if (!url) return { error: 'no form is configured for this market' };
+  try {
+    var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true });
+    if (resp.getResponseCode() !== 200) {
+      return { error: 'form download returned HTTP ' + resp.getResponseCode() };
+    }
+    return { blob: resp.getBlob().setName(name), name: name, source: 'url' };
+  } catch (fe) {
+    return { error: 'no form stored in Drive for this market, and downloading it failed (' +
+      String(fe) + '). Run kind ins_form once per market to file the PDF in Drive.' };
+  }
+}
+
 // -------------------------------------------------------------- send -----
 function insLink_(cfg, mk, cov, company) {
   return (cfg.ins_upload_url || INS_UPLOAD_URL) +
@@ -269,27 +353,13 @@ function insSend_(d) {
       'and this batch needs ' + vendors.length + '. Nothing was sent. Try again tomorrow or send fewer.' });
   }
 
-  // Fetch the market's request form once and reuse the blob for every email.
-  var attachment = null, formName = '', attachErr = '';
-  var formUrl = String(cfg[mk.form_cfg] || '');
-  if (formUrl) {
-    try {
-      var resp = UrlFetchApp.fetch(formUrl, { muteHttpExceptions: true, followRedirects: true });
-      if (resp.getResponseCode() === 200) {
-        formName = 'Certificate of Insurance Request - ' +
-          (mk.key === 'NNV' ? 'Northern Nevada' : 'Las Vegas') + '.pdf';
-        attachment = resp.getBlob().setName(formName);
-      } else {
-        attachErr = 'form fetch HTTP ' + resp.getResponseCode();
-      }
-    } catch (fe) { attachErr = 'form fetch failed: ' + String(fe); }
-  } else {
-    attachErr = 'no form URL configured for this market';
+  // Resolve the market's request form once and reuse the blob for every email.
+  var got = insAttachment_(cfg, mk);
+  if (got.error) {
+    return _json({ ok: false, error: 'Could not attach the request form: ' + got.error +
+      '. Nothing was sent, because the email tells the vendor to hand the attached form to their agent.' });
   }
-  if (!attachment) {
-    return _json({ ok: false, error: 'Could not attach the request form (' + attachErr +
-      '). Nothing was sent, because the email tells the vendor to hand the attached form to their agent.' });
-  }
+  var attachment = got.blob, formName = got.name;
 
   var stamp = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyMMdd');
   var batchId = 'INS-B-' + stamp + '-' + Math.random().toString(36).slice(2, 5).toUpperCase();
