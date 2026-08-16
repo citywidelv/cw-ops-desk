@@ -53,6 +53,14 @@ table.vt input{padding:7px 8px;font-size:12.5px;}
 .flag{font-size:11px;color:#8c1a20;margin-top:4px;line-height:1.4;}
 .tag{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.4px;background:#eee;color:var(--grey);border-radius:9px;padding:2px 7px;margin-left:6px;}
 .empty{color:var(--grey);font-size:12.5px;padding:16px 4px;}
+.exp{display:inline-block;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:.3px;border-radius:9px;padding:2px 7px;margin-left:6px;}
+.exp.expired{background:#fdecec;color:#8c1a20;}
+.exp.soon{background:#fff6d8;color:#8a6100;}
+.exp.unknown{background:#eee;color:var(--grey);}
+.expline{font-size:11px;color:var(--grey);margin-top:4px;line-height:1.45;}
+.expline b.bad{color:#8c1a20;}
+.expline b.warn{color:#8a6100;}
+.lapsed{background:#fdf2f3;border:1px solid #f0c9cc;border-radius:8px;padding:12px 14px;font-size:12.5px;line-height:1.55;margin:0 0 14px;}
 .counts{font-size:12px;color:var(--grey);margin:12px 0 0;line-height:1.6;}
 
 /* results */
@@ -112,6 +120,7 @@ table.rt td{padding:8px;border-bottom:1px solid #f0f0f0;vertical-align:top;}
       <input type="text" id="vsearch" autocomplete="off" placeholder="Search the roster by company or owner name">
       <div class="results" id="vresults"></div>
     </div>
+    <div class="lapsed" id="lapsedBox" style="display:none;"></div>
     <p style="margin:12px 0 0;">
       <button class="btn ghost" onclick="addManual()">Add a vendor not on the roster</button>
     </p>
@@ -256,6 +265,7 @@ function onMarket(){
     'compliance mailbox, attached request form) follows this market.';
   el('vsearch').value='';
   el('vresults').style.display='none';
+  renderLapsed();
   render();
 }
 
@@ -281,8 +291,9 @@ function doSearch(){
     box.innerHTML = hits.map(function(v,i){
       var noEmail = (v.email||'').indexOf('@')<1;
       return '<div data-i="' + i + '">' +
-        esc(v.dba) + (noEmail ? ' <span class="tag">no email</span>' : '') +
-        '<small>' + esc(v.owner||'') + (v.status ? ' &middot; ' + esc(v.status) : '') + '</small></div>';
+        esc(v.dba) + expBadge(v) + (noEmail ? ' <span class="tag">no email</span>' : '') +
+        '<small>' + esc(v.owner||'') + (v.status ? ' &middot; ' + esc(v.status) : '') +
+        (expText(v) ? ' &middot; ' + expText(v) : '') + '</small></div>';
     }).join('');
     box.onclick = function(e){
       var row = e.target.closest ? e.target.closest('[data-i]') : null;
@@ -296,7 +307,7 @@ function addFromRoster(i){
   var v = HITS[i];
   if(!v) return;
   ROWS.push({ uid:++UID, dba:v.dba, owner:v.owner||'', email:v.email||'',
-    vendor_no:v.vendor_no||'', coverage:'', manual:false });
+    vendor_no:v.vendor_no||'', coverage:suggestCoverage(v), manual:false, gl:v.gl, wc:v.wc });
   el('vsearch').value='';
   el('vresults').style.display='none';
   render();
@@ -329,6 +340,96 @@ function setAll(c){
   render();
 }
 
+/* ---------------------------------------------------------------- expiry ----
+   The roster now carries gl_exp and wc_exp per vendor, synced from the Business
+   Central export. A blank date means we simply do not know, which is never
+   presented as expired. Everything here only ever suggests; the FSM still picks.
+----------------------------------------------------------------------------*/
+function expState(v, which){
+  var o = v && v[which];
+  return (o && o.state) ? o.state : 'unknown';
+}
+function suggestCoverage(v){
+  var g = expState(v,'gl') === 'expired', w = expState(v,'wc') === 'expired';
+  if (g && w) return 'both';
+  if (g) return 'gl';
+  if (w) return 'wc';
+  return '';
+}
+function expBadge(v){
+  var g = expState(v,'gl'), w = expState(v,'wc');
+  if (g === 'expired' || w === 'expired') return ' <span class="exp expired">expired</span>';
+  if (g === 'soon' || w === 'soon') return ' <span class="exp soon">expiring</span>';
+  if (g === 'unknown' && w === 'unknown') return ' <span class="exp unknown">no dates</span>';
+  return '';
+}
+function expText(v){
+  var parts = [];
+  [['gl','GL'],['wc','WC']].forEach(function(p){
+    var o = v && v[p[0]];
+    if (!o || !o.label) return;
+    if (o.state === 'expired') parts.push(p[1] + ' expired ' + esc(o.label));
+    else if (o.state === 'soon') parts.push(p[1] + ' expires ' + esc(o.label));
+  });
+  return parts.join(' &middot; ');
+}
+function rowExpLine(r){
+  var parts = [];
+  [['gl','General Liability'],['wc',"Workers' Comp"]].forEach(function(p){
+    var o = r[p[0]];
+    if (!o || !o.label) return;
+    if (o.state === 'expired') parts.push('<b class="bad">' + p[1] + ' expired ' + esc(o.label) + '</b>');
+    else if (o.state === 'soon') parts.push('<b class="warn">' + p[1] + ' expires ' + esc(o.label) + '</b>');
+  });
+  if (!parts.length) return '';
+  return '<div class="expline">' + parts.join(' &middot; ') + '</div>';
+}
+
+function lapsedList(){
+  return marketRoster().filter(function(v){
+    return (expState(v,'gl')==='expired' || expState(v,'wc')==='expired')
+      && (v.email||'').indexOf('@')>0;
+  });
+}
+function addAllLapsed(){
+  var taken = {};
+  ROWS.forEach(function(r){ taken[String(r.dba||'').toLowerCase()] = 1; });
+  var added = 0;
+  lapsedList().forEach(function(v){
+    if (taken[String(v.dba||'').toLowerCase()]) return;
+    ROWS.push({ uid:++UID, dba:v.dba, owner:v.owner||'', email:v.email||'',
+      vendor_no:v.vendor_no||'', coverage:suggestCoverage(v), manual:false, gl:v.gl, wc:v.wc });
+    added++;
+  });
+  render();
+  if (!added) alert('Everyone with an expired certificate is already in the batch.');
+}
+function renderLapsed(){
+  var box = el('lapsedBox');
+  var list = marketRoster();
+  var lapsed = lapsedList();
+  var noDates = list.filter(function(v){
+    return expState(v,'gl')==='unknown' && expState(v,'wc')==='unknown'; }).length;
+  var noEmail = list.filter(function(v){
+    return (expState(v,'gl')==='expired' || expState(v,'wc')==='expired')
+      && (v.email||'').indexOf('@')<1; }).length;
+  if (!lapsed.length && !noDates){ box.style.display='none'; return; }
+  var bits = [];
+  if (lapsed.length) {
+    bits.push('<b>' + lapsed.length + ' ' + esc(el('market').value) + ' vendor' +
+      (lapsed.length===1?' has':'s have') + ' an expired certificate on file.</b> ' +
+      'Coverage is preselected from whichever policy lapsed.');
+  }
+  if (noEmail) bits.push(noEmail + ' more ' + (noEmail===1?'is':'are') +
+    ' expired but has no email on the roster, so they cannot be added automatically.');
+  if (noDates) bits.push(noDates + ' vendor' + (noDates===1?' has':'s have') +
+    ' no expiration dates on the roster at all, so nothing can be said about them either way.');
+  box.innerHTML = bits.join(' ') + (lapsed.length ?
+    '<p style="margin:10px 0 0;"><button class="btn ghost" onclick="addAllLapsed()">' +
+    'Add all ' + lapsed.length + ' expired</button></p>' : '');
+  box.style.display='block';
+}
+
 function dupFlag(dba){
   if(!DATA || !DATA.recent) return null;
   var key = el('market').value + '|' + String(dba||'').trim().toLowerCase();
@@ -344,7 +445,7 @@ function renderFlagsOnly(){
 }
 
 function flagHtml(r){
-  var out = '';
+  var out = rowExpLine(r);
   if(r.dba){
     var d = dupFlag(r.dba);
     if(d) out += '<div class="flag">A request went out ' + esc(d.when) + ' (' + esc(d.coverage) + ')' +

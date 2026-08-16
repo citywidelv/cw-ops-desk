@@ -98,6 +98,7 @@ function insDispatch(data) {
   if (kind === 'ins_roster') return insRoster_(data);
   if (kind === 'ins_send') return insSend_(data);
   if (kind === 'ins_form') return insForm_(data);
+  if (kind === 'ins_exp') return insExp_(data);
   return _json({ ok: false, error: 'Unknown ins kind' });
 }
 
@@ -163,12 +164,79 @@ function insEmails_(raw) {
     .filter(function (s) { return s.indexOf('@') > 0; }).join(',');
 }
 
+// -------------------------------------------------- roster expiry sync -----
+// The Roster tab is shared with the violation notice picklist, which reads
+// columns A through I by fixed index. Expiry is written to J and K, past the end
+// of what that code touches, so this cannot affect violations.
+var INS_ROSTER_GL_COL = 10;   // J
+var INS_ROSTER_WC_COL = 11;   // K
+
+// Vendor numbers arrive with and without leading zeros depending on whether a
+// sheet or an export produced them. Compare on the digits alone.
+function insVno_(v) {
+  return String(v == null ? '' : v).replace(/[^0-9]/g, '').replace(/^0+/, '');
+}
+
+// Accepts rows of {vno, gl, wc} and writes the two expiry cells for each match.
+// Reports anything it could not match rather than guessing.
+function insExp_(data) {
+  var rows = data.rows || [];
+  if (!rows.length) return _json({ ok: false, error: 'No rows' });
+  var ss = insSS_();
+  var sh = ss.getSheetByName(INS_TABS.ROSTER);
+  if (!sh) return _json({ ok: false, error: 'No Roster tab' });
+
+  sh.getRange(1, INS_ROSTER_GL_COL).setValue('gl_exp').setFontWeight('bold')
+    .setBackground('#2D2A26').setFontColor('#FFFFFF');
+  sh.getRange(1, INS_ROSTER_WC_COL).setValue('wc_exp').setFontWeight('bold')
+    .setBackground('#2D2A26').setFontColor('#FFFFFF');
+
+  var vals = sh.getDataRange().getValues();
+  var rowByVno = {}, rowByDba = {};
+  for (var i = 1; i < vals.length; i++) {
+    var v = insVno_(vals[i][5]);
+    if (v) rowByVno[v] = i + 1;
+    var d = String(vals[i][1] || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase();
+    if (d) rowByDba[d] = i + 1;
+  }
+
+  var wrote = 0, missed = [];
+  rows.forEach(function (r) {
+    var target = rowByVno[insVno_(r.vno)] ||
+      rowByDba[String(r.dba || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase()];
+    if (!target) { missed.push(String(r.dba || r.vno || '?')); return; }
+    sh.getRange(target, INS_ROSTER_GL_COL).setValue(String(r.gl || ''));
+    sh.getRange(target, INS_ROSTER_WC_COL).setValue(String(r.wc || ''));
+    if (r.hide === true || String(r.hide).toUpperCase() === 'TRUE') {
+      sh.getRange(target, 9).setValue('TRUE');
+    }
+    wrote++;
+  });
+  return _json({ ok: true, updated: wrote, unmatched: missed });
+}
+
+// A blank date is unknown, never treated as expired. Dates far in the future
+// (Business Central uses 3000-01-01 for "not applicable") are treated as none.
+function insExpiryState_(raw, todayMs) {
+  var s = String(raw == null ? '' : raw).trim();
+  if (!s) return { state: 'unknown', label: '' };
+  var d = s instanceof Date ? s : new Date(s);
+  if (isNaN(d.getTime())) return { state: 'unknown', label: '' };
+  if (d.getFullYear() >= 2900) return { state: 'none', label: '' };
+  var days = Math.floor((d.getTime() - todayMs) / 86400000);
+  var label = Utilities.formatDate(d, 'America/Los_Angeles', 'MMM d, yyyy');
+  if (days < 0) return { state: 'expired', label: label, days: days };
+  if (days <= 30) return { state: 'soon', label: label, days: days };
+  return { state: 'ok', label: label, days: days };
+}
+
 // ------------------------------------------------------------ roster -----
 function insRoster_(data) {
   var ss = insSS_();
   var cfg = insConfig_(ss);
 
   var roster = [];
+  var today = new Date().getTime();
   var rsh = ss.getSheetByName(INS_TABS.ROSTER);
   if (rsh) {
     var rv = rsh.getDataRange().getValues();
@@ -176,10 +244,13 @@ function insRoster_(data) {
       if (!rv[i][1]) continue;                                    // no dba
       if (String(rv[i][8]).toUpperCase() === 'TRUE') continue;     // hide
       var mk = String(rv[i][0]).trim().toUpperCase() === 'NNV' ? 'Northern Nevada' : 'Las Vegas';
+      var gl = insExpiryState_(rv[i][INS_ROSTER_GL_COL - 1], today);
+      var wc = insExpiryState_(rv[i][INS_ROSTER_WC_COL - 1], today);
       roster.push({
         market: mk, dba: String(rv[i][1]), owner: String(rv[i][2] || ''),
         email: String(rv[i][3] || ''), vendor_no: String(rv[i][5] || ''),
-        status: String(rv[i][7] || '')
+        status: String(rv[i][7] || ''),
+        gl: gl, wc: wc
       });
     }
   }
