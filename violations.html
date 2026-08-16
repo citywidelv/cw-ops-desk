@@ -61,8 +61,8 @@ textarea{min-height:60px;resize:vertical;}
 <div class="wrap">
 
 <div id="gate" class="card">
-  <h2>Team passcode</h2>
-  <p class="sub">Enter the Ops Hub passcode to continue.</p>
+  <h2>Open this page from the Ops Hub</h2>
+  <p class="sub">This page signs you in automatically once you have unlocked the Ops Hub on this browser. If you are seeing this, open the Ops Hub first, or enter the team passcode below.</p>
   <input type="text" id="pass" autocomplete="off">
   <div class="err" id="gateErr"></div>
   <p style="margin-top:14px;"><button class="btn" onclick="unlock()">Continue</button></p>
@@ -174,7 +174,9 @@ var FTYPES=[
 ];
 
 function el(id){return document.getElementById(id);}
-function pass(){return localStorage.getItem('cw_vio_auth')||'';}
+// No separate passcode for this page: it reuses the Ops Hub sign-in cached on this
+// browser (same origin). Manual entry is only a fallback when the hub was never unlocked.
+function pass(){return localStorage.getItem('cwOpsHubPass')||localStorage.getItem('cw_vio_auth')||'';}
 
 function post(payload){
   payload.passcode=pass();
@@ -190,7 +192,9 @@ function boot(){
   if(!pass())return;
   el('gateErr').style.display='none';
   post({kind:'vio_roster'}).then(function(r){
-    if(!r.ok){el('gateErr').textContent=r.error||'Could not load';el('gateErr').style.display='block';return;}
+    if(!r.ok){
+      if(/passcode/i.test(r.error||''))localStorage.removeItem('cw_vio_auth');
+      el('gateErr').textContent=r.error||'Could not load';el('gateErr').style.display='block';return;}
     DATA=r;
     var srcItems=SOURCE_FALLBACK;
     if(r.dropdowns&&r.dropdowns.length){
