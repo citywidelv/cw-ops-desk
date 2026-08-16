@@ -58,8 +58,8 @@ table.vt input{padding:7px 8px;font-size:12.5px;}
 .exp.soon{background:#fff6d8;color:#8a6100;}
 .exp.unknown{background:#eee;color:var(--grey);}
 .expline{font-size:11px;color:var(--grey);margin-top:4px;line-height:1.45;}
-.expline b.bad{color:#8c1a20;}
-.expline b.warn{color:#8a6100;}
+.expline b.expbad{color:#8c1a20;}
+.expline b.expsoon{color:#8a6100;}
 .lapsed{background:#fdf2f3;border:1px solid #f0c9cc;border-radius:8px;padding:12px 14px;font-size:12.5px;line-height:1.55;margin:0 0 14px;}
 .counts{font-size:12px;color:var(--grey);margin:12px 0 0;line-height:1.6;}
 
@@ -378,8 +378,8 @@ function rowExpLine(r){
   [['gl','General Liability'],['wc',"Workers' Comp"]].forEach(function(p){
     var o = r[p[0]];
     if (!o || !o.label) return;
-    if (o.state === 'expired') parts.push('<b class="bad">' + p[1] + ' expired ' + esc(o.label) + '</b>');
-    else if (o.state === 'soon') parts.push('<b class="warn">' + p[1] + ' expires ' + esc(o.label) + '</b>');
+    if (o.state === 'expired') parts.push('<b class="expbad">' + p[1] + ' expired ' + esc(o.label) + '</b>');
+    else if (o.state === 'soon') parts.push('<b class="expsoon">' + p[1] + ' expires ' + esc(o.label) + '</b>');
   });
   if (!parts.length) return '';
   return '<div class="expline">' + parts.join(' &middot; ') + '</div>';
