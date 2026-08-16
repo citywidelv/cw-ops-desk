@@ -64,6 +64,9 @@ var INS_COVERAGE = {
 };
 
 var INS_LOGO = 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
+// City Wide Teal, the approved secondary accent. White on this teal measures 3.0:1,
+// which carries large bold text only, so the whole callout is set 19px bold.
+var INS_TEAL = '#0AA6A9';
 var INS_UPLOAD_URL = 'https://citywidelv.github.io/cw-vendor-shop/upload.html';
 
 // The live, vendor-facing revision of each request form. new-vendors.html links
@@ -76,6 +79,7 @@ var INS_DEFAULTS = [
   ['ins_batch_max', '25'],
   ['ins_dup_days', '14'],
   ['ins_upload_url', INS_UPLOAD_URL],
+  ['ins_payment_notice', 'Updated certificates must be on file before your next payment can be issued.'],
   ['ins_form_lv', 'https://citywidelv.github.io/cw-vendor-shop/pdfs/COI-Request-Las-Vegas.pdf'],
   ['ins_form_nnv', 'https://citywidelv.github.io/cw-vendor-shop/pdfs/COI-Request-Northern-Nevada.pdf'],
   ['ins_form_drive_lv', ''],
@@ -391,8 +395,9 @@ function insSend_(d) {
     }
 
     var link = insLink_(cfg, mk, cov, company);
-    var html = insEmail_(company, v.owner, mk, cov, link, test, formName);
-    var plain = insPlain_(company, mk, cov, link, test);
+    var notice = String(cfg.ins_payment_notice || '').trim();
+    var html = insEmail_(company, v.owner, mk, cov, link, test, formName, notice);
+    var plain = insPlain_(company, mk, cov, link, test, notice);
     var subject = (test ? 'TEST | ' : '') +
       'Certificate of insurance request | City Wide Facility Solutions';
     var actualTo = test ? testTo : to;
@@ -463,7 +468,7 @@ function insP_(txt) {
     'line-height:1.6;color:#2d2a26;">' + txt + '</p>';
 }
 
-function insEmail_(company, owner, mk, cov, link, test, formName) {
+function insEmail_(company, owner, mk, cov, link, test, formName, notice) {
   var testBanner = test ?
     '<tr><td style="background:#E5B423;padding:8px 30px;font-family:Verdana,Arial,sans-serif;' +
     'font-size:12px;font-weight:bold;color:#2d2a26;">TEST. Routed to the internal inbox. ' +
@@ -505,6 +510,13 @@ function insEmail_(company, owner, mk, cov, link, test, formName) {
   '<p style="margin:0;font-family:Verdana,Arial,sans-serif;font-size:15px;font-weight:bold;' +
   'color:#2d2a26;">' + cov.label + '</p></div>' +
 
+  (notice ?
+    '<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" ' +
+    'style="margin:0 0 22px;"><tr><td bgcolor="' + INS_TEAL + '" align="center" ' +
+    'style="background-color:' + INS_TEAL + ';padding:18px 22px;font-family:Verdana,Arial,sans-serif;' +
+    'font-size:19px;line-height:1.45;font-weight:bold;color:#ffffff;text-align:center;">' +
+    _esc(notice) + '</td></tr></table>' : '') +
+
   '<table border="0" cellpadding="0" cellspacing="0" style="margin:0 0 12px;"><tr>' +
   '<td bgcolor="#D22730" style="border-radius:6px;">' +
   '<a href="' + link + '" style="background:#D22730;color:#ffffff;font-family:Verdana,Arial,sans-serif;' +
@@ -534,7 +546,7 @@ function insEmail_(company, owner, mk, cov, link, test, formName) {
 
 // Real plain-text alternative. Carries the URL so the email survives image
 // blocking, plain-text clients, and text-only previews.
-function insPlain_(company, mk, cov, link, test) {
+function insPlain_(company, mk, cov, link, test, notice) {
   var lines = [];
   if (test) lines.push('TEST. Routed to the internal inbox. Not issued to a vendor.', '');
   lines.push('CERTIFICATE OF INSURANCE REQUEST', '');
@@ -542,6 +554,11 @@ function insPlain_(company, mk, cov, link, test) {
   lines.push('The certificate of insurance we have on file for ' + company +
     ' has expired and we have not received an updated form.', '');
   lines.push('Coverage needed: ' + cov.label, '');
+  if (notice) {
+    lines.push('***************************************************');
+    lines.push(notice.toUpperCase());
+    lines.push('***************************************************', '');
+  }
   lines.push('Submit a new certificate here:', link, '');
   lines.push('Before your agent issues it:');
   lines.push('- The certificate holder box must read exactly as shown on the attached request form, letter for letter.');
