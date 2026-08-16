@@ -155,7 +155,7 @@ textarea{min-height:60px;resize:vertical;}
 <script>
 var WEBHOOK='https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec';
 var LOGO='https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
-var DATA=null, IC=null, LEVEL=1, PHOTOS=[];
+var DATA=null, IC=null, LEVEL=1, PHOTOS=[], SUGBASE=1;
 var SOURCE_FALLBACK=['Night Manager inspection','FSM inspection','Customer email','Customer phone call','Customer walkthrough','Other'];
 
 // Fallback only. The live lists come from the Dropdowns tab of the CW Violation Notices sheet.
@@ -163,7 +163,11 @@ var FTYPES=[
  {type:'chemicals',label:'Incorrect or non-compliant chemicals',hint:'OSHA hazard communication. The formal one.',items:['Unlabeled chemical container on site','Chemical not on the client approved list','SDS sheet missing from the janitor closet','Improper secondary container or dilution','Prohibited chemical used on a protected surface','Other (describe in the details box)']},
  {type:'background',label:'Person without a background check',hint:'Person may work pending results only after the request is submitted.',items:['Person on site with no approved background check on file','Unreported new crew member working the account','No badge issued for a person on site','Other (describe in the details box)']},
  {type:'uniform',label:'Uniform or badge violation',hint:'Badges and uniforms are required in every client building.',items:['Crew member out of uniform','No City Wide badge worn','No photo ID matching the badge','Other (describe in the details box)']},
- {type:'scope',label:'Scope of work not executed',hint:'Measured against the Exhibit A scope.',items:['Area not cleaned','Contracted task not performed','Building not finaled','Missed service entirely','Other (describe in the details box)']}
+ {type:'scope',label:'Scope of work not executed',hint:'Measured against the Exhibit A scope.',items:['Area not cleaned','Contracted task not performed','Building not finaled','Missed service entirely','Other (describe in the details box)']},
+ {type:'meeting',label:'Missed meeting or scheduled inspection',hint:'Communication Guidelines: 15-minute grace, then $55.38 per hour or portion thereof.',items:['Failed to meet the Night Manager at the scheduled time','Failed to meet the Facility Solutions Manager at the scheduled time','Failed to appear for a scheduled corrective action meeting with the FSM','Work not complete when the Night Manager arrived for a scheduled inspection','Other (describe in the details box)']},
+ {type:'availability',label:'Availability or communication failure',hint:'Start-of-shift availability and the one-hour callback are in the signed Communication Guidelines.',items:['Not reachable at the start of the service period to speak with the Night Manager','Night Manager call or message not returned within one hour','No reachable supervisor with decision-making authority while crew was on site','Other (describe in the details box)']},
+ {type:'complaint',label:'Complaint response failure',hint:'The complaint itself is not the violation. Failing to respond, resolve, or verify per policy is.',items:['No response to a complaint notification','Complaint not resolved by 10:00 PM the next service period','Complaint still unresolved past 24 hours','Failed to meet the acting Night Manager to verify complaint resolution','Other (describe in the details box)']},
+ {type:'security',label:'Security, property, or confidentiality violation',hint:'Material term. The signed policy allows immediate termination without opportunity to cure.',items:['Facility not secured; doors or entry points left unlocked','Client property removed without written authorization','Client information accessed, photographed, or shared','Keys or access cards lost, uncontrolled, or not returned','Account work delegated or subcontracted without written authorization','Refused or failed to cooperate with a compliance inspection or audit','Other (describe in the details box)']}
 ];
 
 function el(id){return document.getElementById(id);}
@@ -245,9 +249,27 @@ function pickIc(){
     box.style.display='block';
   } else { box.innerHTML='No notices for this vendor in the last 12 months.'; box.style.display='block'; }
   var sug=Math.min(h.length+1,3);
+  SUGBASE=sug;
+  updateSuggest();
+  setLevel(currentSuggest());
+}
+
+// An FSM corrective action meeting only exists after prior corrective action,
+// so a no-show there is never a first-offense posture. Suggest at least level 2.
+function currentSuggest(){
+  var boxes=document.querySelectorAll('#ftypes input[type=checkbox]:checked');
+  var bump=false;
+  boxes.forEach(function(b){
+    var lb=b.parentElement?b.parentElement.textContent:'';
+    if(/corrective action/i.test(lb))bump=true;
+  });
+  return Math.min(bump?Math.max(SUGBASE,2):SUGBASE,3);
+}
+function updateSuggest(){
+  var sug=currentSuggest();
   el('suggestPill').textContent='Suggested: Level '+sug;
   el('suggestPill').style.display='inline-block';
-  setLevel(sug);
+  if(LEVEL<sug)setLevel(sug);
 }
 
 function buildFindings(){
@@ -261,6 +283,9 @@ function buildFindings(){
     if(f.type==='chemicals'){h+='<label class="chk"><input type="checkbox" id="x_client_mandate"> <b>This account has a client chemical directive attached to Exhibit A</b></label>';}
     h+='<label>Details (names, areas, what was seen)</label><textarea id="det_'+f.type+'"></textarea>';
     d.innerHTML=h; host.appendChild(d);
+  });
+  host.addEventListener('change',function(ev){
+    if(ev.target&&ev.target.type==='checkbox')updateSuggest();
   });
 }
 
@@ -400,11 +425,23 @@ function preview(){
       req=P('Every person working a City Wide account must have a City Wide approved background check on file before a badge is issued. This protects the client and their assets and is a condition of your agreement.');
       cure=P('<b>Required correction:</b> Submit a background check request for this person before your next scheduled service (Background Check and Name Badge request under Paperwork on the Vendor Resource Center). The person may continue working pending results only after the request is submitted. A person without a submitted request does not return to the account.');
     }else if(f.type==='uniform'){
-      req=P('Badges are issued when compliance paperwork is on file and must be worn with matching photo ID. Uniforms are required in every client building. Orders go through the vendor store on the Resource Center.');
+      req=P('Badges are issued when compliance paperwork is on file and must be worn visibly at all times on site, with matching photo ID. Uniforms are required in every client building. Your signed compliance packet provides that repeated badge violations within any 90-day period may result in suspension or termination of service assignments. Orders go through the vendor store on the Resource Center.');
       cure=P('<b>Required correction:</b> Fix this before your next scheduled service.');
+    }else if(f.type==='meeting'){
+      req=P('The Communication Guidelines signed with your Independent Contractor Agreement require on-time arrival for scheduled meetings and inspections, with a 15-minute grace period. Time beyond the grace period is chargeable at $55.38 per hour, or portion thereof, for the additional City Wide time required. The same guidelines credit you at the same rate when City Wide is late; that remains your right.');
+      cure=P('<b>Required correction:</b> The chargeable time incurred here will be reflected against your monthly payment as provided in the Communication Guidelines. Confirm the rescheduled time with your Facility Solutions Manager and keep every scheduled commitment going forward.');
+    }else if(f.type==='availability'){
+      req=P('The Communication Guidelines signed with your Independent Contractor Agreement require that you, or a supervisor with decision-making authority, be reachable to speak with the Night Manager at the start of each service period and whenever your staff is working in a building, and that Night Manager calls be returned within one hour.');
+      cure=P('<b>Required correction:</b> Restore a working contact path before your next scheduled service. Confirm your current phone number with your Facility Solutions Manager and ensure your voicemail identifies a designated supervisor who can act when you are unavailable.');
+    }else if(f.type==='complaint'){
+      req=P('A client complaint by itself is not a violation, and this notice is not about the underlying complaint. It addresses the failure to follow the required response process. The Communication Guidelines signed with your Independent Contractor Agreement and the Client Complaint Policy in your Orientation Booklet require complaints to be resolved by 10:00 PM the next service period unless otherwise agreed in writing, with the acting Night Manager verifying the resolution.');
+      cure=P('<b>Required correction:</b> Resolve the open complaint at your next scheduled service at the latest, and meet the acting Night Manager to verify the resolution. If City Wide performs or assigns work to close the complaint, that time and expense is chargeable per Section 7.1 of your Independent Contractor Agreement, $25 per hour with a 2-hour minimum.');
+    }else if(f.type==='security'){
+      req=P('The Security &amp; Property Protection Policy signed with your compliance packet is a material term of your Independent Contractor Agreement. It covers securing every entry point, client property, client information, and key control, and it extends to everyone on your crew. Violation of this policy constitutes a material breach and permits immediate termination of the Agreement without prior notice or opportunity to cure. This notice documents the finding; it does not waive that right.');
+      cure=P('<b>Required correction:</b> Correct this immediately and confirm in writing to your Facility Solutions Manager, before your next scheduled service, what changed to prevent a recurrence. You are responsible and liable for any resulting damages or losses.');
     }else{
       req=P('Your Exhibit A lists the contracted scope for this account. Finaling every account nightly is a City Wide client commitment.');
-      cure=P('<b>Required correction:</b> Correct the listed items at your next scheduled service. City Wide may perform or assign interim work; that time and expense is chargeable per the Missed Service standard in your Orientation Booklet, $25 per hour with a 2-hour minimum.');
+      cure=P('<b>Required correction:</b> Correct the listed items at your next scheduled service. City Wide may perform or assign interim work; that time and expense is chargeable per Section 7.1 of your Independent Contractor Agreement and the Missed Service standard in your Orientation Booklet, $25 per hour with a 2-hour minimum.');
     }
     blocks+='<div style="border-left:4px solid #D22730;padding:2px 0 2px 14px;margin:0 0 18px;"><p style="margin:0 0 6px;font-size:14px;font-weight:bold;color:#2d2a26;">Finding '+(i+1)+': '+esc(f.label)+'</p>'+items+det+req+cure+'</div>';
   });
