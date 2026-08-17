@@ -76,7 +76,7 @@ var INS_DEFAULTS = [
   ['ins_live', 'FALSE'],
   ['ins_test_to', 'lvservicecall@gocitywide.com'],
   ['ins_sender_name', 'City Wide Compliance'],
-  ['ins_batch_max', '25'],
+  ['ins_batch_max', '50'],
   ['ins_dup_days', '14'],
   ['ins_upload_url', INS_UPLOAD_URL],
   ['ins_payment_notice', 'Updated certificates must be on file before your next payment can be issued.'],
@@ -305,7 +305,7 @@ function insRoster_(data) {
     config: {
       live: String(cfg.ins_live).toUpperCase() === 'TRUE',
       test_to: cfg.ins_test_to,
-      batch_max: Number(cfg.ins_batch_max) || 25,
+      batch_max: Number(cfg.ins_batch_max) || 50,
       dup_days: days,
       sender_name: cfg.ins_sender_name,
       upload_url: cfg.ins_upload_url || INS_UPLOAD_URL
@@ -413,12 +413,18 @@ function insSend_(d) {
 
   var mk = insMarket_(d.market);
   if (!mk) return _json({ ok: false, error: 'Pick a market: Las Vegas or Northern Nevada' });
-  if (!d.issuer_name) return _json({ ok: false, error: 'Issuer name is required' });
+
+  // Aug 17 2026: the sender fields came off the page. Who ran the batch never
+  // appeared in the vendor's email (the sender is the "City Wide Compliance"
+  // display name and replies go to the market's compliance mailbox), so requiring
+  // it only ever blocked sends. The log column stays, filled with whatever the
+  // caller passes or 'Ops Hub' when nothing is passed.
+  var issuerName = String(d.issuer_name || '').trim() || 'Ops Hub';
 
   var vendors = d.vendors || [];
   if (!vendors.length) return _json({ ok: false, error: 'No vendors in the batch' });
 
-  var batchMax = Number(cfg.ins_batch_max) || 25;
+  var batchMax = Number(cfg.ins_batch_max) || 50;
   if (vendors.length > batchMax) {
     return _json({ ok: false, error: 'Batch of ' + vendors.length + ' is over the limit of ' +
       batchMax + '. Send it in smaller runs.' });
@@ -467,8 +473,9 @@ function insSend_(d) {
 
     var link = insLink_(cfg, mk, cov, company);
     var notice = String(cfg.ins_payment_notice || '').trim();
-    var html = insEmail_(company, v.owner, mk, cov, link, test, formName, notice);
-    var plain = insPlain_(company, mk, cov, link, test, notice);
+    var exp = v.exp || null;
+    var html = insEmail_(company, v.owner, mk, cov, link, test, formName, notice, exp);
+    var plain = insPlain_(company, mk, cov, link, test, notice, exp);
     var subject = (test ? 'TEST | ' : '') +
       'Certificate of insurance request | City Wide Facility Solutions';
     var actualTo = test ? testTo : to;
@@ -505,7 +512,7 @@ function insSend_(d) {
         case 'vendor_email': return to;
         case 'vendor_no': return String(v.vendor_no || '');
         case 'coverage': return cov.label;
-        case 'issuer_name': return String(d.issuer_name || '');
+        case 'issuer_name': return issuerName;
         case 'issuer_email': return String(d.issuer_email || '');
         case 'entry': return v.manual ? 'manual' : 'roster';
         case 'upload_link': return link;
@@ -539,7 +546,23 @@ function insP_(txt) {
     'line-height:1.6;color:#2d2a26;">' + txt + '</p>';
 }
 
-function insEmail_(company, owner, mk, cov, link, test, formName, notice) {
+// The opening sentence has to match reality. A vendor whose policy is still in
+// force answers "has expired" with a screenshot of a current certificate, and the
+// payment notice below it turns that into an argument. When the page hands over an
+// upcoming date, the sentence names the date instead. No date, no state, or an
+// already lapsed policy all keep the original expired wording.
+function insLede_(company, exp) {
+  var st = exp && String(exp.state || '');
+  var lb = exp && String(exp.label || '');
+  if (st === 'upcoming' && lb) {
+    return 'The certificate of insurance we have on file for ' + _esc(company) +
+      ' expires ' + _esc(lb) + ' and we have not received an updated form.';
+  }
+  return 'The certificate of insurance we have on file for ' + _esc(company) +
+    ' has expired and we have not received an updated form.';
+}
+
+function insEmail_(company, owner, mk, cov, link, test, formName, notice, exp) {
   var testBanner = test ?
     '<tr><td style="background:#E5B423;padding:8px 30px;font-family:Verdana,Arial,sans-serif;' +
     'font-size:12px;font-weight:bold;color:#2d2a26;">TEST. Routed to the internal inbox. ' +
@@ -572,8 +595,7 @@ function insEmail_(company, owner, mk, cov, link, test, formName, notice) {
   '<p style="margin:0 0 16px;font-family:Verdana,Arial,sans-serif;font-size:13px;color:#636466;">' +
   _esc(company) + (owner ? ', attn ' + _esc(owner) : '') + '</p>' +
 
-  insP_('The certificate of insurance we have on file for ' + _esc(company) +
-    ' has expired and we have not received an updated form.') +
+  insP_(insLede_(company, exp)) +
 
   '<div style="border-left:4px solid #D22730;padding:10px 0 10px 14px;margin:0 0 22px;">' +
   '<p style="margin:0 0 4px;font-family:Verdana,Arial,sans-serif;font-size:12px;color:#636466;' +
@@ -617,13 +639,17 @@ function insEmail_(company, owner, mk, cov, link, test, formName, notice) {
 
 // Real plain-text alternative. Carries the URL so the email survives image
 // blocking, plain-text clients, and text-only previews.
-function insPlain_(company, mk, cov, link, test, notice) {
+function insPlain_(company, mk, cov, link, test, notice, exp) {
   var lines = [];
   if (test) lines.push('TEST. Routed to the internal inbox. Not issued to a vendor.', '');
   lines.push('CERTIFICATE OF INSURANCE REQUEST', '');
   lines.push(company, '');
-  lines.push('The certificate of insurance we have on file for ' + company +
-    ' has expired and we have not received an updated form.', '');
+  lines.push(
+    (exp && exp.state === 'upcoming' && exp.label)
+      ? 'The certificate of insurance we have on file for ' + company +
+        ' expires ' + exp.label + ' and we have not received an updated form.'
+      : 'The certificate of insurance we have on file for ' + company +
+        ' has expired and we have not received an updated form.', '');
   lines.push('Coverage needed: ' + cov.label, '');
   if (notice) {
     lines.push('***************************************************');

@@ -100,11 +100,9 @@ table.rt td{padding:8px;border-bottom:1px solid #f0f0f0;vertical-align:top;}
   <div class="warn" id="liveWarn" style="display:none;"></div>
 
   <div class="card">
-    <h2>Who is sending</h2>
-    <p class="sub">Each vendor gets their own separate email. Replies go to the region's compliance mailbox, not to you.</p>
+    <h2>Market</h2>
+    <p class="sub">Each vendor gets their own separate email. Replies go to the market's compliance mailbox, not to whoever ran the batch.</p>
     <div class="row">
-      <div><label>Your name</label><select id="issuer"></select></div>
-      <div><label>Your email</label><input type="email" id="issuerEmail" placeholder="you@gocitywide.com"></div>
       <div><label>Market</label><select id="market">
         <option>Las Vegas</option>
         <option>Northern Nevada</option>
@@ -181,7 +179,30 @@ function esc(s){ var d=document.createElement('div'); d.textContent=String(s==nu
 // No separate passcode for this page: it reuses the Ops Hub sign-in cached on this
 // browser (same origin). Manual entry is only a fallback when the hub was never
 // unlocked. The server checks the passcode on every ins_* call regardless.
-function pass(){ return localStorage.getItem('cwOpsHubPass')||localStorage.getItem('cw_ins_auth')||localStorage.getItem('cw_vio_auth')||''; }
+//
+// Aug 17 2026 fix. The old version read three keys in a fixed order and, on a
+// rejected passcode, deleted only cw_ins_auth. If the FIRST key in that order was
+// the stale one, the page rejected every load and typing the right code into the
+// box below could never fix it, because manual entry wrote the key that was being
+// shadowed. Now: one key is authoritative, a rejection clears ALL of them, and the
+// box is put back in front of the user instead of an error under a hidden form.
+var PASS_KEYS = ['cwOpsHubPass','cw_ins_auth','cw_vio_auth'];
+function pass(){
+  for(var i=0;i<PASS_KEYS.length;i++){
+    var v = '';
+    try{ v = localStorage.getItem(PASS_KEYS[i]) || ''; }catch(e){}
+    if(v.trim()) return v.trim();
+  }
+  return '';
+}
+function clearPass(){
+  PASS_KEYS.forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} });
+}
+function savePass(v){
+  // Written to the hub's key so the hub, violations and this page all agree.
+  try{ localStorage.setItem('cwOpsHubPass', String(v||'').trim()); }catch(e){}
+  try{ localStorage.removeItem('cw_ins_auth'); }catch(e){}
+}
 
 function post(payload){
   payload.passcode = pass();
@@ -189,17 +210,31 @@ function post(payload){
     .then(function(r){ return r.json(); });
 }
 
+function showGate(msg){
+  el('app').style.display='none';
+  el('gate').style.display='block';
+  el('pass').value='';
+  if(msg){ el('gateErr').textContent = msg; el('gateErr').style.display='block'; }
+  el('pass').focus();
+}
+
 function unlock(){
-  localStorage.setItem('cw_ins_auth', el('pass').value.trim());
+  var v = el('pass').value.trim();
+  if(!v){ el('gateErr').textContent='Enter the team passcode.'; el('gateErr').style.display='block'; return; }
+  savePass(v);
   boot();
 }
 
 function boot(){
-  if(!pass()) return;
+  if(!pass()){ showGate(''); return; }
   el('gateErr').style.display='none';
   post({kind:'ins_roster'}).then(function(r){
     if(!r.ok){
-      if(/passcode/i.test(r.error||'')) localStorage.removeItem('cw_ins_auth');
+      if(/passcode/i.test(r.error||'')){
+        clearPass();
+        showGate('That passcode was rejected by the server. Every cached copy on this browser has been cleared, so typing it again below will actually take.');
+        return;
+      }
       el('gateErr').textContent = r.error || 'Could not load';
       el('gateErr').style.display='block';
       return;
@@ -215,25 +250,48 @@ function boot(){
       el('liveWarn').style.display='block';
     }
 
-    var iss = el('issuer');
-    iss.innerHTML = '<option value="">Select your name</option>';
-    r.issuers.forEach(function(p,i){
-      var o=document.createElement('option'); o.value=i; o.textContent=p.name; iss.appendChild(o);
-    });
-    iss.onchange = function(){ var p=r.issuers[iss.value]; el('issuerEmail').value = p ? (p.email||'') : ''; };
-
     el('market').onchange = onMarket;
     el('vsearch').oninput = doSearch;
     el('vsearch').onfocus = doSearch;
     document.addEventListener('click', function(e){
       if(!e.target.closest('.searchbox')) el('vresults').style.display='none';
     });
+    restoreBatch();
     onMarket();
     render();
   }).catch(function(e){
     el('gateErr').textContent = 'Could not reach the server. ' + e;
     el('gateErr').style.display='block';
   });
+}
+
+/* ------------------------------------------------------- batch memory ----
+   Typing 40 vendors by hand and losing them to a refresh, a stale passcode or a
+   closed tab is the expensive failure on this page. The working batch is kept in
+   sessionStorage and restored on load. It is cleared the moment a batch actually
+   sends, so a completed run never comes back as a phantom second send.
+--------------------------------------------------------------------------*/
+var BATCH_KEY = 'cw_ins_batch';
+function saveBatch(){
+  try{
+    sessionStorage.setItem(BATCH_KEY, JSON.stringify({
+      market: el('market').value, rows: ROWS, uid: UID
+    }));
+  }catch(e){}
+}
+function clearBatch(){ try{ sessionStorage.removeItem(BATCH_KEY); }catch(e){} }
+function restoreBatch(){
+  var raw = '';
+  try{ raw = sessionStorage.getItem(BATCH_KEY) || ''; }catch(e){}
+  if(!raw) return;
+  try{
+    var s = JSON.parse(raw);
+    if(!s || !s.rows || !s.rows.length) return;
+    if(s.market) el('market').value = s.market;
+    ROWS = s.rows;
+    UID = Number(s.uid) || ROWS.length;
+    LAST_MARKET = el('market').value;
+  }catch(e){}
 }
 
 function marketRoster(){
@@ -385,6 +443,29 @@ function rowExpLine(r){
   return '<div class="expline">' + parts.join(' &middot; ') + '</div>';
 }
 
+/* The email used to say flatly that the certificate "has expired". That is wrong
+   for a vendor whose policy is still in force and lapses in three weeks, and it is
+   the kind of wrong a vendor answers with a screenshot of a current certificate.
+   This hands the server the real state of whichever coverage is being requested so
+   the wording can match. Nothing here is sent for a manual row, which has no dates,
+   and the server falls back to the expired wording when this is absent. */
+function rowExpiry(r){
+  var want = r.coverage === 'both' ? ['gl','wc'] : [r.coverage];
+  var expired = null, upcoming = null;
+  want.forEach(function(k){
+    var o = r[k];
+    if(!o || !o.label) return;
+    if(o.state === 'expired'){
+      if(!expired || Number(o.days) < Number(expired.days)) expired = o;
+    } else if(o.state === 'soon' || o.state === 'ok'){
+      if(!upcoming || Number(o.days) < Number(upcoming.days)) upcoming = o;
+    }
+  });
+  if(expired) return { state:'expired', label:expired.label };
+  if(upcoming) return { state:'upcoming', label:upcoming.label };
+  return null;
+}
+
 function lapsedList(){
   return marketRoster().filter(function(v){
     return (expState(v,'gl')==='expired' || expState(v,'wc')==='expired')
@@ -484,11 +565,18 @@ function render(){
   el('batchCount').textContent = ROWS.length + (ROWS.length===1 ? ' vendor' : ' vendors');
 
   var q = DATA && DATA.quota;
-  el('quotaNote').innerHTML = (typeof q === 'number' && q >= 0)
-    ? 'Google mail quota left today across every City Wide system on this account: <b>' + q + '</b>. ' +
-      'This batch needs ' + ROWS.length + '.'
-    : '';
+  if(typeof q === 'number' && q >= 0){
+    var left = q - ROWS.length;
+    el('quotaNote').innerHTML =
+      'Google mail quota left today across every City Wide system on this account: <b>' + q + '</b>. ' +
+      'This batch needs <b>' + ROWS.length + '</b>' +
+      (ROWS.length ? ', leaving <b>' + (left < 0 ? 0 : left) + '</b> for violations, vendor responses, ' +
+        'invoices and shop orders for the rest of the day.' : '.');
+  } else {
+    el('quotaNote').innerHTML = '';
+  }
 
+  saveBatch();
   var problems = validate();
   el('sendSub').innerHTML = problems.length
     ? 'Not ready yet: ' + problems.map(esc).join(' ')
@@ -501,7 +589,6 @@ function render(){
 function validate(){
   var p = [];
   if(!ROWS.length) p.push('Add at least one vendor.');
-  if(!el('issuer').value && !el('issuerEmail').value.trim()) p.push('Pick who is sending.');
   var noName = ROWS.filter(function(r){ return !String(r.dba).trim(); }).length;
   if(noName) p.push(noName + ' row' + (noName>1?'s have':' has') + ' no company name.');
   var noEmail = ROWS.filter(function(r){ return String(r.dba).trim() && String(r.email).indexOf('@')<1; }).length;
@@ -510,6 +597,11 @@ function validate(){
   if(noCov) p.push(noCov + ' row' + (noCov>1?'s are':' is') + ' missing a coverage selection.');
   if(DATA && DATA.config.batch_max && ROWS.length > DATA.config.batch_max)
     p.push('Batch limit is ' + DATA.config.batch_max + '.');
+  // The Google mail quota is shared with violations, vendor responses, invoices and
+  // shop orders on the same account, and the server refuses a batch it cannot finish.
+  // Say so here rather than letting the send come back rejected.
+  if(DATA && typeof DATA.quota === 'number' && DATA.quota >= 0 && ROWS.length > DATA.quota)
+    p.push('Only ' + DATA.quota + " emails are left on today's shared Google quota.");
   return p;
 }
 
@@ -528,21 +620,22 @@ function send(){
   if(dups.length) msg += '\n\n' + dups.length + ' of these already got a request in the last ' +
     DATA.config.dup_days + ' days: ' + dups.map(function(r){ return r.dba; }).join(', ') + '.';
   if(!live) msg += '\n\nEvery one goes to ' + DATA.config.test_to + ', not to the vendors.';
+  var head = (typeof DATA.quota === 'number' && DATA.quota >= 0) ? DATA.quota - ROWS.length : 999;
+  if(head < 20) msg += '\n\nThis leaves only ' + (head < 0 ? 0 : head) + ' emails on today\'s shared ' +
+    'Google quota for violations, vendor responses, invoices and shop orders.';
   if(!confirm(msg)) return;
 
   var b = el('sendBtn');
   b.disabled = true;
   b.textContent = 'Sending ' + ROWS.length + ' emails...';
 
-  var iss = DATA.issuers[el('issuer').value];
   post({
     kind:'ins_send',
     market: el('market').value,
-    issuer_name: iss ? iss.name : (el('issuerEmail').value || 'Ops Hub'),
-    issuer_email: el('issuerEmail').value.trim(),
     vendors: ROWS.map(function(r){
       return { dba:String(r.dba).trim(), owner:r.owner, email:String(r.email).trim(),
-               vendor_no:r.vendor_no, coverage:r.coverage, manual:r.manual };
+               vendor_no:r.vendor_no, coverage:r.coverage, manual:r.manual,
+               exp: rowExpiry(r) };
     })
   }).then(function(res){
     b.textContent = 'Review and send';
@@ -550,8 +643,15 @@ function send(){
       b.disabled = false;
       el('sendErr').textContent = res.error || 'Send failed.';
       el('sendErr').style.display='block';
+      if(/passcode/i.test(res.error||'')){
+        // The batch is already in sessionStorage. Say that out loud, because the
+        // instinct on this error is to refresh, and the old page lost the list.
+        el('sendErr').textContent = res.error +
+          ' Your batch is saved on this browser. Reload the page, enter the passcode, and the list comes back.';
+      }
       return;
     }
+    clearBatch();
     showResults(res);
   }).catch(function(e){
     b.disabled = false;
