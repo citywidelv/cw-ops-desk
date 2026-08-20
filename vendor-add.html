@@ -41,7 +41,9 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:70ch}
 .btn:hover{background:var(--red-dark);color:#fff}
 .btn.ghost{background:#fff;color:var(--black);border:2px solid var(--border)}
 .btn:disabled{opacity:.55;cursor:default}
-#gmsg{font-size:12.5px;font-weight:700;color:var(--red)}
+.gatebox b{display:block;font-size:16px;margin-bottom:10px}
+#gmsg{font-size:12.5px;color:var(--grey);margin-bottom:16px;line-height:1.55}
+#gmsg.err{color:var(--red);font-weight:700}
 .card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
   padding:22px 24px;margin-bottom:16px}
 .card>h2{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
@@ -96,10 +98,10 @@ textarea{min-height:84px;resize:vertical;line-height:1.55}
 
 <div class="wrap">
 <div id="gate" class="gatebox hidden">
-  <b>Team passcode</b>
-  <input type="password" id="gpass" placeholder="Team passcode">
-  <button class="btn" id="ggo">Continue</button>
-  <div id="gmsg"></div>
+  <b>Open this from the Ops Hub</b>
+  <p id="gmsg">This form writes to the directory using the Ops Hub session in this browser.
+    Unlock the hub once and this loads on its own from then on.</p>
+  <a class="btn" href="index.html">Go to the Ops Hub</a>
 </div>
 
 <div id="app" class="hidden">
@@ -330,10 +332,15 @@ $("f").addEventListener("submit", function(e){
   });
 });
 
+// See vendors.html: the Ops Hub gate is the only gate a person ever sees. This
+// page reuses the cached hub session and never shows a password field.
 function showGate(msg){
   $("app").classList.add("hidden");
   $("gate").classList.remove("hidden");
-  $("gmsg").textContent = msg || "";
+  if (msg){
+    $("gmsg").textContent = msg + " Unlock the Ops Hub in this browser and come back.";
+    $("gmsg").className = "err";
+  }
 }
 function load(pass){
   PASS = pass;
@@ -354,8 +361,6 @@ function load(pass){
   });
 }
 
-$("ggo").addEventListener("click", function(){ var p = $("gpass").value.trim(); if (p) load(p); });
-$("gpass").addEventListener("keydown", function(e){ if (e.key === "Enter"){ var p = this.value.trim(); if (p) load(p); } });
 (function(){ var p = localStorage.getItem(KEY); if (p) load(p); else showGate(""); })();
 </script>
 </body>

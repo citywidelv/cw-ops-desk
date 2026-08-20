@@ -49,7 +49,9 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:70ch}
 .btn.ghost{background:#fff;color:var(--black);border:2px solid var(--border)}
 .btn.ghost:hover{background:#fff;border-color:var(--black)}
 .btn.sm{font-size:12px;padding:7px 14px}
-#gmsg{font-size:12.5px;font-weight:700;color:var(--red)}
+.gatebox b{display:block;font-size:16px;margin-bottom:10px}
+#gmsg{font-size:12.5px;color:var(--grey);margin-bottom:16px;line-height:1.55}
+#gmsg.err{color:var(--red);font-weight:700}
 .counts{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px}
 .kpi{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 16px;min-width:104px}
 .kpi b{display:block;font-size:21px;line-height:1.2}
@@ -132,10 +134,10 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:70ch}
 
 <div class="wrap">
 <div id="gate" class="gatebox hidden">
-  <b>Team passcode</b>
-  <input type="password" id="gpass" placeholder="Team passcode">
-  <button class="btn" id="ggo">Open Directory</button>
-  <div id="gmsg"></div>
+  <b>Open this from the Ops Hub</b>
+  <p id="gmsg">This page reads the directory using the Ops Hub session in this browser.
+    Unlock the hub once and this loads on its own from then on.</p>
+  <a class="btn" href="index.html">Go to the Ops Hub</a>
 </div>
 
 <div id="app" class="hidden">
@@ -425,10 +427,19 @@ function route(){
   });
 }
 
+// No passcode field lives on this page. The Ops Hub gate is the one gate; this
+// page reuses the session it cached (localStorage, same origin) and loads without
+// asking. The credential still goes with every request because the repo is public
+// and this payload carries vendor contact and compliance detail, but that is
+// invisible to anyone who came in through the hub. A cold visitor is sent to the
+// hub rather than shown a password box.
 function showGate(msg){
   $("app").classList.add("hidden");
   $("gate").classList.remove("hidden");
-  $("gmsg").textContent = msg || "";
+  if (msg){
+    $("gmsg").textContent = msg + " Unlock the Ops Hub in this browser and come back.";
+    $("gmsg").className = "err";
+  }
 }
 function load(pass){
   PASS = pass;
@@ -447,10 +458,12 @@ function load(pass){
   });
 }
 
-$("ggo").addEventListener("click", function(){ var p = $("gpass").value.trim(); if (p) load(p); });
-$("gpass").addEventListener("keydown", function(e){ if (e.key === "Enter"){ var p = this.value.trim(); if (p) load(p); } });
 window.addEventListener("hashchange", function(){ QUERY = ""; route(); });
-(function(){ var p = localStorage.getItem(KEY); if (p) load(p); else showGate(""); })();
+(function(){
+  var p = localStorage.getItem(KEY);
+  if (p) load(p);
+  else showGate("");
+})();
 </script>
 </body>
 </html>
