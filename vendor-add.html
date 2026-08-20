@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Add a Vendor | CW Ops Hub</title>
+<!-- build 2026-08-20a
+Writes straight into the CW Vendor Directory Sheet (kind vd_save), passcode
+checked on the server. The service type checkboxes are built from the Service
+Types tab, so a category added to the sheet appears here on the next load.
+Mirrors the vendor evaluation form field for field, so an FSM keying one in by
+hand fills the same record the Jotform intake creates.
+-->
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+a{color:var(--red)}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.head .bar{max-width:860px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  border-left:2px solid var(--border);padding-left:14px}
+.head .back{margin-left:auto;font-size:12px;font-weight:700;background:var(--red);color:#fff;
+  text-decoration:none;border-radius:6px;padding:8px 14px;white-space:nowrap}
+.head .back:hover{background:var(--red-dark);color:#fff}
+.wrap{max-width:860px;margin:0 auto;padding:26px 20px 60px}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 20px;max-width:70ch}
+.gatebox{max-width:360px;background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.gatebox input{width:100%;font-family:inherit;font-size:14px;border:1.5px solid var(--border);
+  border-radius:8px;padding:10px 12px;margin:12px 0;text-align:center}
+.btn{font-family:inherit;font-size:14px;font-weight:700;background:var(--red);color:#fff;border:none;
+  border-radius:8px;padding:12px 24px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn:hover{background:var(--red-dark);color:#fff}
+.btn.ghost{background:#fff;color:var(--black);border:2px solid var(--border)}
+.btn:disabled{opacity:.55;cursor:default}
+#gmsg{font-size:12.5px;font-weight:700;color:var(--red)}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+  padding:22px 24px;margin-bottom:16px}
+.card>h2{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  margin-bottom:4px}
+.card>h2:after{content:"";display:block;width:34px;height:3px;background:var(--red);border-radius:2px;
+  margin:8px 0 16px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0 20px}
+label{display:block;margin-bottom:14px}
+label>span{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--grey);margin-bottom:5px}
+label>span i{color:var(--red);font-style:normal}
+input[type=text],input[type=email],input[type=tel],input[type=url],input[type=number],select,textarea{
+  width:100%;font-family:inherit;font-size:14px;color:var(--black);background:#fff;
+  border:1.5px solid var(--border);border-radius:8px;padding:10px 12px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--black)}
+textarea{min-height:84px;resize:vertical;line-height:1.55}
+.full{grid-column:1/-1}
+.hint{font-size:11.5px;color:var(--grey);margin:-9px 0 14px}
+/* service type checkboxes */
+.types{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.types label{display:flex;align-items:flex-start;gap:8px;margin:0;background:var(--light);
+  border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:13px}
+.types label:hover{border-color:var(--black)}
+.types label.on{background:#FDEEEF;border-color:var(--red)}
+.types label>span{display:inline;font-size:13px;font-weight:400;letter-spacing:0;text-transform:none;
+  color:var(--black);margin:0}
+.types input{margin-top:3px;flex:none}
+/* yes / no segments */
+.seg{display:flex;gap:6px;text-transform:none;letter-spacing:0;font-size:inherit}
+.seg button{font-family:inherit;font-size:12.5px;font-weight:700;background:#fff;color:var(--grey);
+  border:2px solid var(--border);border-radius:8px;padding:8px 16px;cursor:pointer;flex:1}
+.seg button.on{background:var(--black);border-color:var(--black);color:#fff}
+.seg button.on.no{background:var(--red);border-color:var(--red)}
+.msg{border-radius:8px;padding:12px 14px;font-size:13px;margin-bottom:16px;display:none}
+.msg.show{display:block}
+.msg.err{background:#FDEEEF;border:1px solid var(--red);color:var(--black)}
+.msg.warn{background:#FBF3D6;border:1px solid var(--gold)}
+.done{background:#fff;border:1px solid var(--border);border-left:5px solid var(--teal);border-radius:12px;
+  box-shadow:var(--shadow);padding:34px 28px;text-align:center}
+.done b{display:block;font-size:19px;margin-bottom:8px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.hidden{display:none!important}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:24px}
+</style>
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t">Add a Vendor</span>
+  <a class="back" href="vendors.html">&larr; Active Vendors</a>
+</div></header>
+
+<div class="wrap">
+<div id="gate" class="gatebox hidden">
+  <b>Team passcode</b>
+  <input type="password" id="gpass" placeholder="Team passcode">
+  <button class="btn" id="ggo">Continue</button>
+  <div id="gmsg"></div>
+</div>
+
+<div id="app" class="hidden">
+<h1>Add a Vendor</h1>
+<p class="lede">This puts a vendor straight onto the Active Vendors list. Business name and at
+least one service type are all that is required. Everything else is what an FSM will wish
+was here at 6pm on a Friday, so fill in what you have.</p>
+
+<div id="msg" class="msg"></div>
+
+<form id="f" autocomplete="off">
+  <div class="card">
+    <h2>The company</h2>
+    <div class="row">
+      <label class="full"><span>Business name <i>*</i></span><input type="text" id="dba_name" required></label>
+      <label><span>Legal name if different</span><input type="text" id="legal_name"></label>
+      <label><span>Status</span>
+        <select id="status">
+          <option>Applicant</option><option>Waiting for Account</option>
+          <option>In Progress</option><option>Active IC</option>
+          <option>Not Approved</option><option>Inactive</option>
+        </select></label>
+      <label><span>Region served</span>
+        <select id="region">
+          <option value="">Pick one</option><option>Las Vegas</option>
+          <option>Northern Nevada</option><option>Both</option>
+        </select></label>
+      <label><span>City and state</span><input type="text" id="city_state" placeholder="Henderson, NV"></label>
+      <label class="full"><span>Business address</span><input type="text" id="business_address"></label>
+      <div class="hint full">The address is kept in the sheet only. The directory shows city and state.</div>
+      <label><span>Years in business</span>
+        <select id="years_in_business">
+          <option value="">Pick one</option><option>Less than 1 year</option><option>1 to 3 years</option>
+          <option>3 to 5 years</option><option>5 to 10 years</option><option>More than 10 years</option>
+        </select></label>
+      <label><span>Business Central vendor no</span><input type="text" id="bc_vendor_no"></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>What they do <i style="color:var(--red);font-style:normal">*</i></h2>
+    <div class="types" id="types"></div>
+    <div class="hint" style="margin-top:12px">Pick every service they can perform without subcontracting.
+      Missing a category? Add a row to the Service Types tab of the directory sheet and reload this page.</div>
+    <label class="full"><span>Services, in their words</span>
+      <textarea id="services_desc" placeholder="What they told us they can provide with their own crew"></textarea></label>
+    <label class="full"><span>Areas they prefer to work</span><input type="text" id="metro_areas"></label>
+  </div>
+
+  <div class="card">
+    <h2>How to reach them</h2>
+    <div class="row">
+      <label><span>Contact name</span><input type="text" id="contact_name"></label>
+      <label><span>Email</span><input type="email" id="email"></label>
+      <label><span>Mobile phone</span><input type="tel" id="phone"></label>
+      <label><span>Business phone</span><input type="tel" id="business_phone"></label>
+      <label class="full"><span>Website</span><input type="text" id="website" placeholder="example.com"></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Crew and compliance</h2>
+    <div class="row">
+      <label><span>Full time crew</span><input type="number" id="crew_ft" min="0"></label>
+      <label><span>Part time crew</span><input type="number" id="crew_pt" min="0"></label>
+    </div>
+    <div class="row" id="yesno"></div>
+    <div class="row">
+      <label><span>GL certificate expires</span><input type="text" id="gl_exp" placeholder="2027-04-10"></label>
+      <label><span>WC certificate expires</span><input type="text" id="wc_exp" placeholder="2027-04-10"></label>
+    </div>
+    <label class="full"><span>How they handle a client concern</span><textarea id="concern_process"></textarea></label>
+  </div>
+
+  <div class="card">
+    <h2>References</h2>
+    <div class="row">
+      <label><span>Reference 1 company</span><input type="text" id="ref1_company"></label>
+      <label><span>Contact</span><input type="text" id="ref1_name"></label>
+      <label><span>Phone</span><input type="tel" id="ref1_phone"></label>
+      <label class="full"><span>Email</span><input type="email" id="ref1_email"></label>
+    </div>
+    <div class="row" style="border-top:1px dashed var(--border);padding-top:16px">
+      <label><span>Reference 2 company</span><input type="text" id="ref2_company"></label>
+      <label><span>Contact</span><input type="text" id="ref2_name"></label>
+      <label><span>Phone</span><input type="tel" id="ref2_phone"></label>
+      <label class="full"><span>Email</span><input type="email" id="ref2_email"></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Anything else</h2>
+    <label class="full"><span>Owner involvement in daily operations</span><textarea id="family_involvement"></textarea></label>
+    <label class="full"><span>Notes for the team</span>
+      <textarea id="internal_notes" placeholder="Internal only. Who referred them, what they are being considered for."></textarea></label>
+    <label class="full"><span>Added by</span><input type="text" id="added_by" placeholder="Your name"></label>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="save" type="submit">Add to the Directory</button>
+    <a class="btn ghost" href="vendors.html">Cancel</a>
+  </div>
+</form>
+
+<div id="done" class="done hidden"></div>
+</div>
+</div>
+
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
+
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var KEY = "cwOpsHubPass";
+var PASS = "", TYPES = [], ALLOW_DUP = false;
+
+// Every yes or no on the evaluation form, in the order the form asks them.
+var YESNO = [
+  ["workers_comp", "Workers' compensation"],
+  ["general_liability", "General liability"],
+  ["background_checks", "Background checks on crew"],
+  ["sut_paid", "Pays state unemployment tax"],
+  ["wage_compliance", "Follows wage and labor laws"],
+  ["documented_pay", "Documented crew pay method"],
+  ["i9_collected", "Collects I-9 forms"],
+  ["daily_supervision", "Supervisor checks quality daily"]
+];
+var ANSWERS = {};
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d=document.createElement("div"); d.textContent=String(s==null?"":s); return d.innerHTML; }
+function val(id){ var e = $(id); return e ? String(e.value || "").trim() : ""; }
+
+function post(body, cb){
+  body.passcode = PASS;
+  fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) })
+    .then(function(r){ return r.json(); }).then(cb)
+    .catch(function(){ cb({ ok:false, error:"Could not reach the service." }); });
+}
+
+function say(text, cls){
+  var m = $("msg");
+  m.className = "msg show " + (cls || "err");
+  m.textContent = text;
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+function quiet(){ $("msg").className = "msg"; }
+
+function buildYesNo(){
+  $("yesno").innerHTML = YESNO.map(function(p){
+    return '<label><span>' + esc(p[1]) + "</span>"
+      + '<span class="seg" data-k="' + p[0] + '">'
+      + '<button type="button" data-v="Yes">Yes</button>'
+      + '<button type="button" data-v="No">No</button></span></label>';
+  }).join("");
+  Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function(b){
+    b.addEventListener("click", function(){
+      var seg = b.parentNode, k = seg.getAttribute("data-k"), v = b.getAttribute("data-v");
+      var already = ANSWERS[k] === v;
+      Array.prototype.forEach.call(seg.querySelectorAll("button"), function(x){ x.classList.remove("on","no"); });
+      if (already){ delete ANSWERS[k]; return; }              // click again to clear
+      ANSWERS[k] = v;
+      b.classList.add("on");
+      if (v === "No") b.classList.add("no");
+    });
+  });
+}
+
+function buildTypes(){
+  $("types").innerHTML = TYPES.map(function(t){
+    return '<label data-slug="' + esc(t.slug) + '"><input type="checkbox" value="' + esc(t.slug) + '">'
+      + "<span>" + esc(t.name) + "</span></label>";
+  }).join("");
+  Array.prototype.forEach.call(document.querySelectorAll("#types input"), function(i){
+    i.addEventListener("change", function(){ i.parentNode.classList.toggle("on", i.checked); });
+  });
+}
+
+function pickedTypes(){
+  return Array.prototype.filter.call(document.querySelectorAll("#types input"), function(i){ return i.checked; })
+    .map(function(i){ return i.value; });
+}
+
+function collect(){
+  var v = {};
+  ["dba_name","legal_name","status","region","city_state","business_address","years_in_business",
+   "bc_vendor_no","services_desc","metro_areas","contact_name","email","phone","business_phone",
+   "website","crew_ft","crew_pt","gl_exp","wc_exp","concern_process","ref1_company","ref1_name",
+   "ref1_phone","ref1_email","ref2_company","ref2_name","ref2_phone","ref2_email",
+   "family_involvement","internal_notes","added_by"].forEach(function(k){ v[k] = val(k); });
+  Object.keys(ANSWERS).forEach(function(k){ v[k] = ANSWERS[k]; });
+  v.service_types = pickedTypes().join(", ");
+  v.source = "Ops Hub";
+  return v;
+}
+
+$("f").addEventListener("submit", function(e){
+  e.preventDefault();
+  quiet();
+  var v = collect();
+  if (!v.dba_name) return say("Business name is required.");
+  if (!v.service_types) return say("Pick at least one service type so the vendor lands on a page.");
+
+  $("save").disabled = true;
+  $("save").textContent = "Saving...";
+  post({ kind:"vd_save", vendor:v, allow_duplicate: ALLOW_DUP }, function(r){
+    $("save").disabled = false;
+    $("save").textContent = "Add to the Directory";
+    if (r && r.ok){
+      $("f").classList.add("hidden");
+      $("done").classList.remove("hidden");
+      $("done").innerHTML = "<b>" + esc(v.dba_name) + " is on the list</b>"
+        + "<p>Saved as " + esc(r.vendor_id) + ". They show up under "
+        + esc(pickedTypes().map(function(s){
+            var t = TYPES.filter(function(x){ return x.slug === s; })[0];
+            return t ? t.name : s;
+          }).join(", ")) + ".</p>"
+        + '<div class="actions" style="justify-content:center">'
+        + '<a class="btn" href="vendors.html">Open the Directory</a>'
+        + '<a class="btn ghost" href="vendor-add.html">Add Another</a></div>';
+      window.scrollTo({ top:0, behavior:"smooth" });
+      return;
+    }
+    if (r && r.duplicate){
+      ALLOW_DUP = true;
+      return say((r.error || "") + " Submit again to add it anyway.", "warn");
+    }
+    say((r && r.error) || "That did not save.");
+  });
+});
+
+function showGate(msg){
+  $("app").classList.add("hidden");
+  $("gate").classList.remove("hidden");
+  $("gmsg").textContent = msg || "";
+}
+function load(pass){
+  PASS = pass;
+  post({ kind:"vd_types" }, function(r){
+    if (r && r.ok){
+      localStorage.setItem(KEY, pass);
+      TYPES = r.types || [];
+      $("gate").classList.add("hidden");
+      $("app").classList.remove("hidden");
+      buildTypes();
+      buildYesNo();
+      if (!TYPES.length) say("No service types are set up yet. Run vd_setup, or add rows to the "
+        + "Service Types tab of the directory sheet.", "warn");
+    } else {
+      if (r && r.error === "Wrong passcode.") localStorage.removeItem(KEY);
+      showGate((r && r.error) || "Wrong passcode.");
+    }
+  });
+}
+
+$("ggo").addEventListener("click", function(){ var p = $("gpass").value.trim(); if (p) load(p); });
+$("gpass").addEventListener("keydown", function(e){ if (e.key === "Enter"){ var p = this.value.trim(); if (p) load(p); } });
+(function(){ var p = localStorage.getItem(KEY); if (p) load(p); else showGate(""); })();
+</script>
+</body>
+</html>

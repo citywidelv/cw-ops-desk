@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Active Vendors | CW Ops Hub</title>
+<!-- build 2026-08-20a
+Active Vendors directory. Reads the CW Vendor Directory Sheet through the CW
+Solicitations Apps Script (kind vd_list), passcode checked on the server. No
+vendor data is stored in this repo. Views are hash routed:
+  #/                 Janitorial or Other Services
+  #/janitorial       every janitorial vendor
+  #/other            service type tiles, built from the Service Types tab
+  #/other/<slug>     vendors carrying that service type
+Add a category by adding a row to the Service Types tab. No code change.
+-->
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+a{color:var(--red)}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.head .bar{max-width:1080px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  border-left:2px solid var(--border);padding-left:14px}
+.head .back{margin-left:auto;font-size:12px;font-weight:700;background:var(--red);color:#fff;
+  text-decoration:none;border-radius:6px;padding:8px 14px;white-space:nowrap}
+.head .back:hover{background:var(--red-dark);color:#fff}
+.wrap{max-width:1080px;margin:0 auto;padding:26px 20px 60px}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 20px;max-width:70ch}
+.crumb{font-size:12px;color:var(--grey);margin-bottom:14px}
+.crumb a{color:var(--grey);text-decoration:none;font-weight:700}
+.crumb a:hover{color:var(--red)}
+.crumb span{margin:0 7px;opacity:.6}
+.gatebox{max-width:360px;background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.gatebox input{width:100%;font-family:inherit;font-size:14px;border:1.5px solid var(--border);
+  border-radius:8px;padding:10px 12px;margin:12px 0;text-align:center}
+.btn{font-family:inherit;font-size:14px;font-weight:700;background:var(--red);color:#fff;border:none;
+  border-radius:8px;padding:11px 22px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn:hover{background:var(--red-dark);color:#fff}
+.btn.ghost{background:#fff;color:var(--black);border:2px solid var(--border)}
+.btn.ghost:hover{background:#fff;border-color:var(--black)}
+.btn.sm{font-size:12px;padding:7px 14px}
+#gmsg{font-size:12.5px;font-weight:700;color:var(--red)}
+.counts{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 16px;min-width:104px}
+.kpi b{display:block;font-size:21px;line-height:1.2}
+.kpi span{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--grey)}
+/* landing */
+.picker{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin:22px 0}
+.pick{background:#fff;border:1px solid var(--border);border-left:5px solid var(--red);border-radius:12px;
+  box-shadow:var(--shadow);padding:24px;text-decoration:none;color:var(--black);display:block}
+.pick:hover{border-left-color:var(--black);color:var(--black)}
+.pick b{display:block;font-size:19px;margin-bottom:6px}
+.pick .n{font-size:32px;font-weight:700;line-height:1.1;color:var(--red)}
+.pick .d{font-size:12.5px;color:var(--grey);margin-top:8px}
+/* service type tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:12px;margin:18px 0}
+.tile{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+  padding:16px 18px;text-decoration:none;color:var(--black);display:block;border-top:4px solid var(--red)}
+.tile:hover{border-top-color:var(--black);color:var(--black)}
+.tile.empty{border-top-color:var(--border);opacity:.72}
+.tile b{display:block;font-size:14.5px}
+.tile .c{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--grey);margin-top:4px}
+.tile .d{font-size:12px;color:var(--grey);margin-top:8px}
+/* tools */
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 18px}
+.tools input[type=search]{font-family:inherit;font-size:14px;border:1.5px solid var(--border);
+  border-radius:22px;padding:11px 18px;min-width:260px;flex:1;background:#fff}
+.tools .fbtn{font-family:inherit;font-size:12.5px;font-weight:700;background:#fff;color:var(--black);
+  border:2px solid var(--border);border-radius:20px;padding:8px 14px;cursor:pointer}
+.tools .fbtn.on{background:var(--black);border-color:var(--black);color:#fff}
+/* vendor cards */
+.acard{background:#fff;border:1px solid var(--border);border-left:5px solid var(--red);border-radius:12px;
+  box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.acard.pipeline{border-left-color:var(--gold)}
+.acard.cold{border-left-color:var(--border)}
+.ahead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 18px;cursor:pointer}
+.ahead:hover{background:#FAFAFA}
+.ahead h2{font-size:15.5px;flex:1;min-width:190px}
+.ahead .sub{font-size:11.5px;color:var(--grey);width:100%;margin-top:-4px}
+.abody{display:none;border-top:1px solid var(--border);padding:14px 18px 16px}
+.acard.open .abody{display:block}
+.badge{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:4px;
+  padding:3px 9px;white-space:nowrap}
+.b-active{background:var(--teal);color:#fff}
+.b-wait{background:#FBF3D6;border:1px solid var(--gold);color:var(--black)}
+.b-app{background:#fff;border:1px solid var(--border);color:var(--grey)}
+.b-off{background:var(--grey);color:#fff}
+.b-risk{background:var(--red);color:#fff}
+.chips{display:flex;gap:5px;flex-wrap:wrap;width:100%;margin-top:2px}
+.chip{font-size:10.5px;font-weight:700;background:var(--light);border:1px solid var(--border);
+  border-radius:20px;padding:2px 9px;color:var(--grey)}
+.chip.on{background:var(--black);border-color:var(--black);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:2px 22px}
+.f{padding:7px 0;border-bottom:1px dashed var(--border);font-size:12.5px}
+.f k{display:block;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--grey)}
+.f.wide{grid-column:1/-1;white-space:pre-line}
+.f.bad k,.f.bad{color:var(--red)}
+.sh{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  margin:16px 0 2px;padding-top:10px;border-top:2px solid var(--border)}
+.sh:first-child{margin-top:0;padding-top:0;border-top:none}
+.note{background:#FBF3D6;border:1px solid var(--gold);border-radius:8px;padding:9px 12px;
+  font-size:12px;margin:12px 0 0}
+.section-h{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  margin:26px 0 10px}
+.state{background:#fff;border:1px dashed var(--border);border-radius:12px;padding:44px 24px;
+  text-align:center;color:var(--grey)}
+.state b{display:block;color:var(--black);font-size:16px;margin-bottom:6px}
+.hidden{display:none!important}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:24px}
+.foot a{color:var(--grey)}
+@media print{ .head,.tools,.gatebox,.foot,.counts,.crumb{display:none!important}
+  .acard{border:1px solid #ccc;box-shadow:none;page-break-inside:avoid}
+  .abody{display:block!important} }
+</style>
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t">Active Vendors</span>
+  <a class="back" href="index.html">&larr; Back to Ops Hub</a>
+</div></header>
+
+<div class="wrap">
+<div id="gate" class="gatebox hidden">
+  <b>Team passcode</b>
+  <input type="password" id="gpass" placeholder="Team passcode">
+  <button class="btn" id="ggo">Open Directory</button>
+  <div id="gmsg"></div>
+</div>
+
+<div id="app" class="hidden">
+  <div id="crumb" class="crumb"></div>
+  <h1 id="ttl">Active Vendors</h1>
+  <p class="lede" id="lede"></p>
+  <div id="view"></div>
+  <p style="margin-top:22px;font-size:12px">
+    <a id="sheetLink" href="#" target="_blank" rel="noopener">Open the CW Vendor Directory sheet</a>
+    to edit a vendor, change a status, or add a service type.
+    &nbsp;&middot;&nbsp; <a href="vendor-add.html">Add a vendor</a>
+  </p>
+</div>
+</div>
+
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
+
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var KEY = "cwOpsHubPass";
+var DATA = null, PASS = "", QUERY = "", FILTER = "all";
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d=document.createElement("div"); d.textContent=String(s==null?"":s); return d.innerHTML; }
+function has(v){ return String(v==null?"":v).trim() !== ""; }
+
+function post(body, cb){
+  body.passcode = PASS;
+  fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) })
+    .then(function(r){ return r.json(); }).then(cb)
+    .catch(function(){ cb({ ok:false, error:"Could not reach the service." }); });
+}
+
+function typeName(slug){
+  var t = (DATA.types || []).filter(function(x){ return x.slug === slug; })[0];
+  return t ? t.name : slug;
+}
+function statusBadge(s){
+  if (s === "Active IC") return '<span class="badge b-active">Active</span>';
+  if (s === "Waiting for Account") return '<span class="badge b-wait">Waiting for account</span>';
+  if (s === "In Progress") return '<span class="badge b-wait">Onboarding</span>';
+  if (s === "Applicant") return '<span class="badge b-app">Applicant</span>';
+  return '<span class="badge b-off">' + esc(s || "Unknown") + "</span>";
+}
+
+// A vendor missing workers comp or general liability cannot be dispatched, so it
+// is called out on the collapsed card rather than buried in the detail.
+function riskBadges(v){
+  var out = "";
+  if (String(v.workers_comp).toLowerCase() === "no") out += '<span class="badge b-risk">No workers comp</span>';
+  if (String(v.general_liability).toLowerCase() === "no") out += '<span class="badge b-risk">No liability</span>';
+  return out;
+}
+
+function field(label, val, bad){
+  if (!has(val)) return "";
+  return '<div class="f' + (bad ? " bad" : "") + '"><k>' + esc(label) + "</k>" + esc(val) + "</div>";
+}
+function wide(label, val){
+  if (!has(val)) return "";
+  return '<div class="f wide"><k>' + esc(label) + "</k>" + esc(val) + "</div>";
+}
+function yesNo(label, val){
+  if (!has(val)) return "";
+  return field(label, val, String(val).toLowerCase() === "no");
+}
+function link(label, href, text){
+  if (!has(href)) return "";
+  var url = /^https?:/i.test(href) ? href : "https://" + href;
+  return '<div class="f"><k>' + esc(label) + '</k><a href="' + esc(url) +
+    '" target="_blank" rel="noopener">' + esc(text || href) + "</a></div>";
+}
+
+function vendorCard(v){
+  var cls = v.status === "Active IC" ? "" : (v.live ? " pipeline" : " cold");
+  var sub = [];
+  if (has(v.city_state)) sub.push(v.city_state);
+  if (has(v.region) && v.region !== v.city_state) sub.push(v.region);
+  if (has(v.years_in_business)) sub.push(v.years_in_business + " in business");
+  var crew = [];
+  if (has(v.crew_ft) && v.crew_ft !== "0") crew.push(v.crew_ft + " full time");
+  if (has(v.crew_pt) && v.crew_pt !== "0" && v.crew_pt !== "-1") crew.push(v.crew_pt + " part time");
+  if (crew.length) sub.push("crew " + crew.join(", "));
+  if (has(v.cw_clients) && v.cw_clients !== "0") sub.push(v.cw_clients + " City Wide accounts");
+
+  var chips = (v.slugs || []).map(function(s){ return '<span class="chip">' + esc(typeName(s)) + "</span>"; }).join("");
+
+  var contact = field("Contact", v.contact_name)
+    + link("Email", "mailto:" + v.email, v.email)
+    + field("Mobile", v.phone) + field("Business phone", v.business_phone)
+    + link("Website", v.website) + field("City", v.city_state)
+    + field("Region served", v.region) + wide("Preferred areas", v.metro_areas);
+
+  var company = field("Legal name", v.legal_name) + field("Years in business", v.years_in_business)
+    + field("Full time crew", v.crew_ft) + field("Part time crew", v.crew_pt)
+    + field("Business cards", v.has_cards) + field("Brochures", v.has_brochures)
+    + link("Business card", v.business_card_url, "View upload")
+    + wide("Services they perform without subcontracting", v.services_desc)
+    + wide("Owner involvement in daily operations", v.family_involvement)
+    + wide("In their words", v.additional_notes);
+
+  var compliance = yesNo("Workers' compensation", v.workers_comp)
+    + yesNo("General liability", v.general_liability)
+    + yesNo("Background checks", v.background_checks)
+    + yesNo("State unemployment tax", v.sut_paid)
+    + yesNo("Wage and labor laws", v.wage_compliance)
+    + yesNo("Documented crew pay method", v.documented_pay)
+    + yesNo("I-9 forms collected", v.i9_collected)
+    + yesNo("Daily supervisor quality check", v.daily_supervision)
+    + field("GL certificate expires", v.gl_exp) + field("WC certificate expires", v.wc_exp);
+
+  var refs = "";
+  [1, 2].forEach(function(n){
+    var c = v["ref" + n + "_company"];
+    if (!has(c)) return;
+    refs += field("Reference " + n, c)
+      + field("Contact", v["ref" + n + "_name"])
+      + field("Phone", v["ref" + n + "_phone"])
+      + link("Email", "mailto:" + v["ref" + n + "_email"], v["ref" + n + "_email"]);
+  });
+
+  var record = field("Vendor ID", v.vendor_id) + field("Status", v.status)
+    + field("Business Central vendor no", v.bc_vendor_no) + field("IC type", v.ic_type)
+    + field("City Wide start date", v.cw_start_date)
+    + field("City Wide accounts", v.cw_clients)
+    + field("Monthly agreement revenue", v.monthly_revenue)
+    + field("Source", v.source) + field("Eval form submitted", v.eval_date)
+    + field("Record updated", v.updated);
+
+  var body = "";
+  if (contact)    body += '<div class="sh">How to reach them</div><div class="grid">' + contact + "</div>";
+  if (company)    body += '<div class="sh">The company</div><div class="grid">' + company + "</div>";
+  if (compliance) body += '<div class="sh">Compliance</div><div class="grid">' + compliance + "</div>";
+  if (has(v.concern_process)) body += '<div class="sh">How they handle a problem</div><div class="grid">'
+    + wide("", v.concern_process) + "</div>";
+  if (refs)       body += '<div class="sh">References</div><div class="grid">' + refs + "</div>";
+  if (record)     body += '<div class="sh">Record</div><div class="grid">' + record + "</div>";
+  if (has(v.internal_notes)) body += '<div class="note">' + esc(v.internal_notes) + "</div>";
+  if (!has(v.services_desc) && !has(v.concern_process)) {
+    body += '<div class="note">No evaluation form on file for this vendor. Everything above came '
+      + 'from Dynamics. Send them the vendor evaluation form to fill in the rest.</div>';
+  }
+
+  return '<div class="acard' + cls + '">'
+    + '<div class="ahead" onclick="this.parentNode.classList.toggle(\'open\')">'
+    + "<h2>" + esc(v.dba_name) + "</h2>" + statusBadge(v.status) + riskBadges(v)
+    + (sub.length ? '<div class="sub">' + esc(sub.join(" · ")) + "</div>" : "")
+    + '<div class="chips">' + chips + "</div>"
+    + '</div><div class="abody">' + body + "</div></div>";
+}
+
+function matches(v){
+  if (FILTER === "live" && !v.live) return false;
+  if (!QUERY) return true;
+  var hay = [v.dba_name, v.legal_name, v.contact_name, v.email, v.city_state, v.region,
+             v.metro_areas, v.services_desc, v.service_types, v.bc_vendor_no]
+    .join(" ").toLowerCase();
+  return hay.indexOf(QUERY) >= 0;
+}
+
+// Everyone shows by default and status is badged on the card. Outside janitorial
+// most of the bench is still in the pipeline, so filtering applicants out by
+// default made whole service types look empty.
+function toolbar(){
+  return '<div class="tools">'
+    + '<input type="search" id="q" placeholder="Company, contact, city, or service" value="' + esc(QUERY) + '">'
+    + '<button class="fbtn' + (FILTER === "all" ? " on" : "") + '" data-f="all">Everyone</button>'
+    + '<button class="fbtn' + (FILTER === "live" ? " on" : "") + '" data-f="live">Active and onboarding</button>'
+    + '<button class="btn ghost sm" id="reload" type="button">Refresh</button>'
+    + "</div>";
+}
+
+// The toolbar renders once per view and the rows redraw underneath it, so typing
+// in the search box never destroys the input that is being typed into.
+var ROWS = [], EMPTY = "";
+function listView(rows, emptyMsg){
+  ROWS = rows; EMPTY = emptyMsg;
+  return toolbar() + '<div id="rows"></div>';
+}
+function renderRows(){
+  var box = $("rows");
+  if (!box) return;
+  var out = ROWS.filter(matches);
+  var why = EMPTY;
+  if (!out.length && FILTER === "live" && ROWS.filter(function(v){ return !QUERY || matches2(v); }).length){
+    why = "Everyone here is still an applicant. Switch to Everyone to see them.";
+  }
+  box.innerHTML = '<div class="section-h">' + out.length + (out.length === 1 ? " vendor" : " vendors")
+    + "</div>"
+    + (out.length ? out.map(vendorCard).join("")
+       : '<div class="state"><b>Nothing here yet</b>' + esc(why) + "</div>");
+}
+// Same test as matches(), minus the status filter, so the empty state can tell
+// the difference between "nobody does this" and "nobody approved does this".
+function matches2(v){
+  if (!QUERY) return true;
+  var hay = [v.dba_name, v.legal_name, v.contact_name, v.email, v.city_state, v.region,
+             v.metro_areas, v.services_desc, v.service_types, v.bc_vendor_no]
+    .join(" ").toLowerCase();
+  return hay.indexOf(QUERY) >= 0;
+}
+
+function route(){
+  if (!DATA) return;
+  var h = (location.hash || "#/").replace(/^#/, "");
+  var parts = h.split("/").filter(function(x){ return x; });
+  var all = DATA.vendors || [];
+  var jan = all.filter(function(v){ return v.janitorial; });
+  // Other Services counts anyone carrying a non-janitorial type, including the
+  // janitorial vendors who also do floor care or pressure washing. Counting only
+  // the non-janitorial-only vendors made the landing card disagree with the tiles.
+  var other = all.filter(function(v){
+    return (v.slugs || []).some(function(s){ return s !== "janitorial"; });
+  });
+  var crumb = '<a href="#/">Active Vendors</a>';
+
+  if (parts[0] === "janitorial"){
+    $("ttl").textContent = "Janitorial";
+    $("lede").textContent = "Every vendor who runs recurring janitorial work. Click a company to open "
+      + "everything they told us on their evaluation form.";
+    $("crumb").innerHTML = crumb + "<span>/</span>Janitorial";
+    $("view").innerHTML = listView(jan, "No janitorial vendor matches that.");
+  } else if (parts[0] === "other" && parts[1]){
+    var slug = parts[1];
+    var rows = all.filter(function(v){ return (v.slugs || []).indexOf(slug) >= 0; });
+    $("ttl").textContent = typeName(slug);
+    var t = (DATA.types || []).filter(function(x){ return x.slug === slug; })[0];
+    $("lede").textContent = (t && t.description) || "";
+    $("crumb").innerHTML = crumb + '<span>/</span><a href="#/other">Other Services</a><span>/</span>' + esc(typeName(slug));
+    $("view").innerHTML = listView(rows, "Nobody on the list carries this service type yet.");
+  } else if (parts[0] === "other"){
+    var types = (DATA.types || []).filter(function(t){ return t.slug !== "janitorial"; });
+    $("ttl").textContent = "Other Services";
+    $("lede").textContent = "Pick a service type. The list comes from the Service Types tab of the "
+      + "directory sheet, so a new category is a new row, not a code change.";
+    $("crumb").innerHTML = crumb + "<span>/</span>Other Services";
+    $("view").innerHTML = '<div class="tiles">' + types.map(function(t){
+      var n = t.count || 0;
+      return '<a class="tile' + (n ? "" : " empty") + '" href="#/other/' + esc(t.slug) + '">'
+        + "<b>" + esc(t.name) + "</b>"
+        + '<div class="c">' + n + (n === 1 ? " vendor" : " vendors") + "</div>"
+        + (t.description ? '<div class="d">' + esc(t.description) + "</div>" : "") + "</a>";
+    }).join("") + "</div>";
+  } else {
+    var live = all.filter(function(v){ return v.live; }).length;
+    $("ttl").textContent = "Active Vendors";
+    $("lede").textContent = "Who City Wide can call, and what they do. Janitorial is one list. "
+      + "Everything else is grouped by service type.";
+    $("crumb").innerHTML = "";
+    var sc = DATA.status_counts || {};
+    $("view").innerHTML =
+      '<div class="counts">'
+      + '<div class="kpi"><b>' + (sc["Active IC"] || 0) + "</b><span>Active</span></div>"
+      + '<div class="kpi"><b>' + ((sc["Waiting for Account"] || 0) + (sc["In Progress"] || 0))
+        + "</b><span>Onboarding</span></div>"
+      + '<div class="kpi"><b>' + (sc["Applicant"] || 0) + "</b><span>Applicants</span></div>"
+      + '<div class="kpi"><b>' + all.length + "</b><span>On the list</span></div>"
+      + "</div>"
+      + '<div class="picker">'
+      + '<a class="pick" href="#/janitorial"><b>Janitorial</b>'
+        + '<div class="n">' + jan.length + "</div>"
+        + '<div class="d">Recurring commercial cleaning, office cleaning, restrooms and common areas. '
+        + "One list, searchable by city and by account.</div></a>"
+      + '<a class="pick" href="#/other"><b>Other Services</b>'
+        + '<div class="n">' + other.length + "</div>"
+        + '<div class="d">Grouped by service type, including janitorial vendors who '
+        + "also carry a trade. " + ((DATA.types || []).length - 1)
+        + " categories, driven by the sheet.</div></a>"
+      + "</div>"
+      + '<p style="font-size:12.5px;color:var(--grey)">' + live
+      + " of these are active or onboarding today. The rest applied and have not been approved yet.</p>";
+  }
+
+  renderRows();
+
+  var q = $("q");
+  if (q) q.addEventListener("input", function(){ QUERY = this.value.trim().toLowerCase(); renderRows(); });
+  var rl = $("reload");
+  if (rl) rl.addEventListener("click", function(){ if (PASS) load(PASS); });
+  Array.prototype.forEach.call(document.querySelectorAll(".fbtn"), function(b){
+    b.addEventListener("click", function(){
+      FILTER = b.getAttribute("data-f");
+      Array.prototype.forEach.call(document.querySelectorAll(".fbtn"), function(x){ x.classList.remove("on"); });
+      b.classList.add("on");
+      renderRows();
+    });
+  });
+}
+
+function showGate(msg){
+  $("app").classList.add("hidden");
+  $("gate").classList.remove("hidden");
+  $("gmsg").textContent = msg || "";
+}
+function load(pass){
+  PASS = pass;
+  post({ kind:"vd_list" }, function(r){
+    if (r && r.ok){
+      localStorage.setItem(KEY, pass);
+      DATA = r;
+      $("sheetLink").href = r.sheet_url || "#";
+      $("gate").classList.add("hidden");
+      $("app").classList.remove("hidden");
+      route();
+    } else {
+      if (r && r.error === "Wrong passcode.") localStorage.removeItem(KEY);
+      showGate((r && r.error) || "Wrong passcode.");
+    }
+  });
+}
+
+$("ggo").addEventListener("click", function(){ var p = $("gpass").value.trim(); if (p) load(p); });
+$("gpass").addEventListener("keydown", function(e){ if (e.key === "Enter"){ var p = this.value.trim(); if (p) load(p); } });
+window.addEventListener("hashchange", function(){ QUERY = ""; route(); });
+(function(){ var p = localStorage.getItem(KEY); if (p) load(p); else showGate(""); })();
+</script>
+</body>
+</html>
