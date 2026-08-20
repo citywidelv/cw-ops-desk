@@ -93,7 +93,7 @@ p.lede{color:var(--grey);margin:9px 0 16px;max-width:74ch;font-size:13px}
 .tbl{background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
 .tbl>.tr:first-child{border-top-left-radius:10px;border-top-right-radius:10px}
 .tbl>*:last-child{border-bottom-left-radius:10px;border-bottom-right-radius:10px}
-.tr{display:grid;grid-template-columns:minmax(180px,2.2fr) 108px 62px minmax(96px,1fr) 52px minmax(150px,1.6fr);
+.tr{display:grid;grid-template-columns:minmax(180px,2.2fr) 92px 62px minmax(96px,1fr) 52px minmax(150px,1.6fr);
   gap:12px;align-items:center;padding:0 14px;border-top:1px solid var(--border);font-size:12.5px}
 .tr:first-child{border-top:none}
 .th{background:#FAFAFA;border-top:none;font-size:10px;font-weight:700;letter-spacing:.08em;
@@ -111,7 +111,8 @@ p.lede{color:var(--grey);margin:9px 0 16px;max-width:74ch;font-size:13px}
 .row.open{background:#FFF7F7}
 .row.open .nm:before{content:"\25BE ";color:var(--red)}
 .row .nm:before{content:"\25B8 ";color:var(--grey)}
-.dot{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+.dot{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;display:block}
 .dot:before{content:"\25CF ";font-size:11px}
 .s-active{color:var(--teal)}
 .s-wait{color:#9A7B00}
@@ -296,8 +297,13 @@ function statusDot(v){
   else if (s === "Waiting for Account"){ c = "s-wait"; t = "Waiting"; }
   else if (s === "In Progress"){ c = "s-wait"; t = "Onboarding"; }
   else if (s === "Applicant"){ c = "s-app"; t = "Applicant"; }
-  else if (s === "Prospect"){ c = "s-pro"; t = v.outreach || "Prospect"; }
-  else if (s === "Do Not Contact"){ c = "s-risk"; t = "Do not contact"; }
+  else if (s === "Prospect"){
+    c = "s-pro";
+    // Short chips only. The column is narrow by design; the full outreach stage
+    // is on the expanded record.
+    t = { "Email":"Email", "Text only":"Text", "Needs verification":"Verify" }[v.outreach] || "Prospect";
+  }
+  else if (s === "Do Not Contact"){ c = "s-risk"; t = "No contact"; }
   else { c = "s-off"; }
   return '<span class="dot ' + c + '">' + esc(t) + "</span>";
 }
