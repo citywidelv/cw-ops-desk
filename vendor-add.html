@@ -120,14 +120,14 @@ was here at 6pm on a Friday, so fill in what you have.</p>
       <label><span>Legal name if different</span><input type="text" id="legal_name"></label>
       <label><span>Status</span>
         <select id="status">
-          <option>Applicant</option><option>Waiting for Account</option>
-          <option>In Progress</option><option>Active IC</option>
+          <option>Applicant</option><option>Prospect</option>
+          <option>Waiting for Account</option><option>In Progress</option>
+          <option>Active IC</option><option>Do Not Contact</option>
           <option>Not Approved</option><option>Inactive</option>
         </select></label>
-      <label><span>Region served</span>
+      <label><span>Market <i>*</i></span>
         <select id="region">
-          <option value="">Pick one</option><option>Las Vegas</option>
-          <option>Northern Nevada</option><option>Both</option>
+          <option>Las Vegas</option><option>Northern Nevada</option><option>Both</option>
         </select></label>
       <label><span>City and state</span><input type="text" id="city_state" placeholder="Henderson, NV"></label>
       <label class="full"><span>Business address</span><input type="text" id="business_address"></label>
@@ -138,6 +138,13 @@ was here at 6pm on a Friday, so fill in what you have.</p>
           <option>3 to 5 years</option><option>5 to 10 years</option><option>More than 10 years</option>
         </select></label>
       <label><span>Business Central vendor no</span><input type="text" id="bc_vendor_no"></label>
+      <label><span>Contractor license</span><input type="text" id="license_no"></label>
+      <label><span>Outreach stage</span>
+        <select id="outreach">
+          <option value=""></option><option>Email</option><option>Text only</option>
+          <option>Needs verification</option><option>Do not contact</option>
+        </select></label>
+      <label class="full"><span>Trade as they describe it</span><input type="text" id="trade_raw"></label>
     </div>
   </div>
 
@@ -290,7 +297,8 @@ function collect(){
    "bc_vendor_no","services_desc","metro_areas","contact_name","email","phone","business_phone",
    "website","crew_ft","crew_pt","gl_exp","wc_exp","concern_process","ref1_company","ref1_name",
    "ref1_phone","ref1_email","ref2_company","ref2_name","ref2_phone","ref2_email",
-   "family_involvement","internal_notes","added_by"].forEach(function(k){ v[k] = val(k); });
+   "family_involvement","internal_notes","added_by","license_no","outreach",
+   "trade_raw"].forEach(function(k){ v[k] = val(k); });
   Object.keys(ANSWERS).forEach(function(k){ v[k] = ANSWERS[k]; });
   v.service_types = pickedTypes().join(", ");
   v.source = "Ops Hub";

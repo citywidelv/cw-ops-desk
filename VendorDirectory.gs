@@ -37,7 +37,7 @@ var VD_HEADERS = [
   'additional_notes', 'business_card_url', 'has_brochures', 'has_cards',
   'bc_vendor_no', 'ic_type', 'cw_start_date', 'cw_clients', 'monthly_revenue',
   'gl_exp', 'wc_exp', 'source', 'eval_date', 'added_by', 'updated',
-  'internal_notes', 'hide'
+  'internal_notes', 'hide', 'outreach', 'license_no', 'trade_raw'
 ];
 
 var VD_TYPE_HEADERS = ['slug', 'name', 'description', 'sort', 'active'];
@@ -53,6 +53,35 @@ var VD_JANITORIAL = 'janitorial';
 // Statuses that count as a vendor City Wide can call today. Everything else is
 // visible but badged, because an FSM still needs to see who is in the pipeline.
 var VD_LIVE_STATUS = ['Active IC', 'Waiting for Account', 'In Progress'];
+
+// Outreach targets. They are real rows with real service types, but they sit in
+// their own branch so nobody dispatches one by accident.
+var VD_PROSPECT_STATUS = ['Prospect', 'Do Not Contact'];
+
+// The two markets. 'Both' shows under each. Anything unrecognised or blank falls
+// to Las Vegas, which is where every record City Wide has handed over came from.
+var VD_REGIONS = [
+  { key: 'lv',  name: 'Las Vegas',       match: ['las vegas', 'lv', 'southern nevada'] },
+  { key: 'nnv', name: 'Northern Nevada', match: ['northern nevada', 'nnv', 'reno', 'sparks', 'carson'] }
+];
+
+function vdRegion_(raw) {
+  var s = vdStr_(raw).toLowerCase();
+  if (!s) return 'Las Vegas';
+  if (s.indexOf('both') >= 0) return 'Both';
+  for (var i = 0; i < VD_REGIONS.length; i++) {
+    for (var j = 0; j < VD_REGIONS[i].match.length; j++) {
+      if (s.indexOf(VD_REGIONS[i].match[j]) >= 0) return VD_REGIONS[i].name;
+    }
+  }
+  return 'Las Vegas';
+}
+
+function vdInRegion_(region, key) {
+  if (region === 'Both') return true;
+  var r = VD_REGIONS.filter(function (x) { return x.key === key; })[0];
+  return !!r && region === r.name;
+}
 
 // ------------------------------------------------------------ plumbing -----
 
@@ -79,6 +108,8 @@ function vdDispatch(data) {
 
   if (kind === 'vd_setup') return vdSetup_(data);
   if (kind === 'vd_seed')  return vdSeed_(data);
+  if (kind === 'vd_append') return vdAppend_(data);
+  if (kind === 'vd_region_backfill') return vdRegionBackfill_(data);
   if (kind === 'vd_list')  return vdList_(data);
   if (kind === 'vd_save')  return vdSave_(data);
   if (kind === 'vd_types') return vdTypes_(data);
@@ -146,16 +177,23 @@ function vdSetup_(data) {
   var vsh = ss.getSheetByName(VD_TABS.VENDORS);
   var rule = SpreadsheetApp.newDataValidation()
     .requireValueInList(['Active IC', 'Waiting for Account', 'In Progress', 'Applicant',
-                         'Not Approved', 'Inactive'], true).build();
+                         'Prospect', 'Do Not Contact', 'Not Approved', 'Inactive'], true).build();
   vsh.getRange(2, VD_HEADERS.indexOf('status') + 1, 2000, 1).setDataValidation(rule);
   var cb = SpreadsheetApp.newDataValidation().requireCheckbox().build();
   vsh.getRange(2, VD_HEADERS.indexOf('hide') + 1, 2000, 1).setDataValidation(cb);
 
-  if (t.getLastRow() < 2 && data && data.types && data.types.length) {
-    var tv = data.types.map(function (x) {
-      return [x.slug, x.name, x.description || '', Number(x.sort || 0), true];
-    });
-    t.getRange(2, 1, tv.length, VD_TYPE_HEADERS.length).setValues(tv);
+  // Upsert, not seed-once: re-running setup adds new categories without touching
+  // the name, description, sort or active flag anyone has edited on the sheet.
+  if (data && data.types && data.types.length) {
+    var have = {};
+    var tv = t.getDataRange().getValues();
+    for (var ti = 1; ti < tv.length; ti++) {
+      var sl = vdStr_(tv[ti][0]).toLowerCase();
+      if (sl) have[sl] = true;
+    }
+    var add = data.types.filter(function (x) { return !have[String(x.slug).toLowerCase()]; })
+      .map(function (x) { return [x.slug, x.name, x.description || '', Number(x.sort || 0), true]; });
+    if (add.length) t.getRange(t.getLastRow() + 1, 1, add.length, VD_TYPE_HEADERS.length).setValues(add);
     t.getRange(2, 5, 500, 1).setDataValidation(
       SpreadsheetApp.newDataValidation().requireCheckbox().build());
   }
@@ -201,6 +239,60 @@ function vdSeed_(data) {
   return vdOut_({ ok: true, seeded: out.length, url: ss.getUrl() });
 }
 
+// Adds rows without touching what is already there, unlike vd_seed which replaces
+// the tab. Skips any dba_name already on the list so it is safe to re-run.
+function vdAppend_(data) {
+  var payload = data.payload;
+  if (!payload || !payload.vendors) return vdOut_({ ok: false, error: 'No payload' });
+
+  vdSetup_({ types: payload.service_types });
+  var ss = vdSS_();
+  var sh = ss.getSheetByName(VD_TABS.VENDORS);
+  var all = vdRows_(sh).rows;
+
+  var seen = {};
+  all.forEach(function (r) { if (r.dba_name) seen[r.dba_name.toLowerCase()] = true; });
+
+  var next = vdNextId_(all);
+  var n = Number(next.slice(2));
+  var out = [], skipped = [];
+  payload.vendors.forEach(function (v) {
+    var key = vdStr_(v.dba_name).toLowerCase();
+    if (!key) return;
+    if (seen[key]) { skipped.push(v.dba_name); return; }
+    seen[key] = true;
+    v.vendor_id = 'V-' + ('000' + n).slice(-3);
+    n++;
+    if (v.region !== undefined) v.region = vdRegion_(v.region);
+    out.push(VD_HEADERS.map(function (h) { return v[h] == null ? '' : String(v[h]); }));
+  });
+
+  if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, VD_HEADERS.length).setValues(out);
+  return vdOut_({ ok: true, added: out.length, skipped: skipped.length, skipped_names: skipped.slice(0, 20) });
+}
+
+// One-time repair for rows loaded before the market column existed. Everything
+// City Wide handed over was the Las Vegas book, with the corrections passed in.
+function vdRegionBackfill_(data) {
+  var ss = vdSS_();
+  var sh = ss.getSheetByName(VD_TABS.VENDORS);
+  var col = VD_HEADERS.indexOf('region') + 1;
+  var rows = vdRows_(sh).rows;
+  var fixes = {};
+  (data.fixes || []).forEach(function (f) { fixes[String(f.name).toLowerCase()] = f.region; });
+
+  var filled = 0, corrected = 0;
+  rows.forEach(function (r) {
+    if (!r.dba_name) return;
+    var want = fixes[r.dba_name.toLowerCase()];
+    if (want && vdRegion_(r.region) !== want) {
+      sh.getRange(r._row, col).setValue(want); corrected++; return;
+    }
+    if (!vdStr_(r.region)) { sh.getRange(r._row, col).setValue('Las Vegas'); filled++; }
+  });
+  return vdOut_({ ok: true, filled: filled, corrected: corrected });
+}
+
 // ------------------------------------------------------------ read ---------
 
 function vdTypes_(data) {
@@ -235,6 +327,12 @@ function vdList_(data) {
   var drop = { business_address: 1, _row: 1, hide: 1 };
   var vendors = [];
   var counts = {}, statusCounts = {};
+  // Counts are kept per region and per branch so the landing pages can show real
+  // numbers without the client having to re-derive them from the whole list.
+  var regionCounts = {};
+  VD_REGIONS.forEach(function (r) {
+    regionCounts[r.key] = { name: r.name, janitorial: 0, other: 0, prospects: 0, total: 0, types: {} };
+  });
 
   vdRows_(vsh).rows.forEach(function (r) {
     if (!r.dba_name || vdTrue_(r.hide)) return;
@@ -243,13 +341,34 @@ function vdList_(data) {
     o.slugs = vdSlugs_(r.service_types);
     o.janitorial = o.slugs.indexOf(VD_JANITORIAL) >= 0;
     o.live = VD_LIVE_STATUS.indexOf(r.status) >= 0;
+    o.prospect = VD_PROSPECT_STATUS.indexOf(r.status) >= 0;
+    o.region = vdRegion_(r.region);
+    o.regions = VD_REGIONS.filter(function (x) { return vdInRegion_(o.region, x.key); })
+                          .map(function (x) { return x.key; });
     vendors.push(o);
+
     o.slugs.forEach(function (s) { counts[s] = (counts[s] || 0) + 1; });
     statusCounts[r.status || 'Unknown'] = (statusCounts[r.status || 'Unknown'] || 0) + 1;
+
+    o.regions.forEach(function (k) {
+      var rc = regionCounts[k];
+      rc.total++;
+      if (o.prospect) rc.prospects++;
+      else {
+        if (o.janitorial) rc.janitorial++;
+        if (o.slugs.some(function (s) { return s !== VD_JANITORIAL; })) rc.other++;
+      }
+      o.slugs.forEach(function (s) {
+        rc.types[s] = rc.types[s] || { all: 0, prospects: 0 };
+        rc.types[s].all++;
+        if (o.prospect) rc.types[s].prospects++;
+      });
+    });
   });
 
   vendors.sort(function (a, b) {
-    if (a.live !== b.live) return a.live ? -1 : 1;           // callable vendors first
+    if (a.prospect !== b.prospect) return a.prospect ? 1 : -1;   // working bench first
+    if (a.live !== b.live) return a.live ? -1 : 1;
     return a.dba_name.toLowerCase() < b.dba_name.toLowerCase() ? -1 : 1;
   });
 
@@ -258,6 +377,8 @@ function vdList_(data) {
 
   return vdOut_({
     ok: true, vendors: vendors, types: types, counts: counts,
+    regions: VD_REGIONS.map(function (r) { return { key: r.key, name: r.name }; }),
+    region_counts: regionCounts,
     status_counts: statusCounts, total: vendors.length,
     sheet_url: ss.getUrl(), generated: new Date().toISOString()
   });
@@ -322,6 +443,7 @@ function vdSave_(data) {
     if (!vdStr_(v.source)) v.source = 'Ops Hub';
   }
   v.updated = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd');
+  if (v.region !== undefined) v.region = vdRegion_(v.region);
 
   VD_HEADERS.forEach(function (h, i) {
     if (v[h] === undefined) return;
