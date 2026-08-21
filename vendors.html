@@ -185,8 +185,8 @@ var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDF
 var KEY = "cwOpsHubPass";
 var DATA = null, PASS = "", QUERY = "", FILTER = "all";
 var STATUSF = "";
-var STATUS_ORDER = ["Active IC","Waiting for Account","In Progress","Applicant",
-                   "Prospect","Do Not Contact","Not Approved","Inactive"];
+var STATUS_ORDER = ["Active","Waiting for Account","In Progress",
+                   "Prospect","Do Not Contact"];
 var SORT = "name", DESC = false;
 var ROWS = [], EMPTY = "", MKT = "lv";
 
@@ -299,15 +299,14 @@ function detailHtml(v){
 /* ---------- the dense list ---------- */
 function statusDot(v){
   var s = v.status, c = "s-app", t = s;
-  if (s === "Active IC"){ c = "s-active"; t = "Active"; }
+  if (s === "Active"){ c = "s-active"; t = "Active"; }
   else if (s === "Waiting for Account"){ c = "s-wait"; t = "Waiting"; }
   else if (s === "In Progress"){ c = "s-wait"; t = "Onboarding"; }
-  else if (s === "Applicant"){ c = "s-app"; t = "Applicant"; }
   else if (s === "Prospect"){
     c = "s-pro";
     // Short chips only. The column is narrow by design; the full outreach stage
     // is on the expanded record.
-    t = { "Email":"Email", "Text only":"Text", "Needs verification":"Verify" }[v.outreach] || "Prospect";
+        t = { "Email":"Email", "Text only":"Text", "Phone only":"Phone", "Needs verification":"Verify" }[v.outreach] || "Prospect";
   }
   else if (s === "Do Not Contact"){ c = "s-risk"; t = "No contact"; }
   else { c = "s-off"; }
@@ -330,7 +329,7 @@ function svcOf(v){
 
 var SORTS = {
   name:   function(v){ return v.dba_name.toLowerCase(); },
-  status: function(v){ return ["Active IC","Waiting for Account","In Progress","Applicant",
+    status: function(v){ return ["Active","Waiting for Account","In Progress",
                                "Prospect","Do Not Contact"].indexOf(v.status); },
   region: function(v){ return v.region; },
   city:   function(v){ return (v.city_state || "zzz").toLowerCase(); },
