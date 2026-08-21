@@ -87,6 +87,9 @@ p.lede{color:var(--grey);margin:9px 0 16px;max-width:74ch;font-size:13px}
 .fbtn{font-family:inherit;font-size:11.5px;font-weight:700;background:#fff;color:var(--black);
   border:2px solid var(--border);border-radius:18px;padding:6px 12px;cursor:pointer;white-space:nowrap}
 .fbtn.on{background:var(--black);border-color:var(--black);color:#fff}
+.sfsel{font-family:inherit;font-size:11.5px;font-weight:700;background:#fff;color:var(--black);
+  border:2px solid var(--border);border-radius:18px;padding:6px 10px;cursor:pointer}
+.sfsel.on{background:var(--black);border-color:var(--black);color:#fff}
 .count{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);
   margin:0 0 6px}
 /* the dense table */
@@ -181,6 +184,9 @@ p.lede{color:var(--grey);margin:9px 0 16px;max-width:74ch;font-size:13px}
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var KEY = "cwOpsHubPass";
 var DATA = null, PASS = "", QUERY = "", FILTER = "all";
+var STATUSF = "";
+var STATUS_ORDER = ["Active IC","Waiting for Account","In Progress","Applicant",
+                   "Prospect","Do Not Contact","Not Approved","Inactive"];
 var SORT = "name", DESC = false;
 var ROWS = [], EMPTY = "", MKT = "lv";
 
@@ -355,6 +361,7 @@ function rowHtml(v, i){
 }
 
 function matches(v){
+  if (STATUSF && String(v.status == null ? "" : v.status).trim() !== STATUSF) return false;
   if (FILTER === "live" && !v.live) return false;
   if (FILTER === "flag" && String(v.workers_comp).toLowerCase() !== "no"
       && String(v.general_liability).toLowerCase() !== "no") return false;
@@ -365,12 +372,43 @@ function matches(v){
   return hay.indexOf(QUERY) >= 0;
 }
 
+// The status list is built from whatever is actually in the rows on screen, so a
+// new status added in the sheet shows up here without a code change.
+function statusOptions(){
+  var seen = {}, list = [];
+  ROWS.forEach(function(v){
+    var st = String(v.status == null ? "" : v.status).trim();
+    if (!st || seen[st]) return;
+    seen[st] = 1; list.push(st);
+  });
+  list.sort(function(a,b){
+    var i = STATUS_ORDER.indexOf(a), j = STATUS_ORDER.indexOf(b);
+    if (i < 0) i = 99;
+    if (j < 0) j = 99;
+    if (i !== j) return i - j;
+    return a.toLowerCase() < b.toLowerCase() ? -1 : 1;
+  });
+  return list;
+}
+
+function statusSelect(){
+  var st = statusOptions();
+  if (STATUSF && st.indexOf(STATUSF) < 0) STATUSF = "";
+  return '<select id="statusf" class="sfsel' + (STATUSF ? " on" : "") + '">'
+    + '<option value="">Any status</option>'
+    + st.map(function(x){
+        return '<option value="' + esc(x) + '"' + (STATUSF === x ? " selected" : "") + ">" + esc(x) + "</option>";
+      }).join("")
+    + "</select>";
+}
+
 function toolbar(showLive){
   return '<div class="tools">'
     + '<input type="search" id="q" placeholder="Company, contact, city, phone, or service" value="' + esc(QUERY) + '">'
     + '<button class="fbtn' + (FILTER === "all" ? " on" : "") + '" data-f="all">All</button>'
     + (showLive ? '<button class="fbtn' + (FILTER === "live" ? " on" : "") + '" data-f="live">Active and onboarding</button>' : "")
     + '<button class="fbtn' + (FILTER === "flag" ? " on" : "") + '" data-f="flag">Insurance gaps</button>'
+    + statusSelect()
     + '<button class="btn ghost sm" id="reload" type="button">Refresh</button>'
     + "</div>";
 }
@@ -393,7 +431,8 @@ function renderRows(){
   });
   window.__VIEW = out;
   var why = EMPTY;
-  if (!out.length && FILTER !== "all") why = "Nothing matches that filter. Switch back to All.";
+  if (!out.length && (FILTER !== "all" || STATUSF))
+    why = "Nothing matches those filters. Switch back to All and Any status.";
   box.innerHTML = '<div class="count">' + out.length + (out.length === 1 ? " vendor" : " vendors") + "</div>"
     + (out.length
         ? '<div class="tbl">' + headerRow() + out.map(rowHtml).join("") + "</div>"
@@ -520,6 +559,12 @@ function route(){
   if (q) q.addEventListener("input", function(){ QUERY = this.value.trim().toLowerCase(); renderRows(); });
   var rl = $("reload");
   if (rl) rl.addEventListener("click", function(){ if (PASS) load(PASS); });
+  var sf = $("statusf");
+  if (sf) sf.addEventListener("change", function(){
+    STATUSF = this.value;
+    this.className = "sfsel" + (STATUSF ? " on" : "");
+    renderRows();
+  });
   Array.prototype.forEach.call(document.querySelectorAll(".fbtn"), function(b){
     b.addEventListener("click", function(){
       FILTER = b.getAttribute("data-f");
@@ -560,7 +605,7 @@ function load(pass){
   });
 }
 
-window.addEventListener("hashchange", function(){ QUERY = ""; FILTER = "all"; route(); });
+window.addEventListener("hashchange", function(){ QUERY = ""; FILTER = "all"; STATUSF = ""; route(); });
 (function(){ var p = localStorage.getItem(KEY); if (p) load(p); else showGate(""); })();
 </script>
 </body>
