@@ -4,6 +4,8 @@
 // Routing: doPost in Code.gs routes any kind starting 'vd_' to vdDispatch(data).
 // Kinds: vd_setup, vd_seed, vd_append, vd_region_backfill, vd_list, vd_save,
 //        vd_patch, vd_types, vd_intake, vd_bc_seed, vd_bc_list
+// Aug 22 2026: VD_HEADERS gained last_audit, audit_result, audit_next_due, audit_pdf,
+// written by VendorAudit.gs and shown on vendors.html.
 //
 // Purpose: one internal roster of every vendor City Wide can actually call.
 // Janitorial is one bucket. Everything else is grouped by service type, and the
@@ -74,7 +76,9 @@ var VD_HEADERS = [
   'additional_notes', 'business_card_url', 'has_brochures', 'has_cards',
   'bc_vendor_no', 'ic_type', 'cw_start_date', 'cw_clients', 'monthly_revenue',
   'gl_exp', 'wc_exp', 'source', 'eval_date', 'added_by', 'updated',
-  'internal_notes', 'hide', 'outreach', 'license_no', 'trade_raw'
+  'internal_notes', 'hide', 'outreach', 'license_no', 'trade_raw',
+  // Aug 22 2026: quarterly audit columns, written by VendorAudit.gs (audit_submit)
+  'last_audit', 'audit_result', 'audit_next_due', 'audit_pdf'
 ];
 
 var VD_TYPE_HEADERS = ['slug', 'name', 'description', 'sort', 'active'];

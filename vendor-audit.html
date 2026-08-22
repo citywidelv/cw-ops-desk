@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Quarterly Vendor Audit | CW Ops Hub</title>
+<!-- build 2026-08-22a
+Quarterly vendor compliance audit. A City Wide person (DOO, GM, or FSM) records,
+account by account, who the vendor sends into each building, whether a background
+check is on file for each person, whether each is 18 or older, whether SDS are on
+site, and whether the vendor attests to state and federal employment law
+compliance. Yes/no attestations only. No proof collected. Nothing here tells the
+vendor how to run its business.
+
+Server: CW Solicitations Apps Script, file VendorAudit.gs (kinds audit_context,
+audit_submit). Passcode comes from the Ops Hub session in this browser and is
+checked on the server. Every submission writes the Audits and Audit Accounts tabs
+of the CW Vendor Directory sheet, saves a PDF to Drive (Team Portal / Ops Hub /
+Vendor Quarterly Audits), and stamps the vendor's directory row. No emails.
+
+Open with ?vendor=V-123&market=lv to preselect a vendor.
+-->
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+a{color:var(--red)}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:30}
+.head .bar{max-width:1100px;margin:0 auto;padding:0 20px;height:58px;display:flex;align-items:center;gap:14px}
+.head img{height:34px;width:auto;max-width:none;flex:none}
+.head .t{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  border-left:2px solid var(--border);padding-left:14px}
+.head .back{margin-left:auto;font-size:12px;font-weight:700;background:var(--red);color:#fff;
+  text-decoration:none;border-radius:6px;padding:7px 13px;white-space:nowrap}
+.head .back:hover{background:var(--red-dark);color:#fff}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 20px 70px}
+/* hero */
+.hero{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);
+  display:grid;grid-template-columns:1fr 230px;gap:20px;overflow:hidden;margin-bottom:18px}
+.hero .hx{padding:26px 28px 22px}
+.hero h1{font-size:24px;line-height:1.2}
+.hero h1:after{content:"";display:block;width:48px;height:4px;background:var(--red);border-radius:2px;margin-top:10px}
+.hero p{color:var(--grey);margin-top:12px;max-width:62ch;font-size:13px}
+.hero .pic{background:linear-gradient(180deg,#fff 0%,var(--light) 100%);display:flex;align-items:flex-end;justify-content:center;padding:14px 10px 0}
+.hero .pic img{width:200px;height:auto;display:block}
+.three{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.three span{display:inline-flex;align-items:center;gap:7px;background:var(--light);border-radius:20px;padding:5px 12px 5px 7px;font-size:12px;font-weight:700}
+.three img{width:22px;height:22px}
+/* cards */
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px 22px;margin-bottom:16px}
+.card h2{font-size:15px;display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.card h2 .n{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--black);color:#fff;
+  align-items:center;justify-content:center;font-size:12px;flex:none}
+.card h2 img{width:24px;height:24px}
+.card .hint{font-size:12px;color:var(--grey);margin-bottom:12px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 16px}
+label.f{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin-bottom:4px}
+input[type=text],input[type=date],select,textarea{font-family:inherit;font-size:13.5px;border:1.5px solid var(--border);
+  border-radius:8px;padding:9px 11px;width:100%;background:#fff;color:var(--black)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--black)}
+textarea{min-height:70px;resize:vertical}
+.seg{display:inline-flex;border:2px solid var(--border);border-radius:20px;overflow:hidden}
+.seg button{font-family:inherit;font-size:12px;font-weight:700;background:#fff;border:none;padding:7px 14px;cursor:pointer;color:var(--black)}
+.seg button.on{background:var(--black);color:#fff}
+.btn{font-family:inherit;font-size:13px;font-weight:700;background:var(--red);color:#fff;border:none;
+  border-radius:8px;padding:10px 18px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn:hover{background:var(--red-dark);color:#fff}
+.btn.ghost{background:#fff;color:var(--black);border:2px solid var(--border)}
+.btn.ghost:hover{border-color:var(--black)}
+.btn.sm{font-size:11.5px;padding:6px 12px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+/* vendor summary */
+.vsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
+.vsum div{background:var(--light);border-radius:8px;padding:8px 11px;font-size:12.5px}
+.vsum k{display:block;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--grey)}
+.vsum .due{color:var(--red);font-weight:700}
+/* yes/no question rows */
+.q{display:flex;align-items:flex-start;gap:14px;padding:11px 0}
+.q+.q{border-top:1px solid var(--border)}
+.q .qt{flex:1;font-size:13.5px}
+.q .qt small{display:block;color:var(--grey);font-size:11.5px;margin-top:2px}
+.yn{display:inline-flex;gap:6px;flex:none}
+.yn label{font-size:12px;font-weight:700;border:2px solid var(--border);border-radius:18px;padding:5px 13px;cursor:pointer;background:#fff;user-select:none}
+.yn input{display:none}
+.yn label.on{border-color:var(--black);background:var(--black);color:#fff}
+.yn label.on.no{border-color:var(--red);background:var(--red)}
+.yn label.on.pend{border-color:var(--gold);background:var(--gold);color:var(--black)}
+/* accounts */
+.acct{border:1px solid var(--border);border-left:5px solid var(--red);border-radius:10px;margin-bottom:12px;background:#fff}
+.acct .ah{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#FAFAFA;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.acct .ah b{flex:1;font-size:14px}
+.acct .ab{padding:10px 14px 12px}
+.ppl{width:100%;border-collapse:collapse;font-size:13px}
+.ppl th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--grey);padding:6px 6px;border-bottom:1px solid var(--border)}
+.ppl td{padding:6px;border-bottom:1px solid #F0F0F0;vertical-align:middle}
+.ppl td.nm{font-weight:700}
+.ppl td.nm em{display:block;font-style:normal;font-weight:400;font-size:10.5px;color:var(--teal)}
+.ppl .rm{background:none;border:none;color:var(--grey);cursor:pointer;font-size:16px;line-height:1}
+.ppl .rm:hover{color:var(--red)}
+.addp{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.addp input{max-width:320px}
+.pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pick button{font-family:inherit;font-size:12px;border:1.5px solid var(--teal);color:var(--black);background:#fff;border-radius:14px;padding:3px 10px;cursor:pointer}
+.pick button:hover{background:var(--teal);color:#fff}
+.pick .lbl{font-size:11px;color:var(--grey);width:100%}
+.sdsrow{display:flex;align-items:center;gap:12px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);flex-wrap:wrap}
+.sdsrow .qt{flex:1;font-size:13px;min-width:240px}
+.addacct{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.addacct input{max-width:460px}
+/* result preview */
+.preview{position:sticky;bottom:0;z-index:20;background:#fff;border-top:3px solid var(--black);box-shadow:0 -4px 14px rgba(45,42,38,.08);
+  padding:12px 20px;margin:0 -20px -70px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.preview .r{font-size:20px;font-weight:700;min-width:70px}
+.preview .r.pass{color:var(--teal)}.preview .r.fail{color:var(--red)}.preview .r.na{color:var(--grey)}
+.preview .why{flex:1;font-size:12px;color:var(--grey);min-width:220px}
+.preview .why b{color:var(--black)}
+.rule{background:#FBF3D6;border:1px solid var(--gold);border-radius:8px;padding:9px 12px;font-size:12px;margin-top:10px}
+.note{background:var(--light);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--grey);margin-top:10px}
+.err{color:var(--red);font-weight:700;font-size:12.5px;margin-top:8px}
+.done{text-align:center;padding:30px 20px}
+.done .big{font-size:40px;font-weight:700;line-height:1}
+.done .big.pass{color:var(--teal)}.done .big.fail{color:var(--red)}
+.done p{color:var(--grey);margin:10px auto;max-width:60ch}
+.done ul{display:inline-block;text-align:left;margin:8px auto 14px;font-size:13px}
+.gatebox{max-width:380px;background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.gatebox b{display:block;font-size:16px;margin-bottom:10px}
+#gmsg{font-size:12.5px;color:var(--grey);margin-bottom:16px}
+#gmsg.err{color:var(--red);font-weight:700}
+.hidden{display:none!important}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:22px}
+@media (max-width:760px){ .hero{grid-template-columns:1fr} .hero .pic{display:none} .preview{margin:0 -20px -70px} }
+</style>
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t">Quarterly Vendor Audit</span>
+  <a class="back" href="index.html">&larr; Back to Ops Hub</a>
+</div></header>
+
+<div class="wrap">
+<div id="gate" class="gatebox hidden">
+  <b>Open this from the Ops Hub</b>
+  <p id="gmsg">This page uses the Ops Hub session in this browser. Unlock the hub once and this loads on its own.</p>
+  <a class="btn" href="index.html">Go to the Ops Hub</a>
+</div>
+
+<div id="app" class="hidden">
+
+<div class="hero">
+  <div class="hx">
+    <h1>Quarterly Vendor Compliance Audit</h1>
+    <p>Record what the vendor tells you, building by building. Yes or no answers only, no documents.
+      Who is in our buildings, whether each person has a background check on file, whether each is 18 or older,
+      and whether SDS are on site for the chemicals used there. The vendor runs its own business; this records their statements and what City Wide has on file.</p>
+    <div class="three">
+      <span><img src="images/audit/icon-bgcheck.png" alt="">Who is in the building</span>
+      <span><img src="images/audit/icon-check.png" alt="">Background check on file</span>
+      <span><img src="images/audit/icon-facility.png" alt="">SDS in every building</span>
+    </div>
+  </div>
+  <div class="pic"><img src="images/audit/crew-sm.png" alt=""></div>
+</div>
+
+<div id="form">
+
+<div class="card">
+  <h2><span class="n">1</span>Vendor</h2>
+  <div class="hint">Pick the market, then the vendor. Prospects are not listed; only vendors City Wide works with.</div>
+  <div class="row">
+    <div><label class="f">Market</label>
+      <div class="seg" id="mkt"><button type="button" data-m="lv" class="on">Las Vegas</button><button type="button" data-m="nnv">Northern Nevada</button></div>
+    </div>
+    <div style="grid-column:span 2"><label class="f">Vendor</label>
+      <select id="vendor"><option value="">Loading vendors...</option></select>
+    </div>
+  </div>
+  <div id="vsum" class="vsum hidden"></div>
+</div>
+
+<div class="card">
+  <h2><span class="n">2</span>Who is recording this</h2>
+  <div class="row">
+    <div><label class="f">Your name</label><select id="who"></select></div>
+    <div><label class="f">Your role</label><select id="role"></select></div>
+    <div><label class="f">Audit date</label><input type="date" id="adate"></div>
+    <div><label class="f">Vendor person who answered</label><input type="text" id="rep" placeholder="Owner or supervisor name"></div>
+    <div><label class="f">How you got their answers</label>
+      <select id="how"><option>In person</option><option>Phone</option><option>Email or text</option><option>Site walk with the crew</option></select></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2><span class="n">3</span><img src="images/audit/icon-check.png" alt="">Vendor attestations</h2>
+  <div class="hint">The vendor's own statements about its business. Record the answer you were given.</div>
+  <div class="q"><div class="qt">The vendor attests that it follows all applicable state and federal employment laws for the people it sends to City Wide accounts.<small>No here fails the audit.</small></div>
+    <div class="yn" data-q="law_compliance"><label data-v="Yes"><input type="radio" name="law">Yes</label><label data-v="No" class="no"><input type="radio" name="law">No</label></div></div>
+  <div class="q"><div class="qt">Workers' compensation and general liability insurance are current and certificates are on file with City Wide.<small id="inshint"></small></div>
+    <div class="yn" data-q="insurance_current"><label data-v="Yes"><input type="radio" name="ins">Yes</label><label data-v="No" class="no"><input type="radio" name="ins">No</label></div></div>
+  <div class="q"><div class="qt">Crew wear City Wide identification badges while on site.</div>
+    <div class="yn" data-q="id_badges"><label data-v="Yes"><input type="radio" name="bdg">Yes</label><label data-v="No" class="no"><input type="radio" name="bdg">No</label></div></div>
+  <div class="q"><div class="qt">Crew are trained on the safe handling of the chemicals they use.</div>
+    <div class="yn" data-q="chemical_training"><label data-v="Yes"><input type="radio" name="chem">Yes</label><label data-v="No" class="no"><input type="radio" name="chem">No</label></div></div>
+</div>
+
+<div class="card">
+  <h2><span class="n">4</span><img src="images/audit/icon-bgcheck.png" alt="">Account by account</h2>
+  <div class="hint" id="acchint">Add every account this vendor services. For each one, list who cleans there and answer for each person.
+    Names on the background check list are offered as one-click picks; anyone else, type the name.</div>
+  <div id="accts"></div>
+  <div class="addacct">
+    <input type="text" id="newacct" list="acctlist" placeholder="Account name (start typing to match the account list)">
+    <datalist id="acctlist"></datalist>
+    <button type="button" class="btn ghost sm" id="addacct">Add account</button>
+  </div>
+  <div class="note">18 or older is a City Wide policy requirement, not a legal age floor. Never record a date of birth.
+    A pending background check is recorded as a finding; the person can be on site while it completes.</div>
+</div>
+
+<div class="card">
+  <h2><span class="n">5</span>Notes and submit</h2>
+  <label class="f">Notes (optional)</label>
+  <textarea id="notes" placeholder="Anything the vendor said that belongs on the record. Findings are listed automatically."></textarea>
+  <div class="rule"><b>How the result is reached.</b> <span id="ruletext"></span></div>
+  <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <button type="button" class="btn" id="submit">Submit audit and create the PDF</button>
+    <label style="font-size:12px;color:var(--grey)"><input type="checkbox" id="testflag"> This is a test run (marked TEST, easy to clear)</label>
+  </div>
+  <div id="ferr" class="err"></div>
+</div>
+
+</div><!-- form -->
+
+<div id="done" class="card done hidden"></div>
+
+<div class="preview" id="preview"><div class="r na" id="pr">...</div><div class="why" id="pw">Answer the questions above. The result updates as you go; the server makes the final call.</div></div>
+
+</div><!-- app -->
+</div>
+
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
+
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var KEY = "cwOpsHubPass";
+var PASS = "", CTX = null, MKT = "lv", V = null;
+var ANS = { law_compliance:"", insurance_current:"", id_badges:"", chemical_training:"" };
+var ACCTS = [];   // [{account, sds, note, people:[{name, from_cleared, bg, age}]}]
+var SUBMITTING = false;
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d=document.createElement("div"); d.textContent=String(s==null?"":s); return d.innerHTML; }
+function post(body, cb){
+  body.passcode = PASS;
+  fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) })
+    .then(function(r){ return r.json(); }).then(cb)
+    .catch(function(){ cb({ ok:false, error:"Could not reach the service." }); });
+}
+function today(){ var d=new Date(); return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2); }
+
+/* ---------- load context for a market ---------- */
+function loadCtx(preVendor){
+  $("vendor").innerHTML = '<option value="">Loading vendors...</option>';
+  post({ kind:"audit_context", market: MKT }, function(r){
+    if (!r || !r.ok){ showGate((r && r.error) || "Could not load."); return; }
+    CTX = r;
+    localStorage.setItem(KEY, PASS);
+    $("ruletext").textContent = r.rule || "";
+    var sel = $("vendor");
+    sel.innerHTML = '<option value="">Pick a vendor...</option>' + r.vendors.map(function(v){
+      var tag = v.audit_next_due ? (v.audit_next_due < r.today ? " (audit overdue)" : " (audited " + v.last_audit + ")") : " (no audit on file)";
+      return '<option value="' + esc(v.vendor_id) + '">' + esc(v.dba_name) + esc(tag) + "</option>";
+    }).join("");
+    var who = $("who");
+    if (!who.options.length){
+      who.innerHTML = '<option value="">Pick your name...</option>' + (r.submitters||[]).map(function(s){
+        return '<option value="' + esc(s.name) + '" data-title="' + esc(s.title) + '">' + esc(s.name) + "</option>";
+      }).join("") + '<option value="__other">Someone else (type below)</option>';
+      $("role").innerHTML = (r.roles||[]).map(function(x){ return "<option>" + esc(x) + "</option>"; }).join("");
+      $("adate").value = r.today || today();
+    }
+    $("acctlist").innerHTML = (r.accounts||[]).map(function(a){ return '<option value="' + esc(a) + '">'; }).join("");
+    $("acchint").innerHTML = "Add every account this vendor services. For each one, list who cleans there and answer for each person. "
+      + "Names on the background check list are offered as one-click picks; anyone else, type the name."
+      + (r.accounts && r.accounts.length ? " The account list has " + r.accounts.length + " " + esc(r.market_name) + " accounts to match against." : " <b>No account list is available for this market; type account names exactly as they appear in the ACT.</b>");
+    if (preVendor){ sel.value = preVendor; }
+    pickVendor();
+  });
+}
+
+function pickVendor(){
+  var id = $("vendor").value;
+  V = (CTX.vendors||[]).filter(function(v){ return v.vendor_id === id; })[0] || null;
+  ACCTS = [];
+  var box = $("vsum");
+  if (!V){ box.classList.add("hidden"); renderAccts(); preview(); return; }
+  var prev = (CTX.previous||{})[V.vendor_id];
+  var due = V.audit_next_due ? (V.audit_next_due < CTX.today ? "Overdue since " + V.audit_next_due : "Due " + V.audit_next_due) : "No audit on file";
+  box.innerHTML = '<div><k>Status</k>' + esc(V.status) + "</div>"
+    + '<div><k>Last audit</k>' + (V.last_audit ? esc(V.last_audit) + " &middot; " + esc(V.audit_result) : "None") + "</div>"
+    + '<div><k>Next audit</k><span class="' + (V.audit_next_due && V.audit_next_due < CTX.today ? "due" : "") + '">' + esc(due) + "</span></div>"
+    + '<div><k>Background checks on file</k>' + (V.cleared||[]).length + " " + ((V.cleared||[]).length === 1 ? "person" : "people") + "</div>"
+    + '<div><k>Accounts per directory</k>' + (V.cw_clients ? esc(V.cw_clients) : "not recorded") + "</div>"
+    + (V.audit_pdf ? '<div><k>Last PDF</k><a href="' + esc(V.audit_pdf) + '" target="_blank" rel="noopener">Open</a></div>' : "");
+  box.classList.remove("hidden");
+  $("inshint").textContent = (V.gl_exp || V.wc_exp) ? "On file: GL expires " + (V.gl_exp || "not recorded") + ", WC expires " + (V.wc_exp || "not recorded") + "." : "No certificate expiration dates on the directory record.";
+  if (prev && prev.accounts && prev.accounts.length){
+    prev.accounts.forEach(function(a){
+      ACCTS.push({ account:a.account, sds:"", note:"", people:(a.people||[]).map(function(n){
+        return { name:n, from_cleared:(V.cleared||[]).indexOf(n) >= 0, bg:(V.cleared||[]).indexOf(n) >= 0 ? "On file" : "", age:"" };
+      }) });
+    });
+  }
+  renderAccts();
+  if (prev && prev.accounts && prev.accounts.length){
+    $("acchint").innerHTML = "Prefilled from the audit dated " + esc(prev.date) + ". Remove any account this vendor no longer services, add any new ones, and answer for each person again; nothing carries over as an answer.";
+  }
+  preview();
+}
+
+/* ---------- accounts ---------- */
+function ynGroup(cls, cur, opts){
+  return '<div class="yn ' + cls + '">' + opts.map(function(o){
+    var c = o === "No" ? "no" : (o === "Pending" ? "pend" : "");
+    return '<label data-v="' + o + '" class="' + c + (cur === o ? " on" : "") + '"><span>' + o + "</span></label>";
+  }).join("") + "</div>";
+}
+function renderAccts(){
+  var box = $("accts");
+  if (!V){ box.innerHTML = '<div class="note">Pick a vendor first.</div>'; return; }
+  if (!ACCTS.length){ box.innerHTML = '<div class="note">No accounts yet. Add the first one below.</div>'; return; }
+  box.innerHTML = ACCTS.map(function(a, i){
+    var listed = a.people.map(function(p){ return p.name; });
+    var picks = (V.cleared||[]).filter(function(n){ return listed.indexOf(n) < 0; });
+    return '<div class="acct" data-i="' + i + '">'
+      + '<div class="ah"><b>' + esc(a.account) + '</b><button type="button" class="btn ghost sm" data-act="rmacct" data-i="' + i + '">Remove account</button></div>'
+      + '<div class="ab">'
+      + (a.people.length
+        ? '<table class="ppl"><tr><th>Who cleans here</th><th>Background check</th><th>18 or older <span style="font-weight:400;text-transform:none;letter-spacing:0">(City Wide policy)</span></th><th></th></tr>'
+          + a.people.map(function(p, j){
+            return '<tr><td class="nm">' + esc(p.name) + (p.from_cleared ? "<em>on the background check list</em>" : "") + "</td>"
+              + '<td data-i="' + i + '" data-j="' + j + '" data-k="bg">' + ynGroup("", p.bg, ["On file","Pending","No"]) + "</td>"
+              + '<td data-i="' + i + '" data-j="' + j + '" data-k="age">' + ynGroup("", p.age, ["Yes","No"]) + "</td>"
+              + '<td><button type="button" class="rm" title="Remove" data-act="rmp" data-i="' + i + '" data-j="' + j + '">&times;</button></td></tr>';
+          }).join("") + "</table>"
+        : '<div class="note">No one listed for this building yet.</div>')
+      + (picks.length ? '<div class="pick"><span class="lbl">On the background check list for this vendor, click to add:</span>'
+          + picks.map(function(n){ return '<button type="button" data-act="pick" data-i="' + i + '" data-n="' + esc(n) + '">' + esc(n) + "</button>"; }).join("") + "</div>" : "")
+      + '<div class="addp"><input type="text" placeholder="Add a person by name (first and last)" data-i="' + i + '" class="np">'
+        + '<button type="button" class="btn ghost sm" data-act="addp" data-i="' + i + '">Add person</button></div>'
+      + '<div class="sdsrow"><div class="qt">Safety Data Sheets are on site at this building for every chemical the crew uses here.<br><small style="color:var(--grey)">No here fails the audit.</small></div>'
+        + '<div data-i="' + i + '" data-k="sds">' + ynGroup("", a.sds, ["Yes","No"]) + "</div></div>"
+      + '<div style="margin-top:10px"><input type="text" placeholder="Note for this building (optional)" value="' + esc(a.note) + '" data-i="' + i + '" class="anote"></div>'
+      + "</div></div>";
+  }).join("");
+}
+
+function addAccount(){
+  var name = $("newacct").value.trim();
+  if (!V){ $("ferr").textContent = "Pick a vendor first."; return; }
+  if (!name) return;
+  if (ACCTS.some(function(a){ return a.account.toLowerCase() === name.toLowerCase(); })){ $("newacct").value = ""; return; }
+  ACCTS.push({ account:name, sds:"", note:"", people:[] });
+  $("newacct").value = "";
+  renderAccts(); preview();
+}
+function addPerson(i, name, fromCleared){
+  name = String(name||"").trim();
+  if (!name) return;
+  var a = ACCTS[i];
+  if (a.people.some(function(p){ return p.name.toLowerCase() === name.toLowerCase(); })) return;
+  a.people.push({ name:name, from_cleared:!!fromCleared, bg: fromCleared ? "On file" : "", age:"" });
+  renderAccts(); preview();
+}
+
+$("accts").addEventListener("click", function(ev){
+  var t = ev.target.closest("[data-act],label[data-v]");
+  if (!t) return;
+  if (t.matches("label[data-v]")){
+    var cell = t.closest("[data-k]");
+    var i = +cell.getAttribute("data-i"), k = cell.getAttribute("data-k"), v = t.getAttribute("data-v");
+    if (k === "sds") ACCTS[i].sds = v;
+    else ACCTS[i].people[+cell.getAttribute("data-j")][k] = v;
+    Array.prototype.forEach.call(cell.querySelectorAll("label"), function(l){ l.classList.toggle("on", l === t); });
+    preview(); return;
+  }
+  var act = t.getAttribute("data-act"), i = +t.getAttribute("data-i");
+  if (act === "rmacct"){ ACCTS.splice(i,1); renderAccts(); preview(); }
+  else if (act === "rmp"){ ACCTS[i].people.splice(+t.getAttribute("data-j"),1); renderAccts(); preview(); }
+  else if (act === "pick"){ addPerson(i, t.getAttribute("data-n"), true); }
+  else if (act === "addp"){ var inp = t.parentNode.querySelector("input.np"); addPerson(i, inp.value, false); }
+});
+$("accts").addEventListener("keydown", function(ev){
+  if (ev.key === "Enter" && ev.target.matches("input.np")){ ev.preventDefault(); addPerson(+ev.target.getAttribute("data-i"), ev.target.value, false); }
+});
+$("accts").addEventListener("input", function(ev){
+  if (ev.target.matches("input.anote")) ACCTS[+ev.target.getAttribute("data-i")].note = ev.target.value;
+});
+$("addacct").addEventListener("click", addAccount);
+$("newacct").addEventListener("keydown", function(ev){ if (ev.key === "Enter"){ ev.preventDefault(); addAccount(); } });
+$("newacct").addEventListener("change", function(){ /* datalist pick */ if (this.value && (CTX.accounts||[]).indexOf(this.value) >= 0) addAccount(); });
+
+/* ---------- vendor-level yes/no ---------- */
+Array.prototype.forEach.call(document.querySelectorAll(".card .yn[data-q]"), function(g){
+  g.addEventListener("click", function(ev){
+    var l = ev.target.closest("label"); if (!l) return;
+    ANS[g.getAttribute("data-q")] = l.getAttribute("data-v");
+    Array.prototype.forEach.call(g.querySelectorAll("label"), function(x){ x.classList.toggle("on", x === l); });
+    preview();
+  });
+});
+
+/* ---------- result preview (same rule as the server; server is final) ---------- */
+function evaluate(){
+  var fails = [], findings = [], missing = [];
+  if (!V) missing.push("vendor");
+  if (!ANS.law_compliance) missing.push("employment law answer");
+  else if (ANS.law_compliance === "No") fails.push("vendor did not attest to employment law compliance");
+  if (ANS.insurance_current === "No") findings.push("insurance certificates");
+  if (ANS.id_badges === "No") findings.push("ID badges");
+  if (ANS.chemical_training === "No") findings.push("chemical training");
+  if (!ACCTS.length) missing.push("at least one account");
+  ACCTS.forEach(function(a){
+    if (!a.sds) missing.push("SDS answer for " + a.account);
+    else if (a.sds === "No") fails.push(a.account + ": no SDS on site");
+    if (!a.people.length) findings.push(a.account + ": nobody listed");
+    a.people.forEach(function(p){
+      if (!p.bg) missing.push("background check for " + p.name);
+      else if (p.bg === "No") fails.push(p.name + ": no background check on file");
+      else if (p.bg === "Pending") findings.push(p.name + ": check pending");
+      if (!p.age) missing.push("age for " + p.name);
+      else if (p.age === "No") fails.push(p.name + ": not confirmed 18 or older");
+    });
+  });
+  return { fails:fails, findings:findings, missing:missing };
+}
+function preview(){
+  var e = evaluate();
+  var pr = $("pr"), pw = $("pw");
+  if (e.fails.length){ pr.className = "r fail"; pr.textContent = "FAIL"; }
+  else if (e.missing.length){ pr.className = "r na"; pr.textContent = "..."; }
+  else { pr.className = "r pass"; pr.textContent = "PASS"; }
+  var parts = [];
+  if (e.fails.length) parts.push("<b>Fails:</b> " + esc(e.fails.slice(0,4).join("; ")) + (e.fails.length > 4 ? " and " + (e.fails.length-4) + " more" : ""));
+  if (e.findings.length) parts.push("<b>Findings:</b> " + esc(e.findings.slice(0,4).join("; ")) + (e.findings.length > 4 ? " and " + (e.findings.length-4) + " more" : ""));
+  if (e.missing.length) parts.push("<b>Still needed:</b> " + esc(e.missing.slice(0,5).join(", ")) + (e.missing.length > 5 ? " and " + (e.missing.length-5) + " more" : ""));
+  if (!parts.length) parts.push("Everything answered. Submit to create the PDF and stamp the directory.");
+  pw.innerHTML = parts.join(" &nbsp;&middot;&nbsp; ");
+}
+
+/* ---------- submit ---------- */
+$("who").addEventListener("change", function(){
+  var o = this.options[this.selectedIndex];
+  var t = o && o.getAttribute("data-title") || "";
+  var role = $("role");
+  if (/Director/.test(t)) role.value = "Director of Operations";
+  else if (/General Manager/.test(t)) role.value = "General Manager";
+  else if (/Facility Solutions Manager/.test(t)) role.value = "Facility Solutions Manager";
+  if (this.value === "__other"){
+    var n = prompt("Your name");
+    if (n){ var op = document.createElement("option"); op.value = n; op.textContent = n; op.selected = true; this.insertBefore(op, this.lastElementChild); }
+    else this.value = "";
+  }
+});
+
+$("submit").addEventListener("click", function(){
+  if (SUBMITTING) return;
+  var err = $("ferr"); err.textContent = "";
+  var e = evaluate();
+  if (!V){ err.textContent = "Pick a vendor."; return; }
+  if (!$("who").value || $("who").value === "__other"){ err.textContent = "Pick your name."; return; }
+  if (e.missing.length){ err.textContent = "Still needed: " + e.missing.join(", ") + "."; return; }
+  var payload = {
+    market: MKT, vendor_id: V.vendor_id, submitted_by: $("who").value, submitter_role: $("role").value,
+    audit_date: $("adate").value, vendor_rep: $("rep").value.trim(), how_obtained: $("how").value,
+    law_compliance: ANS.law_compliance, insurance_current: ANS.insurance_current,
+    id_badges: ANS.id_badges, chemical_training: ANS.chemical_training, notes: $("notes").value.trim(),
+    test: $("testflag").checked,
+    accounts: ACCTS.map(function(a){ return { account:a.account, sds_on_site:a.sds, note:a.note,
+      people:a.people.map(function(p){ return { name:p.name, from_cleared:p.from_cleared, background_check:p.bg, age_18_plus:p.age }; }) }; })
+  };
+  SUBMITTING = true;
+  $("submit").disabled = true; $("submit").textContent = "Saving the audit and building the PDF...";
+  post({ kind:"audit_submit", payload: payload }, function(r){
+    SUBMITTING = false;
+    $("submit").disabled = false; $("submit").textContent = "Submit audit and create the PDF";
+    if (!r || !r.ok){ err.textContent = (r && r.error) || "Something went wrong. Nothing was saved."; return; }
+    showDone(r);
+  });
+});
+
+function showDone(r){
+  var pass = r.result === "PASS";
+  var d = $("done");
+  d.innerHTML = '<div class="big ' + (pass ? "pass" : "fail") + '">' + esc(r.result) + "</div>"
+    + "<p><b>" + esc(V.dba_name) + "</b> &middot; audit " + esc(r.audit_id) + (r.test ? " (TEST)" : "") + "<br>"
+    + r.people + " people across " + ACCTS.length + (ACCTS.length === 1 ? " account" : " accounts") + ". Next audit due " + esc(r.next_due) + ".</p>"
+    + (r.fails && r.fails.length ? "<ul>" + r.fails.map(function(f){ return "<li>" + esc(f) + "</li>"; }).join("") + "</ul>" : "")
+    + (r.findings && r.findings.length ? "<p>Findings recorded: " + r.findings.length + "</p>" : "")
+    + (r.pdf_url ? '<p><a class="btn" href="' + esc(r.pdf_url) + '" target="_blank" rel="noopener">Open the PDF</a> &nbsp; '
+        : '<p class="err">The PDF could not be created' + (r.pdf_error ? ": " + esc(r.pdf_error) : "") + '. The audit rows were saved; re-run later or tell TJ.</p><p>')
+    + '<a class="btn ghost" href="vendors.html#/' + MKT + '/janitorial" target="_blank" rel="noopener">See it in the directory</a> &nbsp; '
+    + '<a class="btn ghost" href="vendor-audit.html?market=' + MKT + '">Audit another vendor</a></p>'
+    + '<p style="font-size:12px">Saved to Drive under Team Portal / Ops Hub / Vendor Quarterly Audits / ' + esc(CTX.market_name) + '. Nothing was emailed.</p>';
+  $("form").classList.add("hidden"); $("preview").classList.add("hidden"); d.classList.remove("hidden");
+  window.scrollTo(0, 0);
+}
+
+/* ---------- market + vendor + gate ---------- */
+Array.prototype.forEach.call(document.querySelectorAll("#mkt button"), function(b){
+  b.addEventListener("click", function(){
+    MKT = b.getAttribute("data-m");
+    Array.prototype.forEach.call(document.querySelectorAll("#mkt button"), function(x){ x.classList.toggle("on", x === b); });
+    loadCtx("");
+  });
+});
+$("vendor").addEventListener("change", pickVendor);
+
+function showGate(msg){
+  $("app").classList.add("hidden"); $("gate").classList.remove("hidden");
+  if (msg){ $("gmsg").textContent = msg + " Unlock the Ops Hub in this browser and come back."; $("gmsg").className = "err"; }
+}
+(function(){
+  var q = {}; location.search.replace(/^\?/, "").split("&").forEach(function(kv){ var p = kv.split("="); if (p[0]) q[decodeURIComponent(p[0])] = decodeURIComponent(p[1]||""); });
+  if (q.market === "nnv"){ MKT = "nnv"; Array.prototype.forEach.call(document.querySelectorAll("#mkt button"), function(x){ x.classList.toggle("on", x.getAttribute("data-m") === "nnv"); }); }
+  var p = localStorage.getItem(KEY);
+  if (!p){ showGate(""); return; }
+  PASS = p;
+  $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
+  loadCtx(q.vendor || "");
+  preview();
+})();
+</script>
+</body>
+</html>

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Active Vendors | CW Ops Hub</title>
-<!-- build 2026-08-22b
+<!-- build 2026-08-22c
 Active Vendors directory. Reads the CW Vendor Directory Sheet through the CW
 Solicitations Apps Script (kind vd_list), passcode checked on the server, taken
 from the Ops Hub session. No vendor data is stored in this repo.
@@ -28,6 +28,12 @@ Background checks (Aug 22 2026): the expanded record shows "Background checks on
 file", names only, read from the sheet's "Background checks Las Vegas" and
 "Background checks Northern Nevada" tabs (payload key cleared, keyed by vendor_id,
 status Cleared or blank). Adding a cleaner is a sheet row, not a code change.
+
+Quarterly audits (Aug 22 2026): the row shows the last audit result and a due or
+overdue chip for live vendors (columns last_audit, audit_result, audit_next_due,
+audit_pdf on the vendor tabs, written by VendorAudit.gs). The record shows the PDF
+link and a Start an audit button (vendor-audit.html?vendor=ID). "Audit due" filter
+lists live vendors with no audit, an overdue audit, or one due in the next 14 days.
 -->
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
@@ -129,6 +135,12 @@ p.lede{color:var(--grey);margin:9px 0 16px;max-width:74ch;font-size:13px}
 .s-off{color:var(--grey);opacity:.7}
 .s-risk{color:var(--red)}
 .flag{color:var(--red);font-weight:700;font-size:10.5px}
+.aud{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:10px;
+  padding:1px 7px;margin-left:6px;vertical-align:middle;white-space:nowrap}
+.aud.pass{background:#E6F6F6;color:#087E80}.aud.fail{background:#FBE4E6;color:var(--red)}
+.aud.over{background:var(--red);color:#fff}.aud.soon{background:#FBF3D6;color:#7A5E00}.aud.none{background:var(--light);color:var(--grey)}
+.audbox{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:8px 0 2px;font-size:12.5px}
+.audbox .big{font-size:18px;font-weight:700}.audbox .big.pass{color:var(--teal)}.audbox .big.fail{color:var(--red)}
 .detail{border-top:1px solid var(--border);background:#FFFCFC;padding:12px 16px 16px;display:none}
 .detail.show{display:block}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 20px}
@@ -183,6 +195,7 @@ p.lede{color:var(--grey);margin:9px 0 16px;max-width:74ch;font-size:13px}
     <a id="sheetLink" href="#" target="_blank" rel="noopener">Open the CW Vendor Directory sheet</a>
     to edit a vendor, change a status or market, add a service type, or add a cleared cleaner on the Background checks tabs.
     &nbsp;&middot;&nbsp; <a href="vendor-add.html">Add a vendor</a>
+    &nbsp;&middot;&nbsp; <a href="vendor-audit.html">Submit a quarterly audit</a>
   </p>
 </div>
 </div>
@@ -318,6 +331,7 @@ function detailHtml(v){
   if (company)    body += '<div class="sh">The company</div><div class="grid">' + company + "</div>";
   if (compliance) body += '<div class="sh">Compliance</div><div class="grid">' + compliance + "</div>";
   body += '<div class="sh">Background checks on file</div>' + bc;
+  body += '<div class="sh">Quarterly audit</div>' + auditHtml(v);
   if (has(v.concern_process)) body += '<div class="sh">How they handle a problem</div><div class="grid">'
     + wide("", v.concern_process) + "</div>";
   if (refs)   body += '<div class="sh">References</div><div class="grid">' + refs + "</div>";
@@ -356,6 +370,42 @@ function riskFlag(v){
   if (String(v.general_liability).toLowerCase() === "no") f.push("no GL");
   return f.length ? ' <span class="flag">' + esc(f.join(", ")) + "</span>" : "";
 }
+/* ---------- quarterly audit state ---------- */
+function todayYmd(){ var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth()+1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+function addDays(ymd, n){ var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd || ""); if (!m) return "";
+  var d = new Date(+m[1], +m[2]-1, +m[3]+n); return d.getFullYear() + "-" + ("0" + (d.getMonth()+1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+// Returns null for prospects (no audit expected). k: none | over | soon | pass | fail
+function auditState(v){
+  if (v.prospect) return null;
+  var last = String(v.last_audit || "").slice(0,10), due = String(v.audit_next_due || "").slice(0,10);
+  if (!last) return v.live ? { k:"none", label:"No audit", title:"No quarterly audit on file" } : null;
+  var t = todayYmd();
+  if (due && due < t) return { k:"over", label:"Audit overdue", title:"Next audit was due " + due };
+  if (due && due <= addDays(t, 14)) return { k:"soon", label:"Audit due " + due.slice(5), title:"Next audit due " + due };
+  var res = String(v.audit_result || "").toUpperCase();
+  if (res === "FAIL") return { k:"fail", label:"Fail " + last.slice(5), title:"Last audit " + last + " failed; next due " + due };
+  return { k:"pass", label:"Pass " + last.slice(5), title:"Last audit " + last + " passed; next due " + due };
+}
+function audBadge(v){
+  var a = auditState(v);
+  return a ? ' <span class="aud ' + a.k + '" title="' + esc(a.title) + '">' + esc(a.label) + "</span>" : "";
+}
+function auditHtml(v){
+  var a = auditState(v);
+  var mk = (v.regions || [])[0] || MKT;
+  var start = '<a class="btn sm" href="vendor-audit.html?vendor=' + esc(v.vendor_id) + '&market=' + esc(MKT) + '">'
+    + (v.last_audit ? "Start this quarter's audit" : "Start the first audit") + "</a>";
+  if (!v.last_audit){
+    return '<div class="audbox"><span class="big" style="color:var(--grey)">None on file</span>'
+      + (v.prospect ? '<span>Prospects are not audited.</span>' : '<span>Quarterly audits are due every 90 days for every vendor we dispatch.</span>' + start) + "</div>";
+  }
+  var res = String(v.audit_result || "").toUpperCase();
+  return '<div class="audbox"><span class="big ' + (res === "FAIL" ? "fail" : "pass") + '">' + esc(res || "?") + "</span>"
+    + "<span>Audited " + esc(v.last_audit) + " &middot; next due " + esc(v.audit_next_due || "?")
+    + (a && a.k === "over" ? ' <b style="color:var(--red)">(overdue)</b>' : "") + "</span>"
+    + (has(v.audit_pdf) ? '<a href="' + esc(v.audit_pdf) + '" target="_blank" rel="noopener">Open the PDF</a>' : "")
+    + start + "</div>";
+}
 function bcBadge(v){
   var n = clearedList(v).length;
   return n ? ' <em>' + n + ' cleared</em>' : "";
@@ -392,7 +442,7 @@ function headerRow(){
 function rowHtml(v, i){
   var crew = crewOf(v);
   return '<div class="tr row" data-i="' + i + '">'
-    + '<div class="nm">' + esc(v.dba_name) + riskFlag(v) + bcBadge(v) + "</div>"
+    + '<div class="nm">' + esc(v.dba_name) + riskFlag(v) + bcBadge(v) + audBadge(v) + "</div>"
     + "<div>" + statusDot(v) + "</div>"
     + '<div class="rg">' + esc(v.region === "Both" ? "Both" : (v.region === "Northern Nevada" ? "N. NV" : "LV")) + "</div>"
     + '<div class="city">' + esc(v.city_state || "") + "</div>"
@@ -406,10 +456,11 @@ function matches(v){
   if (FILTER === "live" && !v.live) return false;
   if (FILTER === "flag" && String(v.workers_comp).toLowerCase() !== "no"
       && String(v.general_liability).toLowerCase() !== "no") return false;
+  if (FILTER === "audit"){ var a = auditState(v); if (!(a && (a.k === "none" || a.k === "over" || a.k === "soon"))) return false; }
   if (!QUERY) return true;
   var hay = [v.dba_name, v.legal_name, v.contact_name, v.email, v.phone, v.city_state, v.region,
              v.metro_areas, v.services_desc, v.trade_raw, v.service_types, v.bc_vendor_no,
-             clearedList(v).map(function(p){ return p.name; }).join(" ")]
+             clearedList(v).map(function(p){ return p.name; }).join(" "), v.audit_result, v.last_audit]
     .join(" ").toLowerCase();
   return hay.indexOf(QUERY) >= 0;
 }
@@ -450,6 +501,7 @@ function toolbar(showLive){
     + '<button class="fbtn' + (FILTER === "all" ? " on" : "") + '" data-f="all">All</button>'
     + (showLive ? '<button class="fbtn' + (FILTER === "live" ? " on" : "") + '" data-f="live">Active and onboarding</button>' : "")
     + '<button class="fbtn' + (FILTER === "flag" ? " on" : "") + '" data-f="flag">Insurance gaps</button>'
+    + (showLive ? '<button class="fbtn' + (FILTER === "audit" ? " on" : "") + '" data-f="audit">Audit due</button>' : "")
     + statusSelect()
     + '<button class="btn ghost sm" id="reload" type="button">Refresh</button>'
     + "</div>";
@@ -558,6 +610,7 @@ function route(){
 
   if (branch === "janitorial"){
     var rows = bench.filter(function(v){ return v.janitorial; });
+    if (slug === "audit") FILTER = "audit";   // #/lv/janitorial/audit opens with the Audit due filter on
     $("ttl").textContent = "Janitorial · " + mktName(MKT);
     $("lede").textContent = "Click a row to open everything the vendor put on their evaluation form.";
     $("crumb").innerHTML = crumb + "<span>/</span>Janitorial";
