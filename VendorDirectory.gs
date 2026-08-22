@@ -1,8 +1,9 @@
 // ============================================================
 // VendorDirectory.gs - the Active Vendors directory (Aug 2026)
-// New FILE in the CW Solicitations Apps Script project.
+// File in the CW Solicitations Apps Script project.
 // Routing: doPost in Code.gs routes any kind starting 'vd_' to vdDispatch(data).
-// Kinds: vd_setup, vd_seed, vd_list, vd_save, vd_types, vd_intake
+// Kinds: vd_setup, vd_seed, vd_append, vd_region_backfill, vd_list, vd_save,
+//        vd_patch, vd_types, vd_intake, vd_bc_seed, vd_bc_list
 //
 // Purpose: one internal roster of every vendor City Wide can actually call.
 // Janitorial is one bucket. Everything else is grouped by service type, and the
@@ -15,6 +16,23 @@
 // bc_vendor_no is carried on every row as the join key back to Dynamics and to
 // that Roster, so the two can be reconciled without being coupled.
 //
+// Aug 22 2026: the vendor list is split into two tabs, one per market
+// ("Vendors Las Vegas" and "Vendors Northern Nevada"). The old single "Vendors"
+// tab is migrated once by vd_setup, then renamed and hidden as an archive.
+// A vendor marked Both lives on the Las Vegas tab and still shows under both
+// markets on the page. Every reader and writer below goes through the helpers
+// vdVendorSheets_ / vdAllRows_ / vdTabFor_, so nothing else needs to know which
+// tab a row sits on.
+//
+// Aug 22 2026: background checks. Two more tabs, "Background checks Las Vegas"
+// and "Background checks Northern Nevada", hold one row per cleaner with a
+// completed check. vd_list returns, per vendor, the names whose status is
+// Cleared (or blank). The Ops Hub shows those names only; nothing about them
+// ever goes to the vendor site. The team maintains the tabs by hand: a new row
+// with the vendor and the person's name is enough, vendor_id is optional and
+// wins when present, otherwise the vendor column is matched to dba_name or
+// legal_name, case-insensitive.
+//
 // Privacy: business_address is stored in the Sheet and NEVER returned by vd_list.
 // Several vendors registered a home address. The directory shows city and state.
 //
@@ -25,6 +43,25 @@
 
 var VD_TABS = { VENDORS: 'Vendors', TYPES: 'Service Types', INTAKE: 'Intake Log' };
 var VD_PROP = 'VD_SHEET_ID';
+
+// One vendor tab per market. Region on the row still wins; the tab is where the
+// row lives and the default region when the cell is blank.
+var VD_VENDOR_TABS = [
+  { key: 'lv',  name: 'Vendors Las Vegas',       region: 'Las Vegas' },
+  { key: 'nnv', name: 'Vendors Northern Nevada', region: 'Northern Nevada' }
+];
+var VD_ARCHIVE_TAB = 'Vendors (archive, do not edit)';
+
+var VD_BC_TABS = [
+  { key: 'lv',  name: 'Background checks Las Vegas' },
+  { key: 'nnv', name: 'Background checks Northern Nevada' }
+];
+var VD_BC_HEADERS = [
+  'vendor_id', 'vendor', 'last_name', 'first_name', 'status', 'check_type',
+  'ten_year', 'first_check', 'most_recent_check', 'vf_file_no',
+  'roster_company_as_typed', 'notes', 'added'
+];
+var VD_BC_STATUS = ['Cleared', 'Pending', 'Removed'];
 
 var VD_HEADERS = [
   'vendor_id', 'status', 'dba_name', 'legal_name', 'service_types', 'region',
@@ -52,7 +89,7 @@ var VD_JANITORIAL = 'janitorial';
 
 // Statuses that count as a vendor City Wide can call today. Everything else is
 // visible but badged, because an FSM still needs to see who is in the pipeline.
-var VD_LIVE_STATUS = ['Active IC', 'Waiting for Account', 'In Progress'];
+var VD_LIVE_STATUS = ['Active', 'Waiting for Account', 'In Progress'];
 
 // Outreach targets. They are real rows with real service types, but they sit in
 // their own branch so nobody dispatches one by accident.
@@ -101,7 +138,7 @@ function vdDispatch(data) {
   var kind = String(data.kind || '');
 
   // Jotform cannot send the team passcode. It carries a shared secret instead,
-  // and it can only ever create an Applicant row, never read or edit one.
+  // and it can only ever create an In Progress row, never read or edit one.
   if (kind === 'vd_intake') return vdIntake_(data);
 
   if ((data.passcode || '') !== vdPass_()) return vdOut_({ ok: false, error: 'Wrong passcode.' });
@@ -112,7 +149,10 @@ function vdDispatch(data) {
   if (kind === 'vd_region_backfill') return vdRegionBackfill_(data);
   if (kind === 'vd_list')  return vdList_(data);
   if (kind === 'vd_save')  return vdSave_(data);
+  if (kind === 'vd_patch') return vdPatch_(data);
   if (kind === 'vd_types') return vdTypes_(data);
+  if (kind === 'vd_bc_seed') return vdBcSeed_(data);
+  if (kind === 'vd_bc_list') return vdBcList_(data);
   return vdOut_({ ok: false, error: 'Unknown vd kind' });
 }
 
@@ -162,25 +202,117 @@ function vdRows_(sh) {
   return { head: head, rows: rows };
 }
 
+// ------------------------------------------------------------ market tabs --
+
+// The vendor sheets in order. Before migration (no market tabs yet) this falls
+// back to the legacy single tab so nothing breaks between deploy and setup.
+function vdVendorSheets_(ss) {
+  var out = [];
+  VD_VENDOR_TABS.forEach(function (t) {
+    var sh = ss.getSheetByName(t.name);
+    if (sh) out.push({ sh: sh, tab: t });
+  });
+  if (!out.length) {
+    var legacy = ss.getSheetByName(VD_TABS.VENDORS);
+    if (legacy) out.push({ sh: legacy, tab: { key: 'legacy', name: VD_TABS.VENDORS, region: '' } });
+  }
+  return out;
+}
+
+// Every vendor row across the market tabs. Each row carries _sheet (the Sheet
+// object) and _tab so writers can go straight back to the right cell.
+function vdAllRows_(ss) {
+  var all = [];
+  vdVendorSheets_(ss).forEach(function (s) {
+    vdRows_(s.sh).rows.forEach(function (r) {
+      r._sheet = s.sh;
+      r._tab = s.tab.name;
+      if (!vdStr_(r.region) && s.tab.region) r.region = s.tab.region;
+      all.push(r);
+    });
+  });
+  return all;
+}
+
+// Which tab a row belongs on. Northern Nevada goes north; Las Vegas, Both, and
+// anything unrecognised go to the Las Vegas tab.
+function vdTabFor_(ss, region) {
+  var key = vdRegion_(region) === 'Northern Nevada' ? 'nnv' : 'lv';
+  var t = VD_VENDOR_TABS.filter(function (x) { return x.key === key; })[0];
+  var sh = ss.getSheetByName(t.name);
+  if (!sh) {
+    vdSetup_({});
+    sh = ss.getSheetByName(t.name);
+  }
+  return sh;
+}
+
+function vdStatusRules_(sh) {
+  var rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(VD_LIVE_STATUS.concat(VD_PROSPECT_STATUS), true).build();
+  sh.getRange(2, VD_HEADERS.indexOf('status') + 1, 2000, 1).setDataValidation(rule);
+  var cb = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+  sh.getRange(2, VD_HEADERS.indexOf('hide') + 1, 2000, 1).setDataValidation(cb);
+}
+
 // ------------------------------------------------------------ setup --------
 
 function vdSetup_(data) {
   var ss = vdSS_();
-  vdTab_(ss, VD_TABS.VENDORS, VD_HEADERS, '#D22730');
+
+  // Market tabs. Created empty here; the one-time migration below fills them
+  // from the legacy tab the first time it finds one.
+  var legacy = ss.getSheetByName(VD_TABS.VENDORS);
+  var fresh = !VD_VENDOR_TABS.some(function (t) { return !!ss.getSheetByName(t.name); });
+  VD_VENDOR_TABS.forEach(function (t) { vdTab_(ss, t.name, VD_HEADERS, '#D22730'); });
+
+  var migrated = 0;
+  if (legacy && fresh) {
+    var rows = legacy.getDataRange().getValues();
+    var regionCol = VD_HEADERS.indexOf('region');
+    var byTab = {};
+    for (var i = 1; i < rows.length; i++) {
+      if (!vdStr_(rows[i][VD_HEADERS.indexOf('dba_name')]) && !vdStr_(rows[i][0])) continue;
+      var key = vdRegion_(rows[i][regionCol]) === 'Northern Nevada' ? 'nnv' : 'lv';
+      byTab[key] = byTab[key] || [];
+      var row = rows[i].slice(0, VD_HEADERS.length);
+      while (row.length < VD_HEADERS.length) row.push('');
+      byTab[key].push(row);
+    }
+    VD_VENDOR_TABS.forEach(function (t) {
+      var list = byTab[t.key] || [];
+      if (!list.length) return;
+      var sh = ss.getSheetByName(t.name);
+      sh.getRange(2, 1, list.length, VD_HEADERS.length).setValues(list);
+      migrated += list.length;
+    });
+    legacy.setName(VD_ARCHIVE_TAB);
+    legacy.hideSheet();
+  }
+
+  VD_VENDOR_TABS.forEach(function (t) {
+    var sh = ss.getSheetByName(t.name);
+    vdStatusRules_(sh);
+    sh.autoResizeColumns(1, 5);
+  });
+
   var t = vdTab_(ss, VD_TABS.TYPES, VD_TYPE_HEADERS, '#2D2A26');
   vdTab_(ss, VD_TABS.INTAKE, VD_INTAKE_HEADERS, '#636466');
 
+  // Background check tabs: status dropdown, frozen header, readable widths.
+  VD_BC_TABS.forEach(function (b) {
+    var sh = vdTab_(ss, b.name, VD_BC_HEADERS, '#0AA6A9');
+    var rule = SpreadsheetApp.newDataValidation().requireValueInList(VD_BC_STATUS, true).build();
+    sh.getRange(2, VD_BC_HEADERS.indexOf('status') + 1, 2000, 1).setDataValidation(rule);
+    sh.setColumnWidth(VD_BC_HEADERS.indexOf('vendor') + 1, 260);
+    sh.setColumnWidth(VD_BC_HEADERS.indexOf('last_name') + 1, 150);
+    sh.setColumnWidth(VD_BC_HEADERS.indexOf('first_name') + 1, 130);
+    sh.setColumnWidth(VD_BC_HEADERS.indexOf('roster_company_as_typed') + 1, 240);
+    sh.setColumnWidth(VD_BC_HEADERS.indexOf('notes') + 1, 300);
+  });
+
   var first = ss.getSheets()[0];
   if (first.getName() === 'Sheet1' && first.getLastRow() === 0) ss.deleteSheet(first);
-
-  // Status dropdown so nobody invents a fourth spelling of "Active".
-  var vsh = ss.getSheetByName(VD_TABS.VENDORS);
-  var rule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['Active IC', 'Waiting for Account', 'In Progress', 'Applicant',
-                         'Prospect', 'Do Not Contact', 'Not Approved', 'Inactive'], true).build();
-  vsh.getRange(2, VD_HEADERS.indexOf('status') + 1, 2000, 1).setDataValidation(rule);
-  var cb = SpreadsheetApp.newDataValidation().requireCheckbox().build();
-  vsh.getRange(2, VD_HEADERS.indexOf('hide') + 1, 2000, 1).setDataValidation(cb);
 
   // Upsert, not seed-once: re-running setup adds new categories without touching
   // the name, description, sort or active flag anyone has edited on the sheet.
@@ -198,10 +330,11 @@ function vdSetup_(data) {
       SpreadsheetApp.newDataValidation().requireCheckbox().build());
   }
 
-  return vdOut_({ ok: true, sheet_id: ss.getId(), url: ss.getUrl() });
+  return vdOut_({ ok: true, sheet_id: ss.getId(), url: ss.getUrl(), migrated: migrated,
+                  tabs: ss.getSheets().map(function (s) { return s.getName(); }) });
 }
 
-// Bulk load. Replaces the Vendors rows wholesale, so it is safe to re-run while
+// Bulk load. Replaces the vendor rows wholesale, so it is safe to re-run while
 // the initial data is still being corrected, and refuses once real edits exist
 // unless data.force is set.
 //
@@ -221,41 +354,51 @@ function vdSeed_(data) {
 
   vdSetup_({ types: payload.service_types });
   var ss = vdSS_();
-  var sh = ss.getSheetByName(VD_TABS.VENDORS);
 
-  var existing = sh.getLastRow() - 1;
+  var existing = vdAllRows_(ss).length;
   if (existing > 0 && !data.force) {
-    return vdOut_({ ok: false, error: 'Vendors tab already holds ' + existing +
+    return vdOut_({ ok: false, error: 'Vendor tabs already hold ' + existing +
       ' rows. Re-run with force to replace them.' });
   }
-  if (existing > 0) sh.getRange(2, 1, existing, VD_HEADERS.length).clearContent();
-
-  var out = payload.vendors.map(function (v) {
-    return VD_HEADERS.map(function (h) { return v[h] == null ? '' : String(v[h]); });
+  vdVendorSheets_(ss).forEach(function (s) {
+    var n = s.sh.getLastRow() - 1;
+    if (n > 0) s.sh.getRange(2, 1, n, VD_HEADERS.length).clearContent();
   });
-  if (out.length) sh.getRange(2, 1, out.length, VD_HEADERS.length).setValues(out);
-  sh.autoResizeColumns(1, 5);
 
-  return vdOut_({ ok: true, seeded: out.length, url: ss.getUrl() });
+  var byTab = {};
+  payload.vendors.forEach(function (v) {
+    var key = vdRegion_(v.region) === 'Northern Nevada' ? 'nnv' : 'lv';
+    byTab[key] = byTab[key] || [];
+    byTab[key].push(VD_HEADERS.map(function (h) { return v[h] == null ? '' : String(v[h]); }));
+  });
+  var total = 0;
+  VD_VENDOR_TABS.forEach(function (t) {
+    var list = byTab[t.key] || [];
+    if (!list.length) return;
+    var sh = ss.getSheetByName(t.name);
+    sh.getRange(2, 1, list.length, VD_HEADERS.length).setValues(list);
+    total += list.length;
+  });
+
+  return vdOut_({ ok: true, seeded: total, url: ss.getUrl() });
 }
 
 // Adds rows without touching what is already there, unlike vd_seed which replaces
-// the tab. Skips any dba_name already on the list so it is safe to re-run.
+// the tabs. Skips any dba_name already on the list so it is safe to re-run.
 function vdAppend_(data) {
   var payload = data.payload;
   if (!payload || !payload.vendors) return vdOut_({ ok: false, error: 'No payload' });
 
   vdSetup_({ types: payload.service_types });
   var ss = vdSS_();
-  var sh = ss.getSheetByName(VD_TABS.VENDORS);
-  var all = vdRows_(sh).rows;
+  var all = vdAllRows_(ss);
 
   var seen = {};
   all.forEach(function (r) { if (r.dba_name) seen[r.dba_name.toLowerCase()] = true; });
 
   var next = vdNextId_(all);
   var n = Number(next.slice(2));
-  var out = [], skipped = [];
+  var out = {}, skipped = [], added = 0;
   payload.vendors.forEach(function (v) {
     var key = vdStr_(v.dba_name).toLowerCase();
     if (!key) return;
@@ -264,20 +407,27 @@ function vdAppend_(data) {
     v.vendor_id = 'V-' + ('000' + n).slice(-3);
     n++;
     if (v.region !== undefined) v.region = vdRegion_(v.region);
-    out.push(VD_HEADERS.map(function (h) { return v[h] == null ? '' : String(v[h]); }));
+    var tk = vdRegion_(v.region) === 'Northern Nevada' ? 'nnv' : 'lv';
+    out[tk] = out[tk] || [];
+    out[tk].push(VD_HEADERS.map(function (h) { return v[h] == null ? '' : String(v[h]); }));
   });
 
-  if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, VD_HEADERS.length).setValues(out);
-  return vdOut_({ ok: true, added: out.length, skipped: skipped.length, skipped_names: skipped.slice(0, 20) });
+  VD_VENDOR_TABS.forEach(function (t) {
+    var list = out[t.key] || [];
+    if (!list.length) return;
+    var sh = ss.getSheetByName(t.name);
+    sh.getRange(sh.getLastRow() + 1, 1, list.length, VD_HEADERS.length).setValues(list);
+    added += list.length;
+  });
+  return vdOut_({ ok: true, added: added, skipped: skipped.length, skipped_names: skipped.slice(0, 20) });
 }
 
 // One-time repair for rows loaded before the market column existed. Everything
 // City Wide handed over was the Las Vegas book, with the corrections passed in.
 function vdRegionBackfill_(data) {
   var ss = vdSS_();
-  var sh = ss.getSheetByName(VD_TABS.VENDORS);
   var col = VD_HEADERS.indexOf('region') + 1;
-  var rows = vdRows_(sh).rows;
+  var rows = vdAllRows_(ss);
   var fixes = {};
   (data.fixes || []).forEach(function (f) { fixes[String(f.name).toLowerCase()] = f.region; });
 
@@ -286,9 +436,11 @@ function vdRegionBackfill_(data) {
     if (!r.dba_name) return;
     var want = fixes[r.dba_name.toLowerCase()];
     if (want && vdRegion_(r.region) !== want) {
-      sh.getRange(r._row, col).setValue(want); corrected++; return;
+      r._sheet.getRange(r._row, col).setValue(want); corrected++; return;
     }
-    if (!vdStr_(r.region)) { sh.getRange(r._row, col).setValue('Las Vegas'); filled++; }
+    if (!vdStr_(r._sheet.getRange(r._row, col).getValue())) {
+      r._sheet.getRange(r._row, col).setValue(r.region || 'Las Vegas'); filled++;
+    }
   });
   return vdOut_({ ok: true, filled: filled, corrected: corrected });
 }
@@ -307,11 +459,56 @@ function vdTypes_(data) {
   }) });
 }
 
+// Cleared names per vendor, read from the two background check tabs.
+// Returns { byId: {vendor_id: [ {name, tab} ]}, unmatched: [...], rows: n }.
+// A row counts when status is Cleared or blank. Pending and Removed stay in the
+// sheet as history and never reach the page.
+function vdCleared_(ss, vendors) {
+  var byId = {}, byName = {};
+  vendors.forEach(function (v) {
+    if (v.dba_name) byName[v.dba_name.toLowerCase()] = v.vendor_id;
+    if (v.legal_name && !byName[v.legal_name.toLowerCase()]) byName[v.legal_name.toLowerCase()] = v.vendor_id;
+  });
+  var out = {}, unmatched = [], n = 0;
+  VD_BC_TABS.forEach(function (b) {
+    var sh = ss.getSheetByName(b.name);
+    if (!sh) return;
+    vdRows_(sh).rows.forEach(function (r) {
+      var name = [vdStr_(r.first_name), vdStr_(r.last_name)].filter(function (x) { return x; }).join(' ');
+      if (!name) return;
+      n++;
+      var st = vdStr_(r.status);
+      if (st && st !== 'Cleared') return;
+      var id = vdStr_(r.vendor_id);
+      if (!id) id = byName[vdStr_(r.vendor).toLowerCase()] || '';
+      if (!id) { unmatched.push({ vendor: vdStr_(r.vendor), name: name, tab: b.name }); return; }
+      out[id] = out[id] || [];
+      out[id].push({ name: name, tab: b.key, last: vdStr_(r.last_name), first: vdStr_(r.first_name) });
+    });
+  });
+  Object.keys(out).forEach(function (k) {
+    out[k].sort(function (a, b) {
+      var x = (a.last + ' ' + a.first).toLowerCase(), y = (b.last + ' ' + b.first).toLowerCase();
+      return x < y ? -1 : x > y ? 1 : 0;
+    });
+    out[k] = out[k].map(function (p) { return { name: p.name, tab: p.tab }; });
+  });
+  return { byId: out, unmatched: unmatched.slice(0, 50), unmatched_count: unmatched.length, rows: n };
+}
+
+function vdBcList_(data) {
+  var ss = vdSS_();
+  var vendors = vdAllRows_(ss).filter(function (r) { return r.dba_name; });
+  var c = vdCleared_(ss, vendors);
+  return vdOut_({ ok: true, cleared: c.byId, unmatched: c.unmatched,
+                  unmatched_count: c.unmatched_count, rows: c.rows });
+}
+
 // The directory payload. business_address is dropped on purpose; see the header.
 function vdList_(data) {
   var ss = vdSS_();
-  var vsh = ss.getSheetByName(VD_TABS.VENDORS);
-  if (!vsh) return vdOut_({ ok: false, error: 'Run vd_setup first.' });
+  var sheets = vdVendorSheets_(ss);
+  if (!sheets.length) return vdOut_({ ok: false, error: 'Run vd_setup first.' });
 
   var tsh = ss.getSheetByName(VD_TABS.TYPES);
   var types = [];
@@ -324,7 +521,7 @@ function vdList_(data) {
     types.sort(function (a, b) { return a.sort - b.sort; });
   }
 
-  var drop = { business_address: 1, _row: 1, hide: 1 };
+  var drop = { business_address: 1, _row: 1, hide: 1, _sheet: 1, _tab: 1 };
   var vendors = [];
   var counts = {}, statusCounts = {};
   // Counts are kept per region and per branch so the landing pages can show real
@@ -334,10 +531,12 @@ function vdList_(data) {
     regionCounts[r.key] = { name: r.name, janitorial: 0, other: 0, prospects: 0, total: 0, types: {} };
   });
 
-  vdRows_(vsh).rows.forEach(function (r) {
+  var allRows = vdAllRows_(ss);
+  allRows.forEach(function (r) {
     if (!r.dba_name || vdTrue_(r.hide)) return;
     var o = {};
     Object.keys(r).forEach(function (k) { if (!drop[k]) o[k] = r[k]; });
+    o.tab = r._tab;
     o.slugs = vdSlugs_(r.service_types);
     o.janitorial = o.slugs.indexOf(VD_JANITORIAL) >= 0;
     o.live = VD_LIVE_STATUS.indexOf(r.status) >= 0;
@@ -375,11 +574,21 @@ function vdList_(data) {
   // A type with no vendors still shows, so ops can see the empty bench and fill it.
   types.forEach(function (t) { t.count = counts[t.slug] || 0; });
 
+  // Background checks: names only, keyed by vendor_id. Hidden vendors are
+  // excluded above so their names never ship either.
+  var cleared = vdCleared_(ss, allRows.filter(function (r) { return r.dba_name; }));
+  var clearedOut = {};
+  vendors.forEach(function (v) { if (cleared.byId[v.vendor_id]) clearedOut[v.vendor_id] = cleared.byId[v.vendor_id]; });
+
   return vdOut_({
     ok: true, vendors: vendors, types: types, counts: counts,
     regions: VD_REGIONS.map(function (r) { return { key: r.key, name: r.name }; }),
     region_counts: regionCounts,
     status_counts: statusCounts, total: vendors.length,
+    cleared: clearedOut,
+    cleared_meta: { rows: cleared.rows, unmatched_count: cleared.unmatched_count,
+                    tabs: VD_BC_TABS.map(function (b) { return { key: b.key, name: b.name }; }) },
+    vendor_tabs: VD_VENDOR_TABS.map(function (t) { return { key: t.key, name: t.name }; }),
     sheet_url: ss.getUrl(), generated: new Date().toISOString()
   });
 }
@@ -415,9 +624,8 @@ function vdSave_(data) {
   }
 
   var ss = vdSS_();
-  var sh = ss.getSheetByName(VD_TABS.VENDORS);
-  if (!sh) return vdOut_({ ok: false, error: 'Run vd_setup first.' });
-  var all = vdRows_(sh).rows;
+  if (!vdVendorSheets_(ss).length) return vdOut_({ ok: false, error: 'Run vd_setup first.' });
+  var all = vdAllRows_(ss);
 
   var target = null;
   if (isUpdate) {
@@ -433,13 +641,15 @@ function vdSave_(data) {
     }
   }
 
-  var row;
+  var sh, row;
   if (target) {
+    sh = target._sheet;
     row = target._row;
   } else {
+    sh = vdTabFor_(ss, v.region);
     row = sh.getLastRow() + 1;
     v.vendor_id = vdNextId_(all);
-    if (!vdStr_(v.status)) v.status = 'Applicant';
+    if (!vdStr_(v.status)) v.status = 'Prospect';
     if (!vdStr_(v.source)) v.source = 'Ops Hub';
   }
   v.updated = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd');
@@ -451,10 +661,116 @@ function vdSave_(data) {
   });
 
   return vdOut_({ ok: true, vendor_id: vdStr_(v.vendor_id) || (target && target.vendor_id),
-                  updated: !!target, url: ss.getUrl() });
+                  updated: !!target, tab: sh.getName(), url: ss.getUrl() });
 }
 
-// Jotform eval-form feed. Logs every submission, and creates an Applicant row for
+// ------------------------------------------------------------ bulk patch ---
+
+// vd_save is one vendor and one setValue per field, which is fine from a form and
+// unusable for a few hundred rows. vd_patch takes an array of partial records keyed
+// by vendor_id, mutates the sheet values in memory, and writes each tab back once.
+// Fields absent from a patch are left exactly as they are. A patch that changes
+// region does not move the row between tabs; the region cell wins on the page.
+function vdPatch_(data) {
+  var patches = (data && data.patches) || [];
+  if (!patches.length) return vdOut_({ ok: false, error: 'No patches' });
+
+  var ss = vdSS_();
+  var sheets = vdVendorSheets_(ss);
+  if (!sheets.length) return vdOut_({ ok: false, error: 'Run vd_setup first.' });
+
+  var col = {};
+  VD_HEADERS.forEach(function (h, i) { col[h] = i; });
+  var today = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd');
+  var applied = 0, fields = 0, missing = [];
+  var wanted = {};
+  patches.forEach(function (p) { wanted[vdStr_(p.vendor_id)] = p; });
+  var found = {};
+
+  sheets.forEach(function (s) {
+    var sh = s.sh;
+    var last = sh.getLastRow();
+    if (last < 2) return;
+    var rng = sh.getRange(2, 1, last - 1, VD_HEADERS.length);
+    var vals = rng.getValues();
+    var touchedSheet = false;
+    for (var r = 0; r < vals.length; r++) {
+      var id = vdStr_(vals[r][col.vendor_id]);
+      var p = wanted[id];
+      if (!p) continue;
+      found[id] = true;
+      var touched = false;
+      Object.keys(p).forEach(function (k) {
+        if (k === 'vendor_id') return;
+        if (col[k] === undefined) return;
+        var val = p[k] == null ? '' : String(p[k]);
+        if (k === 'region') val = vdRegion_(val);
+        if (String(vals[r][col[k]]) === val) return;
+        vals[r][col[k]] = val;
+        touched = true;
+        fields++;
+      });
+      if (touched) { vals[r][col.updated] = today; applied++; touchedSheet = true; }
+    }
+    if (touchedSheet) rng.setValues(vals);
+  });
+
+  Object.keys(wanted).forEach(function (id) { if (!found[id]) missing.push(id); });
+  return vdOut_({ ok: true, applied: applied, fields: fields, missing: missing });
+}
+
+// ------------------------------------------------------------ background checks
+
+// Loads cleaner rows into the background check tabs. Each row carries market
+// 'lv' or 'nnv' plus the VD_BC_HEADERS fields. Duplicates (same vendor_id or
+// vendor, last_name, first_name already on that tab) are skipped, so re-running a
+// seed never doubles anyone. data.replace clears both tabs first.
+function vdBcSeed_(data) {
+  var rows = (data && data.rows) || [];
+  if (!rows.length) return vdOut_({ ok: false, error: 'No rows' });
+  var ss = vdSS_();
+  VD_BC_TABS.forEach(function (b) {
+    if (!ss.getSheetByName(b.name)) vdSetup_({});
+  });
+  if (data.replace) {
+    VD_BC_TABS.forEach(function (b) {
+      var sh = ss.getSheetByName(b.name);
+      var n = sh.getLastRow() - 1;
+      if (n > 0) sh.getRange(2, 1, n, VD_BC_HEADERS.length).clearContent();
+    });
+  }
+  var today = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd');
+  var added = 0, skipped = 0, bad = 0;
+  VD_BC_TABS.forEach(function (b) {
+    var sh = ss.getSheetByName(b.name);
+    var have = {};
+    vdRows_(sh).rows.forEach(function (r) {
+      have[[vdStr_(r.vendor_id) || vdStr_(r.vendor).toLowerCase(), vdStr_(r.last_name).toLowerCase(),
+            vdStr_(r.first_name).toLowerCase()].join('|')] = true;
+    });
+    var out = [];
+    rows.forEach(function (r) {
+      if ((r.market || 'lv') !== b.key) return;
+      if (!vdStr_(r.last_name) && !vdStr_(r.first_name)) { bad++; return; }
+      var k = [vdStr_(r.vendor_id) || vdStr_(r.vendor).toLowerCase(), vdStr_(r.last_name).toLowerCase(),
+               vdStr_(r.first_name).toLowerCase()].join('|');
+      if (have[k]) { skipped++; return; }
+      have[k] = true;
+      if (!vdStr_(r.status)) r.status = 'Cleared';
+      if (!vdStr_(r.added)) r.added = today;
+      out.push(VD_BC_HEADERS.map(function (h) { return r[h] == null ? '' : String(r[h]); }));
+    });
+    if (out.length) {
+      sh.getRange(sh.getLastRow() + 1, 1, out.length, VD_BC_HEADERS.length).setValues(out);
+      added += out.length;
+    }
+  });
+  return vdOut_({ ok: true, added: added, skipped: skipped, bad: bad });
+}
+
+// ------------------------------------------------------------ intake -------
+
+// Jotform eval-form feed. Logs every submission, and creates an In Progress row for
 // business names not already on the list. It never touches an existing vendor:
 // a returning name is logged as "matched" and left for an FSM to reconcile, so a
 // vendor cannot rewrite their own status or contact record from a public form.
@@ -470,9 +786,8 @@ function vdIntake_(data) {
   if (!dba) return vdOut_({ ok: false, error: 'No business name' });
 
   var ss = vdSS_();
-  var sh = ss.getSheetByName(VD_TABS.VENDORS);
-  if (!sh) { vdSetup_({}); sh = ss.getSheetByName(VD_TABS.VENDORS); }
-  var all = vdRows_(sh).rows;
+  if (!vdVendorSheets_(ss).length) vdSetup_({});
+  var all = vdAllRows_(ss);
 
   var key = dba.toLowerCase();
   var hit = all.filter(function (r) { return r.dba_name.toLowerCase() === key; })[0];
@@ -484,11 +799,13 @@ function vdIntake_(data) {
   } else {
     vid = vdNextId_(all);
     v.vendor_id = vid;
-    v.status = 'Applicant';
+    v.status = 'In Progress';
     v.source = 'Eval Form';
     v.added_by = 'Jotform intake';
+    v.region = vdRegion_(v.region);
     v.updated = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd');
     var out = VD_HEADERS.map(function (h) { return v[h] == null ? '' : String(v[h]); });
+    var sh = vdTabFor_(ss, v.region);
     sh.getRange(sh.getLastRow() + 1, 1, 1, VD_HEADERS.length).setValues([out]);
   }
 
@@ -507,7 +824,8 @@ function vdIntake_(data) {
 
 // ------------------------------------------------------------ run helpers --
 
-// Editor > Run. Creates the book and seeds the service types only.
+// Editor > Run. Creates the book, the market tabs (migrating the legacy Vendors
+// tab the first time), the background check tabs, and seeds the service types.
 function vdSetupRun() {
   var r = vdSetup_({});
   Logger.log(r.getContent ? r.getContent() : r);

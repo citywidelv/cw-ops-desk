@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Active Vendors | CW Ops Hub</title>
-<!-- build 2026-08-20b
+<!-- build 2026-08-22a
 Active Vendors directory. Reads the CW Vendor Directory Sheet through the CW
 Solicitations Apps Script (kind vd_list), passcode checked on the server, taken
 from the Ops Hub session. No vendor data is stored in this repo.
@@ -23,6 +23,11 @@ where <mkt> is lv or nnv. Vendors marked Both appear under both markets.
 Lists are dense sortable rows, not cards: about a third the height, so a full
 janitorial bench fits on one screen. Click a row to open the evaluation detail
 underneath it. Add a category by adding a row to the Service Types tab.
+
+Background checks (Aug 22 2026): the expanded record shows "Background checks on
+file", names only, read from the sheet's "Background checks Las Vegas" and
+"Background checks Northern Nevada" tabs (payload key cleared, keyed by vendor_id,
+status Cleared or blank). Adding a cleaner is a sheet row, not a code change.
 -->
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
@@ -134,6 +139,10 @@ p.lede{color:var(--grey);margin:9px 0 16px;max-width:74ch;font-size:13px}
 .sh{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
   margin:14px 0 2px;padding-top:9px;border-top:2px solid var(--border)}
 .sh:first-child{margin-top:0;padding-top:0;border-top:none}
+.bc{display:flex;flex-wrap:wrap;gap:6px 8px;padding:8px 0 2px}
+.bc span{background:#fff;border:1px solid var(--border);border-radius:14px;padding:3px 10px;font-size:12px;white-space:nowrap}
+.bc span.nnv{border-color:var(--teal)}
+.bcnote{font-size:11px;color:var(--grey);margin-top:6px}
 .note{background:#FBF3D6;border:1px solid var(--gold);border-radius:7px;padding:8px 11px;
   font-size:12px;margin:11px 0 0}
 .state{background:#fff;border:1px dashed var(--border);border-radius:10px;padding:38px 24px;
@@ -172,7 +181,7 @@ p.lede{color:var(--grey);margin:9px 0 16px;max-width:74ch;font-size:13px}
   <div id="view"></div>
   <p style="margin-top:20px;font-size:12px">
     <a id="sheetLink" href="#" target="_blank" rel="noopener">Open the CW Vendor Directory sheet</a>
-    to edit a vendor, change a status or market, or add a service type.
+    to edit a vendor, change a status or market, add a service type, or add a cleared cleaner on the Background checks tabs.
     &nbsp;&middot;&nbsp; <a href="vendor-add.html">Add a vendor</a>
   </p>
 </div>
@@ -232,6 +241,31 @@ function link(label, href, text){
     '" target="_blank" rel="noopener">' + esc(text || href) + "</a></div>";
 }
 
+/* ---------- cleared cleaners: names only, from the Background checks tabs ---------- */
+function clearedList(v){
+  return (DATA && DATA.cleared && DATA.cleared[v.vendor_id]) || [];
+}
+function clearedHtml(v){
+  var list = clearedList(v);
+  var tabs = (DATA && DATA.cleared_meta && DATA.cleared_meta.tabs) || [];
+  var tabName = {};
+  tabs.forEach(function(t){ tabName[t.key] = t.name; });
+  if (!list.length){
+    return '<div class="bcnote">No cleaner on file for this vendor. Add a row on the '
+      + esc(tabName.lv || "Background checks Las Vegas") + " or "
+      + esc(tabName.nnv || "Background checks Northern Nevada")
+      + ' tab of the directory sheet (vendor name or vendor ID ' + esc(v.vendor_id) + ', last name, first name) and it shows here.</div>';
+  }
+  var mixed = list.some(function(p){ return p.tab !== list[0].tab; });
+  return '<div class="bc">' + list.map(function(p){
+      return '<span class="' + (p.tab === "nnv" ? "nnv" : "") + '" title="' + esc(tabName[p.tab] || "") + '">' + esc(p.name) + "</span>";
+    }).join("") + "</div>"
+    + '<div class="bcnote">' + list.length + (list.length === 1 ? " person" : " people")
+    + " with a completed background check on file. Names only; manage the list on the "
+    + (mixed ? "Background checks tabs" : esc(tabName[list[0].tab] || "Background checks tab"))
+    + " of the directory sheet. Set a row to Pending or Removed to take a name off this list.</div>";
+}
+
 function detailHtml(v){
   var contact = field("Contact", v.contact_name)
     + link("Email", "mailto:" + v.email, v.email)
@@ -258,6 +292,8 @@ function detailHtml(v){
     + yesNo("Daily supervisor quality check", v.daily_supervision)
     + field("GL certificate expires", v.gl_exp) + field("WC certificate expires", v.wc_exp);
 
+  var bc = clearedHtml(v);
+
   var refs = "";
   [1, 2].forEach(function(n){
     var c = v["ref" + n + "_company"];
@@ -280,6 +316,7 @@ function detailHtml(v){
   if (contact)    body += '<div class="sh">How to reach them</div><div class="grid">' + contact + "</div>";
   if (company)    body += '<div class="sh">The company</div><div class="grid">' + company + "</div>";
   if (compliance) body += '<div class="sh">Compliance</div><div class="grid">' + compliance + "</div>";
+  body += '<div class="sh">Background checks on file</div>' + bc;
   if (has(v.concern_process)) body += '<div class="sh">How they handle a problem</div><div class="grid">'
     + wide("", v.concern_process) + "</div>";
   if (refs)   body += '<div class="sh">References</div><div class="grid">' + refs + "</div>";
@@ -318,6 +355,10 @@ function riskFlag(v){
   if (String(v.general_liability).toLowerCase() === "no") f.push("no GL");
   return f.length ? ' <span class="flag">' + esc(f.join(", ")) + "</span>" : "";
 }
+function bcBadge(v){
+  var n = clearedList(v).length;
+  return n ? ' <em>' + n + ' cleared</em>' : "";
+}
 function crewOf(v){
   var ft = num(v.crew_ft), pt = num(v.crew_pt);
   var n = (ft > 0 ? ft : 0) + (pt > 0 ? pt : 0);
@@ -350,7 +391,7 @@ function headerRow(){
 function rowHtml(v, i){
   var crew = crewOf(v);
   return '<div class="tr row" data-i="' + i + '">'
-    + '<div class="nm">' + esc(v.dba_name) + riskFlag(v) + "</div>"
+    + '<div class="nm">' + esc(v.dba_name) + riskFlag(v) + bcBadge(v) + "</div>"
     + "<div>" + statusDot(v) + "</div>"
     + '<div class="rg">' + esc(v.region === "Both" ? "Both" : (v.region === "Northern Nevada" ? "N. NV" : "LV")) + "</div>"
     + '<div class="city">' + esc(v.city_state || "") + "</div>"
@@ -366,7 +407,8 @@ function matches(v){
       && String(v.general_liability).toLowerCase() !== "no") return false;
   if (!QUERY) return true;
   var hay = [v.dba_name, v.legal_name, v.contact_name, v.email, v.phone, v.city_state, v.region,
-             v.metro_areas, v.services_desc, v.trade_raw, v.service_types, v.bc_vendor_no]
+             v.metro_areas, v.services_desc, v.trade_raw, v.service_types, v.bc_vendor_no,
+             clearedList(v).map(function(p){ return p.name; }).join(" ")]
     .join(" ").toLowerCase();
   return hay.indexOf(QUERY) >= 0;
 }
@@ -403,7 +445,7 @@ function statusSelect(){
 
 function toolbar(showLive){
   return '<div class="tools">'
-    + '<input type="search" id="q" placeholder="Company, contact, city, phone, or service" value="' + esc(QUERY) + '">'
+    + '<input type="search" id="q" placeholder="Company, contact, city, phone, service, or cleaner name" value="' + esc(QUERY) + '">'
     + '<button class="fbtn' + (FILTER === "all" ? " on" : "") + '" data-f="all">All</button>'
     + (showLive ? '<button class="fbtn' + (FILTER === "live" ? " on" : "") + '" data-f="live">Active and onboarding</button>' : "")
     + '<button class="fbtn' + (FILTER === "flag" ? " on" : "") + '" data-f="flag">Insurance gaps</button>'
