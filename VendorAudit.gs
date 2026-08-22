@@ -374,18 +374,10 @@ function audNextRow_(sh) {
 
 // ------------------------------------------------------------ PDF ----------
 
-function audImg_(url) {
-  var cache = CacheService.getScriptCache();
-  var key = 'audimg:' + url;
-  var hit = cache.get(key);
-  if (hit) return hit;
-  try {
-    var blob = UrlFetchApp.fetch(url, { muteHttpExceptions: true }).getBlob();
-    var data = 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes());
-    if (data.length < 100000) cache.put(key, data, 21600);
-    return data;
-  } catch (e) { return ''; }
-}
+// Drive's HTML to PDF conversion drops data: URIs (tested Aug 22 2026), so images
+// go in as plain https URLs and the converter fetches them. Missing image = blank,
+// never a failed PDF.
+function audImg_(url) { return url; }
 
 function audPdf_(rec, vendor, accounts, fails, findings, mkt) {
   var logo = audImg_(AUD_LOGO);
@@ -420,13 +412,14 @@ function audPdf_(rec, vendor, accounts, fails, findings, mkt) {
   var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>'
     + '@page{size:letter;margin:0.55in 0.6in 0.7in}'
     + 'body{font-family:Verdana,Geneva,sans-serif;color:#2D2A26;font-size:10pt;line-height:1.45;margin:0}'
-    + '.top{border-bottom:3px solid #D22730;padding-bottom:8px;margin-bottom:10px}'
-    + '.top img.logo{height:36px}'
-    + '.top .t{float:right;text-align:right;font-size:8.5pt;color:#636466;letter-spacing:.08em;text-transform:uppercase;font-weight:bold;padding-top:10px}'
-    + 'h1{font-size:19pt;margin:8px 0 2px;line-height:1.2}'
+    + 'table.top{width:100%;border-collapse:collapse;border-bottom:3px solid #D22730;margin-bottom:10px}'
+    + 'table.top td{padding:0 0 8px;vertical-align:bottom}'
+    + 'table.top img.logo{height:34px}'
+    + 'table.top td.t{text-align:right;font-size:8.5pt;color:#636466;letter-spacing:.08em;text-transform:uppercase;font-weight:bold;line-height:1.4}'
+    + 'h1{font-size:17pt;margin:6px 0 2px;line-height:1.2}'
     + '.sub{color:#636466;font-size:9.5pt;margin:0 0 10px}'
     + '.hero{width:100%;border-collapse:collapse;margin-bottom:10px}'
-    + '.hero td{vertical-align:top;padding:0}'
+    + '.hero td{vertical-align:top;padding:0}.hero td.main{width:78%}'
     + '.res{border:2px solid ' + (pass ? '#0AA6A9' : '#D22730') + ';border-radius:10px;padding:10px 14px;margin:0 0 8px}'
     + '.res b.r{font-size:22pt;color:' + (pass ? '#0AA6A9' : '#D22730') + ';display:block;line-height:1.1}'
     + '.res .why{font-size:9pt;margin-top:4px}'
@@ -452,12 +445,12 @@ function audPdf_(rec, vendor, accounts, fails, findings, mkt) {
     + '.sig{margin-top:22px;width:100%;font-size:9pt}.sig td{width:50%;padding:0 12px 0 0}.sig .line{border-top:1px solid #2D2A26;padding-top:4px;margin-top:26px}'
     + '.foot{margin-top:16px;font-size:8pt;color:#636466;border-top:1px solid #E5E5E5;padding-top:6px}'
     + '</style></head><body>'
-    + '<div class="top">' + (logo ? '<img class="logo" src="' + logo + '">' : '<b>City Wide Facility Solutions</b>')
-    + '<span class="t">Quarterly Vendor Compliance Audit<br>' + e(rec.market) + '</span></div>'
+    + '<table class="top"><tr><td>' + (logo ? '<img class="logo" src="' + logo + '">' : '<b>City Wide Facility Solutions</b>')
+    + '</td><td class="t">Quarterly Vendor Compliance Audit<br>' + e(rec.market) + '</td></tr></table>'
     + '<h1>' + e(vendor.dba_name) + '</h1>'
     + '<p class="sub">Audit ' + e(rec.audit_id) + ' &middot; ' + e(rec.audit_date) + ' &middot; recorded by '
     + e(rec.submitted_by) + (rec.submitter_role ? ', ' + e(rec.submitter_role) : '') + ', City Wide Facility Solutions</p>'
-    + '<table class="hero"><tr><td>'
+    + '<table class="hero"><tr><td class="main">'
     + '<div class="res"><b class="r">' + (pass ? 'PASS' : 'FAIL') + '</b>'
     + '<div class="why">' + (pass
         ? 'Every person listed has a background check on file and is confirmed 18 or older, the vendor attests to employment law compliance, and SDS are on site in every building audited.'
