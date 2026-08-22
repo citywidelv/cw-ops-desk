@@ -367,13 +367,13 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
     <div id="notifyBtns"></div>
     <p id="notifyHint" style="font-size:12.5px;color:var(--grey);margin:10px auto 0;max-width:58ch"></p>
   </div>
-  <p><a href="https://citywidelv.github.io/cw-vendor-shop/opportunities.html" target="_blank" rel="noopener">View the live board</a></p>
+  <p><a href="https://citywidelv.github.io/cw-vendor-hub/opportunities.html" target="_blank" rel="noopener">View the live board</a></p>
   <p><button class="btn" onclick="location.reload()">Post Another</button></p>
 </div>
 </div>
 
 <div class="foot">City Wide Facility Solutions &middot; Internal tool &middot; Postings appear at
-citywidelv.github.io/cw-vendor-shop/opportunities.html</div>
+citywidelv.github.io/cw-vendor-hub/opportunities.html</div>
 
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
@@ -678,8 +678,8 @@ function renderNotify(r) {
   }
   var id = String(r.id || "");
   var link = /^(LV|NNV)-/.test(id)
-    ? "https://citywidelv.github.io/cw-vendor-shop/respond.html?id=" + encodeURIComponent(id)
-    : "https://citywidelv.github.io/cw-vendor-shop/opportunities.html";
+    ? "https://citywidelv.github.io/cw-vendor-hub/respond.html?id=" + encodeURIComponent(id)
+    : "https://citywidelv.github.io/cw-vendor-hub/opportunities.html";
   var subject = "New City Wide Opportunity: " + v("title");
   var body = "Hi all,\r\n\r\n" +
     "I just posted a new opportunity for " + trade + ": " + v("title") + " (" + state.region + ").\r\n\r\n" +

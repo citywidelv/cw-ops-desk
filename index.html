@@ -482,7 +482,7 @@ return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill
 function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
 /* ---------- Nav: cascading menu tree. EVERY hub tool must be reachable here. ---------- */
-var VS = "https://citywidelv.github.io/cw-vendor-shop/";
+var VS = "https://citywidelv.github.io/cw-vendor-hub/";
 var MENU = [
 { label:"Work Tickets", icon:"sheet", items:[
 {label:"Maintenance Work Ticket", href:"work-order.html"},
@@ -538,11 +538,11 @@ var MENU = [
 {label:"Request an Exhibit A (LV)", href:"https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873"},
 {label:"New Vendor Page", href:VS+"new-vendors.html"},
 {sub:"Vendor Resources", items:[
-{label:"Resource Home", href:VS+"resources.html"},
-{label:"Crew Guides", href:VS+"resources.html"},
+{label:"Resource Home", href:VS},
+{label:"Crew Guides", href:VS+"#guides"},
 {label:"Workloading Guide", href:VS+"workloading.html"},
 {label:"New Building Planner", href:VS+"planner.html"},
-{label:"Vendor Shop", href:VS},
+{label:"Vendor Shop", href:VS+"shop/"},
 {label:"Invoice Page", href:VS+"invoice.html"},
 {label:"Building Supplies", href:VS+"building-supplies.html"}
 ]}
@@ -671,13 +671,13 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeMe
 /* ---------- Most Used quick bar (TJ-approved picks, July 2026) ---------- */
 var QUICK = [
 { label:"Post an Opportunity", href:"post.html", icon:"plus", primary:true },
-{ label:"Live Board", href:"https://citywidelv.github.io/cw-vendor-shop/opportunities.html", icon:"board", pill:true },
+{ label:"Live Board", href:"https://citywidelv.github.io/cw-vendor-hub/opportunities.html", icon:"board", pill:true },
 { label:"Exhibit A Request", href:"https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873", icon:"clip" },
 { label:"IC Walkthrough Email", href:"https://form.asana.com/?k=lnuBJNlGrHJNAeW8QWbXzA&d=13140959242873", icon:"mail" },
 { label:"Night Inspection", href:"https://form.jotform.com/233486327771060", icon:"clip" },
 { label:"CW Sales CRM", href:"https://gocitywide.crm.dynamics.com/main.aspx", icon:"work" },
 { label:"Margin Calculator", href:"https://citywidelv.github.io/margincalculator/", icon:"margin" },
-{ label:"Vendor Resources", href:"https://citywidelv.github.io/cw-vendor-shop/resources.html", icon:"home" }
+{ label:"Vendor Resources", href:"https://citywidelv.github.io/cw-vendor-hub/", icon:"home" }
 ];
 function renderQuick(){
 var html = "";

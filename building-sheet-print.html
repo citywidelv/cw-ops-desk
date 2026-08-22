@@ -121,7 +121,7 @@ function renderSheet(s,meta){
   stamps+='<span class="stamp">Updated '+esc(s.updated||meta.updated||"")+(s.updated_by?' by '+esc(s.updated_by):'')+'</span>';
   q("hStamps").innerHTML=stamps;
   var front=(s.photos||[]).filter(function(p){return p.slot==="front";})[0];
-  q("coverBg").style.backgroundImage="url('"+(front?front.url:"https://citywidelv.github.io/cw-vendor-shop/images/hero-building.jpg")+"')";
+  q("coverBg").style.backgroundImage="url('"+(front?front.url:"https://citywidelv.github.io/cw-vendor-hub/images/hero-building.jpg")+"')";
   q("editLink").href="building-sheet.html?account="+encodeURIComponent(s.account||ACCT);
 
   var h='';

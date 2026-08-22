@@ -269,7 +269,7 @@ var geo=null;
 // Vendors arriving from the Vendor Resource Center should not see a path back
 // to the internal Ops Hub. Their links carry ?src=vendor; referrer is a fallback.
 (function(){
-var fromVendor=/[?&]src=vendor/.test(location.search)||/cw-vendor-shop/.test(document.referrer||"");
+var fromVendor=/[?&]src=vendor/.test(location.search)||/cw-vendor-(shop|hub)/.test(document.referrer||"");
 if(fromVendor){
 var back=document.querySelector(".head a.back");
 if(back)back.style.display="none";
