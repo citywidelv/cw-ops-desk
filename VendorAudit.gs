@@ -180,7 +180,9 @@ function audContext_(data) {
 
   var vendors = rows.filter(function (r) {
     var region = vdRegion_(r.region);
-    return vdInRegion_(region, mkt) && VD_PROSPECT_STATUS.indexOf(r.status) < 0;
+    // Prospects and anything marked inactive are not audited; they are not dispatched.
+    return vdInRegion_(region, mkt) && VD_PROSPECT_STATUS.indexOf(r.status) < 0
+      && !/inactive/i.test(String(r.status || ''));
   }).map(function (r) {
     return {
       vendor_id: r.vendor_id, dba_name: r.dba_name, legal_name: r.legal_name, status: r.status,

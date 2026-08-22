@@ -249,7 +249,7 @@ function yesNo(label, val){
   return field(label, val, String(val).toLowerCase() === "no");
 }
 function link(label, href, text){
-  if (!has(href)) return "";
+  if (!has(href) || /^mailto:$/i.test(String(href).trim())) return "";   // blank email cell used to render a bare mailto: link
   var url = /^https?:|^mailto:/i.test(href) ? href : "https://" + href;
   return '<div class="f"><k>' + esc(label) + '</k><a href="' + esc(url) +
     '" target="_blank" rel="noopener">' + esc(text || href) + "</a></div>";
