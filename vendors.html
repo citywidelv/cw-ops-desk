@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Active Vendors | CW Ops Hub</title>
-<!-- build 2026-08-22a
+<!-- build 2026-08-22b
 Active Vendors directory. Reads the CW Vendor Directory Sheet through the CW
 Solicitations Apps Script (kind vd_list), passcode checked on the server, taken
 from the Ops Hub session. No vendor data is stored in this repo.
@@ -224,6 +224,7 @@ function inMkt(v){ return (v.regions || []).indexOf(MKT) >= 0; }
 /* ---------- expanded detail: everything the vendor put on their form ---------- */
 function field(label, val, bad){
   if (!has(val)) return "";
+  if (/^(false|FALSE)$/.test(String(val).trim())) return "";   // unticked checkbox cells read as FALSE in the sheet
   return '<div class="f' + (bad ? " bad" : "") + '"><k>' + esc(label) + "</k>" + esc(val) + "</div>";
 }
 function wide(label, val){
@@ -262,7 +263,7 @@ function clearedHtml(v){
     }).join("") + "</div>"
     + '<div class="bcnote">' + list.length + (list.length === 1 ? " person" : " people")
     + " with a completed background check on file. Names only; manage the list on the "
-    + (mixed ? "Background checks tabs" : esc(tabName[list[0].tab] || "Background checks tab"))
+    + (mixed ? "Background checks tabs" : esc(tabName[list[0].tab] || "Background checks") + " tab")
     + " of the directory sheet. Set a row to Pending or Removed to take a name off this list.</div>";
 }
 
