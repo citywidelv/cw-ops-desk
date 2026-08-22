@@ -420,7 +420,7 @@ function vdAppend_(data) {
     var list = out[t.key] || [];
     if (!list.length) return;
     var sh = ss.getSheetByName(t.name);
-    sh.getRange(sh.getLastRow() + 1, 1, list.length, VD_HEADERS.length).setValues(list);
+    sh.getRange(vdNextRow_(sh), 1, list.length, VD_HEADERS.length).setValues(list);
     added += list.length;
   });
   return vdOut_({ ok: true, added: added, skipped: skipped.length, skipped_names: skipped.slice(0, 20) });
@@ -599,6 +599,15 @@ function vdList_(data) {
 
 // ------------------------------------------------------------ write --------
 
+// First empty row by column A. getLastRow() counts the validation and checkbox
+// ranges setup paints down to row 2000, which is why new vendors were landing at
+// row 1001 (found Aug 22 2026 while building the audit page).
+function vdNextRow_(sh) {
+  var vals = sh.getRange(1, 1, Math.max(sh.getLastRow(), 1), 1).getValues();
+  for (var i = 1; i < vals.length; i++) if (!vdStr_(vals[i][0])) return i + 1;
+  return vals.length + 1;
+}
+
 function vdNextId_(rows) {
   var max = 0;
   rows.forEach(function (r) {
@@ -651,7 +660,7 @@ function vdSave_(data) {
     row = target._row;
   } else {
     sh = vdTabFor_(ss, v.region);
-    row = sh.getLastRow() + 1;
+    row = vdNextRow_(sh);
     v.vendor_id = vdNextId_(all);
     if (!vdStr_(v.status)) v.status = 'Prospect';
     if (!vdStr_(v.source)) v.source = 'Ops Hub';
@@ -765,7 +774,7 @@ function vdBcSeed_(data) {
       out.push(VD_BC_HEADERS.map(function (h) { return r[h] == null ? '' : String(r[h]); }));
     });
     if (out.length) {
-      sh.getRange(sh.getLastRow() + 1, 1, out.length, VD_BC_HEADERS.length).setValues(out);
+      sh.getRange(vdNextRow_(sh), 1, out.length, VD_BC_HEADERS.length).setValues(out);
       added += out.length;
     }
   });
@@ -810,7 +819,7 @@ function vdIntake_(data) {
     v.updated = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd');
     var out = VD_HEADERS.map(function (h) { return v[h] == null ? '' : String(v[h]); });
     var sh = vdTabFor_(ss, v.region);
-    sh.getRange(sh.getLastRow() + 1, 1, 1, VD_HEADERS.length).setValues([out]);
+    sh.getRange(vdNextRow_(sh), 1, 1, VD_HEADERS.length).setValues([out]);
   }
 
   var log = ss.getSheetByName(VD_TABS.INTAKE);
