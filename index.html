@@ -88,17 +88,17 @@ padding:6px 0;z-index:80}
 .wrap{max-width:1160px;margin:0 auto;padding:0 20px}
 .hero{position:relative;color:#fff;background:linear-gradient(180deg,#26231f 0%,var(--black) 70%);
 overflow:hidden}
-.hero .sky{position:absolute;left:0;right:0;bottom:0;width:100%;height:170px;display:block;
-pointer-events:none}
-.hero .wrap{position:relative;z-index:1;padding-top:32px;padding-bottom:150px;
-display:flex;align-items:center;gap:44px}
+.hero .sky{position:absolute;left:0;right:0;bottom:0;width:100%;height:132px;display:block;
+pointer-events:none;opacity:.9}
+.hero .wrap{position:relative;z-index:1;padding-top:44px;padding-bottom:118px;
+display:flex;align-items:center;gap:48px}
 .hero .htext{flex:1;min-width:0}
-.hero .hphoto{flex:none;width:340px;display:grid;gap:10px;position:relative;z-index:2}
+.hero .hphoto{flex:none;width:400px;display:grid;gap:10px;position:relative;z-index:2}
 .hero .hphoto .ph1{aspect-ratio:16/10;border-radius:14px;overflow:hidden;
 border:1px solid rgba(255,255,255,.14);box-shadow:0 22px 55px rgba(0,0,0,.5)}
-.hero .hphoto .ph1 img{width:100%;height:100%;object-fit:cover;display:block}
-.hero .hphoto .pcap{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
-color:#8f8b85;text-align:right}
+.hero .hphoto .ph1 img{width:100%;height:100%;object-fit:cover;object-position:center 22%;display:block}
+.hero .hphoto .pcap{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+color:#8f8b85;text-align:right;white-space:nowrap}
 .hero .hphoto .pcap b{color:#cfcdc9}
 @media(max-width:940px){.hero .hphoto{display:none}}
 .hero h1{font-size:clamp(22px,3.2vw,29px);line-height:1.25;letter-spacing:.01em}
@@ -111,7 +111,7 @@ text-transform:uppercase;color:#8f8b85}
 .hero .cities .dot{color:var(--red);padding:0 8px}
 
 /* ---------- Most Used quick bar, overlapping the hero ---------- */
-.quick{position:relative;z-index:5;margin-top:-44px}
+.quick{position:relative;z-index:5;margin-top:-52px}
 .quick .qcard{background:#fff;border:1px solid var(--border);border-radius:14px;
 box-shadow:var(--shadow-lift);padding:16px 18px 14px}
 .quick .qhead{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
@@ -151,12 +151,12 @@ white-space:nowrap;transition:all .15s}
 .fbtn.line:hover{border-color:var(--red);color:var(--red)}
 
 /* ---------- FSM photo band ---------- */
-.photoband{padding:8px 0 6px}
+.photoband{padding:30px 0 40px}
 .photoband .pb{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .photoband figure{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);
 box-shadow:var(--shadow);margin:0;aspect-ratio:16/9;background:var(--black)}
 .photoband img{width:100%;height:100%;object-fit:cover;display:block}
-.photoband figcaption{position:absolute;left:0;right:0;bottom:0;padding:22px 14px 10px;
+.photoband figcaption{position:absolute;left:0;right:0;bottom:0;padding:26px 16px 11px;
 background:linear-gradient(180deg,rgba(20,18,16,0) 0%,rgba(20,18,16,.82) 100%);
 color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
 @media(max-width:760px){.photoband .pb{grid-template-columns:1fr}}
@@ -305,7 +305,7 @@ border-top:3px solid var(--red);max-height:65vh;overflow-y:auto}
 .nsubmenu.show{display:block}
 .head .t,.head .badge{display:none}
 .hsearch{max-width:none}
-.hero .wrap{padding-bottom:120px}
+.hero .wrap{padding-bottom:104px}
 .quick{margin-top:-40px}
 .fcard{gap:14px}
 }
@@ -400,8 +400,8 @@ search box to jump straight to what you need.</p>
 &nbsp;&nbsp;Proudly serving the Silver State</div>
 </div>
 <div class="hphoto">
-<div class="ph1"><img src="images/fsm-walkthrough.jpg" alt="Facility walkthrough with laptop and hard hats"></div>
-<div class="pcap">Facility Solutions Managers &middot; <b>In the Building</b></div>
+<div class="ph1"><img src="images/fsm-uniform-building.jpg" alt="Facility Solutions Manager in City Wide uniform in front of a commercial building"></div>
+<div class="pcap">Facility Solutions Managers &middot; <b>Your One Team</b></div>
 </div>
 </div>
 </section>
@@ -479,8 +479,8 @@ search box to jump straight to what you need.</p>
 
 <div class="wrap photoband" aria-hidden="true">
 <div class="pb">
-<figure><img src="images/fsm-team.jpg" alt=""><figcaption>One Team &middot; Las Vegas &amp; Reno</figcaption></figure>
-<figure><img src="images/fsm-phone.jpg" alt=""><figcaption>Client Communication</figcaption></figure>
+<figure><img src="images/fsm-walkthrough.jpg" alt=""><figcaption>Walk Every Building</figcaption></figure>
+<figure><img src="images/fsm-uniform-hallway.jpg" alt="" style="object-position:center 30%"><figcaption>Client Communication</figcaption></figure>
 <figure><img src="images/ops-training.jpg" alt=""><figcaption>Never Stop Learning</figcaption></figure>
 </div>
 </div>
