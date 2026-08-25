@@ -52,6 +52,8 @@ function staffDispatch(data) {
   if ((data.passcode || '') !== staffPass_()) return staffOut_({ ok: false, error: 'Bad passcode' });
   if (kind === 'staff_setup') return staffSetup_(data);
   if (kind === 'staff_list') return staffList_(data);
+  if (kind === 'staff_options') return staffOptions_(data);
+  if (kind === 'staff_option_add') return staffOptionAdd_(data);
   return staffOut_({ ok: false, error: 'Unknown staff kind' });
 }
 
@@ -92,4 +94,60 @@ function staffList_(data) {
     });
   }
   return staffOut_({ ok: true, staff: out, url: ss.getUrl() });
+}
+
+/**
+ * Exhibit A Options tab: custom checklist items the team adds from the
+ * Create an Exhibit A page (kind staff_option_add) or straight in the sheet.
+ * Sections match the directive section titles on the page. Set active FALSE
+ * to retire an item without losing it.
+ */
+var STAFF_OPT_TAB = 'Exhibit A Options';
+var STAFF_OPT_HEADERS = ['section', 'item', 'active'];
+var STAFF_OPT_SECTIONS = ['Service Specifications', 'Supplies and Equipment', 'Conduct on Site', 'Required Training'];
+
+function staffOptTab_(ss) {
+  var sh = ss.getSheetByName(STAFF_OPT_TAB);
+  if (!sh) {
+    sh = ss.insertSheet(STAFF_OPT_TAB);
+    sh.getRange(1, 1, 1, 3).setValues([STAFF_OPT_HEADERS])
+      .setFontWeight('bold').setBackground('#D22730').setFontColor('#FFFFFF');
+    sh.getRange(2, 1, 1, 3).setValues([['Service Specifications', 'Cleanroom Cleaning', 'TRUE']]);
+    var secRule = SpreadsheetApp.newDataValidation().requireValueInList(STAFF_OPT_SECTIONS, true).setAllowInvalid(true).build();
+    sh.getRange(2, 1, 500, 1).setDataValidation(secRule);
+    var actRule = SpreadsheetApp.newDataValidation().requireValueInList(['TRUE', 'FALSE'], true).setAllowInvalid(true).build();
+    sh.getRange(2, 3, 500, 1).setDataValidation(actRule);
+    sh.setFrozenRows(1);
+    sh.setColumnWidths(1, 3, 220);
+  }
+  return sh;
+}
+
+function staffOptions_(data) {
+  var ss = staffSS_();
+  var sh = staffOptTab_(ss);
+  var v = sh.getDataRange().getValues();
+  var out = [];
+  for (var i = 1; i < v.length; i++) {
+    if (!v[i][0] || !v[i][1]) continue;
+    if (String(v[i][2]).toUpperCase() === 'FALSE') continue;
+    out.push({ section: String(v[i][0]), item: String(v[i][1]) });
+  }
+  return staffOut_({ ok: true, options: out, url: ss.getUrl() });
+}
+
+function staffOptionAdd_(data) {
+  var section = String(data.section || '').trim();
+  var item = String(data.item || '').trim();
+  if (!section || !item) return staffOut_({ ok: false, error: 'Need a section and an item.' });
+  if (item.length > 120) return staffOut_({ ok: false, error: 'Keep items under 120 characters.' });
+  var sh = staffOptTab_(staffSS_());
+  var v = sh.getDataRange().getValues();
+  for (var i = 1; i < v.length; i++) {
+    if (String(v[i][0]) === section && String(v[i][1]).toLowerCase() === item.toLowerCase()) {
+      return staffOut_({ ok: true, existed: true });
+    }
+  }
+  sh.appendRow([section, item, 'TRUE']);
+  return staffOut_({ ok: true, existed: false });
 }

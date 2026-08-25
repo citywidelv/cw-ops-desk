@@ -309,14 +309,14 @@ var BG_CHECK_URL = "https://form.asana.com/?k=FRCnQmbTGjAVPieFt4bnWQ&d=131409592
 var RED = [210,39,48], BLACK = [45,42,38], GREY = [99,100,102], TEAL = [10,166,169], LIGHT = [245,245,245], BORDER = [223,223,223];
 /* Directive option lists, verbatim from the live PandaDoc templates (Aug 24 2026). */
 var DIR_GROUPS = [
- {key:"specs", title:"Service Specifications", max:10, defaults:["Report maintenance issues immediately","Follow 24-hour Client Complaint Policy","Conduct final walkthrough"],
+ {key:"specs", title:"Service Specifications", max:99, defaults:["Report maintenance issues immediately","Follow 24-hour Client Complaint Policy","Conduct final walkthrough"],
   items:["Follow 24-hour Client Complaint Policy","Conduct final walkthrough","Report maintenance issues immediately","Change Air Fresheners 30days","Change Urinal Screens 30days","Change Urinal Mats 30 days","Check in with security/front desk upon arrival","Sign in/out on visitor log","Display ID badge at all times","No photographs allowed on premises","Service must be completed by","Do not arrive before","English-only requirement (if applicable)","Wet floor signs required at all times"]},
- {key:"supplies", title:"Supplies and Equipment", max:10, defaults:["Backpack Vacuum","Envirox H2Orange2 112","Envirox Oxigenesis","Envirox Mineral Shock","Microfiber Mops"],
+ {key:"supplies", title:"Supplies and Equipment", max:99, defaults:["Backpack Vacuum","Envirox H2Orange2 112","Envirox Oxigenesis","Envirox Mineral Shock","Microfiber Mops"],
   callout:"All cleaning chemicals and basic supplies must remain in the building's supply closet at all times. This includes chemicals, rolling trash can/janitor cart, mops, mop buckets, brooms, and microfiber cloths. Personal equipment such as backpack vacuums may travel with the crew. Safety Data Sheets must be posted for all chemicals on-site. The supply closet should remain organized.",
   items:["Envirox H2Orange2 112","Envirox Oxigenesis","Envirox Mineral Shock","Rolling Trash Can","Flat Mop System","Microfiber Mops","EPA Disinfectants","Janitor Cart","Broom & Dustpan","Microfiber Cleaning Kit","Handheld Vacuum","Upright Vacuum","Backpack Vacuum","HEPA Vacuum","Wet/Dry Vacuum","Window Cleaning Pole","Squeegee","Electric Broom","Steel Toe Boots","Safety Goggles","Ear Plugs","Masks","Gloves","Dilution Stations","Side-by-Side Scrubber","Small Auto Scrubber","Medium Auto Scrubber","Large Auto Scrubber","Ride-On Scrubber","High-Speed Burnisher","Low-Speed Buffer","Orbital Scrubber","Carpet Extractor","Carpet Spotter","Steam Cleaner","Hot Water Extractor","Polishing Machine","Scrub Pad Machine","Foam Cleaner","Pressure Washer","Tile & Grout Cleaner","Grout Brush","Sanitizer Sprayer","Electrostatic Sprayer","Dehumidifier","Disinfectant Fogger","Air Mover","Ladder","Kaivac (Restroom Machine)","Client to Provide Chemicals","Client to Provide Equipment","Client Provides All Supplies","Heavy Duty (Red bottle/label)","Light Duty (Green bottle/label)","Virex II 256","Stride Citrus HC","Crew Bathroom Cleaner","Glance Glass & Multi-Surface Cleaner","Emerel Plus Cream Cleanser","GP Forward General Purpose Cleaner","Revitalize Carpet Extraction Cleaner","BioRenewables Glass Cleaner","Peroxy II Disinfectant","DMQ Damp Mop","Foaming Bath & Tile Cleaner","NABC Non-Acid Bathroom Cleaner","Consume Eco-Lyzer","Clean on the Go Dispensing System","Dual compartment mop buckets","TruShot 2.0 Disinfectant Cleaner","TruShot 2.0 Multi-Surface Cleaner","TruShot 2.0 Restroom Cleaner","TruShot 2.0 Glass Cleaner","TruShot 2.0 Heavy Duty Cleaner"]},
- {key:"conduct", title:"Conduct on Site", max:8, defaults:["Wear City Wide Contractor Uniform","Report damage","Report suspicious activity"],
+ {key:"conduct", title:"Conduct on Site", max:99, defaults:["Wear City Wide Contractor Uniform","Report damage","Report suspicious activity"],
   items:["Wear City Wide Contractor Uniform","Keep noise levels minimal","No eating, drinking, or smoking","Avoid personal phone use","Report suspicious activity","Report damage","Turn off lights","Ensure all doors are (un)locked"]},
- {key:"training", title:"Required Training", max:10, defaults:[],
+ {key:"training", title:"Required Training", max:99, defaults:[],
   items:["Hazard Communication","Bloodborne Pathogens","OSHA General Safety","Slips & Falls Prevention","Cleanroom Certification","Fire Safety","Evacuation Procedures","Safety Training","CIMS Certification","First Aid","CPR Training","ICRA Certification","Equipment Operation"]}
 ];
 /* Legal copy, verbatim from the live PandaDoc templates. Do not edit casually:
@@ -541,23 +541,22 @@ function buildDirGroups(){
       (g.items.length>20?'<input type="text" id="filter-'+g.key+'" placeholder="Type to filter the list..." style="max-width:320px;margin:6px 0 2px;">':'')+
       '<div class="chips" id="chips-'+g.key+'"></div>'+
       '<div class="cap" id="cap-'+g.key+'"></div>'+
+      '<div class="row" style="align-items:center;margin-top:6px;">'+
+        '<div style="flex:3;"><input type="text" id="new-'+g.key+'" placeholder="Add something to this list, e.g. a service the list does not have"></div>'+
+        '<div style="flex:0 0 auto;"><button type="button" class="btn ghost sm" id="newbtn-'+g.key+'">Add to the list</button></div>'+
+      '</div>'+
+      '<label class="chk" style="margin:6px 0 0;"><input type="checkbox" id="newsave-'+g.key+'" checked> Save it to the shared list so it is there on every future Exhibit A</label>'+
+      '<p class="note" id="newnote-'+g.key+'" style="display:none;"></p>'+
       '<label>Other ('+esc(g.title.toLowerCase())+')</label>'+
-      '<input type="text" id="other-'+g.key+'" placeholder="Anything the list does not cover. Prints in the Other row.">';
+      '<input type="text" id="other-'+g.key+'" placeholder="A one-off note for this document only. Prints in the Other row.">';
     host.appendChild(d);
     var chipHost = d.querySelector("#chips-"+g.key);
-    g.items.forEach(function(item){
-      var b = document.createElement("button");
-      b.type="button"; b.className="chip"+(g.defaults.indexOf(item)>=0?" on":"");
-      b.textContent=item;
-      b.onclick=function(){
-        if(!b.classList.contains("on") && chipHost.querySelectorAll(".chip.on").length>=g.max){
-          capMsg(g, true); return;
-        }
-        b.classList.toggle("on"); capMsg(g, false);
-      };
-      chipHost.appendChild(b);
-    });
+    g.items.forEach(function(item){ addChip(g, chipHost, item, g.defaults.indexOf(item)>=0); });
     capMsg(g,false);
+    d.querySelector("#newbtn-"+g.key).onclick=function(){ addCustomItem(g, chipHost); };
+    d.querySelector("#new-"+g.key).addEventListener("keydown", function(e){
+      if(e.key==="Enter"){ e.preventDefault(); addCustomItem(g, chipHost); }
+    });
     var filt = d.querySelector("#filter-"+g.key);
     if(filt){
       filt.addEventListener("input", function(){
@@ -569,11 +568,65 @@ function buildDirGroups(){
     }
   });
 }
+function addChip(g, chipHost, item, on){
+  var b = document.createElement("button");
+  b.type="button"; b.className="chip"+(on?" on":"");
+  b.textContent=item;
+  b.onclick=function(){ b.classList.toggle("on"); capMsg(g, false); };
+  chipHost.appendChild(b);
+  return b;
+}
+function findChip(key, item){
+  return Array.from(document.querySelectorAll("#chips-"+key+" .chip"))
+    .find(function(c){ return c.textContent.toLowerCase()===item.toLowerCase(); });
+}
+function addCustomItem(g, chipHost){
+  var inp = el("new-"+g.key);
+  var item = inp.value.trim();
+  if(!item) return;
+  var note = el("newnote-"+g.key);
+  var existing = findChip(g.key, item);
+  if(existing){
+    existing.classList.add("on"); capMsg(g,false);
+    inp.value="";
+    note.textContent="Already on the list, so it is checked now.";
+    note.style.display="block";
+    return;
+  }
+  var chip = addChip(g, chipHost, item, true);
+  capMsg(g,false);
+  inp.value="";
+  if(el("newsave-"+g.key).checked){
+    note.textContent="Added and checked. Saving it to the shared list...";
+    note.style.display="block";
+    postHook({kind:"staff_option_add", section:g.title, item:item}).then(function(r){
+      note.textContent = (r&&r.ok) ?
+        "Added and checked. Saved to the shared list, it will be there on every future Exhibit A."+(r.existed?" (It was already saved.)":"") :
+        "Added and checked on this document, but saving to the shared list failed: "+((r&&r.error)||"server error");
+    }).catch(function(){
+      note.textContent="Added and checked on this document, but the shared list could not be reached. Add it in the sheet later if you want to keep it.";
+    });
+  } else {
+    note.textContent="Added and checked for this document only.";
+    note.style.display="block";
+  }
+}
+function loadOptions(){
+  postHook({kind:"staff_options"}).then(function(r){
+    if(!r || !r.ok || !r.options) return;
+    r.options.forEach(function(o){
+      var g = DIR_GROUPS.find(function(x){ return x.title===o.section; });
+      if(!g) return;
+      if(findChip(g.key, o.item)) return;
+      addChip(g, document.getElementById("chips-"+g.key), o.item, false);
+    });
+  }).catch(function(){});
+}
 function capMsg(g, full){
   var n = document.querySelectorAll("#chips-"+g.key+" .chip.on").length;
   var c = el("cap-"+g.key);
-  c.textContent = n+" of "+g.max+" selected."+(full?" That is the limit for this section, uncheck one first.":"");
-  c.className = "cap"+(full?" full":"");
+  c.textContent = n+" selected.";
+  c.className = "cap";
 }
 function readDirGroup(key){
   return Array.from(document.querySelectorAll("#chips-"+key+" .chip.on")).map(function(b){return b.textContent;});
@@ -1592,6 +1645,7 @@ function boot(){
       el("app").style.display="block";
       loadStaff();
       loadVendors();
+      loadOptions();
     } else {
       localStorage.removeItem("cw_exa_auth");
       el("gateErr").textContent=(r&&r.error)||"That passcode is not right.";
