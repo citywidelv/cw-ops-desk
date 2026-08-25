@@ -182,6 +182,9 @@ table.mini td input:focus{outline:2px solid var(--teal);}
       <input type="text" id="vCity">
       <label>Contractor phone</label>
       <input type="tel" id="vPhone">
+      <label>Contractor signer (printed name)</label>
+      <input type="text" id="vSigner" placeholder="Fills from the vendor directory when the company matches">
+      <p class="note" id="vMatchNote" style="display:none;"></p>
     </div>
   </div>
   <div id="projFields" style="display:none;">
@@ -231,13 +234,22 @@ table.mini td input:focus{outline:2px solid var(--teal);}
 
 <div class="card" id="peopleCard">
   <h2><span class="n">5</span>City Wide side</h2>
-  <p class="sub">These names print on the document. The FSM signs for City Wide.</p>
+  <p class="sub">Picked from the team list. Add people or change a phone number in the Google Sheet and it shows up here on the next load. <a id="staffLink" href="#" target="_blank" rel="noopener" style="display:none;">Open the team list</a></p>
+  <div class="warn" id="staffWarn" style="display:none;">Could not load the team list, so type the names in.</div>
   <div class="row">
-    <div><label>Facility Solutions Manager</label><input type="text" id="fsmName"></div>
+    <div>
+      <label>Facility Solutions Manager</label>
+      <select id="fsmSel" style="display:none;"></select>
+      <input type="text" id="fsmName" placeholder="Type the FSM's name">
+    </div>
     <div><label>FSM phone</label><input type="tel" id="fsmPhone"></div>
   </div>
   <div class="row" id="nmRow">
-    <div><label>Night Manager</label><input type="text" id="nmName"></div>
+    <div>
+      <label>Night Manager</label>
+      <select id="nmSel" style="display:none;"></select>
+      <input type="text" id="nmName" placeholder="Type the Night Manager's name">
+    </div>
     <div><label>Night Manager phone</label><input type="tel" id="nmPhone"></div>
   </div>
 </div>
@@ -280,7 +292,7 @@ table.mini td input:focus{outline:2px solid var(--teal);}
     <b>Done. Now put it in PandaDoc:</b><br>
     1. In PandaDoc choose Create new, then Document, and upload this PDF.<br>
     2. Add the contractor and the FSM as signers.<br>
-    3. Drag signature and date fields onto the printed signature lines. That is the only dragging: everything else, including the cleaner roster and background check buttons, is already in the PDF.<br>
+    3. Drag one signature field per signer onto the signature lines. That is all: names, dates, and the cleaner roster and background check buttons are already printed.<br>
     4. Review, then send from PandaDoc.
   </div>
 </div>
@@ -660,6 +672,87 @@ function loadLogo(file){
   rd.readAsDataURL(file);
 }
 
+/* ---------- team list (staff sheet) and vendor directory ---------- */
+var STAFF=[], VENDORS=[];
+function postHook(payload){
+  payload.passcode = localStorage.getItem(KEY)||localStorage.getItem("cw_exa_auth")||"";
+  return fetch(WEBHOOK,{method:"POST",headers:{"Content-Type":"text/plain"},
+    body:JSON.stringify(payload)}).then(function(r){return r.json();});
+}
+function marketName(){ return S.region==="nnv" ? "Northern Nevada" : "Las Vegas"; }
+function staffSort(list){
+  var mk=marketName();
+  return list.slice().sort(function(a,b){
+    var am=(a.market===mk||a.market==="Both")?0:1, bm=(b.market===mk||b.market==="Both")?0:1;
+    if(am!==bm) return am-bm;
+    return a.name.localeCompare(b.name);
+  });
+}
+function fillStaffSelect(sel, roleRe, inputName, inputPhone){
+  var list = staffSort(STAFF.filter(function(p){return roleRe.test(p.role||"");}));
+  var rest = staffSort(STAFF.filter(function(p){return !roleRe.test(p.role||"");}));
+  var html = '<option value="">Select...</option>';
+  function opt(p){ return '<option value="'+esc(p.name)+'" data-phone="'+esc(p.phone)+'">'+esc(p.name)+(p.role?" ("+esc(p.role)+(p.market&&p.market!=="Both"?", "+esc(p.market):"")+")":"")+'</option>'; }
+  list.forEach(function(p){ html+=opt(p); });
+  if(rest.length) html+='<optgroup label="Everyone else">'+rest.map(opt).join("")+'</optgroup>';
+  html+='<option value="__type__">Type a name instead...</option>';
+  sel.innerHTML=html;
+  sel.style.display="";
+  el(inputName).style.display="none";
+  sel.onchange=function(){
+    if(this.value==="__type__"){
+      el(inputName).style.display=""; el(inputName).value=""; el(inputPhone).value=""; el(inputName).focus(); return;
+    }
+    el(inputName).style.display="none";
+    el(inputName).value=this.value;
+    var o=this.options[this.selectedIndex];
+    el(inputPhone).value=(o&&o.getAttribute("data-phone"))||"";
+  };
+}
+function loadStaff(){
+  postHook({kind:"staff_list"}).then(function(r){
+    if(!r || !r.ok || !r.staff){ el("staffWarn").style.display="block"; return; }
+    STAFF=r.staff;
+    if(r.url){ el("staffLink").href=r.url; el("staffLink").style.display=""; }
+    fillStaffSelect(el("fsmSel"), /fsm|facility solutions/i, "fsmName", "fsmPhone");
+    fillStaffSelect(el("nmSel"), /night/i, "nmName", "nmPhone");
+  }).catch(function(){ el("staffWarn").style.display="block"; });
+}
+function normCo(s){
+  return String(s||"").toLowerCase()
+    .replace(/\b(llc|l\.l\.c\.|inc|inc\.|corp|corporation|co\.|company|ltd|services|service|cleaning|janitorial|the)\b/g,"")
+    .replace(/[^a-z0-9]/g,"");
+}
+function loadVendors(){
+  postHook({kind:"vd_list"}).then(function(r){
+    if(!r || !r.ok || !r.vendors) return;
+    VENDORS = r.vendors.map(function(v){
+      return { dba:v.dba_name||"", legal:v.legal_name||"", contact:v.contact_name||"",
+        phone:v.phone||v.business_phone||"", region:v.region||"", status:v.status||"" };
+    });
+    matchVendor();
+  }).catch(function(){});
+}
+function matchVendor(){
+  var name=el("vName").value.trim();
+  if(!name || !VENDORS.length) return;
+  var key=normCo(name);
+  if(!key) return;
+  var hit = VENDORS.find(function(v){ return normCo(v.dba)===key || normCo(v.legal)===key; });
+  if(!hit) hit = VENDORS.find(function(v){ return key.length>5 && (normCo(v.dba).indexOf(key)===0 || key.indexOf(normCo(v.dba))===0 && normCo(v.dba).length>5); });
+  var note=el("vMatchNote");
+  if(hit && hit.contact){
+    if(!el("vSigner").value.trim()) el("vSigner").value=hit.contact;
+    if(!el("vPhone").value.trim() && hit.phone) el("vPhone").value=hit.phone;
+    note.textContent="Matched "+(hit.dba||hit.legal)+" in the vendor directory. Signer and phone filled from there, edit if needed.";
+    note.style.display="block";
+  } else if(!hit){
+    note.textContent="No match in the vendor directory. Type the signer's name.";
+    note.style.display="block";
+  }
+}
+el("vName").addEventListener("change", matchVendor);
+
 /* ======================= CRM export parser ======================= */
 el("drop").onclick=function(){el("filePick").click();};
 ["dragover","dragenter"].forEach(function(ev){el("drop").addEventListener(ev,function(e){e.preventDefault();this.classList.add("over");});});
@@ -876,6 +969,8 @@ function parseExport(grid, fname){
 function applyVendor(b){
   el("vName").value=b.name; el("vAddr").value=b.addr;
   el("vCity").value=b.city; el("vPhone").value=b.phone;
+  el("vSigner").value="";
+  matchVendor();
 }
 function humanFreq(s){
   var m=String(s||"").match(/^(\d+)\s*x\s*week/i);
@@ -927,7 +1022,9 @@ function gather(){
       start:parseUSDate(el("pStart").value), end:parseUSDate(el("pEnd").value),
       lines: readLineRows() },
     dir:{ extra: EXTRA.slice() },
-    logo: S.logo, cwSigner: S.cwSigner
+    logo: S.logo, cwSigner: S.cwSigner,
+    vSigner: el("vSigner").value.trim(),
+    genDate: (function(){ var n=new Date(); return (n.getMonth()+1)+"/"+n.getDate()+"/"+n.getFullYear(); })()
   };
   d.totC = d.services.reduce(function(a,r){return a+(r.amtC||0);},0);
   d.projTotC = d.proj.lines.reduce(function(a,r){return a+(r.amtC||0);},0);
@@ -953,6 +1050,7 @@ function validate(d){
     if(!d.proj.name) warns.push("No project name.");
   }
   if(d.directive && !d.logo) warns.push("No client logo uploaded. The directive page prints the client name as text instead.");
+  if(!d.vSigner) warns.push("No contractor signer name. That printed-name line stays blank for a handwritten name.");
   return {errs:errs, warns:warns};
 }
 function docTitle(d){
@@ -1150,6 +1248,15 @@ PDF.prototype.footerAll = function(title){
   }
 };
 
+/* One signature column: signature line (the only PandaDoc field), printed name,
+   and Date signed pre-filled with the day this PDF was generated. */
+function sigColumn(printedName, genDate){
+  var rows = [ {t:"", line:true}, {t:"Signature", size:7, color:GREY, after:14} ];
+  if(printedName) rows.push({t:printedName, size:9, after:6}, {t:"Printed name", size:7, color:GREY, after:14});
+  else rows.push({t:"", line:true}, {t:"Printed name", size:7, color:GREY, after:14});
+  rows.push({t:genDate, size:9, after:6}, {t:"Date signed", size:7, color:GREY});
+  return rows;
+}
 function logoDims(logo, maxW, maxH){
   var r = Math.min(maxW/logo.w, maxH/logo.h);
   return { w: logo.w*r, h: logo.h*r };
@@ -1245,10 +1352,7 @@ function renderDirective(P, d){
     [{t:d.vendor.name},{t:""}]
   ], {size:9, after:0});
   P.gap(6);
-  P.sigPair(
-    [ {t:"", line:true}, {t:"Signature", line:false, size:7, color:GREY, after:12}, {t:"", line:true}, {t:"Printed name and date", line:false, size:7, color:GREY} ],
-    [ {t:"", line:true}, {t:"Signature", line:false, size:7, color:GREY, after:12}, {t:d.fsm.name||" ", size:9, after:6}, {t:"Printed name and date", size:7, color:GREY} ]
-  );
+  P.sigPair( sigColumn(d.vSigner, d.genDate), sigColumn(d.fsm.name, d.genDate) );
 }
 
 /* ---------- contract Exhibit A page ---------- */
@@ -1295,10 +1399,7 @@ function renderContractExhibit(P, d){
     [{t:entity? entity+"\nCity Wide Facility Solutions" : "City Wide Facility Solutions"},{t:d.vendor.name}]
   ], {size:9, after:0});
   P.gap(8);
-  P.sigPair(
-    [ {t:"", line:true}, {t:"Signature", size:7, color:GREY, after:14}, {t:d.cwSigner||d.fsm.name||" ", size:9, after:8}, {t:"Printed name", size:7, color:GREY, after:14}, {t:"", line:true}, {t:"Date signed", size:7, color:GREY} ],
-    [ {t:"", line:true}, {t:"Signature", size:7, color:GREY, after:14}, {t:"", line:true}, {t:"Printed name", size:7, color:GREY, after:14}, {t:"", line:true}, {t:"Date signed", size:7, color:GREY} ]
-  );
+  P.sigPair( sigColumn(d.cwSigner||d.fsm.name, d.genDate), sigColumn(d.vSigner, d.genDate) );
   P.gap(6);
   P.para(COPY.depositFootnote, 7.5, "bolditalic", BLACK, {after:4});
   P.para(COPY.refund, 7.2, "normal", BLACK, {after:8});
@@ -1352,10 +1453,7 @@ function renderProjectExhibit(P, d, firstPage){
     [{t:ENTITY[d.region]? ENTITY[d.region]+"\nCity Wide Facility Solutions" : "City Wide Facility Solutions"},{t:d.vendor.name}]
   ], {size:9, after:0});
   P.gap(8);
-  P.sigPair(
-    [ {t:"", line:true}, {t:"Signature", size:7, color:GREY, after:14}, {t:d.fsm.name||" ", size:9, after:8}, {t:"Printed name", size:7, color:GREY, after:14}, {t:"", line:true}, {t:"Date signed", size:7, color:GREY} ],
-    [ {t:"", line:true}, {t:"Signature", size:7, color:GREY, after:14}, {t:"", line:true}, {t:"Printed name", size:7, color:GREY, after:14}, {t:"", line:true}, {t:"Date signed", size:7, color:GREY} ]
-  );
+  P.sigPair( sigColumn(d.fsm.name, d.genDate), sigColumn(d.vSigner, d.genDate) );
   P.gap(8);
   P.brandBand();
 }
@@ -1442,6 +1540,7 @@ function buildSummary(d, v){
     bits.push("Project total "+fmtC(d.projTotC)+", "+(d.terms==="pwp"?"Paid When Paid":"Standard Terms")+
       (d.directive?", with directive pages":""));
   }
+  bits.push("Signers: "+(d.dtype==="contract"?(d.cwSigner||d.fsm.name||"City Wide"):(d.fsm.name||"City Wide"))+" for City Wide, "+(d.vSigner||"(no signer name)")+" for the contractor. Date signed prints as "+d.genDate+".");
   if(v.warns.length) bits.push("<b>Check:</b> "+v.warns.map(esc).join(" "));
   el("summary").innerHTML=bits.join("<br>");
   el("summary").style.display="block";
@@ -1491,6 +1590,8 @@ function boot(){
     if(r && r.ok){
       el("gate").style.display="none";
       el("app").style.display="block";
+      loadStaff();
+      loadVendors();
     } else {
       localStorage.removeItem("cw_exa_auth");
       el("gateErr").textContent=(r&&r.error)||"That passcode is not right.";
