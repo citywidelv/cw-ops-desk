@@ -30,6 +30,9 @@ a{color:var(--cw-red)}
 .brand .t b{display:block;font-size:15px;letter-spacing:.01em;line-height:1.2}
 .brand .t span{display:block;font-size:10.5px;color:var(--cw-grey);letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
 .topbar-sp{flex:1 1 auto}
+.backhub{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--cw-grey);text-decoration:none;border:1px solid var(--bd);border-radius:5px;padding:7px 12px;transition:.13s;white-space:nowrap}
+.backhub:hover{color:var(--cw-red);border-color:var(--cw-red);background:#FDF5F5}
+
 .feedchip{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--cw-grey);background:var(--lg);border:1px solid var(--bd);border-radius:999px;padding:5px 11px;cursor:help}
 .feedchip .dot{width:7px;height:7px;border-radius:50%;background:var(--cw-grey);flex:none}
 .feedchip.live .dot{background:var(--cw-teal)}
@@ -221,6 +224,7 @@ tfoot .lbl{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:
       <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
       <div class="t"><b>OS Pricing Tool</b><span>Other Services &amp; Trade Work</span></div>
     </div>
+    <a class="backhub" href="https://citywidelv.github.io/cw-ops-desk/">&larr; Back to the Ops Hub</a>
     <div class="topbar-sp"></div>
     <span class="feedchip" id="feedChip" title="Where the rates came from"><span class="dot"></span><span id="feedTxt">Loading rates</span></span>
     <button class="btn btn-ghost btn-sm" id="btnReload" title="Re-read the rate feed">Refresh rates</button>
@@ -454,6 +458,7 @@ tfoot .lbl{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:
 <div class="footer">
   <b>City Wide Facility Solutions</b>
   <span>GoCityWide.com</span>
+  <a href="https://citywidelv.github.io/cw-ops-desk/">Back to the Ops Hub</a>
   <span id="footFeed"></span>
   <span style="margin-left:auto">Internal pricing tool. Do not send this page to a customer.</span>
 </div>
