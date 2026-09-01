@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Bulk Vendor Import | CW Ops Hub</title>
+<!-- build 2026-09-01a
+CSV intake for the CW Vendor Directory. Reads the three recurring files (Jotform
+evaluation export, Dynamics CRM "Active & In Process ICs" export, potential-vendor
+lists), matches every row against the live directory (vd_list), and shows exactly
+what would be added, updated, and skipped. Possible duplicates are never written
+automatically - each one waits for an explicit Update / Add / Skip decision.
+NOTHING is written until the operator clicks Approve; writes then go through the
+existing passcode-gated kinds vd_patch (field-level updates) and vd_append (adds
+with a second server-side exact-name dedupe).
+Passcode: reuses the Ops Hub session (localStorage cwOpsHubPass), checked on the
+server on every call, exactly like vendor-add.html.
+Blank incoming cells NEVER overwrite existing data. Only the CRM export may
+change an existing vendor's status. source / added_by / hide / audit columns are
+never touched by an update.
+-->
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+a{color:var(--red)}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.head .bar{max-width:1060px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  border-left:2px solid var(--border);padding-left:14px}
+.head .back{margin-left:auto;font-size:12px;font-weight:700;background:var(--red);color:#fff;
+  text-decoration:none;border-radius:6px;padding:8px 14px;white-space:nowrap}
+.head .back:hover{background:var(--red-dark);color:#fff}
+.wrap{max-width:1060px;margin:0 auto;padding:26px 20px 60px}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 20px;max-width:78ch}
+.gatebox{max-width:360px;background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.btn{font-family:inherit;font-size:14px;font-weight:700;background:var(--red);color:#fff;border:none;
+  border-radius:8px;padding:12px 24px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn:hover{background:var(--red-dark);color:#fff}
+.btn.ghost{background:#fff;color:var(--black);border:2px solid var(--border)}
+.btn:disabled{opacity:.55;cursor:default}
+.gatebox b{display:block;font-size:16px;margin-bottom:10px}
+#gmsg{font-size:12.5px;color:var(--grey);margin-bottom:16px;line-height:1.55}
+#gmsg.err{color:var(--red);font-weight:700}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+  padding:22px 24px;margin-bottom:16px}
+.card>h2{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  margin-bottom:4px}
+.card>h2:after{content:"";display:block;width:34px;height:3px;background:var(--red);border-radius:2px;
+  margin:8px 0 16px}
+.msg{border-radius:8px;padding:12px 14px;font-size:13px;margin-bottom:16px;display:none}
+.msg.show{display:block}
+.msg.err{background:#FDEEEF;border:1px solid var(--red);color:var(--black)}
+.msg.warn{background:#FBF3D6;border:1px solid var(--gold)}
+.msg.ok{background:#E7F6F6;border:1px solid var(--teal)}
+.hidden{display:none!important}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:24px}
+.drop{border:2px dashed var(--border);border-radius:12px;padding:34px;text-align:center;color:var(--grey);
+  cursor:pointer;background:var(--light)}
+.drop.on{border-color:var(--red);background:#FDEEEF;color:var(--black)}
+.drop b{color:var(--black)}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
+.chip{border-radius:999px;padding:6px 16px;font-size:12.5px;font-weight:700;border:2px solid var(--border);background:#fff}
+.chip.add{border-color:var(--teal);color:var(--teal)}
+.chip.upd{border-color:var(--gold);color:#8a6a00}
+.chip.dup{border-color:var(--red);color:var(--red)}
+.chip.skip{border-color:var(--grey);color:var(--grey)}
+.chip.src{border-color:var(--black)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--grey);text-align:left;
+  padding:8px 8px;border-bottom:2px solid var(--border);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--border);vertical-align:top}
+tr.dupe td{background:#FFF9EC}
+tr.off td{opacity:.45}
+.scroll{overflow-x:auto}
+.reason{color:var(--grey);font-size:11.5px}
+.diff{font-size:11.5px;line-height:1.7}
+.diff .old{color:var(--grey);text-decoration:line-through;word-break:break-word}
+.diff .new{color:var(--black);font-weight:700;word-break:break-word}
+.diff .fld{display:inline-block;background:var(--light);border-radius:4px;padding:0 6px;margin-right:4px;
+  font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--grey)}
+.mapt td{font-size:12px;padding:5px 8px}
+.mapt .ig{color:var(--grey)}
+.count{font-size:12px;color:var(--grey);margin:8px 0 0}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.sub{font-size:12px;color:var(--grey);margin-bottom:10px}
+.sechead{display:flex;align-items:center;gap:10px;margin:18px 0 8px}
+.sechead b{font-size:14px}
+.sechead .n{font-size:12px;color:var(--grey)}
+.bar2{height:8px;background:var(--light);border-radius:4px;overflow:hidden;margin:10px 0}
+.bar2 i{display:block;height:100%;background:var(--red);width:0;transition:width .3s}
+.done{background:#fff;border:1px solid var(--border);border-left:5px solid var(--teal);border-radius:12px;
+  box-shadow:var(--shadow);padding:30px 28px}
+.done b{display:block;font-size:19px;margin-bottom:8px}
+.pill{display:inline-block;border-radius:4px;padding:1px 7px;font-size:10.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em}
+.pill.strong{background:#E7F6F6;color:var(--teal)}
+.pill.fuzzy{background:#FBF3D6;color:#8a6a00}
+.pill.multi{background:#FDEEEF;color:var(--red)}
+.dec{display:flex;gap:4px;flex-direction:column;white-space:nowrap;font-size:12px}
+.dec label{cursor:pointer}
+.dec input{margin-right:5px}
+select.cand{font-family:inherit;font-size:12px;border:1.5px solid var(--border);border-radius:6px;
+  padding:4px 6px;max-width:230px;margin-bottom:6px}
+select.rgn{font-family:inherit;font-size:13px;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px}
+</style>
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t">Bulk Vendor Import</span>
+  <a class="back" href="vendors.html">&larr; Active Vendors</a>
+</div></header>
+
+<div class="wrap">
+<div id="gate" class="gatebox hidden">
+  <b>Open this from the Ops Hub</b>
+  <p id="gmsg">This page reads and writes the directory using the Ops Hub session in this
+    browser. Unlock the hub once and this loads on its own from then on.</p>
+  <a class="btn" href="index.html">Go to the Ops Hub</a>
+</div>
+
+<div id="app" class="hidden">
+<h1>Bulk Vendor Import</h1>
+<p class="lede">Drop one of the recurring files - the Jotform evaluation export, the CRM
+"Active &amp; In Process ICs" export, or a potential-vendor list. Every row is matched
+against the directory first. Sure matches become updates, new names become adds, and
+anything that only <i>looks</i> like a duplicate waits for your call. Blank cells in the
+file never wipe data already in the directory, and nothing is written until you approve.</p>
+
+<div id="msg" class="msg"></div>
+
+<div class="card" id="step1">
+  <h2>1 &middot; The file</h2>
+  <div class="drop" id="drop"><b>Drop a file here</b> or click to choose one<br>
+    <span style="font-size:11.5px">.csv or .xlsx &middot; Jotform evaluation export &middot; CRM IC export &middot; potential-vendor list</span></div>
+  <input type="file" id="file" accept=".csv,.xlsx,.xls,text/csv" class="hidden">
+  <div class="count" id="filemeta"></div>
+</div>
+
+<div class="card hidden" id="step2">
+  <h2>2 &middot; What this file is</h2>
+  <div class="chips" id="srcchips"></div>
+  <div class="sub" id="srcnote"></div>
+  <div id="regionpick" class="hidden" style="margin:6px 0 10px">
+    <label style="font-size:12px;font-weight:700;color:var(--grey)">This file has no market column.
+      New vendors from it go to:&nbsp;
+      <select class="rgn" id="regionsel">
+        <option>Las Vegas</option><option>Northern Nevada</option><option>Both</option>
+      </select></label>
+  </div>
+  <details><summary style="cursor:pointer;font-size:12.5px;color:var(--grey)">Column mapping (click to check)</summary>
+    <div class="scroll"><table class="mapt" id="maptable"></table></div>
+  </details>
+</div>
+
+<div class="card hidden" id="step3">
+  <h2>3 &middot; Preview - nothing is written yet</h2>
+  <div class="chips" id="sumchips"></div>
+  <div id="dupwarn" class="msg"></div>
+  <div id="preview"></div>
+  <div class="actions">
+    <button class="btn" id="approve" disabled>Approve and write to the directory</button>
+    <button class="btn ghost" id="reset" type="button">Start over</button>
+  </div>
+  <div class="sub" style="margin-top:10px">Approve writes the checked and decided rows only:
+    updates via vd_patch, adds via vd_append. The server re-checks the passcode and skips
+    exact-name duplicates a second time.</div>
+</div>
+
+<div class="card hidden" id="step4">
+  <h2>4 &middot; Writing</h2>
+  <div class="bar2"><i id="pbar"></i></div>
+  <div class="sub" id="ptext"></div>
+</div>
+
+<div id="doneb" class="done hidden"></div>
+</div>
+</div>
+
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
+
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var KEY = "cwOpsHubPass";
+var PASS = "";
+
+var VD_HEADERS = ["vendor_id","status","dba_name","legal_name","service_types","region",
+  "contact_name","email","phone","business_phone","website","business_address",
+  "city_state","years_in_business","crew_ft","crew_pt","metro_areas",
+  "services_desc","workers_comp","general_liability","background_checks",
+  "sut_paid","wage_compliance","documented_pay","i9_collected","daily_supervision",
+  "concern_process","ref1_company","ref1_name","ref1_phone","ref1_email",
+  "ref2_company","ref2_name","ref2_phone","ref2_email","family_involvement",
+  "additional_notes","business_card_url","has_brochures","has_cards",
+  "bc_vendor_no","ic_type","cw_start_date","cw_clients","monthly_revenue",
+  "gl_exp","wc_exp","source","eval_date","added_by","updated",
+  "internal_notes","hide","outreach","license_no","trade_raw",
+  "last_audit","audit_result","audit_next_due","audit_pdf"];
+
+// Fields a bulk update may never touch, whatever the file says.
+var PROTECT = { vendor_id:1, source:1, added_by:1, updated:1, hide:1,
+  last_audit:1, audit_result:1, audit_next_due:1, audit_pdf:1 };
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d=document.createElement("div"); d.textContent=String(s==null?"":s); return d.innerHTML; }
+
+function post(body, cb){
+  body.passcode = PASS;
+  fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) })
+    .then(function(r){ return r.json(); }).then(cb)
+    .catch(function(){ cb({ ok:false, error:"Could not reach the service." }); });
+}
+
+function say(text, cls){
+  var m = $("msg");
+  m.className = "msg show " + (cls || "err");
+  m.textContent = text;
+}
+function quiet(){ $("msg").className = "msg"; }
+
+// ---------------------------------------------------------------- CSV parse --
+function parseCSV(text){
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  var rows = [], row = [], cur = "", q = false, i = 0, c;
+  while (i < text.length){
+    c = text[i];
+    if (q){
+      if (c === '"'){
+        if (text[i+1] === '"'){ cur += '"'; i += 2; continue; }
+        q = false; i++; continue;
+      }
+      cur += c; i++; continue;
+    }
+    if (c === '"'){ q = true; i++; continue; }
+    if (c === ','){ row.push(cur); cur = ""; i++; continue; }
+    if (c === '\r'){ i++; continue; }
+    if (c === '\n'){ row.push(cur); rows.push(row); row = []; cur = ""; i++; continue; }
+    cur += c; i++;
+  }
+  row.push(cur); rows.push(row);
+  while (rows.length && rows[rows.length-1].every(function(x){ return !String(x).trim(); })) rows.pop();
+  return rows;
+}
+
+// ---------------------------------------------------------------- normalize --
+function s_(v){ return String(v == null ? "" : v).replace(/[​-‍﻿]/g,"").trim(); }
+var SUFFIX = /\b(llc|l l c|inc|incorporated|corp|corporation|co|company|ltd|lp|svc|services?|service)\b\.?$/;
+function normName(v){
+  var s = s_(v).toLowerCase().replace(/&/g," and ").replace(/[^a-z0-9 ]+/g," ").replace(/\s+/g," ").trim();
+  var prev = "";
+  while (prev !== s){ prev = s; s = s.replace(SUFFIX,"").trim(); }
+  return s;
+}
+function nameAgrees(a, b){
+  var x = normName(a), y = normName(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  if (x.length > 6 && y.indexOf(x) >= 0) return true;
+  if (y.length > 6 && x.indexOf(y) >= 0) return true;
+  return false;
+}
+function normPhone(v){
+  var d = s_(v).replace(/\D+/g,"");
+  if (d.length === 11 && d[0] === "1") d = d.slice(1);
+  return d.length === 10 ? d : "";
+}
+function firstPhones(v){
+  return (s_(v).match(/\(?\d{3}\)?[ .\-]?\d{3}[ .\-]?\d{4}/g) || []).map(function(p){ return s_(p); });
+}
+function normEmail(v){ var s = s_(v).toLowerCase(); return s.indexOf("@") > 0 ? s : ""; }
+function normBc(v){
+  var d = s_(v).replace(/\D+/g,"").replace(/^0+/,"");
+  return d.length >= 6 ? d : "";
+}
+function yn(v){
+  var s = s_(v).toLowerCase();
+  if (!s) return "";
+  if (s === "yes" || s === "y" || s === "true" || s === "1") return "Yes";
+  if (s === "no" || s === "n" || s === "false" || s === "0") return "No";
+  return s_(v);
+}
+function dateISO(v){
+  var s = s_(v);
+  if (!s) return "";
+  var out = "";
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) out = s.slice(0,10);
+  else {
+    var m = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/.exec(s);
+    if (m){
+      var y = m[3].length === 2 ? "20"+m[3] : m[3];
+      out = y + "-" + ("0"+m[1]).slice(-2) + "-" + ("0"+m[2]).slice(-2);
+    } else {
+      var d = new Date(s);
+      out = isNaN(d) ? s : d.toISOString().slice(0,10);
+    }
+  }
+  // CRM uses year-3000 dates as "none".
+  if (/^(2[2-9]\d\d|[3-9]\d\d\d)/.test(out)) return "";
+  return out;
+}
+function money(v){
+  var s = s_(v).replace(/[$,]/g,"");
+  return /^\d+(\.\d+)?$/.test(s) ? s : s_(v);
+}
+function regionOf(raw){
+  var s = s_(raw).toLowerCase();
+  if (!s) return "";
+  if (s.indexOf("both") >= 0) return "Both";
+  if (/(northern nevada|nnv|reno|sparks|carson)/.test(s)) return "Northern Nevada";
+  if (/(las vegas|lv|southern nevada|henderson)/.test(s)) return "Las Vegas";
+  return "";
+}
+// Conservative: only claims a city it can positively recognize; blank otherwise.
+var NV_CITIES = ["North Las Vegas","Las Vegas","Henderson","Boulder City","Mesquite",
+  "Laughlin","Pahrump","Summerlin","Reno","Sparks","Carson City","Gardnerville","Minden",
+  "Fernley","Fallon","Elko","Winnemucca","Dayton","Incline Village"];
+function cityStateFrom(addr){
+  var s = s_(addr);
+  if (!s) return "";
+  var stm = /\b(NV|Nevada)\b/i.exec(s) ? "NV" : "";
+  if (!stm) return "";                       // out-of-state: leave blank, don't guess
+  var low = s.toLowerCase();
+  for (var i = 0; i < NV_CITIES.length; i++){
+    if (low.indexOf(NV_CITIES[i].toLowerCase()) >= 0) return NV_CITIES[i] + ", NV";
+  }
+  return "";
+}
+function licenseFrom(notes){
+  var m = /\blic(?:ense)?\s*#?\s*:?\s*([A-Za-z0-9][A-Za-z0-9\-]{3,24})/i.exec(s_(notes));
+  return m ? m[1] : "";
+}
+
+// Free-text trade -> service type slugs, restricted to slugs that exist on the
+// live Service Types tab so a guess can never invent a category.
+var SLUG_RULES = [
+  [/janitorial|cleaning|maid|housekeep|custodial/i, "janitorial"],
+  [/day porter/i, "day-porter"],
+  [/floor|carpet|epoxy|tile|grout/i, "floor-care"],
+  [/window/i, "window-cleaning"],
+  [/pressure|power wash/i, "pressure-washing"],
+  [/parking/i, "parking-lot"],
+  [/landscap|lawn|tree|irrigation|hardscap|grounds/i, "landscaping"],
+  [/snow/i, "snow-removal"],
+  [/handyman|home improvement|home services|home maintenance|general home/i, "handyman"],
+  [/(?:construction(?! clean| ?site)|remodel|renovat|general contractor|drywall|framing|carpentr|cabinet)/i, "construction"],
+  [/roof/i, "roofing"],
+  [/restoration|mold remediation|biohazard|water damage|fire damage/i, "restoration"],
+  [/pest/i, "pest-control"],
+  [/junk removal|waste|debris|hauling|cleanout/i, "waste"],
+  [/equipment (rental|rentals|share|hire)/i, "equipment-rental"],
+  [/electric/i, "electrical"],
+  [/plumb|drain|sewer/i, "plumbing"],
+  [/door|lock/i, "doors-locks"],
+  [/fenc/i, "fencing"],
+  [/sign/i, "signage"],
+  [/paint/i, "painting"],
+  [/moving|mover/i, "moving"],
+  [/hvac|refrigeration|air condition|heating/i, "hvac"],
+  [/glazing|glass (repair|replace|install|door|shower)/i, "glass"],
+  [/security|guard|patrol/i, "security"],
+  [/fire (safety|protection|alarm|sprinkler)/i, "fire-safety"]
+];
+function slugsFor(text){
+  var out = [];
+  SLUG_RULES.forEach(function(r){
+    if (r[0].test(text) && STATE.liveSlugs[r[1]] && out.indexOf(r[1]) < 0) out.push(r[1]);
+  });
+  return out.join(", ");
+}
+
+// ---------------------------------------------------------------- sources ----
+// Header names below are VERBATIM from the three real sample files (Sep 1 2026).
+var SOURCES = [
+
+// 1. Jotform vendor evaluation export ---------------------------------------
+{
+  key: "eval", label: "Jotform evaluation export",
+  note: "Vendor answers from the evaluation form. Existing vendors get their evaluation " +
+    "fields refreshed (blanks skipped); new names come in as In Progress. Status of an " +
+    "existing vendor is never changed by this file.",
+  detect: function(h){
+    var score = 0;
+    ["submission date","business name","mobile phone",
+     "do you carry workers' compensation insurance?",
+     "which region(s) do you serve?"].forEach(function(k){ if (h.indexOf(k) >= 0) score += 2; });
+    return score >= 6 ? score : 0;
+  },
+  map: function(get){
+    var v = {};
+    v.dba_name = s_(get("Business Name"));
+    v.contact_name = s_(get("Your Name"));
+    v.email = s_(get("Email Address"));
+    v.phone = s_(get("Mobile Phone"));
+    v.business_phone = s_(get("Business Phone (if different from mobile)"));
+    v.business_address = s_(get("Business Address"));
+    v.city_state = cityStateFrom(v.business_address);
+    v.region = regionOf(get("Which region(s) do you serve?"));
+    v.years_in_business = s_(get("How long have you been in business?"));
+    v.website = s_(get("Website URL"));
+    v.has_brochures = yn(get("Do you have marketing brochures?"));
+    v.has_cards = yn(get("Do you have business cards?"));
+    v.business_card_url = s_(get("Upload your business card (if applicable)")).split(/\s+/)[0] || "";
+    v.metro_areas = s_(get("What metro areas do you prefer to work in?"));
+    v.services_desc = s_(get("Describe the types of services you can provide without subcontracting another company."));
+    v.background_checks = yn(get("Do you perform background checks on crew members?"));
+    v.sut_paid = yn(get("Do you pay state unemployment tax?"));
+    v.wage_compliance = yn(get("Do you follow all wage and labor laws?"));
+    v.documented_pay = yn(get("Do you have a documented method of paying crew members?"));
+    v.i9_collected = yn(get("Do you collect I-9 forms for crew members?"));
+    v.daily_supervision = yn(get("Does a supervisor check work quality daily?"));
+    v.crew_ft = s_(get("How many full time crew members do you have?"));
+    v.crew_pt = s_(get("How many part time crew members do you have?"));
+    v.concern_process = s_(get("What is your procedure to address client concerns or projects at risk?"));
+    v.workers_comp = yn(get("Do you carry Workers' Compensation insurance?"));
+    v.general_liability = yn(get("Do you carry General Liability insurance?"));
+    v.ref1_company = s_(get("Reference 1 - Company Name"));
+    v.ref1_name = s_(get("Reference 1 - Contact Name"));
+    v.ref1_phone = s_(get("Reference 1 - Phone Number"));
+    v.ref1_email = s_(get("Reference 1 - Email Address"));
+    v.ref2_company = s_(get("Reference 2 - Company Name"));
+    v.ref2_name = s_(get("Reference 2 - Contact Name"));
+    v.ref2_phone = s_(get("Reference 2 - Phone Number"));
+    v.ref2_email = s_(get("Reference 2 - Email Address"));
+    v.family_involvement = s_(get("To what extent will you and your family be involved in daily operations?"));
+    v.additional_notes = s_(get("Is there anything else you would like us to know about your company?"));
+    v.eval_date = dateISO(get("Submission Date"));
+    if (v.services_desc && !s_(v.service_types)) v.service_types = slugsFor(v.services_desc);
+    return v;
+  },
+  mapLabels: {
+    "submission date":"eval_date", "which region(s) do you serve?":"region",
+    "your name":"contact_name", "email address":"email", "mobile phone":"phone",
+    "business address":"business_address + city_state", "business name":"dba_name",
+    "business phone (if different from mobile)":"business_phone",
+    "how long have you been in business?":"years_in_business", "website url":"website",
+    "do you have marketing brochures?":"has_brochures", "do you have business cards?":"has_cards",
+    "upload your business card (if applicable)":"business_card_url",
+    "what metro areas do you prefer to work in?":"metro_areas",
+    "describe the types of services you can provide without subcontracting another company.":"services_desc + service_types guess",
+    "do you perform background checks on crew members?":"background_checks",
+    "do you pay state unemployment tax?":"sut_paid",
+    "do you follow all wage and labor laws?":"wage_compliance",
+    "do you have a documented method of paying crew members?":"documented_pay",
+    "do you collect i-9 forms for crew members?":"i9_collected",
+    "does a supervisor check work quality daily?":"daily_supervision",
+    "how many full time crew members do you have?":"crew_ft",
+    "how many part time crew members do you have?":"crew_pt",
+    "what is your procedure to address client concerns or projects at risk?":"concern_process",
+    "do you carry workers' compensation insurance?":"workers_comp",
+    "do you carry general liability insurance?":"general_liability",
+    "reference 1 - company name":"ref1_company","reference 1 - contact name":"ref1_name",
+    "reference 1 - phone number":"ref1_phone","reference 1 - email address":"ref1_email",
+    "reference 2 - company name":"ref2_company","reference 2 - contact name":"ref2_name",
+    "reference 2 - phone number":"ref2_phone","reference 2 - email address":"ref2_email",
+    "to what extent will you and your family be involved in daily operations?":"family_involvement",
+    "is there anything else you would like us to know about your company?":"additional_notes",
+    "do you have a website?":"ignored (Website URL is used)"
+  },
+  addDefaults: { status: "In Progress", source: "Eval Form" },
+  statusOnUpdate: false
+},
+
+// 2. Dynamics CRM "Active & In Process ICs" export ---------------------------
+{
+  key: "crm", label: "CRM IC export (Dynamics)",
+  note: "The CRM is the authority on vendor numbers, insurance dates, revenue, and " +
+    "relationship status, so this file MAY change an existing vendor's status. " +
+    "Market is read from the BC vendor number (02089* = Las Vegas, 02116* = Northern Nevada).",
+  detect: function(h){
+    var score = 0;
+    ["dba name","bc vendor no","relationship type","gl insurance exp","ic type"]
+      .forEach(function(k){ if (h.indexOf(k) >= 0) score += 2; });
+    return score >= 6 ? score : 0;
+  },
+  map: function(get){
+    var v = {};
+    v.dba_name = s_(get("DBA Name"));
+    if (/^(unassigned|in house|in-house)$/i.test(v.dba_name)){
+      return { __skip: "CRM placeholder row (" + v.dba_name + ")" };
+    }
+    v.legal_name = s_(get("Legal Name"));
+    if (v.legal_name.toLowerCase() === v.dba_name.toLowerCase()) v.legal_name = "";
+    v.bc_vendor_no = s_(get("BC Vendor No"));
+    v.contact_name = s_(get("Primary Contact"));
+    v.email = s_(get("Email (Primary Contact) (Contact)"));
+    v.cw_clients = s_(get("# of CW Clients"));
+    v.monthly_revenue = money(get("Total Monthly Agreement Revenue"));
+    v.cw_start_date = dateISO(get("City Wide Start Date"));
+    v.ic_type = s_(get("IC Type"));
+    v.gl_exp = dateISO(get("GL Insurance Exp"));
+    v.wc_exp = dateISO(get("WC Insurance Exp"));
+    var rel = s_(get("Relationship Type"));
+    v.status = ({
+      "active independent contractor": "Active",
+      "in progress": "In Progress",
+      "waiting for account": "Waiting for Account",
+      "prospective independent contractor": "Prospect",
+      "future independent contractor": "Prospect",
+      "previous independent contractor": "Inactive"
+    })[rel.toLowerCase()] || rel;
+    var bc = s_(v.bc_vendor_no).replace(/\D/g,"");
+    if (/^0?2089/.test(bc)) v.region = "Las Vegas";
+    else if (/^0?2116/.test(bc)) v.region = "Northern Nevada";
+    return v;
+  },
+  mapLabels: {
+    "dba name":"dba_name","legal name":"legal_name","bc vendor no":"bc_vendor_no + region",
+    "primary contact":"contact_name","email (primary contact) (contact)":"email",
+    "# of cw clients":"cw_clients","total monthly agreement revenue":"monthly_revenue",
+    "city wide start date":"cw_start_date","ic type":"ic_type",
+    "relationship type":"status (Active IC=Active, Prospective/Future IC=Prospect, Previous IC=Inactive)",
+    "gl insurance exp":"gl_exp","wc insurance exp":"wc_exp",
+    "total exhibit a amt.":"ignored (no directory column)",
+    "(do not modify) bookable resource":"ignored","(do not modify) row checksum":"ignored",
+    "(do not modify) modified on":"ignored"
+  },
+  addDefaults: { status: "In Progress", source: "Dynamics CRM" },
+  statusOnUpdate: true
+},
+
+// 3. Potential-vendor list (business cards / marketplace scans) --------------
+{
+  key: "list", label: "Potential-vendor list",
+  note: "Outreach prospects. New names come in as Prospect; a row matching an existing " +
+    "vendor only fills fields that are currently blank in the file's columns. License " +
+    "numbers found in Notes are lifted into the license field; the full note is kept.",
+  detect: function(h){
+    var score = 0;
+    ["business name","email","phone","service type"].forEach(function(k){
+      if (h.indexOf(k) >= 0) score++;
+    });
+    return score >= 3 ? score : 0;
+  },
+  map: function(get){
+    var v = {};
+    v.dba_name = s_(get("Business Name"));
+    v.email = s_(get("Email"));
+    v.contact_name = s_(get("Contact Name"));
+    var rawPhone = s_(get("Phone"));
+    var phones = firstPhones(rawPhone);
+    v.phone = phones[0] || "";
+    if (phones[1]) v.business_phone = phones[1];
+    v.trade_raw = s_(get("Service Type"));
+    v.service_types = slugsFor(v.trade_raw);
+    var notes = s_(get("Notes"));
+    v.license_no = licenseFrom(notes);
+    var extra = [];
+    if (notes) extra.push(notes);
+    if (phones.length > 1 || (rawPhone && rawPhone !== v.phone)) extra.push("Phones as listed: " + rawPhone);
+    if (extra.length) v.internal_notes = extra.join(" | ");
+    v.region = regionOf(get("Region")) || regionOf(get("Market")) || "";
+    return v;
+  },
+  mapLabels: {
+    "business name":"dba_name","email":"email","phone":"phone (+ business_phone if two)",
+    "contact name":"contact_name","service type":"trade_raw + service_types guess",
+    "notes":"internal_notes (+ license_no if a Lic# is found)"
+  },
+  addDefaults: { status: "Prospect", source: "Outreach List" },
+  statusOnUpdate: false,
+  fillOnly: true,
+  needsRegion: true
+},
+
+// 4. Directory-schema CSV (staging workbooks exported back out) --------------
+{
+  key: "native", label: "Directory-schema CSV",
+  note: "Columns already use the directory's own field names.",
+  detect: function(h){
+    var score = 0;
+    ["vendor_id","dba_name","service_types","region","status"].forEach(function(k){
+      if (h.indexOf(k) >= 0) score++;
+    });
+    return score >= 3 ? score : 0;
+  },
+  map: function(get){
+    var v = {};
+    VD_HEADERS.forEach(function(k){
+      if (PROTECT[k] && k !== "vendor_id") return;
+      var x = get(k); if (s_(x)) v[k] = s_(x);
+    });
+    if (v.eval_date) v.eval_date = dateISO(v.eval_date);
+    return v;
+  },
+  addDefaults: { status: "Prospect", source: "CSV import" },
+  statusOnUpdate: false
+}
+];
+
+var STATE = { rows: null, headers: null, source: null, plan: null,
+  directory: null, byId: {}, ix: null, liveSlugs: {}, fileName: "" };
+
+// ---------------------------------------------------------------- matching ---
+function buildIndex(vendors){
+  var ix = { bc: {}, email: {}, phone: {}, name: {}, nameList: [] };
+  function add(map, k, v){ if (!k) return; (map[k] = map[k] || []).push(v); }
+  vendors.forEach(function(v){
+    add(ix.bc, normBc(v.bc_vendor_no), v);
+    add(ix.email, normEmail(v.email), v);
+    add(ix.phone, normPhone(v.phone), v);
+    add(ix.phone, normPhone(v.business_phone), v);
+    var dn = normName(v.dba_name);
+    add(ix.name, dn, v);
+    if (dn) ix.nameList.push({ n: dn, v: v });
+    var ln = normName(v.legal_name);
+    if (ln && ln !== dn){ add(ix.name, ln, v); ix.nameList.push({ n: ln, v: v }); }
+  });
+  return ix;
+}
+
+// One name contains the other (both reasonably long) - a likely duplicate.
+function containScan(v){
+  var keys = [normName(v.dba_name), normName(v.legal_name)].filter(function(x){ return x.length >= 8; });
+  if (!keys.length) return [];
+  var out = {}, n = 0;
+  for (var i = 0; i < STATE.ix.nameList.length && n < 4; i++){
+    var e = STATE.ix.nameList[i];
+    if (e.n.length < 8) continue;
+    for (var k = 0; k < keys.length; k++){
+      if (e.n.indexOf(keys[k]) >= 0 || keys[k].indexOf(e.n) >= 0){
+        if (!out[e.v.vendor_id]){ out[e.v.vendor_id] = e.v; n++; }
+        break;
+      }
+    }
+  }
+  return Object.keys(out).map(function(k){ return out[k]; });
+}
+
+// Returns null (no match), {sure:vendor, on:..} (safe to auto-update), or
+// {cands:[vendors], on:.., why:..} (a possible duplicate needing a decision).
+function matchRow(v){
+  function uniq(list){
+    var m = {}; (list || []).forEach(function(x){ m[x.vendor_id] = x; });
+    return Object.keys(m).map(function(k){ return m[k]; });
+  }
+  if (s_(v.vendor_id) && STATE.byId[s_(v.vendor_id)]){
+    return { sure: STATE.byId[s_(v.vendor_id)], on: "vendor_id" };
+  }
+  var bc = uniq(STATE.ix.bc[normBc(v.bc_vendor_no)]);
+  if (bc.length === 1) return { sure: bc[0], on: "BC vendor no" };
+  if (bc.length > 1) return { cands: bc, on: "BC vendor no", why: "The same BC vendor number is on more than one row" };
+
+  var contact = uniq((STATE.ix.email[normEmail(v.email)] || [])
+    .concat(STATE.ix.phone[normPhone(v.phone)] || [])
+    .concat(STATE.ix.phone[normPhone(v.business_phone)] || []));
+  if (contact.length === 1){
+    var c = contact[0];
+    var on = normEmail(v.email) && normEmail(v.email) === normEmail(c.email) ? "email" : "phone";
+    if (nameAgrees(v.dba_name, c.dba_name) || nameAgrees(v.dba_name, c.legal_name)){
+      return { sure: c, on: on };
+    }
+    return { cands: [c], on: on, why: "Same " + on + " as " + c.vendor_id + " but a different business name" };
+  }
+  if (contact.length > 1) return { cands: contact, on: "email / phone", why: "The contact details match more than one vendor" };
+
+  var names = uniq((STATE.ix.name[normName(v.dba_name)] || [])
+    .concat(STATE.ix.name[normName(v.legal_name)] || []));
+  if (names.length === 1){
+    var n = names[0];
+    var raw = s_(v.dba_name).toLowerCase();
+    if (raw && (raw === s_(n.dba_name).toLowerCase() || raw === s_(n.legal_name).toLowerCase())){
+      return { sure: n, on: "exact name" };
+    }
+    return { cands: [n], on: "similar name", why: "Business name is close to " + n.vendor_id + " (" + n.dba_name + ")" };
+  }
+  if (names.length > 1) return { cands: names, on: "similar name", why: "Business name is close to more than one vendor" };
+
+  var near = containScan(v);
+  if (near.length){
+    return { cands: near, on: "similar name",
+      why: near.length === 1
+        ? "Business name is close to " + near[0].vendor_id + " (" + near[0].dba_name + ")"
+        : "Business name is close to more than one vendor" };
+  }
+  return null;
+}
+
+var DATE_FIELDS = { cw_start_date:1, gl_exp:1, wc_exp:1, eval_date:1 };
+// Fields a source may only SET on a brand-new vendor, never change on an update
+// (derived values like the city guessed out of an address).
+var ADD_ONLY = { city_state:1 };
+
+function diffFields(existing, incoming, allowStatus){
+  var src = STATE.source || {};
+  var changes = [];
+  Object.keys(incoming).forEach(function(k){
+    if (PROTECT[k]) return;
+    if (ADD_ONLY[k]) return;
+    if (k === "status" && !allowStatus) return;
+    if (VD_HEADERS.indexOf(k) < 0) return;
+    var nv = s_(incoming[k]);
+    if (!nv) return;                                   // blanks never overwrite
+    var ov = s_(existing[k] == null ? "" : existing[k]);
+    // A scraped prospect list only fills holes; it never replaces existing data.
+    if (src.fillOnly && ov) return;
+    if (k === "region" && ov === "Both") return;       // Both always wins
+    if (k === "bc_vendor_no" && normBc(ov) === normBc(nv)) return;
+    if (k === "phone" || k === "business_phone"){
+      if (normPhone(ov) && normPhone(ov) === normPhone(nv)) return;
+    }
+    if (DATE_FIELDS[k] && ov && dateISO(ov) === dateISO(nv)) return;
+    // Cosmetic name variants (LLC vs no LLC, Corp appended) keep the sheet's form.
+    if ((k === "dba_name" || k === "legal_name") && ov && normName(ov) === normName(nv)) return;
+    if (k === "service_types"){                        // never shrink; merge instead
+      var have = ov.toLowerCase().split(",").map(function(x){ return x.trim(); }).filter(String);
+      var add = nv.toLowerCase().split(",").map(function(x){ return x.trim(); }).filter(String)
+        .filter(function(x){ return have.indexOf(x) < 0; });
+      if (!add.length) return;
+      nv = have.concat(add).join(", ");
+    }
+    if (ov === nv) return;
+    if (ov.toLowerCase() === nv.toLowerCase()) return; // case-only: keep the sheet's
+    if (ov.replace(/\s+/g," ").toLowerCase() === nv.replace(/\s+/g," ").toLowerCase()) return;
+    changes.push({ field: k, oldV: ov, newV: nv });
+  });
+  return changes;
+}
+
+function buildPlan(){
+  var src = STATE.source, headers = STATE.headers, rows = STATE.rows;
+  var lower = headers.map(function(h){ return s_(h).toLowerCase(); });
+  function getter(row){
+    return function(name){
+      var i = lower.indexOf(String(name).toLowerCase());
+      return i < 0 ? "" : (row[i] == null ? "" : row[i]);
+    };
+  }
+  var plan = { adds: [], updates: [], decisions: [], skips: [] };
+  var seenInFile = {};
+  var fallbackRegion = src.needsRegion ? $("regionsel").value : "";
+
+  rows.forEach(function(row, ri){
+    if (row.every(function(x){ return !s_(x); })) return;
+    var v = src.map(getter(row));
+    if (v.__skip){
+      plan.skips.push({ label: s_(getter(row)("DBA Name")) || "(row " + (ri + 2) + ")", reason: v.__skip });
+      return;
+    }
+    if (!s_(v.dba_name) && s_(v.legal_name)) v.dba_name = s_(v.legal_name);
+    if (!s_(v.dba_name)){
+      plan.skips.push({ label: "(row " + (ri + 2) + ")", reason: "No business name in the row" });
+      return;
+    }
+    if (!s_(v.region) && fallbackRegion) v.region = fallbackRegion;
+
+    var fk = normName(v.dba_name) + "|" + normEmail(v.email);
+    if (seenInFile[fk]){
+      plan.skips.push({ label: v.dba_name, reason: "Duplicate of an earlier row in this file" });
+      return;
+    }
+    seenInFile[fk] = true;
+
+    var m = matchRow(v);
+    if (m && m.sure){
+      var changes = diffFields(m.sure, v, !!src.statusOnUpdate);
+      if (!changes.length){
+        plan.skips.push({ label: v.dba_name, reason: "Already in the directory as " +
+          m.sure.vendor_id + " (matched on " + m.on + ") - nothing new in this file" });
+        return;
+      }
+      plan.updates.push({ v: v, vendor: m.sure, on: m.on, changes: changes, use: true });
+      return;
+    }
+    if (m && m.cands){
+      plan.decisions.push({ v: v, cands: m.cands, on: m.on, why: m.why,
+        choice: "skip", pick: 0 });
+      return;
+    }
+    var add = {};
+    Object.keys(v).forEach(function(k){ if (k !== "vendor_id" && s_(v[k])) add[k] = s_(v[k]); });
+    Object.keys(src.addDefaults || {}).forEach(function(k){
+      if (!s_(add[k])) add[k] = src.addDefaults[k];
+    });
+    add.added_by = "CSV intake";
+    add.updated = new Date().toISOString().slice(0,10);
+    plan.adds.push({ v: add, use: true });
+  });
+  return plan;
+}
+
+// For a decision row, the add record it would become if "Add as new" is chosen.
+function decisionAdd(d){
+  var src = STATE.source;
+  var add = {};
+  Object.keys(d.v).forEach(function(k){ if (k !== "vendor_id" && s_(d.v[k])) add[k] = s_(d.v[k]); });
+  Object.keys(src.addDefaults || {}).forEach(function(k){ if (!s_(add[k])) add[k] = src.addDefaults[k]; });
+  add.added_by = "CSV intake";
+  add.updated = new Date().toISOString().slice(0,10);
+  return add;
+}
+
+// ---------------------------------------------------------------- preview ----
+function diffHtml(changes){
+  if (!changes.length) return "<span class='reason'>No field changes - the directory already has everything in this row</span>";
+  return changes.map(function(c){
+    return '<span class="fld">' + esc(c.field) + "</span>"
+      + (c.oldV ? '<span class="old">' + esc(c.oldV) + "</span> &rarr; " : "")
+      + '<span class="new">' + esc(c.newV) + "</span>";
+  }).join("<br>");
+}
+
+function refreshApprove(){
+  var p = STATE.plan;
+  var undecided = p.decisions.filter(function(d){ return d.choice === "skip"; }).length;
+  var w = $("dupwarn");
+  if (p.decisions.length){
+    w.className = "msg show warn";
+    w.textContent = p.decisions.length + " row" + (p.decisions.length > 1 ? "s look" : " looks") +
+      " like a possible duplicate. " + (undecided
+        ? undecided + " still set to Skip - pick Update or Add for each one you want written."
+        : "All decided.");
+  } else {
+    w.className = "msg";
+  }
+  var any = p.adds.some(function(a){ return a.use; }) ||
+    p.updates.some(function(u){ return u.use; }) ||
+    p.decisions.some(function(d){ return d.choice !== "skip"; });
+  $("approve").disabled = !any;
+}
+
+function renderPlan(){
+  var p = STATE.plan;
+  $("sumchips").innerHTML =
+    '<span class="chip add">' + p.adds.length + " to add</span>" +
+    '<span class="chip upd">' + p.updates.length + " to update</span>" +
+    (p.decisions.length ? '<span class="chip dup">' + p.decisions.length + " possible duplicates</span>" : "") +
+    '<span class="chip skip">' + p.skips.length + " skipped</span>";
+
+  var h = "";
+  if (p.decisions.length){
+    h += '<div class="sechead"><b>Possible duplicates - your call</b><span class="n">nothing here is written until you choose</span></div>';
+    h += '<div class="scroll"><table><tr><th>In the file</th><th>Looks like</th><th>What would change</th><th>Decision</th></tr>';
+    p.decisions.forEach(function(d, i){
+      var cand = d.cands[d.pick];
+      var candSel = d.cands.length > 1
+        ? '<select class="cand" data-i="' + i + '">' + d.cands.map(function(c, j){
+            return '<option value="' + j + '"' + (j === d.pick ? " selected" : "") + ">"
+              + esc(c.vendor_id + " - " + c.dba_name + " (" + c.status + ")") + "</option>";
+          }).join("") + "</select><br>"
+        : "<b>" + esc(cand.vendor_id + " - " + cand.dba_name) + "</b><br><span class='reason'>"
+          + esc(cand.status + (cand.region ? " - " + cand.region : "")) + "</span><br>";
+      h += '<tr class="dupe" data-di="' + i + '">'
+        + "<td><b>" + esc(d.v.dba_name) + "</b><br><span class='reason'>"
+        + esc([d.v.contact_name, d.v.email, d.v.phone].filter(String).join(" - ")) + "</span></td>"
+        + "<td>" + candSel + '<span class="pill ' + (d.cands.length > 1 ? "multi" : "fuzzy") + '">'
+        + esc(d.on) + "</span><br><span class='reason'>" + esc(d.why) + "</span></td>"
+        + '<td class="diff" id="ddiff' + i + '">'
+        + diffHtml(diffFields(cand, d.v, !!STATE.source.statusOnUpdate)) + "</td>"
+        + '<td><div class="dec">'
+        + '<label><input type="radio" name="dec' + i + '" value="update"' + (d.choice === "update" ? " checked" : "") + ">Update the match</label>"
+        + '<label><input type="radio" name="dec' + i + '" value="add"' + (d.choice === "add" ? " checked" : "") + ">Add as a new vendor</label>"
+        + '<label><input type="radio" name="dec' + i + '" value="skip"' + (d.choice === "skip" ? " checked" : "") + ">Skip this row</label>"
+        + "</div></td></tr>";
+    });
+    h += "</table></div>";
+  }
+  if (p.updates.length){
+    h += '<div class="sechead"><b>Updates</b><span class="n">sure matches - only the fields shown change, everything else is untouched</span></div>';
+    h += '<div class="scroll"><table><tr><th></th><th>Vendor</th><th>Matched on</th><th>Changes</th></tr>';
+    p.updates.forEach(function(u, i){
+      h += '<tr data-kind="u" data-i="' + i + '">'
+        + '<td><input type="checkbox" ' + (u.use ? "checked" : "") + ' data-kind="u" data-i="' + i + '"></td>'
+        + "<td><b>" + esc(u.vendor.dba_name) + "</b><br><span class='reason'>"
+        + esc(u.vendor.vendor_id) + " &middot; " + esc(u.vendor.status) + "</span></td>"
+        + '<td>' + esc(u.on) + ' <span class="pill strong">match</span></td>'
+        + "<td class='diff'>" + diffHtml(u.changes) + "</td></tr>";
+    });
+    h += "</table></div>";
+  }
+  if (p.adds.length){
+    h += '<div class="sechead"><b>New vendors</b><span class="n">no match anywhere in the directory</span></div>';
+    h += '<div class="scroll"><table><tr><th></th><th>Business</th><th>Market</th><th>Service types</th><th>Status</th><th>Contact</th></tr>';
+    p.adds.forEach(function(a, i){
+      h += '<tr data-kind="a" data-i="' + i + '">'
+        + '<td><input type="checkbox" ' + (a.use ? "checked" : "") + ' data-kind="a" data-i="' + i + '"></td>'
+        + "<td><b>" + esc(a.v.dba_name) + "</b>"
+        + (a.v.legal_name && a.v.legal_name !== a.v.dba_name ? "<br><span class='reason'>" + esc(a.v.legal_name) + "</span>" : "")
+        + "</td><td>" + esc(a.v.region || "") + "</td>"
+        + "<td>" + (a.v.service_types ? esc(a.v.service_types) : "<span class='reason'>none - set later</span>")
+        + (a.v.trade_raw ? "<br><span class='reason'>" + esc(a.v.trade_raw) + "</span>" : "") + "</td>"
+        + "<td>" + esc(a.v.status || "") + "</td>"
+        + "<td>" + esc(a.v.contact_name || "") + "<br><span class='reason'>"
+        + esc([a.v.email, a.v.phone].filter(String).join(" ")) + "</span></td></tr>";
+    });
+    h += "</table></div>";
+  }
+  if (p.skips.length){
+    h += '<div class="sechead"><b>Skipped</b><span class="n">nothing will be written for these</span></div>';
+    h += '<div class="scroll"><table><tr><th>Row</th><th>Why</th></tr>';
+    p.skips.forEach(function(s){
+      h += "<tr><td><b>" + esc(s.label) + "</b></td><td class='reason'>" + esc(s.reason) + "</td></tr>";
+    });
+    h += "</table></div>";
+  }
+  if (!p.adds.length && !p.updates.length && !p.decisions.length){
+    h += '<p class="sub" style="margin-top:12px">Nothing to write - every row is already in the directory or was skipped.</p>';
+  }
+  $("preview").innerHTML = h;
+  $("step3").classList.remove("hidden");
+  refreshApprove();
+
+  Array.prototype.forEach.call(document.querySelectorAll("#preview input[type=checkbox]"), function(cb){
+    cb.addEventListener("change", function(){
+      var list = cb.getAttribute("data-kind") === "a" ? STATE.plan.adds : STATE.plan.updates;
+      list[Number(cb.getAttribute("data-i"))].use = cb.checked;
+      cb.closest("tr").classList.toggle("off", !cb.checked);
+      refreshApprove();
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("#preview input[type=radio]"), function(rb){
+    rb.addEventListener("change", function(){
+      var i = Number(rb.name.replace("dec",""));
+      STATE.plan.decisions[i].choice = rb.value;
+      refreshApprove();
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("#preview select.cand"), function(sel){
+    sel.addEventListener("change", function(){
+      var i = Number(sel.getAttribute("data-i"));
+      var d = STATE.plan.decisions[i];
+      d.pick = Number(sel.value);
+      $("ddiff" + i).innerHTML = diffHtml(diffFields(d.cands[d.pick], d.v, !!STATE.source.statusOnUpdate));
+    });
+  });
+}
+
+// ---------------------------------------------------------------- apply ------
+function chunk(arr, n){
+  var out = [];
+  for (var i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
+  return out;
+}
+
+function apply(){
+  var p = STATE.plan;
+  var patches = [];
+  p.updates.forEach(function(u){
+    if (!u.use) return;
+    var patch = { vendor_id: u.vendor.vendor_id };
+    u.changes.forEach(function(c){ patch[c.field] = c.newV; });
+    patches.push(patch);
+  });
+  p.decisions.forEach(function(d){
+    if (d.choice !== "update") return;
+    var cand = d.cands[d.pick];
+    var changes = diffFields(cand, d.v, !!STATE.source.statusOnUpdate);
+    if (!changes.length) return;
+    var patch = { vendor_id: cand.vendor_id };
+    changes.forEach(function(c){ patch[c.field] = c.newV; });
+    patches.push(patch);
+  });
+  var adds = p.adds.filter(function(a){ return a.use; }).map(function(a){ return a.v; })
+    .concat(p.decisions.filter(function(d){ return d.choice === "add"; }).map(decisionAdd));
+
+  $("approve").disabled = true;
+  $("step4").classList.remove("hidden");
+  var steps = chunk(patches, 60).map(function(c){ return { kind: "vd_patch", patches: c }; })
+    .concat(chunk(adds, 40).map(function(c){ return { kind: "vd_append", payload: { vendors: c } }; }));
+  var total = steps.length, done = 0;
+  var res = { applied: 0, fields: 0, added: 0, skipped: 0, skipped_names: [], missing: [], errors: [] };
+
+  function step(){
+    if (!steps.length) return finish();
+    var b = steps.shift();
+    $("ptext").textContent = (b.kind === "vd_patch"
+      ? "Updating " + b.patches.length + " vendors"
+      : "Adding " + b.payload.vendors.length + " vendors") + "...";
+    post(b, function(r){
+      done++;
+      $("pbar").style.width = Math.round(100 * done / total) + "%";
+      if (!r || !r.ok){ res.errors.push(b.kind + ": " + ((r && r.error) || "no response")); return finish(); }
+      res.applied += r.applied || 0; res.fields += r.fields || 0;
+      res.added += r.added || 0; res.skipped += r.skipped || 0;
+      if (r.skipped_names) res.skipped_names = res.skipped_names.concat(r.skipped_names);
+      if (r.missing) res.missing = res.missing.concat(r.missing);
+      step();
+    });
+  }
+
+  function finish(){
+    $("step4").classList.add("hidden");
+    var d = $("doneb");
+    d.classList.remove("hidden");
+    var h = "";
+    if (res.errors.length){
+      d.style.borderLeftColor = "var(--red)";
+      h += "<b>Stopped part way</b><p>" + esc(res.errors.join("; ")) + "</p>"
+        + "<p class='sub'>Written before the stop: " + res.applied + " vendors updated, " + res.added
+        + " added. Re-running the same file is safe - anything already written shows up as a skip next time.</p>";
+    } else {
+      h += "<b>Directory updated</b>";
+      h += "<p>" + res.applied + " vendor" + (res.applied === 1 ? "" : "s") + " updated ("
+        + res.fields + " fields), " + res.added + " added"
+        + (res.skipped ? ", " + res.skipped + " held back by the server as existing names" : "") + ".</p>";
+      if (res.skipped_names.length) h += "<p class='sub'>Server-side skips: " + esc(res.skipped_names.join(", ")) + "</p>";
+      if (res.missing.length) h += "<p class='sub'>Patch could not find: " + esc(res.missing.join(", ")) + "</p>";
+    }
+    h += '<div class="actions"><a class="btn" href="vendors.html">Open the Directory</a>'
+      + '<button class="btn ghost" onclick="location.reload()">Import another file</button></div>';
+    d.innerHTML = h;
+    window.scrollTo({ top: d.offsetTop - 80, behavior: "smooth" });
+  }
+  step();
+}
+
+// ---------------------------------------------------------------- intake -----
+function detect(headers){
+  var lower = headers.map(function(h){ return s_(h).toLowerCase(); });
+  var best = null, bestScore = 0;
+  SOURCES.forEach(function(s){
+    var sc = s.detect(lower);
+    if (sc > bestScore){ best = s; bestScore = sc; }
+  });
+  return best;
+}
+
+function onData(rows, name){
+  quiet();
+  $("doneb").classList.add("hidden");
+  if (!rows || rows.length < 2) return say("That file has no data rows.");
+  STATE.headers = rows[0].map(s_);
+  STATE.rows = rows.slice(1);
+  STATE.fileName = name || "";
+  var src = detect(STATE.headers);
+  if (!src){
+    $("step2").classList.add("hidden"); $("step3").classList.add("hidden");
+    return say("These columns do not look like any of the known files (Jotform eval, CRM IC export, " +
+      "potential-vendor list, or the directory schema). First columns seen: " +
+      STATE.headers.slice(0, 6).join(", ") + " ... Nothing was imported.");
+  }
+  STATE.source = src;
+  $("filemeta").textContent = (name ? name + " - " : "") + STATE.rows.length + " data rows, " +
+    STATE.headers.length + " columns";
+  $("srcchips").innerHTML = '<span class="chip src">' + esc(src.label) + "</span>";
+  $("srcnote").textContent = src.note || "";
+  $("regionpick").classList.toggle("hidden", !src.needsRegion);
+
+  var mh = "<tr><th>Column in the file</th><th>Goes to</th></tr>";
+  STATE.headers.forEach(function(hd){
+    if (!hd) return;
+    var t = (src.mapLabels || {})[hd.toLowerCase()];
+    if (!t && VD_HEADERS.indexOf(hd.toLowerCase()) >= 0) t = hd.toLowerCase();
+    mh += "<tr><td>" + esc(hd) + "</td><td class='" + (t && t.indexOf("ignored") < 0 ? "" : "ig") + "'>"
+      + esc(t || "ignored") + "</td></tr>";
+  });
+  $("maptable").innerHTML = mh;
+  $("step2").classList.remove("hidden");
+
+  STATE.plan = buildPlan();
+  renderPlan();
+}
+
+function readFile(f){
+  var name = f.name || "";
+  if (/\.xlsx?$/i.test(name)){
+    loadXLSX(function(ok){
+      if (!ok) return say("Could not load the Excel reader. Save the file as CSV and drop that instead.");
+      var fr = new FileReader();
+      fr.onload = function(){
+        try {
+          var wb = XLSX.read(new Uint8Array(fr.result), { type: "array" });
+          var names = wb.SheetNames.slice();
+          var meta = (wb.Workbook && wb.Workbook.Sheets) || [];
+          var pick = null;
+          for (var i = 0; i < names.length; i++){
+            var hiddenFlag = meta[i] && meta[i].Hidden;
+            if (!hiddenFlag){ pick = names[i]; break; }
+          }
+          var ws = wb.Sheets[pick || names[0]];
+          var rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" });
+          onData(rows, name);
+        } catch(e){ say("Could not read that Excel file: " + e.message); }
+      };
+      fr.readAsArrayBuffer(f);
+    });
+    return;
+  }
+  var fr = new FileReader();
+  fr.onload = function(){ onData(parseCSV(String(fr.result)), name); };
+  fr.readAsText(f);
+}
+
+var XLSX_LOADED = false;
+function loadXLSX(cb){
+  if (XLSX_LOADED || window.XLSX) return cb(true);
+  var s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+  s.onload = function(){ XLSX_LOADED = true; cb(true); };
+  s.onerror = function(){ cb(false); };
+  document.head.appendChild(s);
+}
+
+// ---------------------------------------------------------------- wiring -----
+$("drop").addEventListener("click", function(){ $("file").click(); });
+$("file").addEventListener("change", function(){ if ($("file").files[0]) readFile($("file").files[0]); });
+["dragover","dragenter"].forEach(function(ev){
+  $("drop").addEventListener(ev, function(e){ e.preventDefault(); $("drop").classList.add("on"); });
+});
+["dragleave","drop"].forEach(function(ev){
+  $("drop").addEventListener(ev, function(e){ e.preventDefault(); $("drop").classList.remove("on"); });
+});
+$("drop").addEventListener("drop", function(e){
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);
+});
+$("regionsel").addEventListener("change", function(){
+  if (STATE.rows){ STATE.plan = buildPlan(); renderPlan(); }
+});
+$("approve").addEventListener("click", apply);
+$("reset").addEventListener("click", function(){ location.reload(); });
+
+// ---------------------------------------------------------------- gate -------
+function showGate(msg){
+  $("app").classList.add("hidden");
+  $("gate").classList.remove("hidden");
+  if (msg){
+    $("gmsg").textContent = msg + " Unlock the Ops Hub in this browser and come back.";
+    $("gmsg").className = "err";
+  }
+}
+function load(pass){
+  PASS = pass;
+  post({ kind:"vd_list" }, function(r){
+    if (r && r.ok){
+      localStorage.setItem(KEY, pass);
+      STATE.directory = r.vendors || [];
+      STATE.byId = {};
+      STATE.directory.forEach(function(v){ STATE.byId[v.vendor_id] = v; });
+      STATE.ix = buildIndex(STATE.directory);
+      STATE.liveSlugs = {};
+      (r.types || []).forEach(function(t){ STATE.liveSlugs[t.slug] = true; });
+      $("gate").classList.add("hidden");
+      $("app").classList.remove("hidden");
+    } else {
+      if (r && r.error === "Wrong passcode.") localStorage.removeItem(KEY);
+      showGate((r && r.error) || "Wrong passcode.");
+    }
+  });
+}
+(function(){ var p = localStorage.getItem(KEY); if (p) load(p); else showGate(""); })();
+</script>
+</body>
+</html>
