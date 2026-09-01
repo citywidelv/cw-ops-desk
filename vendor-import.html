@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Bulk Vendor Import | CW Ops Hub</title>
-<!-- build 2026-09-01a
+<!-- build 2026-09-01b
 CSV intake for the CW Vendor Directory. Reads the three recurring files (Jotform
 evaluation export, Dynamics CRM "Active & In Process ICs" export, potential-vendor
 lists), matches every row against the live directory (vd_list), and shows exactly
@@ -433,7 +433,10 @@ var SOURCES = [
     v.family_involvement = s_(get("To what extent will you and your family be involved in daily operations?"));
     v.additional_notes = s_(get("Is there anything else you would like us to know about your company?"));
     v.eval_date = dateISO(get("Submission Date"));
-    if (v.services_desc && !s_(v.service_types)) v.service_types = slugsFor(v.services_desc);
+    if (v.services_desc && !s_(v.service_types)){
+      v.service_types = slugsFor(v.services_desc);
+      if (v.service_types) v.__types_guessed = true;
+    }
     return v;
   },
   mapLabels: {
@@ -551,6 +554,7 @@ var SOURCES = [
     if (phones[1]) v.business_phone = phones[1];
     v.trade_raw = s_(get("Service Type"));
     v.service_types = slugsFor(v.trade_raw);
+    if (v.service_types) v.__types_guessed = true;
     var notes = s_(get("Notes"));
     v.license_no = licenseFrom(notes);
     var extra = [];
@@ -708,6 +712,13 @@ function diffFields(existing, incoming, allowStatus){
       if (normPhone(ov) && normPhone(ov) === normPhone(nv)) return;
     }
     if (DATE_FIELDS[k] && ov && dateISO(ov) === dateISO(nv)) return;
+    // "0" vs "0.00", "7679.26" vs "7,679.26" - same number, keep the sheet's.
+    if (ov !== "" && /^-?[\d,.]+$/.test(ov.replace(/[$ ]/g,"")) && /^-?[\d,.]+$/.test(nv.replace(/[$ ]/g,""))){
+      var on2 = parseFloat(ov.replace(/[$, ]/g,"")), nn2 = parseFloat(nv.replace(/[$, ]/g,""));
+      if (!isNaN(on2) && !isNaN(nn2) && on2 === nn2) return;
+    }
+    // Service types guessed out of prose never modify a row that already has types.
+    if (k === "service_types" && incoming.__types_guessed && ov) return;
     // Cosmetic name variants (LLC vs no LLC, Corp appended) keep the sheet's form.
     if ((k === "dba_name" || k === "legal_name") && ov && normName(ov) === normName(nv)) return;
     if (k === "service_types"){                        // never shrink; merge instead
@@ -776,7 +787,9 @@ function buildPlan(){
       return;
     }
     var add = {};
-    Object.keys(v).forEach(function(k){ if (k !== "vendor_id" && s_(v[k])) add[k] = s_(v[k]); });
+    Object.keys(v).forEach(function(k){
+      if (k !== "vendor_id" && k.indexOf("__") !== 0 && s_(v[k])) add[k] = s_(v[k]);
+    });
     Object.keys(src.addDefaults || {}).forEach(function(k){
       if (!s_(add[k])) add[k] = src.addDefaults[k];
     });
@@ -791,7 +804,9 @@ function buildPlan(){
 function decisionAdd(d){
   var src = STATE.source;
   var add = {};
-  Object.keys(d.v).forEach(function(k){ if (k !== "vendor_id" && s_(d.v[k])) add[k] = s_(d.v[k]); });
+  Object.keys(d.v).forEach(function(k){
+    if (k !== "vendor_id" && k.indexOf("__") !== 0 && s_(d.v[k])) add[k] = s_(d.v[k]);
+  });
   Object.keys(src.addDefaults || {}).forEach(function(k){ if (!s_(add[k])) add[k] = src.addDefaults[k]; });
   add.added_by = "CSV intake";
   add.updated = new Date().toISOString().slice(0,10);
@@ -799,12 +814,16 @@ function decisionAdd(d){
 }
 
 // ---------------------------------------------------------------- preview ----
+// The directory service withholds business_address from its listing on purpose,
+// so an address "change" cannot show the current value - be honest about that.
 function diffHtml(changes){
   if (!changes.length) return "<span class='reason'>No field changes - the directory already has everything in this row</span>";
   return changes.map(function(c){
+    var note = c.field === "business_address"
+      ? " <span class='reason'>(current address is not shown here; this overwrites it)</span>" : "";
     return '<span class="fld">' + esc(c.field) + "</span>"
       + (c.oldV ? '<span class="old">' + esc(c.oldV) + "</span> &rarr; " : "")
-      + '<span class="new">' + esc(c.newV) + "</span>";
+      + '<span class="new">' + esc(c.newV) + "</span>" + note;
   }).join("<br>");
 }
 
