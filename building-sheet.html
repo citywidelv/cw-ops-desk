@@ -345,10 +345,11 @@ function loadSheet(){
   if(!PASS){ pendingLoad=true; q("loadMsg").textContent="Opening an existing sheet needs the team passcode."; askPass(); return; }
   q("loadMsg").textContent="Loading...";
   post({kind:"building_sheet_get",passcode:PASS,account:a}).then(function(r){
-    if(r&&r.ok){fill(r.sheet);q("loadMsg").textContent="Loaded. Make your changes and save.";}
+    if(r&&r.ok&&r.sheet){fill(r.sheet);q("loadMsg").textContent="Loaded. Make your changes and save.";}
+    else if(r&&r.ok){q("loadMsg").textContent="Google did not answer properly. Click Load Sheet again.";}
     else if(r&&/passcode/i.test(r.error||"")){ clearPass(); pendingLoad=true; q("loadMsg").textContent="That saved passcode is out of date."; askPass(); }
     else q("loadMsg").textContent=(r&&r.error)||"Not found.";
-  });
+  }).catch(function(){q("loadMsg").textContent="Could not reach the server. Try again.";});
 }
 q("loadBtn").addEventListener("click",loadSheet);
 
@@ -362,6 +363,7 @@ q("go").addEventListener("click",function(){
   var btn=q("go");btn.disabled=true;msg.textContent="Saving (photos upload now, give it a moment)...";
   post({kind:"building_sheet",passcode:PASS,updated_by:q("filled_by").value.trim(),sheet:s}).then(function(r){
     btn.disabled=false;
+    if(r&&r.ok&&!r.account){msg.className="err";msg.textContent="Google did not answer properly, so this may not have saved. Click Save again and check the library.";return;}
     if(r&&r.ok){
       q("doneAcct").textContent=r.account;
       q("donePrint").href="building-sheet-print.html?account="+encodeURIComponent(r.account);
