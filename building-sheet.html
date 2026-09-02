@@ -94,14 +94,14 @@ table.sched input{border-radius:6px;padding:8px 9px;font-size:12.5px}
 <p>One sheet per account: access, schedule, alarm procedure, locations, tenants, and photos. Saving files it to the Sheet library and drops a PDF snapshot in Google Drive under the account name.</p>
 </div></section>
 
-<div class="gate" id="gate">
+<div class="gate hidden" id="gate">
   <h2>Team Passcode</h2>
-  <p>Same passcode as the Ops Hub. If you unlocked the hub on this device, this opens automatically.</p>
+  <p>Only needed to open a sheet that already exists. Starting a new sheet does not need one.</p>
   <label>Passcode</label><input type="text" id="gpc" placeholder="Ask TJ if you do not have it">
   <div style="display:flex;gap:10px;align-items:center;margin-top:12px"><button class="btn btn-red" id="genter">Enter</button><span class="err" id="gerr"></span></div>
 </div>
 
-<div class="wrap hidden" id="app">
+<div class="wrap" id="app">
 
 <div class="loadbar">
   <div class="f"><label>Working on an existing account? Load it</label><input type="text" id="loadAcct" placeholder="Exact account name, e.g. Desert Ridge Plaza"></div>
@@ -225,19 +225,28 @@ function post(payload){
     .then(function(t){try{return JSON.parse(t);}catch(e){return {ok:false,error:"Bad response"};}});
 }
 
-/* ---------- gate ---------- */
-function unlock(){ q("gate").classList.add("hidden"); q("app").classList.remove("hidden"); var m=location.search.match(/account=([^&]+)/); if(m){ q("loadAcct").value=decodeURIComponent(m[1].replace(/\+/g," ")); loadSheet(); } }
-function tryPass(pc,auto){
+/* ---------- passcode ----------
+   Not required to fill out and save a sheet. Still required to LOAD an
+   existing one, which is checked server side. Reuses the Ops Hub passcode
+   cached on this device, so most people never see the box. */
+var pendingLoad = false;
+try{ PASS = localStorage.getItem(KEY) || ""; }catch(e){}
+function askPass(){ q("gate").classList.remove("hidden"); q("gerr").textContent=""; q("gpc").focus(); }
+function clearPass(){ PASS=""; try{localStorage.removeItem(KEY);}catch(e){} }
+function tryPass(pc){
   q("gerr").textContent="";
   if(!pc){q("gerr").textContent="Enter the passcode.";return;}
   post({kind:"building_sheet_list",passcode:pc}).then(function(r){
-    if(r&&r.ok){PASS=pc;try{localStorage.setItem(KEY,pc);}catch(e){} unlock();}
-    else {if(auto){try{localStorage.removeItem(KEY);}catch(e){}} q("gerr").textContent=(r&&r.error)||"That passcode is not right.";}
+    if(r&&r.ok){
+      PASS=pc; try{localStorage.setItem(KEY,pc);}catch(e){}
+      q("gate").classList.add("hidden");
+      if(pendingLoad){pendingLoad=false;loadSheet();}
+    } else q("gerr").textContent=(r&&r.error)||"That passcode is not right.";
   }).catch(function(){q("gerr").textContent="Could not reach the server.";});
 }
-q("genter").addEventListener("click",function(){tryPass(q("gpc").value.trim(),false);});
-q("gpc").addEventListener("keydown",function(e){if(e.key==="Enter")tryPass(this.value.trim(),false);});
-(function(){var s="";try{s=localStorage.getItem(KEY)||"";}catch(e){} if(s)tryPass(s,true);})();
+q("genter").addEventListener("click",function(){tryPass(q("gpc").value.trim());});
+q("gpc").addEventListener("keydown",function(e){if(e.key==="Enter")tryPass(this.value.trim());});
+(function(){ var m=location.search.match(/account=([^&]+)/); if(m){ q("loadAcct").value=decodeURIComponent(m[1].replace(/\+/g," ")); loadSheet(); } })();
 
 /* ---------- dynamic UI ---------- */
 DAYS.forEach(function(d){
@@ -333,9 +342,11 @@ function fill(s){
 function loadSheet(){
   var a=q("loadAcct").value.trim();
   if(!a){q("loadMsg").textContent="Type the account name first.";return;}
+  if(!PASS){ pendingLoad=true; q("loadMsg").textContent="Opening an existing sheet needs the team passcode."; askPass(); return; }
   q("loadMsg").textContent="Loading...";
   post({kind:"building_sheet_get",passcode:PASS,account:a}).then(function(r){
     if(r&&r.ok){fill(r.sheet);q("loadMsg").textContent="Loaded. Make your changes and save.";}
+    else if(r&&/passcode/i.test(r.error||"")){ clearPass(); pendingLoad=true; q("loadMsg").textContent="That saved passcode is out of date."; askPass(); }
     else q("loadMsg").textContent=(r&&r.error)||"Not found.";
   });
 }
@@ -364,7 +375,8 @@ q("go").addEventListener("click",function(){
 q("doneAgain").addEventListener("click",function(){
   q("done").classList.add("hidden");q("f").classList.remove("hidden");
   document.querySelector(".loadbar").classList.remove("hidden");
-  q("loadAcct").value=q("account").value;loadSheet();
+  if(PASS){ q("loadAcct").value=q("account").value; loadSheet(); }
+  else { window.scrollTo(0,0); }
 });
 </script>
 </body></html>
