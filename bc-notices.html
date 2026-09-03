@@ -1,0 +1,414 @@
+TESTPASTE<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Background Check Notices | CW Ops Hub</title>
+<!--
+  Background Check Notices. Build 2026-09-03a.
+
+  Emails each checked janitorial vendor the list of cleaners City Wide has a
+  background check on file for, with the Asana form link for anyone missing.
+
+  Data: kind vd_list on the CW Solicitations Apps Script (same call vendors.html
+  makes). Vendors come from the Vendors Las Vegas / Northern Nevada tabs; the
+  names come from the Background checks tabs, keyed by vendor_id (payload key
+  `cleared`). Rows matched only by name text are NOT offered here.
+
+  Sending: mailto from the signed-in person's own mail app, one vendor at a time,
+  so nothing touches the shared 100/day platform Gmail quota. There is no server
+  record that a mail was actually sent. What we do keep: a "BC notice sent
+  YYYY-MM-DD" stamp written to the vendor's internal_notes through vd_patch, which
+  shows in the Active Vendors record and drives the "Last notice" column here.
+-->
+<style>
+:root{--red:#D22730;--black:#2D2A26;--grey:#636466;--bg:#f4f5f7;--teal:#0AA6A9;--gold:#E5B423;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;background:var(--bg);color:var(--black);font-size:14px;}
+.head{background:#fff;border-bottom:3px solid var(--red);}
+.bar{max-width:1120px;margin:0 auto;padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.bar img{height:38px;width:auto;display:block;}
+.bar .t{font-size:17px;font-weight:bold;}
+.badge{background:var(--black);color:#fff;font-size:11px;padding:3px 9px;border-radius:10px;}
+.backbtn{margin-left:auto;background:var(--red);color:#fff;text-decoration:none;font-size:12px;font-weight:bold;padding:9px 14px;border-radius:6px;}
+.wrap{max-width:1120px;margin:0 auto;padding:20px 18px 80px;}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:20px;margin:0 0 16px;}
+.card h2{margin:0 0 4px;font-size:15px;}
+.card .sub{margin:0 0 14px;font-size:12px;color:var(--grey);line-height:1.5;}
+label{display:block;font-size:12px;font-weight:bold;margin:12px 0 5px;}
+input[type=text],select,textarea{width:100%;padding:9px 10px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:13px;background:#fff;}
+textarea{min-height:150px;line-height:1.5;resize:vertical;}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
+.row>div{flex:1;min-width:180px;}
+.btn{background:var(--red);color:#fff;border:0;border-radius:6px;padding:12px 20px;font-family:inherit;font-size:14px;font-weight:bold;cursor:pointer;}
+.btn:disabled{background:#c9c9c9;cursor:not-allowed;}
+.btn.ghost{background:#fff;color:var(--black);border:1px solid #ccc;font-weight:normal;padding:8px 14px;font-size:12.5px;}
+.btn.ghost:hover{border-color:var(--red);color:var(--red);}
+.btn.sm{padding:6px 10px;font-size:11.5px;}
+.warn{background:#fff6d8;border:1px solid var(--gold);border-radius:8px;padding:12px 14px;font-size:12.5px;line-height:1.55;margin:0 0 16px;}
+.err{background:#fdecec;border:1px solid var(--red);border-radius:8px;padding:11px 13px;font-size:12.5px;color:#8c1a20;margin:10px 0;display:none;line-height:1.5;}
+.ok{background:#eaf6ec;border:1px solid #2e7d32;border-radius:8px;padding:11px 13px;font-size:12.5px;color:#1b5e20;margin:10px 0;line-height:1.5;}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:normal;margin:0 14px 0 0;cursor:pointer;}
+.chk input{margin:0;}
+table.vt{width:100%;border-collapse:collapse;margin-top:8px;}
+table.vt th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--grey);padding:0 8px 7px;font-weight:bold;border-bottom:1px solid #e6e6e6;}
+table.vt td{padding:9px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top;font-size:12.5px;}
+table.vt tr.sel td{background:#fdf7f7;}
+table.vt tr.done td{color:var(--grey);}
+.dba{font-weight:bold;}
+.meta{font-size:11px;color:var(--grey);margin-top:2px;line-height:1.4;}
+.pill{display:inline-block;font-size:11px;font-weight:bold;border-radius:9px;padding:2px 9px;white-space:nowrap;}
+.pill.good{background:#eaf6ec;color:#1b5e20;}
+.pill.zero{background:#fdecec;color:#8c1a20;}
+.pill.grey{background:#eee;color:var(--grey);}
+.names{display:none;margin-top:6px;font-size:11.5px;line-height:1.5;color:var(--black);}
+.names span{display:inline-block;background:#f2f2f2;border-radius:6px;padding:1px 7px;margin:0 4px 4px 0;}
+tr.open .names{display:block;}
+.tog{border:0;background:none;color:var(--teal);font-size:11.5px;cursor:pointer;padding:0;font-family:inherit;text-decoration:underline;}
+.empty{color:var(--grey);font-size:12.5px;padding:16px 4px;}
+.counts{font-size:12px;color:var(--grey);margin:12px 0 0;line-height:1.6;}
+.flag{font-size:11px;color:#8c1a20;margin-top:3px;}
+pre.prev{white-space:pre-wrap;background:#fafafa;border:1px solid #e6e6e6;border-radius:8px;padding:14px;font-family:inherit;font-size:12.5px;line-height:1.55;margin:8px 0 0;}
+.prog{font-size:13px;margin:0 0 10px;}
+.prog b{color:var(--red);}
+.queue{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+@media(max-width:760px){
+  table.vt thead{display:none;}
+  table.vt tr{display:block;border-bottom:2px solid #eee;padding:8px 0;}
+  table.vt td{display:block;border:0;padding:5px 0;}
+}
+</style>
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t">Background Check Notices</span>
+  <span class="badge">Internal Team Use</span>
+  <a class="backbtn" href="index.html">Back to Ops Hub</a>
+</div></header>
+<div class="wrap">
+
+<div id="gate" class="card">
+  <h2>Open this page from the Ops Hub</h2>
+  <p class="sub">This page signs you in automatically once you have unlocked the Ops Hub on this browser. If you are seeing this, open the Ops Hub first, or enter the team passcode below.</p>
+  <input type="text" id="pass" autocomplete="off">
+  <div class="err" id="gateErr"></div>
+  <p style="margin-top:14px;"><button class="btn" onclick="unlock()">Continue</button></p>
+</div>
+
+<div id="app" style="display:none;">
+
+  <div class="warn" id="parkedWarn" style="display:none;"></div>
+
+  <div class="card">
+    <h2>Vendors</h2>
+    <p class="sub">Janitorial vendors from the directory. Names come from the Background checks tabs, keyed by vendor ID. Check the vendors you want to notify.</p>
+    <div class="row">
+      <div><label>Market</label><select id="market"><option value="lv">Las Vegas</option><option value="nnv">Northern Nevada</option></select></div>
+      <div><label>Status</label><select id="status"></select></div>
+      <div style="flex:2;"><label>Search</label><input type="text" id="search" placeholder="Company, contact, email, or cleaner name"></div>
+    </div>
+    <p style="margin:14px 0 0;">
+      <label class="chk"><input type="checkbox" id="hideZero"> Hide vendors with no one on file</label>
+      <label class="chk"><input type="checkbox" id="hideNoEmail" checked> Hide vendors with no email</label>
+      <label class="chk"><input type="checkbox" id="hideSent"> Hide vendors already notified this quarter</label>
+    </p>
+    <p style="margin:12px 0 0;">
+      <button class="btn ghost sm" onclick="selectAll(true)">Check all shown</button>
+      <button class="btn ghost sm" onclick="selectAll(false)">Uncheck all</button>
+      <button class="btn ghost sm" onclick="toggleNames(true)">Show all names</button>
+      <button class="btn ghost sm" onclick="toggleNames(false)">Hide names</button>
+    </p>
+    <table class="vt">
+      <thead><tr>
+        <th style="width:4%"></th>
+        <th style="width:30%">Vendor</th>
+        <th style="width:24%">Email</th>
+        <th style="width:14%">On file</th>
+        <th style="width:14%">Last notice</th>
+        <th style="width:14%"></th>
+      </tr></thead>
+      <tbody id="vbody"></tbody>
+    </table>
+    <div class="empty" id="vempty" style="display:none;">No vendors match.</div>
+    <p class="counts" id="counts"></p>
+  </div>
+
+  <div class="card">
+    <h2>Email wording</h2>
+    <p class="sub">Placeholders: {dba} {contact} {names} {count} {link} {market}. Your mail app adds your signature. Edits are kept on this browser.</p>
+    <label>Subject</label>
+    <input type="text" id="tSubject">
+    <label>Body when names are on file</label>
+    <textarea id="tBody"></textarea>
+    <label>Sentence used instead of the list when no one is on file</label>
+    <input type="text" id="tNone">
+    <p style="margin:12px 0 0;"><button class="btn ghost" onclick="resetTemplate()">Reset to default wording</button></p>
+    <label>Preview <span id="prevWho" style="font-weight:normal;color:var(--grey);"></span></label>
+    <pre class="prev" id="preview"></pre>
+  </div>
+
+  <div class="card">
+    <h2>Send <span class="pill grey" id="selCount">0 checked</span></h2>
+    <p class="sub">Each click opens one email in your mail app with the vendor's address, subject, and body filled in. You send it from there, then come back and click for the next one. Nothing is sent by this page itself.</p>
+    <p class="sub"><label class="chk" style="margin:0;"><input type="checkbox" id="stamp" checked> Stamp the vendor's directory record with today's date when I mark it sent</label></p>
+    <div class="err" id="sendErr"></div>
+    <div class="prog" id="prog"></div>
+    <div class="queue">
+      <button class="btn" id="nextBtn" onclick="openNext()">Open next email</button>
+      <button class="btn ghost" id="markBtn" onclick="markCurrent()" disabled>Mark sent and continue</button>
+      <button class="btn ghost" id="skipBtn" onclick="skipCurrent()" disabled>Skip this one</button>
+    </div>
+    <div class="ok" id="doneBox" style="display:none;"></div>
+  </div>
+
+</div>
+</div>
+
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var FORM_URL = "https://form.asana.com/?k=FRCnQmbTGjAVPieFt4bnWQ&d=13140959242873";
+var MARKET_NAME = { lv:"Las Vegas", nnv:"Northern Nevada" };
+var STAMP_RE = /BC notice sent (\d{4}-\d{2}-\d{2})/;
+var DATA = null;
+var VENDORS = [];        // janitorial vendors, every market
+var SEL = {};            // vendor_id -> true
+var CURRENT = null;      // vendor_id currently open in the mail app
+var SENT_LOCAL = {};     // vendor_id -> date, this browser, fallback when stamping is off
+
+var DEFAULT_T = {
+  subject: "Background checks on file for {dba}",
+  body: "Hi {contact},\n\nAudit season is coming up.\n\nHere is who we have background checks on file for at {dba}:\n\n{names}\n\nYour agreement requires a background check on file for everyone working in a City Wide account. For anyone on your crew who is not on file, use the form below. Same form whether you want City Wide to run the check or you already ran one and want to send it over.\n\n{link}\n\nQuestions go to your FSM.\n\nThank you,",
+  none: "We do not have anyone listed for {dba} yet."
+};
+
+function el(id){ return document.getElementById(id); }
+function esc(s){ var d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; }
+function today(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+
+/* ------------------------------------------------------------- passcode ---- */
+var PASS_KEYS = ['cwOpsHubPass','cw_ins_auth','cw_vio_auth'];
+function pass(){
+  for(var i=0;i<PASS_KEYS.length;i++){
+    var v=''; try{ v=localStorage.getItem(PASS_KEYS[i])||''; }catch(e){}
+    if(v.trim()) return v.trim();
+  }
+  return '';
+}
+function clearPass(){ PASS_KEYS.forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} }); }
+function savePass(v){ try{ localStorage.setItem('cwOpsHubPass', String(v||'').trim()); }catch(e){} }
+function post(payload){
+  payload.passcode = pass();
+  return fetch(WEBHOOK,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).then(function(r){ return r.json(); });
+}
+function showGate(msg){
+  el('app').style.display='none'; el('gate').style.display='block'; el('pass').value='';
+  if(msg){ el('gateErr').textContent=msg; el('gateErr').style.display='block'; }
+  el('pass').focus();
+}
+function unlock(){
+  var v=el('pass').value.trim();
+  if(!v){ el('gateErr').textContent='Enter the team passcode.'; el('gateErr').style.display='block'; return; }
+  savePass(v); boot();
+}
+
+/* ----------------------------------------------------------------- boot ---- */
+function boot(){
+  if(!pass()){ showGate(''); return; }
+  el('gateErr').style.display='none';
+  post({kind:'vd_list'}).then(function(r){
+    if(!r.ok){
+      if(/passcode/i.test(r.error||'')){ clearPass(); showGate('That passcode was rejected by the server. Type it again below.'); return; }
+      el('gateErr').textContent=r.error||'Could not load'; el('gateErr').style.display='block'; return;
+    }
+    DATA = r;
+    VENDORS = (r.vendors||[]).filter(function(v){ return v.janitorial; });
+    VENDORS.forEach(function(v){ v._names = ((r.cleared||{})[v.vendor_id]||[]).map(function(p){ return p.name; }); });
+    el('gate').style.display='none'; el('app').style.display='block';
+
+    var meta = r.cleared_meta || {};
+    if(meta.unmatched_count){
+      el('parkedWarn').innerHTML = '<b>' + meta.unmatched_count + ' people on the Background checks tabs are not tied to a vendor.</b> They are not in any list below. '
+        + 'A vendor whose crew is sitting in that pile would get an email that looks short or empty. Fill in the vendor_id column on the directory sheet for those rows first, then reload this page.';
+      el('parkedWarn').style.display='block';
+    }
+
+    loadTemplate(); loadLocalSent();
+    ['market','status','search','hideZero','hideNoEmail','hideSent'].forEach(function(id){
+      el(id).addEventListener('input', render); el(id).addEventListener('change', render);
+    });
+    ['tSubject','tBody','tNone'].forEach(function(id){ el(id).addEventListener('input', function(){ saveTemplate(); preview(); }); });
+    el('market').addEventListener('change', buildStatus);
+    buildStatus(); render();
+  }).catch(function(e){ el('gateErr').textContent='Could not reach the server. '+e; el('gateErr').style.display='block'; });
+}
+
+/* -------------------------------------------------------------- filters ---- */
+function inMarket(v){ return (v.regions||[]).indexOf(el('market').value) >= 0; }
+function buildStatus(){
+  var seen = {}; VENDORS.filter(inMarket).forEach(function(v){ seen[v.status||'Unknown'] = (seen[v.status||'Unknown']||0)+1; });
+  var keys = Object.keys(seen).sort(function(a,b){ return a==='Active'?-1 : b==='Active'?1 : a.localeCompare(b); });
+  var cur = el('status').value;
+  el('status').innerHTML = keys.map(function(k){ return '<option value="'+esc(k)+'">'+esc(k)+' ('+seen[k]+')</option>'; }).join('') + '<option value="*">All statuses</option>';
+  el('status').value = keys.indexOf(cur)>=0 ? cur : (keys.indexOf('Active')>=0 ? 'Active' : (keys[0]||'*'));
+}
+function lastNotice(v){
+  var m = STAMP_RE.exec(v.internal_notes||'');
+  var d = m ? m[1] : '';
+  if(SENT_LOCAL[v.vendor_id] && SENT_LOCAL[v.vendor_id] > d) d = SENT_LOCAL[v.vendor_id];
+  return d;
+}
+function thisQuarter(d){
+  if(!d) return false;
+  var n = new Date(), y = n.getFullYear(), q = Math.floor(n.getMonth()/3);
+  var p = d.split('-'); return Number(p[0])===y && Math.floor((Number(p[1])-1)/3)===q;
+}
+function visible(){
+  var st = el('status').value, q = el('search').value.trim().toLowerCase();
+  return VENDORS.filter(function(v){
+    if(!inMarket(v)) return false;
+    if(st!=='*' && (v.status||'Unknown')!==st) return false;
+    if(el('hideZero').checked && !v._names.length) return false;
+    if(el('hideNoEmail').checked && !v.email) return false;
+    if(el('hideSent').checked && thisQuarter(lastNotice(v))) return false;
+    if(q){
+      var hay = [v.dba_name, v.legal_name, v.contact_name, v.email, v._names.join(' ')].join(' ').toLowerCase();
+      if(hay.indexOf(q)<0) return false;
+    }
+    return true;
+  }).sort(function(a,b){ return (a.dba_name||'').localeCompare(b.dba_name||''); });
+}
+
+/* --------------------------------------------------------------- render ---- */
+function render(){
+  var list = visible(), html = '';
+  list.forEach(function(v){
+    var n = v._names.length, ln = lastNotice(v), done = CURRENT!==v.vendor_id && thisQuarter(ln);
+    html += '<tr data-id="'+esc(v.vendor_id)+'" class="'+(SEL[v.vendor_id]?'sel ':'')+(done?'done':'')+'">'
+      + '<td><input type="checkbox" '+(SEL[v.vendor_id]?'checked':'')+(v.email?'':' disabled')+' onchange="toggleSel(\''+esc(v.vendor_id)+'\',this.checked)"></td>'
+      + '<td><div class="dba">'+esc(v.dba_name)+'</div><div class="meta">'+esc(v.contact_name||'')+(v.contact_name?' &middot; ':'')+esc(v.vendor_id)+' &middot; '+esc(v.status||'')+'</div>'
+      + (n ? '<button class="tog" onclick="this.closest(\'tr\').classList.toggle(\'open\')">'+n+' name'+(n===1?'':'s')+'</button><div class="names">'+v._names.map(function(x){ return '<span>'+esc(x)+'</span>'; }).join('')+'</div>' : '')
+      + '</td>'
+      + '<td>'+(v.email ? esc(v.email) : '<span class="flag">No email on the directory record</span>')+'</td>'
+      + '<td>'+(n ? '<span class="pill good">'+n+' on file</span>' : '<span class="pill zero">None on file</span>')+'</td>'
+      + '<td>'+(ln ? esc(ln) : '<span class="meta">Never</span>')+'</td>'
+      + '<td>'+(v.email ? '<button class="btn ghost sm" onclick="openOne(\''+esc(v.vendor_id)+'\')">Open email</button>' : '')+'</td>'
+      + '</tr>';
+  });
+  el('vbody').innerHTML = html;
+  el('vempty').style.display = list.length ? 'none' : 'block';
+  var all = VENDORS.filter(inMarket), zero = all.filter(function(v){ return !v._names.length; }).length, noMail = all.filter(function(v){ return !v.email; }).length;
+  el('counts').textContent = list.length+' shown of '+all.length+' janitorial vendors in '+MARKET_NAME[el('market').value]+'. '+zero+' with no one on file, '+noMail+' with no email.';
+  var sel = Object.keys(SEL).filter(function(k){ return SEL[k]; }).length;
+  el('selCount').textContent = sel+' checked';
+  el('nextBtn').disabled = !pendingIds().length || !!CURRENT;
+  progress(); preview();
+}
+function toggleSel(id, on){ if(on) SEL[id]=true; else delete SEL[id]; render(); }
+function selectAll(on){ visible().forEach(function(v){ if(!v.email) return; if(on) SEL[v.vendor_id]=true; else delete SEL[v.vendor_id]; }); render(); }
+function toggleNames(on){ document.querySelectorAll('#vbody tr').forEach(function(tr){ tr.classList.toggle('open', on); }); }
+function byId(id){ return VENDORS.filter(function(v){ return v.vendor_id===id; })[0]; }
+
+/* ------------------------------------------------------------- template ---- */
+var T_KEY = 'cw_bc_notice_template';
+function loadTemplate(){
+  var t = DEFAULT_T;
+  try{ var raw = localStorage.getItem(T_KEY); if(raw) t = Object.assign({}, DEFAULT_T, JSON.parse(raw)); }catch(e){}
+  el('tSubject').value=t.subject; el('tBody').value=t.body; el('tNone').value=t.none;
+}
+function saveTemplate(){ try{ localStorage.setItem(T_KEY, JSON.stringify({subject:el('tSubject').value, body:el('tBody').value, none:el('tNone').value})); }catch(e){} }
+function resetTemplate(){ try{ localStorage.removeItem(T_KEY); }catch(e){} loadTemplate(); preview(); }
+function firstName(v){
+  var c = String(v.contact_name||'').trim();
+  return c ? c.split(/\s+/)[0] : (v.dba_name||'').trim();
+}
+function fill(tpl, v){
+  var mk = MARKET_NAME[(v.regions||[])[0]] || MARKET_NAME[el('market').value];
+  var names = v._names.length ? v._names.map(function(x){ return '- '+x; }).join('\n') : '';
+  var out = tpl;
+  if(!v._names.length && /\{names\}/.test(tpl)){
+    // No one on file: drop the {names} paragraph and replace the paragraph before
+    // it (the "here is who" intro) with the no-one-on-file sentence.
+    var paras = tpl.split(/\n\n+/), i = -1;
+    paras.forEach(function(p, k){ if(i<0 && /\{names\}/.test(p)) i=k; });
+    paras.splice(i, 1);
+    if(i>0) paras[i-1] = el('tNone').value;
+    else paras.splice(i, 0, el('tNone').value);
+    out = paras.join('\n\n');
+  }
+  return out.replace(/\{dba\}/g, v.dba_name||'').replace(/\{contact\}/g, firstName(v)).replace(/\{names\}/g, names)
+            .replace(/\{count\}/g, String(v._names.length)).replace(/\{link\}/g, FORM_URL).replace(/\{market\}/g, mk);
+}
+function preview(){
+  var ids = Object.keys(SEL).filter(function(k){ return SEL[k]; });
+  var v = CURRENT ? byId(CURRENT) : (ids.length ? byId(ids[0]) : visible()[0]);
+  if(!v){ el('preview').textContent=''; el('prevWho').textContent=''; return; }
+  el('prevWho').textContent = '(' + v.dba_name + ')';
+  el('preview').textContent = 'To: '+(v.email||'')+'\nSubject: '+fill(el('tSubject').value, v)+'\n\n'+fill(el('tBody').value, v);
+}
+function mailto(v){
+  return 'mailto:'+v.email+'?subject='+encodeURIComponent(fill(el('tSubject').value, v))+'&body='+encodeURIComponent(fill(el('tBody').value, v));
+}
+
+/* ---------------------------------------------------------------- queue ---- */
+function pendingIds(){
+  return Object.keys(SEL).filter(function(k){ return SEL[k] && !thisQuarter(SENT_LOCAL[k]||'') ; });
+}
+function progress(){
+  var ids = Object.keys(SEL).filter(function(k){ return SEL[k]; }), left = pendingIds().length;
+  if(!ids.length){ el('prog').textContent='Check vendors above to build the queue.'; return; }
+  var v = CURRENT ? byId(CURRENT) : null;
+  el('prog').innerHTML = (v ? 'Open in your mail app: <b>'+esc(v.dba_name)+'</b>. Send it there, then mark it sent. ' : '') + '<b>'+left+'</b> of '+ids.length+' left in the queue.';
+}
+function openOne(id){
+  var v = byId(id); if(!v || !v.email) return;
+  SEL[id] = true; CURRENT = id;
+  el('markBtn').disabled=false; el('skipBtn').disabled=false; el('nextBtn').disabled=true;
+  render();
+  window.location.href = mailto(v);
+}
+function openNext(){
+  var ids = pendingIds(); if(!ids.length) return;
+  var order = visible().map(function(v){ return v.vendor_id; }).filter(function(id){ return ids.indexOf(id)>=0; });
+  openOne(order[0] || ids[0]);
+}
+function finishCurrent(){
+  CURRENT = null;
+  el('markBtn').disabled=true; el('skipBtn').disabled=true;
+  var left = pendingIds().length;
+  if(!left){
+    var n = Object.keys(SEL).filter(function(k){ return SEL[k]; }).length;
+    el('doneBox').textContent = 'Queue finished. '+n+' vendor'+(n===1?'':'s')+' handled.';
+    el('doneBox').style.display='block';
+  }
+  render();
+  if(left) openNext();
+}
+function skipCurrent(){ if(CURRENT) delete SEL[CURRENT]; finishCurrent(); }
+function markCurrent(){
+  if(!CURRENT) return;
+  var v = byId(CURRENT), d = today();
+  SENT_LOCAL[v.vendor_id] = d; saveLocalSent();
+  if(el('stamp').checked) stamp(v, d);
+  finishCurrent();
+}
+function stamp(v, d){
+  var notes = String(v.internal_notes||'');
+  notes = STAMP_RE.test(notes) ? notes.replace(STAMP_RE, 'BC notice sent '+d) : ('BC notice sent '+d + (notes ? ' | '+notes : ''));
+  v.internal_notes = notes;
+  post({kind:'vd_patch', patches:[{vendor_id:v.vendor_id, internal_notes:notes}]}).then(function(r){
+    if(!r.ok){ el('sendErr').textContent='Sent, but the directory stamp for '+v.dba_name+' failed: '+(r.error||'unknown'); el('sendErr').style.display='block'; }
+  }).catch(function(){ el('sendErr').textContent='Sent, but the directory stamp for '+v.dba_name+' could not reach the server.'; el('sendErr').style.display='block'; });
+}
+
+/* --------------------------------------------------- local sent fallback ---- */
+var S_KEY = 'cw_bc_notice_sent';
+function loadLocalSent(){ try{ SENT_LOCAL = JSON.parse(localStorage.getItem(S_KEY)||'{}')||{}; }catch(e){ SENT_LOCAL={}; } }
+function saveLocalSent(){ try{ localStorage.setItem(S_KEY, JSON.stringify(SENT_LOCAL)); }catch(e){} }
+
+el('pass').addEventListener('keydown', function(e){ if(e.key==='Enter') unlock(); });
+boot();
+</script>
+</body>
+</html>
