@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Background Check Notices | CW Ops Hub</title>
 <!--
-  Background Check Notices. Build 2026-09-03b (Gmail send via vd_bc_send, or mailto).
+  Background Check Notices. Build 2026-09-04c (wording v2: provider-neutral, property not account).
 
   Emails each checked janitorial vendor the list of cleaners City Wide has a
   background check on file for, with the Asana form link for anyone missing.
@@ -198,9 +198,10 @@ var SEL = {};            // vendor_id -> true
 var CURRENT = null;      // vendor_id currently open in the mail app
 var SENT_LOCAL = {};     // vendor_id -> date, this browser, fallback when stamping is off
 
+var T_VERSION = 2;   // bump when the default wording changes so stale saved copies are dropped
 var DEFAULT_T = {
   subject: "Background checks on file for {dba}",
-  body: "Hi {contact},\n\nAudit season is coming up.\n\nHere is who we have background checks on file for at {dba}:\n\n{names}\n\nYour agreement requires a background check on file for everyone working in a City Wide account. For anyone on your crew who is not on file, use the form below. Same form whether you want City Wide to run the check or you already ran one and want to send it over.\n\n{link}\n\nQuestions go to your FSM.\n\nThank you,",
+  body: "Hi {contact},\n\nAudit season is coming up.\n\nHere is who we have background checks on file for at {dba}:\n\n{names}\n\nYour agreement requires a background check on file for every person working at any property you service for City Wide. The check does not have to run through City Wide. Any provider works as long as it includes a Social Security address trace and a nationwide criminal database search. Use the button below to upload one you already have, or to have City Wide run it if you would rather. Either way, we are happy to help.\n\n{link}\n\nQuestions go to your FSM.\n\nThank you,",
   none: "We do not have anyone listed for {dba} yet."
 };
 
@@ -335,10 +336,10 @@ function byId(id){ return VENDORS.filter(function(v){ return v.vendor_id===id; }
 var T_KEY = 'cw_bc_notice_template';
 function loadTemplate(){
   var t = DEFAULT_T;
-  try{ var raw = localStorage.getItem(T_KEY); if(raw) t = Object.assign({}, DEFAULT_T, JSON.parse(raw)); }catch(e){}
+  try{ var raw = localStorage.getItem(T_KEY); if(raw){ var sv = JSON.parse(raw); if(sv && sv.v === T_VERSION) t = Object.assign({}, DEFAULT_T, sv); } }catch(e){}
   el('tSubject').value=t.subject; el('tBody').value=t.body; el('tNone').value=t.none;
 }
-function saveTemplate(){ try{ localStorage.setItem(T_KEY, JSON.stringify({subject:el('tSubject').value, body:el('tBody').value, none:el('tNone').value})); }catch(e){} }
+function saveTemplate(){ try{ localStorage.setItem(T_KEY, JSON.stringify({v:T_VERSION, subject:el('tSubject').value, body:el('tBody').value, none:el('tNone').value})); }catch(e){} }
 function resetTemplate(){ try{ localStorage.removeItem(T_KEY); }catch(e){} loadTemplate(); preview(); }
 function firstName(v){
   var c = String(v.contact_name||'').trim();
