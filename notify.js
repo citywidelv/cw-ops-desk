@@ -1,4 +1,4 @@
-/* CW Ops Hub: Email Vendors panel (build 2026-09-04b)
+/* CW Ops Hub: Email Vendors panel (build 2026-09-04c)
    Shared by post.html (right after a posting goes live) and postings.html
    (any open posting). Pulls the live Vendor Directory (vd_list), matches
    vendors to the posting's region and trade, and opens the poster's own mail
@@ -23,7 +23,6 @@
 (function (w) {
   var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
   var HUB = "https://citywidelv.github.io/cw-vendor-hub/";
-  var PACKET = HUB + "new-vendors.html";
   var MAILTO_MAX = 1800;   // Outlook truncates long mailto links; batch above this
 
   // Posting trade (post.html select text) -> Vendor Directory service slugs.
@@ -83,7 +82,10 @@
     ".cwn .noem{padding:8px 14px;font-size:12px;color:#636466;border-top:1px solid #F0F0F0}" +
     ".cwn .others.closed .grp{display:none}" +
     ".cwn .pv{background:#2D2A26;color:#fff;border-radius:8px;padding:12px 16px;font-size:12.5px;white-space:pre-wrap;line-height:1.5;margin:14px 0}" +
-    ".cwn .pv b{color:#E5B423;font-size:10px;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:4px}" +
+    ".cwn .pv b{color:#E5B423;font-size:10px;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px}" +
+    ".cwn .pv input,.cwn .pv textarea{width:100%;font-family:inherit;font-size:13px;color:#2D2A26;background:#fff;border:1.5px solid #E5E5E5;border-radius:8px;padding:9px 12px;line-height:1.5}" +
+    ".cwn .pv input{margin-bottom:8px;font-weight:700}.cwn .pv textarea{resize:vertical;min-height:200px}" +
+    ".cwn .pv input:focus,.cwn .pv textarea:focus{outline:none;border-color:#D22730}" +
     ".cwn .acts{display:flex;gap:10px;flex-wrap:wrap;align-items:center}" +
     ".cwn .btn{font-family:inherit;font-size:14px;font-weight:700;background:#D22730;color:#fff;border:none;border-radius:8px;padding:12px 22px;cursor:pointer;text-decoration:none;display:inline-block}" +
     ".cwn .btn:hover{background:#B01F27}.cwn .btn.ghost{background:#fff;color:#2D2A26;border:2px solid #E5E5E5}" +
@@ -131,20 +133,19 @@
     var trade = str(p.trade).replace(/ \(.*\)/, "");
     var subject = "New " + trade + " Opportunity: " + (str(p.facility_type) || str(p.title)) +
       (str(p.area) ? ", " + str(p.area) : "") + ". " + payLine(p, true);
-    var lines = ["New City Wide opportunity.", ""];
+    var lines = ["Hi team,", "", "We have a new opportunity and we would love to have you on it.", ""];
     lines.push("Industry: " + (str(p.facility_type) || "See posting"));
     lines.push("Area: " + (str(p.area) || str(p.region)));
     lines.push("Size: " + (num(p.sqft) ? num(p.sqft) + " sq ft" : "See posting"));
     lines.push("Restrooms: " + (num(p.restrooms) || "See posting"));
     lines.push("Pay: " + payLine(p));
     lines.push("");
-    lines.push("Want it? See the full posting and tell us you are interested:");
+    lines.push("See the full posting and let us know you are interested here:");
     lines.push(detailLink(p));
     lines.push("");
-    if (str(p.deadline)) { lines.push("Respond by " + str(p.deadline) + "."); lines.push(""); }
-    lines.push("No vendor packet on file yet? Sign it here:");
-    lines.push(PACKET);
+    lines.push((str(p.deadline) ? "Please respond by " + str(p.deadline) + ". " : "") + "First qualified answers get the walkthrough.");
     lines.push("");
+    lines.push("Thank you,");
     lines.push(str(p.contact_name) || "City Wide Operations");
     lines.push("City Wide Facility Solutions");
     return { subject: subject, body: lines.join("\r\n") };
@@ -262,7 +263,9 @@
       h += '<div class="msg" style="margin-top:10px">No email on file (cannot be included): ' +
         esc(pick.noEmail.map(function (v) { return v.name; }).join(", ")) + '</div>';
     }
-    h += '<div class="pv"><b>Email they will get</b>' + esc("Subject: " + mail.subject) + "\n\n" + esc(mail.body) + '</div>' +
+    h += '<div class="pv"><b>The email. Edit it here before you open it</b>' +
+      '<input type="text" class="ed-subj" value="' + esc(mail.subject) + '">' +
+      '<textarea class="ed-body" rows="16">' + esc(mail.body) + '</textarea></div>' +
       '<div class="acts"><span class="tot"></span><span class="btns"></span>' +
       '<button type="button" class="btn ghost" data-act="copy">Copy addresses</button><span class="msg copied"></span></div>' +
       '<div class="warn hidden" data-w="batch"></div>';
@@ -331,7 +334,8 @@
       });
       var emails = selected();
       box.querySelector(".tot").textContent = emails.length + " vendor" + (emails.length === 1 ? "" : "s") + " in BCC";
-      var base = "mailto:?subject=" + encodeURIComponent(mail.subject) + "&body=" + encodeURIComponent(mail.body) + "&bcc=";
+      var subj = box.querySelector(".ed-subj").value, body = box.querySelector(".ed-body").value.replace(/\r?\n/g, "\r\n");
+      var base = "mailto:?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(body) + "&bcc=";
       var batches = [], cur = [];
       emails.forEach(function (em) {
         if (cur.length && (base + encodeURIComponent(cur.concat([em]).join(","))).length > MAILTO_MAX) { batches.push(cur); cur = []; }
@@ -354,6 +358,8 @@
       if (batches.length > 1) wn.textContent = "Mail apps cap how many addresses one link can carry, so this list is split into " +
         batches.length + " emails. Send each one, or click Copy addresses and paste everyone into the BCC of a single email.";
     }
+    box.querySelector(".ed-subj").addEventListener("input", update);
+    box.querySelector(".ed-body").addEventListener("input", update);
     update();
   }
 
