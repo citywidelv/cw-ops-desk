@@ -65,8 +65,12 @@ var VD_BC_HEADERS = [
   'roster_company_as_typed', 'notes', 'added',
   // Sep 4 2026: BOM Hub review columns. result is the Business Operations
   // Manager's call (Pass / Fail / Pending); status keeps driving the Ops Hub list.
-  'result', 'result_date', 'reviewed_by', 'market'
+  'result', 'result_date', 'reviewed_by', 'market',
+  // Sep 4 2026: source = who ran the check. 'City Wide' (Verified First, ordered by
+  // City Wide) or 'Vendor submitted' (the vendor uploaded a passing check they ran).
+  'source'
 ];
+var VD_BC_SOURCES = ['City Wide', 'Vendor submitted'];
 var VD_BC_STATUS = ['Cleared', 'Pending', 'Removed'];
 var VD_BC_RESULT = ['Pass', 'Fail', 'Pending'];
 var VD_BC_TYPES = ['Standard', '10-Year', 'Standard + 10-Year'];
@@ -335,6 +339,8 @@ function vdSetup_(data) {
     sh.getRange(2, VD_BC_HEADERS.indexOf('result') + 1, 2000, 1).setDataValidation(rr);
     var tr = SpreadsheetApp.newDataValidation().requireValueInList(VD_BC_TYPES, true).build();
     sh.getRange(2, VD_BC_HEADERS.indexOf('check_type') + 1, 2000, 1).setDataValidation(tr);
+    var sr = SpreadsheetApp.newDataValidation().requireValueInList(VD_BC_SOURCES, true).build();
+    sh.getRange(2, VD_BC_HEADERS.indexOf('source') + 1, 2000, 1).setDataValidation(sr);
     sh.setColumnWidth(VD_BC_HEADERS.indexOf('vendor') + 1, 260);
     sh.setColumnWidth(VD_BC_HEADERS.indexOf('last_name') + 1, 150);
     sh.setColumnWidth(VD_BC_HEADERS.indexOf('first_name') + 1, 130);
@@ -516,7 +522,8 @@ function vdCleared_(ss, vendors) {
       if (!id) { unmatched.push({ vendor: vdStr_(r.vendor), name: name, tab: b.name }); return; }
       out[id] = out[id] || [];
       out[id].push({ name: name, tab: b.key, last: vdStr_(r.last_name), first: vdStr_(r.first_name),
-                     check_type: vdStr_(r.check_type), result: vdStr_(r.result), ten_year: vdYes_(r.ten_year) });
+                     check_type: vdStr_(r.check_type), result: vdStr_(r.result), ten_year: vdYes_(r.ten_year),
+                     source: vdStr_(r.source) || 'City Wide' });
     });
   });
   Object.keys(out).forEach(function (k) {
@@ -524,7 +531,7 @@ function vdCleared_(ss, vendors) {
       var x = (a.last + ' ' + a.first).toLowerCase(), y = (b.last + ' ' + b.first).toLowerCase();
       return x < y ? -1 : x > y ? 1 : 0;
     });
-    out[k] = out[k].map(function (p) { return { name: p.name, tab: p.tab, check_type: p.check_type, result: p.result, ten_year: p.ten_year }; });
+    out[k] = out[k].map(function (p) { return { name: p.name, tab: p.tab, check_type: p.check_type, result: p.result, ten_year: p.ten_year, source: p.source }; });
   });
   return { byId: out, unmatched: unmatched.slice(0, 50), unmatched_count: unmatched.length, rows: n };
 }
@@ -613,12 +620,49 @@ function vdList_(data) {
   var clearedOut = {};
   vendors.forEach(function (v) { if (cleared.byId[v.vendor_id]) clearedOut[v.vendor_id] = cleared.byId[v.vendor_id]; });
 
+  // Sep 4 2026: bc_all is the full picture per vendor for the notices page
+  // (bc-notices.html): everyone on the tabs including Fail and Pending, so the
+  // vendor email can say passed / failed / pending / vendor submitted per name.
+  // Still names + result only, never file numbers. Hidden vendors excluded.
+  var bcAll = {};
+  var vis = {};
+  vendors.forEach(function (v) { vis[v.vendor_id] = true; });
+  var byNameAll = {};
+  allRows.forEach(function (v) {
+    if (!v.dba_name) return;
+    byNameAll[v.dba_name.toLowerCase()] = v.vendor_id;
+    if (v.legal_name && !byNameAll[v.legal_name.toLowerCase()]) byNameAll[v.legal_name.toLowerCase()] = v.vendor_id;
+  });
+  VD_BC_TABS.forEach(function (b) {
+    var sh = ss.getSheetByName(b.name);
+    if (!sh) return;
+    vdRows_(sh).rows.forEach(function (r) {
+      var name = [vdStr_(r.first_name), vdStr_(r.last_name)].filter(function (x) { return x; }).join(' ');
+      if (!name) return;
+      var id = vdStr_(r.vendor_id) || byNameAll[vdStr_(r.vendor).toLowerCase()] || '';
+      if (!id || !vis[id]) return;
+      bcAll[id] = bcAll[id] || [];
+      bcAll[id].push({ name: name, tab: b.key, status: vdStr_(r.status), result: vdStr_(r.result),
+                       check_type: vdStr_(r.check_type) || 'Standard', ten_year: vdYes_(r.ten_year),
+                       source: vdStr_(r.source) || 'City Wide', result_date: vdStr_(r.result_date),
+                       last: vdStr_(r.last_name), first: vdStr_(r.first_name) });
+    });
+  });
+  Object.keys(bcAll).forEach(function (k) {
+    bcAll[k].sort(function (a, b) {
+      var x = (a.last + ' ' + a.first).toLowerCase(), y = (b.last + ' ' + b.first).toLowerCase();
+      return x < y ? -1 : x > y ? 1 : 0;
+    });
+  });
+
   return vdOut_({
     ok: true, vendors: vendors, types: types, counts: counts,
     regions: VD_REGIONS.map(function (r) { return { key: r.key, name: r.name }; }),
     region_counts: regionCounts,
     status_counts: statusCounts, total: vendors.length,
     cleared: clearedOut,
+    bc_all: bcAll,
+    bc_sources: VD_BC_SOURCES, bc_types: VD_BC_TYPES, bc_results: VD_BC_RESULT,
     cleared_meta: { rows: cleared.rows, unmatched_count: cleared.unmatched_count,
                     tabs: VD_BC_TABS.map(function (b) { return { key: b.key, name: b.name }; }) },
     vendor_tabs: VD_VENDOR_TABS.map(function (t) { return { key: t.key, name: t.name }; }),
@@ -1007,7 +1051,7 @@ function vdBcRows_(data) {
     });
   });
   return vdOut_({ ok: true, rows: rows, headers: VD_BC_HEADERS, results: VD_BC_RESULT,
-                  types: VD_BC_TYPES, tabs: VD_BC_TABS });
+                  types: VD_BC_TYPES, sources: VD_BC_SOURCES, tabs: VD_BC_TABS });
 }
 
 // Add or update people. data.rows = [{ market:'lv'|'nnv', row?:n, vendor_id?, vendor?,
@@ -1058,6 +1102,7 @@ function vdBcUpsert_(data) {
         p.reviewed_by = p.result ? who : '';
       }
       if (p.check_type !== undefined) p.ten_year = /10-Year/.test(p.check_type) ? 'Yes' : '';
+      if (p.source !== undefined && p.source && VD_BC_SOURCES.indexOf(p.source) < 0) { errors.push('Bad source for ' + r.first_name + ' ' + r.last_name); return; }
       var i = Number(r.row) >= 2 ? Number(r.row) - 1 : -1;
       var k = [p.vendor_id || vdStr_(p.vendor).toLowerCase(), vdStr_(p.last_name).toLowerCase(), vdStr_(p.first_name).toLowerCase()].join('|');
       if (i < 0 || i >= vals.length) {
@@ -1075,6 +1120,7 @@ function vdBcUpsert_(data) {
         if (!vdStr_(p.first_name) && !vdStr_(p.last_name)) { errors.push('A person needs a name'); return; }
         if (!p.status) p.status = 'Cleared';
         if (!p.check_type) { p.check_type = 'Standard'; p.ten_year = ''; }
+        if (!p.source) p.source = 'City Wide';
         p.added = today;
         if (!p.most_recent_check) p.most_recent_check = today;
         if (!p.first_check) p.first_check = p.most_recent_check;

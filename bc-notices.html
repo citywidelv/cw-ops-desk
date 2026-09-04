@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Background Check Notices | CW Ops Hub</title>
 <!--
-  Background Check Notices. Build 2026-09-04d (wording v3: human closing line with the market DOO).
+  Background Check Notices. Build 2026-09-04e (wording v4: each name carries its result, check type, and whether the vendor submitted it; failed people optional).
 
   Emails each checked janitorial vendor the list of cleaners City Wide has a
   background check on file for, with the Asana form link for anyone missing.
@@ -65,6 +65,10 @@ table.vt tr.done td{color:var(--grey);}
 .pill.grey{background:#eee;color:var(--grey);}
 .names{display:none;margin-top:6px;font-size:11.5px;line-height:1.5;color:var(--black);}
 .names span{display:inline-block;background:#f2f2f2;border-radius:6px;padding:1px 7px;margin:0 4px 4px 0;}
+.names span.pass{background:#E7F6EE;color:#1E8E5A;}
+.names span.fail{background:#FBE9EA;color:#D22730;text-decoration:line-through;}
+.names span.pend{background:#FFF4D6;color:#B5780A;}
+.names span i{font-style:normal;font-size:9.5px;font-weight:700;margin-left:5px;opacity:.85;}
 tr.open .names{display:block;}
 .tog{border:0;background:none;color:var(--teal);font-size:11.5px;cursor:pointer;padding:0;font-family:inherit;text-decoration:underline;}
 .empty{color:var(--grey);font-size:12.5px;padding:16px 4px;}
@@ -138,7 +142,8 @@ pre.prev{white-space:pre-wrap;background:#fafafa;border:1px solid #e6e6e6;border
 
   <div class="card">
     <h2>Email wording</h2>
-    <p class="sub">Placeholders: {dba} {contact} {names} {count} {link} {market} {doo} (the market Director of Operations). Gmail sends add a City Wide Compliance footer with the market office; mail app sends get your own signature. Edits are kept on this browser.</p>
+    <p class="sub">Placeholders: {dba} {contact} {names} {count} {link} {market} {doo} (the market Director of Operations). {names} lists each person with the check type and where it stands (passed, pending, on file, or submitted by the vendor), as recorded on the <a href="https://citywidelv.github.io/cw-bom-hub/background-checks.html">BOM Hub</a>. Gmail sends add a City Wide Compliance footer with the market office; mail app sends get your own signature. Edits are kept on this browser.</p>
+    <p class="sub"><label class="chk" style="margin:0;"><input type="checkbox" id="inclFail" checked> Include people who did not clear (shown as "Did not clear", no reason given)</label></p>
     <label>Subject</label>
     <input type="text" id="tSubject">
     <label>Body when names are on file</label>
@@ -199,10 +204,10 @@ var SEL = {};            // vendor_id -> true
 var CURRENT = null;      // vendor_id currently open in the mail app
 var SENT_LOCAL = {};     // vendor_id -> date, this browser, fallback when stamping is off
 
-var T_VERSION = 3;   // bump when the default wording changes so stale saved copies are dropped
+var T_VERSION = 4;   // bump when the default wording changes so stale saved copies are dropped
 var DEFAULT_T = {
   subject: "Background checks on file for {dba}",
-  body: "Hi {contact},\n\nAudit season is coming up.\n\nHere is who we have background checks on file for at {dba}:\n\n{names}\n\nYour agreement requires a background check on file for every person working at any property you service for City Wide. The check does not have to run through City Wide. Any provider works as long as it includes a Social Security address trace and a nationwide criminal database search. Use the button below to upload one you already have, or to have City Wide run it if you would rather. Either way, we are happy to help.\n\n{link}\n\nIf you have any questions and want to speak to someone, reach out to the FSM who manages your accounts or {doo}, our Director of Operations.\n\nThank you,",
+  body: "Hi {contact},\n\nAudit season is coming up.\n\nHere is who we have background checks on file for at {dba}, and where each one stands:\n\n{names}\n\nYour agreement requires a background check on file for every person working at any property you service for City Wide. The check does not have to run through City Wide. Any provider works as long as it includes a Social Security address trace and a nationwide criminal database search. Use the button below to upload one you already have, or to have City Wide run it if you would rather. Either way, we are happy to help.\n\n{link}\n\nIf you have any questions and want to speak to someone, reach out to the FSM who manages your accounts or {doo}, our Director of Operations.\n\nThank you,",
   none: "We do not have anyone listed for {dba} yet."
 };
 
@@ -247,7 +252,15 @@ function boot(){
     }
     DATA = r;
     VENDORS = (r.vendors||[]).filter(function(v){ return v.janitorial; });
-    VENDORS.forEach(function(v){ v._names = ((r.cleared||{})[v.vendor_id]||[]).map(function(p){ return p.name; }); });
+    // Sep 4 2026: bc_all carries everyone on the tabs with result / type / source.
+    // _people = everyone the email can mention; _names = those still counted as on
+    // file (anyone not failed), which drives the counts and the zero-on-file logic.
+    VENDORS.forEach(function(v){
+      var all = ((r.bc_all||{})[v.vendor_id]||[]).filter(function(p){ return p.result === 'Fail' || p.status !== 'Removed'; });
+      if(!all.length) all = ((r.cleared||{})[v.vendor_id]||[]).map(function(p){ p.status = 'Cleared'; return p; });
+      v._people = all;
+      v._names = all.filter(function(p){ return p.result !== 'Fail'; }).map(function(p){ return p.name; });
+    });
     el('gate').style.display='none'; el('app').style.display='block';
 
     var meta = r.cleared_meta || {};
@@ -262,6 +275,7 @@ function boot(){
       el(id).addEventListener('input', render); el(id).addEventListener('change', render);
     });
     ['tSubject','tBody','tNone'].forEach(function(id){ el(id).addEventListener('input', function(){ saveTemplate(); preview(); }); });
+    el('inclFail').addEventListener('change', preview);
     el('market').addEventListener('change', buildStatus);
     buildStatus(); render();
   }).catch(function(e){ el('gateErr').textContent='Could not reach the server. '+e; el('gateErr').style.display='block'; });
@@ -311,7 +325,7 @@ function render(){
     html += '<tr data-id="'+esc(v.vendor_id)+'" class="'+(SEL[v.vendor_id]?'sel ':'')+(done?'done':'')+'">'
       + '<td><input type="checkbox" '+(SEL[v.vendor_id]?'checked':'')+(v.email?'':' disabled')+' onchange="toggleSel(\''+esc(v.vendor_id)+'\',this.checked)"></td>'
       + '<td><div class="dba">'+esc(v.dba_name)+'</div><div class="meta">'+esc(v.contact_name||'')+(v.contact_name?' &middot; ':'')+esc(v.vendor_id)+' &middot; '+esc(v.status||'')+'</div>'
-      + (n ? '<button class="tog" onclick="this.closest(\'tr\').classList.toggle(\'open\')">'+n+' name'+(n===1?'':'s')+'</button><div class="names">'+v._names.map(function(x){ return '<span>'+esc(x)+'</span>'; }).join('')+'</div>' : '')
+      + (v._people.length ? '<button class="tog" onclick="this.closest(\'tr\').classList.toggle(\'open\')">'+n+' name'+(n===1?'':'s')+(v._people.length>n ? ', '+(v._people.length-n)+' did not clear' : '')+'</button><div class="names">'+v._people.map(function(p){ return '<span class="'+personCls(p)+'" title="'+esc(personLine(p))+'">'+esc(p.name)+'<i>'+esc(personTag(p))+'</i></span>'; }).join('')+'</div>' : '')
       + '</td>'
       + '<td>'+(v.email ? esc(v.email) : '<span class="flag">No email on the directory record</span>')+'</td>'
       + '<td>'+(n ? '<span class="pill good">'+n+' on file</span>' : '<span class="pill zero">None on file</span>')+'</td>'
@@ -346,11 +360,33 @@ function firstName(v){
   var c = String(v.contact_name||'').trim();
   return c ? c.split(/\s+/)[0] : (v.dba_name||'').trim();
 }
+/* Per-person wording for the vendor. Result and source come from the BOM Hub.
+   Failed people are listed as "Did not clear" only when the checkbox is on, and
+   never with a reason. */
+function personLine(p){
+  var type = p.check_type || 'Standard';
+  var t = type === '10-Year' ? '10-Year check' : type === 'Standard + 10-Year' ? 'Standard and 10-Year checks' : 'Standard check';
+  if(p.result === 'Pass') return p.name + ': passed, ' + t + (p.source === 'Vendor submitted' ? ' submitted by you' : ' run by City Wide');
+  if(p.result === 'Fail') return p.name + ': did not clear';
+  if(p.result === 'Pending') return p.name + ': pending, ' + t + ' in progress';
+  return p.name + ': ' + t + ' on file' + (p.source === 'Vendor submitted' ? ', submitted by you' : '');
+}
+function personTag(p){
+  var type = p.check_type === '10-Year' ? '10-Yr' : p.check_type === 'Standard + 10-Year' ? 'Std + 10-Yr' : 'Std';
+  var r = p.result === 'Pass' ? 'passed' : p.result === 'Fail' ? 'did not clear' : p.result === 'Pending' ? 'pending' : 'on file';
+  return type + ' ' + r + (p.source === 'Vendor submitted' ? ', vendor' : '');
+}
+function personCls(p){ return p.result === 'Pass' ? 'pass' : p.result === 'Fail' ? 'fail' : p.result === 'Pending' ? 'pend' : ''; }
+function peopleForEmail(v){
+  var incl = el('inclFail') && el('inclFail').checked;
+  return (v._people||[]).filter(function(p){ return p.result !== 'Fail' || incl; });
+}
 function fill(tpl, v){
   var mkKey = el('market').value, mk = MARKET_NAME[mkKey], doo = MARKET_DOO[mkKey] || MARKET_DOO.lv;
-  var names = v._names.length ? v._names.map(function(x){ return '- '+x; }).join('\n') : '';
+  var list = peopleForEmail(v);
+  var names = list.length ? list.map(function(p){ return '- '+personLine(p); }).join('\n') : '';
   var out = tpl;
-  if(!v._names.length && /\{names\}/.test(tpl)){
+  if(!list.length && /\{names\}/.test(tpl)){
     // No one on file: drop the {names} paragraph and replace the paragraph before
     // it (the "here is who" intro) with the no-one-on-file sentence.
     var paras = tpl.split(/\n\n+/), i = -1;
