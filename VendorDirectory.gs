@@ -753,6 +753,7 @@ var VD_BC_LOG_HEADERS = ['sent', 'test', 'batch_id', 'market', 'vendor_id', 'ven
   'subject', 'names_on_file', 'status', 'error'];
 var VD_BC_BATCH_MAX = 50;
 var VD_BC_SENDER = 'City Wide Compliance';
+var VD_BC_LINK_TEXT = 'Upload or Request a Background Check';
 
 function vdBcSend_(data) {
   var rows = (data && data.rows) || [];
@@ -840,6 +841,11 @@ function vdBcHtml_(text, mk, test, realTo) {
       return '<ul style="margin:0 0 14px;padding-left:22px;">' + lines.map(function (l) {
         return '<li style="margin:0 0 4px;">' + vdBcEsc_(l.replace(/^\s*-\s+/, '')) + '</li>';
       }).join('') + '</ul>';
+    }
+    // A paragraph that is only a URL (the {link} line) becomes a button.
+    if (lines.length === 1 && /^https?:\/\/\S+$/.test(lines[0].trim())) {
+      return '<p style="margin:4px 0 18px;"><a href="' + vdBcEsc_(lines[0].trim()) + '" style="display:inline-block;background:#D22730;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:6px;">' +
+        VD_BC_LINK_TEXT + '</a></p>';
     }
     var html = lines.map(vdBcEsc_).join('<br>');
     html = html.replace(/(https?:\/\/[^\s<]+)/g, function (u) {
