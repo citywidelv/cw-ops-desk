@@ -637,6 +637,19 @@ function vdNextRow_(sh) {
   return vals.length + 1;
 }
 
+// Background check tabs: parked people have a blank vendor_id, so scanning column A
+// (vdNextRow_) lands on a real person and overwrites them (happened once, Sep 4 2026,
+// restored). First row with no last name AND no first name is the real end.
+function vdBcNextRow_(sh) {
+  var last = Math.max(sh.getLastRow(), 1);
+  var l = VD_BC_HEADERS.indexOf('last_name') + 1, f = VD_BC_HEADERS.indexOf('first_name') + 1;
+  var vals = sh.getRange(1, l, last, f - l + 1).getValues();
+  for (var i = 1; i < vals.length; i++) {
+    if (!vdStr_(vals[i][0]) && !vdStr_(vals[i][vals[i].length - 1])) return i + 1;
+  }
+  return vals.length + 1;
+}
+
 function vdNextId_(rows) {
   var max = 0;
   rows.forEach(function (r) {
@@ -938,7 +951,7 @@ function vdBcSeed_(data) {
       out.push(VD_BC_HEADERS.map(function (h) { return r[h] == null ? '' : String(r[h]); }));
     });
     if (out.length) {
-      sh.getRange(vdNextRow_(sh), 1, out.length, VD_BC_HEADERS.length).setValues(out);
+      sh.getRange(vdBcNextRow_(sh), 1, out.length, VD_BC_HEADERS.length).setValues(out);
       added += out.length;
     }
   });
@@ -1071,7 +1084,7 @@ function vdBcUpsert_(data) {
     });
     if (headFix || updated) rng.setValues(vals);
     if (appends.length) {
-      var at = vdNextRow_(sh);
+      var at = vdBcNextRow_(sh);
       sh.getRange(at, 1, appends.length, VD_BC_HEADERS.length).setValues(appends);
       appends.forEach(function (a, j) { out.push({ row: at + j, market: b.key, vendor_id: a[col.vendor_id] }); });
       added += appends.length;
