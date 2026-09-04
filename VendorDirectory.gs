@@ -173,6 +173,7 @@ function vdDispatch(data) {
   if (kind === 'vd_bom_asana') return vdBomAsana_(data);
   if (kind === 'vd_bc_rows') return vdBcRows_(data);
   if (kind === 'vd_bc_upsert') return vdBcUpsert_(data);
+  if (kind === 'vd_ids_repair') return data._bom ? vdOut_({ ok: false, error: 'Team passcode required.' }) : vdIdsRepair_(data);
   if (kind === 'vd_setup') return vdSetup_(data);
   if (kind === 'vd_seed')  return vdSeed_(data);
   if (kind === 'vd_append') return vdAppend_(data);
@@ -700,7 +701,55 @@ function vdNextId_(rows) {
     var m = /^V-(\d+)$/.exec(vdStr_(r.vendor_id));
     if (m) max = Math.max(max, Number(m[1]));
   });
-  return 'V-' + ('000' + (max + 1)).slice(-3);
+  // Sep 4 2026: the book passed V-999, and slice(-3) wrapped V-1000 to V-000 and
+  // then handed out V-001, V-002... again (34 duplicate ids, repaired the same day).
+  // Pad to at least three digits, never truncate.
+  var n = String(max + 1);
+  while (n.length < 3) n = '0' + n;
+  return 'V-' + n;
+}
+
+// Sep 4 2026 repair, kept for reuse: any vendor_id that appears more than once
+// keeps its first (lowest row, first tab) owner; every later duplicate gets a fresh
+// id. Returns the moves so callers can re-point background check rows.
+// {kind:'vd_ids_repair', passcode:TEAM, dry:1} previews without writing.
+function vdIdsRepair_(data) {
+  var ss = vdSS_();
+  var all = vdAllRows_(ss);
+  var groups = {}, order = [], moves = [];
+  var nextN = Number(vdNextId_(all).slice(2));
+  var byTab = {};
+  all.forEach(function (r) {
+    var id = vdStr_(r.vendor_id);
+    if (!id) return;
+    if (!groups[id]) { groups[id] = []; order.push(id); }
+    groups[id].push(r);
+  });
+  // The row that was NOT written by a bulk cleanup keeps the id; ties go to the
+  // earliest row. Everyone else in the group moves.
+  var bulk = /roster cleanup|import/i;
+  order.forEach(function (id) {
+    var g = groups[id];
+    if (g.length < 2) return;
+    var keep = g.filter(function (r) { return !bulk.test(vdStr_(r.added_by)); })[0] || g[0];
+    g.forEach(function (r) {
+      if (r === keep) return;
+      var nid = 'V-' + String(nextN++);
+      moves.push({ tab: r._tab, row: r._row, dba: r.dba_name, old: id, id: nid, kept: keep.dba_name });
+      byTab[r._tab] = byTab[r._tab] || [];
+      byTab[r._tab].push({ row: r._row, id: nid });
+    });
+  });
+  if (!data.dry) {
+    VD_VENDOR_TABS.forEach(function (t) {
+      var list = byTab[t.name] || [];
+      if (!list.length) return;
+      var sh = ss.getSheetByName(t.name);
+      var col = VD_HEADERS.indexOf('vendor_id') + 1;
+      list.forEach(function (m) { sh.getRange(m.row, col).setValue(m.id); });
+    });
+  }
+  return vdOut_({ ok: true, moves: moves, dry: !!data.dry });
 }
 
 // Add a vendor, or update one when vendor_id is supplied. Only fields present in
