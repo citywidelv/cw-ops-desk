@@ -3,7 +3,7 @@
 // File in the CW Solicitations Apps Script project.
 // Routing: doPost in Code.gs routes any kind starting 'vd_' to vdDispatch(data).
 // Kinds: vd_setup, vd_seed, vd_append, vd_region_backfill, vd_list, vd_save,
-//        vd_patch, vd_types, vd_intake, vd_bc_seed, vd_bc_list
+//        vd_patch, vd_types, vd_intake, vd_bc_seed, vd_bc_list, vd_bc_send
 // Aug 22 2026: VD_HEADERS gained last_audit, audit_result, audit_next_due, audit_pdf,
 // written by VendorAudit.gs and shown on vendors.html.
 //
@@ -157,6 +157,7 @@ function vdDispatch(data) {
   if (kind === 'vd_types') return vdTypes_(data);
   if (kind === 'vd_bc_seed') return vdBcSeed_(data);
   if (kind === 'vd_bc_list') return vdBcList_(data);
+  if (kind === 'vd_bc_send') return vdBcSend_(data);
   return vdOut_({ ok: false, error: 'Unknown vd kind' });
 }
 
@@ -687,11 +688,16 @@ function vdSave_(data) {
 function vdPatch_(data) {
   var patches = (data && data.patches) || [];
   if (!patches.length) return vdOut_({ ok: false, error: 'No patches' });
-
   var ss = vdSS_();
-  var sheets = vdVendorSheets_(ss);
-  if (!sheets.length) return vdOut_({ ok: false, error: 'Run vd_setup first.' });
+  if (!vdVendorSheets_(ss).length) return vdOut_({ ok: false, error: 'Run vd_setup first.' });
+  var r = vdPatchCore_(ss, patches);
+  return vdOut_({ ok: true, applied: r.applied, fields: r.fields, missing: r.missing });
+}
 
+// Sep 3 2026: the in-memory patch loop split out of vdPatch_ so vd_bc_send can
+// stamp internal_notes after a batch without a second round trip from the page.
+function vdPatchCore_(ss, patches) {
+  var sheets = vdVendorSheets_(ss);
   var col = {};
   VD_HEADERS.forEach(function (h, i) { col[h] = i; });
   var today = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd');
@@ -729,7 +735,131 @@ function vdPatch_(data) {
   });
 
   Object.keys(wanted).forEach(function (id) { if (!found[id]) missing.push(id); });
-  return vdOut_({ ok: true, applied: applied, fields: fields, missing: missing });
+  return { applied: applied, fields: fields, missing: missing };
+}
+
+// ------------------------------------------------------ background check notices
+
+// Sep 3 2026. Sends the "who we have background checks on file for" notice to
+// each vendor in the batch from the platform Gmail (display name City Wide
+// Compliance, replies to the market compliance mailbox), the same way
+// Insurance.gs sends COI requests. The page (bc-notices.html) fills the
+// subject and body per vendor; this side wraps the text in the branded shell,
+// sends, logs a row on the BC Notices tab of the directory sheet, and stamps
+// internal_notes so the page can show the last notice date. Test mode sends
+// every email to data.test_to instead and still logs, flagged test=TRUE.
+var VD_BC_LOG_TAB = 'BC Notices';
+var VD_BC_LOG_HEADERS = ['sent', 'test', 'batch_id', 'market', 'vendor_id', 'vendor', 'to',
+  'subject', 'names_on_file', 'status', 'error'];
+var VD_BC_BATCH_MAX = 50;
+var VD_BC_SENDER = 'City Wide Compliance';
+
+function vdBcSend_(data) {
+  var rows = (data && data.rows) || [];
+  if (!rows.length) return vdOut_({ ok: false, error: 'No vendors in the batch.' });
+  if (rows.length > VD_BC_BATCH_MAX) {
+    return vdOut_({ ok: false, error: 'Batch of ' + rows.length + ' is over the limit of ' +
+      VD_BC_BATCH_MAX + '. Send it in smaller runs.' });
+  }
+  var mkName = String(data.market || '').toLowerCase() === 'nnv' ? 'Northern Nevada' : 'Las Vegas';
+  var mk = (typeof INS_MARKETS !== 'undefined' && INS_MARKETS[mkName]) || null;
+  if (!mk) return vdOut_({ ok: false, error: 'Market table missing (Insurance.gs).' });
+
+  var test = data.test === true || String(data.test).toUpperCase() === 'TRUE';
+  var testTo = vdStr_(data.test_to);
+  if (test && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(testTo)) {
+    return vdOut_({ ok: false, error: 'Test mode needs a valid test address.' });
+  }
+
+  var quota = -1;
+  try { quota = MailApp.getRemainingDailyQuota(); } catch (e) {}
+  if (quota >= 0 && quota < rows.length) {
+    return vdOut_({ ok: false, error: 'Only ' + quota + ' emails left on today\'s shared Google quota, and this batch needs ' +
+      rows.length + '. Nothing was sent. Send fewer, or use the mail app option.' });
+  }
+
+  var ss = vdSS_();
+  var log = ss.getSheetByName(VD_BC_LOG_TAB);
+  if (!log) {
+    log = ss.insertSheet(VD_BC_LOG_TAB);
+    log.getRange(1, 1, 1, VD_BC_LOG_HEADERS.length).setValues([VD_BC_LOG_HEADERS]).setFontWeight('bold');
+    log.setFrozenRows(1);
+  }
+  var now = new Date();
+  var stamp = Utilities.formatDate(now, 'America/Los_Angeles', 'yyyy-MM-dd HH:mm');
+  var batchId = 'BC-B-' + Utilities.formatDate(now, 'America/Los_Angeles', 'yyMMdd') + '-' +
+    Math.random().toString(36).slice(2, 5).toUpperCase();
+
+  var results = [], logRows = [], patches = [];
+  rows.forEach(function (r) {
+    var to = vdStr_(r.to), subject = vdStr_(r.subject), body = String(r.body || '');
+    var out = { vendor_id: vdStr_(r.vendor_id), vendor: vdStr_(r.vendor), to: to, status: 'sent', error: '' };
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) { out.status = 'skipped'; out.error = 'Bad email address'; }
+    else if (!subject || !body.trim()) { out.status = 'skipped'; out.error = 'Empty subject or body'; }
+    else {
+      try {
+        MailApp.sendEmail({
+          to: test ? testTo : to,
+          replyTo: mk.compliance,
+          name: VD_BC_SENDER,
+          subject: (test ? '[TEST for ' + to + '] ' : '') + subject,
+          htmlBody: vdBcHtml_(body, mk, test, to),
+          body: (test ? 'TEST. Would have gone to ' + to + '\n\n' : '') + body + '\n\n' + vdBcFooterText_(mk)
+        });
+        if (r.notes != null && out.vendor_id) patches.push({ vendor_id: out.vendor_id, internal_notes: String(r.notes) });
+      } catch (e) { out.status = 'failed'; out.error = String(e && e.message || e); }
+    }
+    results.push(out);
+    logRows.push([stamp, test, batchId, mkName, out.vendor_id, out.vendor, to, subject,
+      Number(r.names_on_file) || 0, out.status, out.error]);
+  });
+  if (logRows.length) log.getRange(log.getLastRow() + 1, 1, logRows.length, VD_BC_LOG_HEADERS.length).setValues(logRows);
+
+  var stamped = 0;
+  if (patches.length && !test) {
+    try { stamped = vdPatchCore_(ss, patches).applied; } catch (e) {}
+  }
+  var left = -1;
+  try { left = MailApp.getRemainingDailyQuota(); } catch (e) {}
+  return vdOut_({ ok: true, batch_id: batchId, test: test, results: results, stamped: stamped, quota_left: left });
+}
+
+function vdBcEsc_(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Plain text from the page -> simple HTML. Blank line = paragraph, lines that
+// start with "- " inside a paragraph = bullet list, bare URLs = links.
+function vdBcHtml_(text, mk, test, realTo) {
+  var logo = (typeof INS_LOGO !== 'undefined') ? INS_LOGO : 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
+  var paras = String(text).replace(/\r/g, '').split(/\n{2,}/);
+  var inner = paras.map(function (p) {
+    var lines = p.split('\n').filter(function (l) { return l.trim() !== ''; });
+    if (!lines.length) return '';
+    if (lines.every(function (l) { return /^\s*-\s+/.test(l); })) {
+      return '<ul style="margin:0 0 14px;padding-left:22px;">' + lines.map(function (l) {
+        return '<li style="margin:0 0 4px;">' + vdBcEsc_(l.replace(/^\s*-\s+/, '')) + '</li>';
+      }).join('') + '</ul>';
+    }
+    var html = lines.map(vdBcEsc_).join('<br>');
+    html = html.replace(/(https?:\/\/[^\s<]+)/g, function (u) {
+      return '<a href="' + u + '" style="color:#D22730;font-weight:bold;">' + u + '</a>';
+    });
+    return '<p style="margin:0 0 14px;">' + html + '</p>';
+  }).join('');
+  var banner = test ? '<div style="background:#fff6d8;border:1px solid #E5B423;padding:10px 14px;font-size:12px;margin:0 0 14px;">TEST. Live send would have gone to ' + vdBcEsc_(realTo) + '</div>' : '';
+  return '<div style="background:#f4f5f7;padding:24px 12px;font-family:Verdana,Geneva,Tahoma,sans-serif;color:#2D2A26;font-size:14px;line-height:1.55;">' +
+    '<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;">' +
+    '<tr><td style="padding:22px 28px 10px;"><img src="' + logo + '" alt="City Wide Facility Solutions" style="height:40px;width:auto;display:block;"></td></tr>' +
+    '<tr><td style="height:4px;background:#D22730;font-size:0;line-height:0;">&nbsp;</td></tr>' +
+    '<tr><td style="padding:22px 28px 8px;">' + banner + inner + '</td></tr>' +
+    '<tr><td style="padding:14px 28px 24px;border-top:1px solid #eee;font-size:11.5px;color:#636466;line-height:1.5;">' +
+    vdBcEsc_(mk.label) + '<br>' + vdBcEsc_(mk.entity) + '<br>' + vdBcEsc_(mk.addr1) + ', ' + vdBcEsc_(mk.addr2) +
+    '<br>Replies go to ' + vdBcEsc_(mk.compliance) + '</td></tr></table></div>';
+}
+
+function vdBcFooterText_(mk) {
+  return mk.label + '\n' + mk.entity + '\n' + mk.addr1 + ', ' + mk.addr2 + '\nReplies go to ' + mk.compliance;
 }
 
 // ------------------------------------------------------------ background checks
