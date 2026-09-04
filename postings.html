@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Active Postings | CW Ops Hub</title>
+<!-- build 2026-09-04a: open postings with the Email Vendors panel (notify.js) -->
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+a{color:var(--red)}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.head .bar{max-width:1080px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  border-left:2px solid var(--border);padding-left:14px}
+.head .t a{color:inherit;text-decoration:none}
+.head .badge{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--black);color:#fff;border-left:3px solid var(--gold);padding:4px 10px}
+.wrap{max-width:1080px;margin:0 auto;padding:26px 20px 60px}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 20px;max-width:66ch}
+.gatebox{max-width:380px;background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow);padding:24px;margin:18px 0;text-align:center}
+.gatebox input{width:100%;font-family:inherit;font-size:14px;border:1.5px solid var(--border);
+  border-radius:8px;padding:10px 12px;margin:12px 0;text-align:center}
+.btn{font-family:inherit;font-size:14px;font-weight:700;background:var(--red);color:#fff;border:none;
+  border-radius:8px;padding:11px 22px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn:hover{background:var(--red-dark)}
+.btn.ghost{background:#fff;color:var(--black);border:2px solid var(--border)}
+.btn.sm{font-size:12px;padding:7px 14px}
+#gmsg{font-size:12.5px;font-weight:700;color:var(--red)}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 20px}
+.tools input[type=search]{font-family:inherit;font-size:13px;border:1.5px solid var(--border);
+  border-radius:20px;padding:9px 16px;min-width:220px;background:#fff}
+.tools .fbtn{font-family:inherit;font-size:12.5px;font-weight:700;background:#fff;color:var(--black);
+  border:2px solid var(--border);border-radius:20px;padding:8px 14px;cursor:pointer}
+.tools .fbtn.on{background:var(--black);border-color:var(--black);color:#fff}
+.pcard{background:#fff;border:1px solid var(--border);border-left:5px solid var(--teal);border-radius:12px;
+  box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
+.pcard.project{border-left-color:var(--gold)}
+.phead{padding:16px 20px}
+.ptop{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ptop h2{font-size:16px;flex:1;min-width:220px}
+.pbadge{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:4px;padding:3px 9px}
+.pb-region{background:var(--black);color:#fff}
+.pb-contract{background:#E6F7F7;border:1px solid var(--teal);color:var(--black)}
+.pb-project{background:#FBF3D6;border:1px solid var(--gold);color:var(--black)}
+.facts{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:var(--grey)}
+.facts b{color:var(--black);font-weight:700}
+.facts .pay b{color:var(--red);font-size:14px}
+.pacts{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;padding-top:12px;border-top:1px dashed var(--border)}
+.pacts .meta{font-size:12px;color:var(--grey);margin-left:auto}
+.panel{padding:0 20px 20px}
+.panel.hidden{display:none}
+.state{background:#fff;border:1px dashed var(--border);border-radius:12px;padding:44px 24px;
+  text-align:center;color:var(--grey)}
+.state b{display:block;color:var(--black);font-size:16px;margin-bottom:6px}
+.hidden{display:none!important}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:24px}
+</style>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t"><a href="index.html">&larr; Ops Hub</a></span>
+  <span class="badge">Internal Team Use</span>
+</div></header>
+
+<div class="wrap">
+<h1>Active Postings</h1>
+<p class="lede">Every opportunity that is live on the vendor board right now. Click <b>Email Vendors</b> on any posting to open a short email in your own mail app with the right vendors in BCC. To take a posting down, check <b>Filled</b> on the Opportunities Tracker sheet.</p>
+
+<div id="gate" class="gatebox hidden">
+  <b>Team passcode</b>
+  <div style="font-size:12.5px;color:var(--grey)">Needed once to read the Vendor Directory.</div>
+  <input type="password" id="gpass" placeholder="Team passcode">
+  <button class="btn" id="ggo">Continue</button>
+  <div id="gmsg"></div>
+</div>
+
+<div class="tools">
+  <input type="search" id="q" placeholder="Search title, trade, area&hellip;">
+  <button class="fbtn on" data-f="all">Both Regions</button>
+  <button class="fbtn" data-f="Las Vegas">Las Vegas</button>
+  <button class="fbtn" data-f="Northern Nevada">Northern Nevada</button>
+  <a class="btn sm" href="post.html">+ Post an Opportunity</a>
+  <button class="btn ghost sm" id="reload" type="button">Refresh</button>
+</div>
+<div id="list"><div class="state">Loading&hellip;</div></div>
+</div>
+
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
+
+<script src="notify.js?v=20260904a"></script>
+<script>
+var FEED = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var KEY = "cwOpsHubPass";
+var FILTER = "all", QUERY = "", ITEMS = [], PENDING = null;
+
+function esc(s){var d=document.createElement("div");d.textContent=String(s==null?"":s);return d.innerHTML;}
+function money(v){
+  var n=Number(String(v==null?"":v).replace(/[$,]/g,""));
+  if(!isNaN(n)&&n>0)return "$"+n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  return String(v||"");
+}
+function num(v){var n=Number(String(v==null?"":v).replace(/,/g,""));return isNaN(n)||n<=0?"":n.toLocaleString("en-US");}
+function pass(){try{return localStorage.getItem(KEY)||"";}catch(e){return "";}}
+function parseDate(s){var d=new Date(String(s||""));return isNaN(d)?0:d.getTime();}
+
+function card(p){
+  var isP=String(p.type)==="project";
+  var pay=String(p.pay_type)==="set"&&p.pay_amount?money(p.pay_amount)+" "+(p.pay_period||"per month"):"Quote requested";
+  return '<div class="pcard'+(isP?' project':'')+'" data-id="'+esc(p.id)+'">'+
+    '<div class="phead"><div class="ptop"><h2>'+esc(p.title)+'</h2>'+
+    '<span class="pbadge pb-region">'+esc(p.region)+'</span>'+
+    '<span class="pbadge '+(isP?'pb-project':'pb-contract')+'">'+(isP?'One-Time Project':'Recurring Contract')+'</span></div>'+
+    '<div class="facts">'+
+    '<span>Trade <b>'+esc(p.trade)+'</b></span>'+
+    '<span>Industry <b>'+esc(p.facility_type||"")+'</b></span>'+
+    '<span>Area <b>'+esc(p.area||"")+'</b></span>'+
+    (num(p.sqft)?'<span>Size <b>'+num(p.sqft)+' sq ft</b></span>':'')+
+    (num(p.restrooms)?'<span>Restrooms <b>'+num(p.restrooms)+'</b></span>':'')+
+    '<span class="pay">Pay <b>'+esc(pay)+'</b></span>'+
+    (p.deadline?'<span>Respond by <b>'+esc(p.deadline)+'</b></span>':'')+
+    '</div>'+
+    '<div class="pacts">'+
+    '<button type="button" class="btn sm" data-act="email">Email Vendors</button>'+
+    '<a class="btn ghost sm" target="_blank" rel="noopener" href="https://citywidelv.github.io/cw-vendor-hub/respond.html?id='+encodeURIComponent(p.id)+'">View Posting</a>'+
+    '<a class="btn ghost sm" href="responses.html">Responses</a>'+
+    '<span class="meta">'+esc(p.id)+' &middot; posted '+esc(p.posted||"")+(p.contact_name?' by '+esc(p.contact_name):'')+'</span>'+
+    '</div></div>'+
+    '<div class="panel hidden"></div></div>';
+}
+function render(){
+  var q=QUERY.toLowerCase();
+  var rows=ITEMS.filter(function(p){
+    if(FILTER!=="all"&&String(p.region)!==FILTER)return false;
+    if(q){var hay=[p.title,p.trade,p.area,p.facility_type,p.id,p.contact_name].join(" ").toLowerCase();if(hay.indexOf(q)<0)return false;}
+    return true;
+  });
+  document.getElementById("list").innerHTML=rows.map(card).join("")||
+    '<div class="state"><b>No open postings</b>'+(ITEMS.length?'Nothing matches this filter.':'Post one and it shows up here and on the vendor board.')+'</div>';
+}
+function openPanel(cardEl,p){
+  var panel=cardEl.querySelector(".panel");
+  if(!panel.classList.contains("hidden")&&panel.innerHTML){panel.classList.add("hidden");return;}
+  panel.classList.remove("hidden");
+  if(!panel.innerHTML)CWNotify.render(panel,p,pass());
+  panel.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+document.getElementById("list").addEventListener("click",function(e){
+  var b=e.target.closest('[data-act="email"]');if(!b)return;
+  var cardEl=b.closest(".pcard"),id=cardEl.getAttribute("data-id");
+  var p=ITEMS.filter(function(x){return String(x.id)===id;})[0];if(!p)return;
+  if(!pass()){PENDING={cardEl:cardEl,p:p};showGate("");cardEl.scrollIntoView({behavior:"smooth",block:"start"});document.getElementById("gate").scrollIntoView({behavior:"smooth"});return;}
+  openPanel(cardEl,p);
+});
+function showGate(msg){
+  document.getElementById("gate").classList.remove("hidden");
+  document.getElementById("gmsg").textContent=msg||"";
+  document.getElementById("gpass").focus();
+}
+function tryPass(){
+  var v=document.getElementById("gpass").value.trim();if(!v)return;
+  // Validate by asking the directory for its list; the panel caches the answer.
+  fetch(FEED,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({kind:"vd_list",passcode:v})})
+    .then(function(r){return r.json();})
+    .then(function(r){
+      if(r&&r.ok){
+        try{localStorage.setItem(KEY,v);}catch(e){}
+        document.getElementById("gate").classList.add("hidden");
+        if(PENDING){openPanel(PENDING.cardEl,PENDING.p);PENDING=null;}
+      }else showGate((r&&r.error)||"Wrong passcode.");
+    }).catch(function(){showGate("Could not reach the service. Try again.");});
+}
+document.getElementById("ggo").addEventListener("click",tryPass);
+document.getElementById("gpass").addEventListener("keydown",function(e){if(e.key==="Enter")tryPass();});
+function load(){
+  document.getElementById("list").innerHTML='<div class="state">Loading&hellip;</div>';
+  fetch(FEED+"?t="+Date.now()).then(function(r){return r.json();}).then(function(r){
+    ITEMS=(r&&r.items)||[];
+    ITEMS.sort(function(a,b){return parseDate(b.posted)-parseDate(a.posted);});
+    render();
+  }).catch(function(){document.getElementById("list").innerHTML='<div class="state"><b>Could not load postings</b>Check your connection and refresh.</div>';});
+}
+Array.prototype.forEach.call(document.querySelectorAll(".fbtn"),function(b){
+  b.addEventListener("click",function(){
+    Array.prototype.forEach.call(document.querySelectorAll(".fbtn"),function(x){x.classList.remove("on");});
+    b.classList.add("on");FILTER=b.getAttribute("data-f");render();
+  });
+});
+document.getElementById("q").addEventListener("input",function(){QUERY=this.value.trim();render();});
+document.getElementById("reload").addEventListener("click",function(){if(window.CWNotify)CWNotify._reset();load();});
+load();
+</script>
+</body>
+</html>

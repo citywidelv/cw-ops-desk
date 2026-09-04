@@ -12,6 +12,7 @@ directory. Added: the Ops Wall (team announcements) fed by the Apps Script
 (auth response carries `announcements`; POST kind:"announcement" adds one).
 Every tool that was in the old directory is reachable from the dropdowns.
 Search now indexes the dropdown menus.
+build 2026-09-04: Active Postings (postings.html) added to the Opportunities menu and quick bar.
 build 2026-08-06: added Back to the Nevada Team Portal links (gate + header).
 build 2026-08-07: the Ops Wall MOVED to the Nevada Team Portal (citywidelv.github.io)
 as the Team Wall. Same Apps Script feed (auth response `announcements`, POST
@@ -463,7 +464,7 @@ search box to jump straight to what you need.</p>
 <h3>Finding your way around</h3>
 <p>Every tool, form, and calculator now lives in the menus above. Grouped the way we work:</p>
 <ul>
-<li><span>Opportunities</span> &nbsp;post, board, responses</li>
+<li><span>Opportunities</span> &nbsp;post, active postings, board, responses</li>
 <li><span>Vendors</span> &nbsp;packets, Exhibit A, resources</li>
 <li><span>Accounts &amp; Buildings</span> &nbsp;sheets, maps, survey</li>
 <li><span>Pricing &amp; Bids</span> &nbsp;every calculator</li>
@@ -552,6 +553,7 @@ var MENU = [
 ]},
 {sub:"Opportunities", items:[
 {label:"Post an Opportunity", href:"post.html"},
+{label:"Active Postings (Email Vendors)", href:"postings.html"},
 {label:"Live Board", href:VS+"opportunities.html"},
 {label:"Vendor Responses", href:"responses.html"},
 {label:"Request a Walkthrough Email", href:"https://form.asana.com/?k=lnuBJNlGrHJNAeW8QWbXzA&d=13140959242873"},
@@ -722,6 +724,7 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeMe
 /* ---------- Most Used quick bar (TJ-approved picks, July 2026) ---------- */
 var QUICK = [
 { label:"Post an Opportunity", href:"post.html", icon:"plus", primary:true },
+{ label:"Active Postings", href:"postings.html", icon:"mail" },
 { label:"Live Board", href:"https://citywidelv.github.io/cw-vendor-hub/opportunities.html", icon:"board", pill:true },
 { label:"Create an Exhibit A", href:"create-exhibit-a.html", icon:"clip" },
 { label:"Exhibit A Request", href:"https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873", icon:"clip" },
