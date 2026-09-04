@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Background Check Notices | CW Ops Hub</title>
 <!--
-  Background Check Notices. Build 2026-09-03a.
+  Background Check Notices. Build 2026-09-03b (Gmail send via vd_bc_send, or mailto).
 
   Emails each checked janitorial vendor the list of cleaners City Wide has a
   background check on file for, with the Asana form link for anyone missing.
@@ -16,7 +16,8 @@
   names come from the Background checks tabs, keyed by vendor_id (payload key
   `cleared`). Rows matched only by name text are NOT offered here.
 
-  Sending: mailto from the signed-in person's own mail app, one vendor at a time,
+  Sending: either the platform Gmail (kind vd_bc_send, sent as City Wide Compliance,
+  logged on the BC Notices tab) or mailto from the signed-in person's own mail app,
   so nothing touches the shared 100/day platform Gmail quota. There is no server
   record that a mail was actually sent. What we do keep: a "BC notice sent
   YYYY-MM-DD" stamp written to the vendor's internal_notes through vd_patch, which
@@ -137,7 +138,7 @@ pre.prev{white-space:pre-wrap;background:#fafafa;border:1px solid #e6e6e6;border
 
   <div class="card">
     <h2>Email wording</h2>
-    <p class="sub">Placeholders: {dba} {contact} {names} {count} {link} {market}. Your mail app adds your signature. Edits are kept on this browser.</p>
+    <p class="sub">Placeholders: {dba} {contact} {names} {count} {link} {market}. Gmail sends add a City Wide Compliance footer with the market office; mail app sends get your own signature. Edits are kept on this browser.</p>
     <label>Subject</label>
     <input type="text" id="tSubject">
     <label>Body when names are on file</label>
@@ -151,16 +152,36 @@ pre.prev{white-space:pre-wrap;background:#fafafa;border:1px solid #e6e6e6;border
 
   <div class="card">
     <h2>Send <span class="pill grey" id="selCount">0 checked</span></h2>
-    <p class="sub">Each click opens one email in your mail app with the vendor's address, subject, and body filled in. You send it from there, then come back and click for the next one. Nothing is sent by this page itself.</p>
-    <p class="sub"><label class="chk" style="margin:0;"><input type="checkbox" id="stamp" checked> Stamp the vendor's directory record with today's date when I mark it sent</label></p>
+    <p style="margin:0 0 10px;">
+      <label class="chk"><input type="radio" name="via" value="gmail" checked onchange="viaChange()"> City Wide Gmail, sent as City Wide Compliance</label>
+      <label class="chk"><input type="radio" name="via" value="mailto" onchange="viaChange()"> My mail app (Outlook), one at a time</label>
+    </p>
+    <p class="sub"><label class="chk" style="margin:0;"><input type="checkbox" id="stamp" checked> Stamp the vendor's directory record with the notice date</label></p>
     <div class="err" id="sendErr"></div>
-    <div class="prog" id="prog"></div>
-    <div class="queue">
-      <button class="btn" id="nextBtn" onclick="openNext()">Open next email</button>
-      <button class="btn ghost" id="markBtn" onclick="markCurrent()" disabled>Mark sent and continue</button>
-      <button class="btn ghost" id="skipBtn" onclick="skipCurrent()" disabled>Skip this one</button>
+
+    <div id="gmailBox">
+      <p class="sub">One email per vendor from the platform Gmail. Replies go to the market compliance mailbox. Every send is logged on the BC Notices tab of the directory sheet. The shared Google quota is 100 emails a day across every platform email, so keep a batch under 50.</p>
+      <p style="margin:0 0 12px;">
+        <label class="chk"><input type="checkbox" id="testMode" onchange="testChange()"> Test run: send every email to this address instead</label>
+        <input type="text" id="testTo" placeholder="you@gocitywide.com" style="width:260px;display:inline-block;" disabled>
+      </p>
+      <button class="btn" id="gmailBtn" onclick="sendGmail()">Send to checked vendors</button>
+      <div class="ok" id="gmailDone" style="display:none;"></div>
+      <table class="vt" id="rtable" style="display:none;"><thead><tr>
+        <th style="width:34%">Vendor</th><th style="width:30%">Sent to</th><th style="width:12%">Result</th><th style="width:24%">Detail</th>
+      </tr></thead><tbody id="rbody"></tbody></table>
     </div>
-    <div class="ok" id="doneBox" style="display:none;"></div>
+
+    <div id="mailtoBox" style="display:none;">
+      <p class="sub">Each click opens one email in your mail app with the vendor's address, subject, and body filled in. You send it from there, then come back and click for the next one. Your mail app adds your signature.</p>
+      <div class="prog" id="prog"></div>
+      <div class="queue">
+        <button class="btn" id="nextBtn" onclick="openNext()">Open next email</button>
+        <button class="btn ghost" id="markBtn" onclick="markCurrent()" disabled>Mark sent and continue</button>
+        <button class="btn ghost" id="skipBtn" onclick="skipCurrent()" disabled>Skip this one</button>
+      </div>
+      <div class="ok" id="doneBox" style="display:none;"></div>
+    </div>
   </div>
 
 </div>
@@ -234,7 +255,7 @@ function boot(){
       el('parkedWarn').style.display='block';
     }
 
-    loadTemplate(); loadLocalSent();
+    loadTemplate(); loadLocalSent(); loadTestTo(); viaChange();
     ['market','status','search','hideZero','hideNoEmail','hideSent'].forEach(function(id){
       el(id).addEventListener('input', render); el(id).addEventListener('change', render);
     });
@@ -351,6 +372,62 @@ function mailto(v){
   return 'mailto:'+v.email+'?subject='+encodeURIComponent(fill(el('tSubject').value, v))+'&body='+encodeURIComponent(fill(el('tBody').value, v));
 }
 
+
+/* ---------------------------------------------------------- send via ---- */
+function via(){ var r=document.querySelector('input[name=via]:checked'); return r ? r.value : 'gmail'; }
+function viaChange(){
+  var g = via()==='gmail';
+  el('gmailBox').style.display = g ? 'block' : 'none';
+  el('mailtoBox').style.display = g ? 'none' : 'block';
+  try{ localStorage.setItem('cw_bc_via', via()); }catch(e){}
+}
+function testChange(){ el('testTo').disabled = !el('testMode').checked; if(el('testMode').checked) el('testTo').focus(); }
+function loadTestTo(){
+  try{ el('testTo').value = localStorage.getItem('cw_bc_test_to') || ''; }catch(e){}
+  try{ var v = localStorage.getItem('cw_bc_via'); if(v==='mailto') document.querySelector('input[name=via][value=mailto]').checked = true; }catch(e){}
+}
+function stampedNotes(v, d){
+  var notes = String(v.internal_notes||'');
+  return STAMP_RE.test(notes) ? notes.replace(STAMP_RE, 'BC notice sent '+d) : ('BC notice sent '+d + (notes ? ' | '+notes : ''));
+}
+function sendGmail(){
+  var ids = Object.keys(SEL).filter(function(k){ return SEL[k]; });
+  el('sendErr').style.display='none';
+  if(!ids.length){ el('sendErr').textContent='Check at least one vendor.'; el('sendErr').style.display='block'; return; }
+  var test = el('testMode').checked, testTo = el('testTo').value.trim();
+  if(test){
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(testTo)){ el('sendErr').textContent='Enter the address the test copies should go to.'; el('sendErr').style.display='block'; return; }
+    try{ localStorage.setItem('cw_bc_test_to', testTo); }catch(e){}
+  }
+  var d = today();
+  var rows = ids.map(function(id){ var v = byId(id); return {
+    vendor_id: v.vendor_id, vendor: v.dba_name, to: v.email,
+    subject: fill(el('tSubject').value, v), body: fill(el('tBody').value, v),
+    names_on_file: v._names.length, notes: el('stamp').checked ? stampedNotes(v, d) : null
+  }; });
+  var msg = test ? ('Send '+rows.length+' TEST email'+(rows.length===1?'':'s')+' to '+testTo+'?')
+                 : ('Send '+rows.length+' email'+(rows.length===1?'':'s')+' to the checked vendors from the City Wide Gmail? This is live.');
+  if(!confirm(msg)) return;
+  el('gmailBtn').disabled = true; el('gmailBtn').textContent = 'Sending...';
+  post({kind:'vd_bc_send', market: el('market').value, test: test, test_to: testTo, rows: rows}).then(function(r){
+    el('gmailBtn').disabled = false; el('gmailBtn').textContent = 'Send to checked vendors';
+    if(!r.ok){ el('sendErr').textContent = r.error || 'Send failed.'; el('sendErr').style.display='block'; return; }
+    var sent = 0;
+    el('rbody').innerHTML = (r.results||[]).map(function(x){
+      if(x.status==='sent') sent++;
+      var cls = x.status==='sent' ? 'good' : 'zero';
+      return '<tr><td>'+esc(x.vendor)+'</td><td>'+esc(test ? testTo : x.to)+'</td><td><span class="pill '+cls+'">'+esc(x.status)+'</span></td><td>'+esc(x.error||'')+'</td></tr>';
+    }).join('');
+    el('rtable').style.display='table';
+    el('gmailDone').textContent = (test ? 'Test run ' : 'Batch ')+r.batch_id+': '+sent+' of '+rows.length+' sent. '+(r.quota_left>=0 ? r.quota_left+' emails left on today\'s shared quota.' : '');
+    el('gmailDone').style.display='block';
+    if(!test){
+      (r.results||[]).forEach(function(x){ if(x.status==='sent'){ var v = byId(x.vendor_id); if(v){ SENT_LOCAL[v.vendor_id]=d; if(el('stamp').checked) v.internal_notes = stampedNotes(v, d); delete SEL[v.vendor_id]; } } });
+      saveLocalSent(); render();
+    }
+  }).catch(function(e){ el('gmailBtn').disabled = false; el('gmailBtn').textContent = 'Send to checked vendors'; el('sendErr').textContent='Could not reach the server. '+e; el('sendErr').style.display='block'; });
+}
+
 /* ---------------------------------------------------------------- queue ---- */
 function pendingIds(){
   return Object.keys(SEL).filter(function(k){ return SEL[k] && !thisQuarter(SENT_LOCAL[k]||'') ; });
@@ -394,8 +471,7 @@ function markCurrent(){
   finishCurrent();
 }
 function stamp(v, d){
-  var notes = String(v.internal_notes||'');
-  notes = STAMP_RE.test(notes) ? notes.replace(STAMP_RE, 'BC notice sent '+d) : ('BC notice sent '+d + (notes ? ' | '+notes : ''));
+  var notes = stampedNotes(v, d);
   v.internal_notes = notes;
   post({kind:'vd_patch', patches:[{vendor_id:v.vendor_id, internal_notes:notes}]}).then(function(r){
     if(!r.ok){ el('sendErr').textContent='Sent, but the directory stamp for '+v.dba_name+' failed: '+(r.error||'unknown'); el('sendErr').style.display='block'; }
