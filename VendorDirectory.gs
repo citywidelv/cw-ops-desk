@@ -3,7 +3,8 @@
 // File in the CW Solicitations Apps Script project.
 // Routing: doPost in Code.gs routes any kind starting 'vd_' to vdDispatch(data).
 // Kinds: vd_setup, vd_seed, vd_append, vd_region_backfill, vd_list, vd_save,
-//        vd_patch, vd_types, vd_intake, vd_bc_seed, vd_bc_list, vd_bc_send
+//        vd_patch, vd_types, vd_intake, vd_bc_seed, vd_bc_list, vd_bc_send,
+//        vd_bc_rows, vd_bc_upsert, vd_bom_auth, vd_bom_setpass, vd_bom_asana (Sep 4 2026, BOM Hub)
 // Aug 22 2026: VD_HEADERS gained last_audit, audit_result, audit_next_due, audit_pdf,
 // written by VendorAudit.gs and shown on vendors.html.
 //
@@ -61,9 +62,18 @@ var VD_BC_TABS = [
 var VD_BC_HEADERS = [
   'vendor_id', 'vendor', 'last_name', 'first_name', 'status', 'check_type',
   'ten_year', 'first_check', 'most_recent_check', 'vf_file_no',
-  'roster_company_as_typed', 'notes', 'added'
+  'roster_company_as_typed', 'notes', 'added',
+  // Sep 4 2026: BOM Hub review columns. result is the Business Operations
+  // Manager's call (Pass / Fail / Pending); status keeps driving the Ops Hub list.
+  'result', 'result_date', 'reviewed_by', 'market'
 ];
 var VD_BC_STATUS = ['Cleared', 'Pending', 'Removed'];
+var VD_BC_RESULT = ['Pass', 'Fail', 'Pending'];
+var VD_BC_TYPES = ['Standard', '10-Year', 'Standard + 10-Year'];
+// Sep 4 2026: the BOM Hub has its own passcode (script property BOM_PASSCODE, set
+// with vd_bom_setpass using the team passcode). It unlocks only the kinds below.
+var VD_BOM_PROP = 'BOM_PASSCODE';
+var VD_BOM_KINDS = ['vd_bom_auth', 'vd_list', 'vd_bc_list', 'vd_bc_rows', 'vd_bc_upsert', 'vd_bom_asana', 'vd_types'];
 
 var VD_HEADERS = [
   'vendor_id', 'status', 'dba_name', 'legal_name', 'service_types', 'region',
@@ -131,6 +141,10 @@ function vdPass_() {
   return PropertiesService.getScriptProperties().getProperty('PASSCODE') || '';
 }
 
+function vdBomPass_() {
+  return PropertiesService.getScriptProperties().getProperty(VD_BOM_PROP) || '';
+}
+
 function vdOut_(o) {
   // Uses Code.gs's _json when present so every handler answers the same shape.
   try { if (typeof _json === 'function') return _json(o); } catch (e) {}
@@ -145,8 +159,16 @@ function vdDispatch(data) {
   // and it can only ever create an In Progress row, never read or edit one.
   if (kind === 'vd_intake') return vdIntake_(data);
 
-  if ((data.passcode || '') !== vdPass_()) return vdOut_({ ok: false, error: 'Wrong passcode.' });
+  var teamOk = (data.passcode || '') !== '' && (data.passcode || '') === vdPass_();
+  var bomOk = !teamOk && vdBomPass_() && (data.passcode || '') === vdBomPass_() && VD_BOM_KINDS.indexOf(kind) >= 0;
+  if (!teamOk && !bomOk) return vdOut_({ ok: false, error: 'Wrong passcode.' });
+  data._bom = bomOk;
 
+  if (kind === 'vd_bom_auth') return vdOut_({ ok: true, who: bomOk ? 'bom' : 'team' });
+  if (kind === 'vd_bom_setpass') return vdBomSetPass_(data);
+  if (kind === 'vd_bom_asana') return vdBomAsana_(data);
+  if (kind === 'vd_bc_rows') return vdBcRows_(data);
+  if (kind === 'vd_bc_upsert') return vdBcUpsert_(data);
   if (kind === 'vd_setup') return vdSetup_(data);
   if (kind === 'vd_seed')  return vdSeed_(data);
   if (kind === 'vd_append') return vdAppend_(data);
@@ -309,6 +331,10 @@ function vdSetup_(data) {
     var sh = vdTab_(ss, b.name, VD_BC_HEADERS, '#0AA6A9');
     var rule = SpreadsheetApp.newDataValidation().requireValueInList(VD_BC_STATUS, true).build();
     sh.getRange(2, VD_BC_HEADERS.indexOf('status') + 1, 2000, 1).setDataValidation(rule);
+    var rr = SpreadsheetApp.newDataValidation().requireValueInList(VD_BC_RESULT, true).build();
+    sh.getRange(2, VD_BC_HEADERS.indexOf('result') + 1, 2000, 1).setDataValidation(rr);
+    var tr = SpreadsheetApp.newDataValidation().requireValueInList(VD_BC_TYPES, true).build();
+    sh.getRange(2, VD_BC_HEADERS.indexOf('check_type') + 1, 2000, 1).setDataValidation(tr);
     sh.setColumnWidth(VD_BC_HEADERS.indexOf('vendor') + 1, 260);
     sh.setColumnWidth(VD_BC_HEADERS.indexOf('last_name') + 1, 150);
     sh.setColumnWidth(VD_BC_HEADERS.indexOf('first_name') + 1, 130);
@@ -484,11 +510,13 @@ function vdCleared_(ss, vendors) {
       n++;
       var st = vdStr_(r.status);
       if (st && st !== 'Cleared') return;
+      if (vdStr_(r.result) === 'Fail') return;   // a failed review never reaches the page
       var id = vdStr_(r.vendor_id);
       if (!id) id = byName[vdStr_(r.vendor).toLowerCase()] || '';
       if (!id) { unmatched.push({ vendor: vdStr_(r.vendor), name: name, tab: b.name }); return; }
       out[id] = out[id] || [];
-      out[id].push({ name: name, tab: b.key, last: vdStr_(r.last_name), first: vdStr_(r.first_name) });
+      out[id].push({ name: name, tab: b.key, last: vdStr_(r.last_name), first: vdStr_(r.first_name),
+                     check_type: vdStr_(r.check_type), result: vdStr_(r.result), ten_year: vdYes_(r.ten_year) });
     });
   });
   Object.keys(out).forEach(function (k) {
@@ -496,7 +524,7 @@ function vdCleared_(ss, vendors) {
       var x = (a.last + ' ' + a.first).toLowerCase(), y = (b.last + ' ' + b.first).toLowerCase();
       return x < y ? -1 : x > y ? 1 : 0;
     });
-    out[k] = out[k].map(function (p) { return { name: p.name, tab: p.tab }; });
+    out[k] = out[k].map(function (p) { return { name: p.name, tab: p.tab, check_type: p.check_type, result: p.result, ten_year: p.ten_year }; });
   });
   return { byId: out, unmatched: unmatched.slice(0, 50), unmatched_count: unmatched.length, rows: n };
 }
@@ -915,6 +943,199 @@ function vdBcSeed_(data) {
     }
   });
   return vdOut_({ ok: true, added: added, skipped: skipped, bad: bad });
+}
+
+
+// ------------------------------------------------------------ BOM Hub ------
+
+// Sep 4 2026. The Business Operations Manager runs and reviews every background
+// check. The BOM Hub (citywidelv.github.io/cw-bom-hub/) records the outcome per
+// person: result Pass / Fail / Pending plus the check type (Standard, or the
+// 10-Year package Arroweye requires). status stays the switch the Ops Hub reads:
+// Pass -> Cleared, Fail -> Removed, Pending -> Pending, so the vendor directory
+// never shows a failed person and nothing else on the platform had to change.
+
+// One-time, or whenever TJ rotates it: {kind:'vd_bom_setpass', passcode:TEAM, new_pass}.
+// Team passcode only; the BOM passcode itself never appears in code or a repo.
+function vdBomSetPass_(data) {
+  if (data._bom) return vdOut_({ ok: false, error: 'Team passcode required.' });
+  var np = vdStr_(data.new_pass);
+  if (np.length < 8) return vdOut_({ ok: false, error: 'New passcode must be at least 8 characters.' });
+  PropertiesService.getScriptProperties().setProperty(VD_BOM_PROP, np);
+  return vdOut_({ ok: true });
+}
+
+// Every row on both background check tabs, with the sheet row number so the
+// page can patch a person in place. Unlike vdCleared_ this includes Pending,
+// Removed and Fail rows: the BOM needs the whole history, the Ops Hub does not.
+function vdBcRows_(data) {
+  var ss = vdSS_();
+  var vendors = vdAllRows_(ss).filter(function (r) { return r.dba_name; });
+  var byName = {}, byId = {};
+  vendors.forEach(function (v) {
+    byId[v.vendor_id] = v;
+    if (v.dba_name) byName[v.dba_name.toLowerCase()] = v.vendor_id;
+    if (v.legal_name && !byName[v.legal_name.toLowerCase()]) byName[v.legal_name.toLowerCase()] = v.vendor_id;
+  });
+  var rows = [];
+  VD_BC_TABS.forEach(function (b) {
+    var sh = ss.getSheetByName(b.name);
+    if (!sh) return;
+    vdRows_(sh).rows.forEach(function (r) {
+      if (!vdStr_(r.last_name) && !vdStr_(r.first_name)) return;
+      var o = { row: r._row, market: b.key };
+      VD_BC_HEADERS.forEach(function (h) { o[h] = vdStr_(r[h]); });
+      o.market = b.key;
+      if (!o.vendor_id) o.vendor_id = byName[o.vendor.toLowerCase()] || '';
+      o.matched = !!(o.vendor_id && byId[o.vendor_id]);
+      if (o.matched && !o.vendor) o.vendor = byId[o.vendor_id].dba_name;
+      o.vendor_status = o.matched ? byId[o.vendor_id].status : '';
+      rows.push(o);
+    });
+  });
+  return vdOut_({ ok: true, rows: rows, headers: VD_BC_HEADERS, results: VD_BC_RESULT,
+                  types: VD_BC_TYPES, tabs: VD_BC_TABS });
+}
+
+// Add or update people. data.rows = [{ market:'lv'|'nnv', row?:n, vendor_id?, vendor?,
+// first_name, last_name, check_type?, result?, notes?, vf_file_no?, most_recent_check? }].
+// A row number means patch that sheet row (only fields sent are touched); no row
+// number means append, unless the same vendor + name already sits on that tab, in
+// which case that row is patched instead so a double add never doubles a person.
+function vdBcUpsert_(data) {
+  var rows = (data && data.rows) || [];
+  if (!rows.length) return vdOut_({ ok: false, error: 'No rows' });
+  var ss = vdSS_();
+  VD_BC_TABS.forEach(function (b) { if (!ss.getSheetByName(b.name)) vdSetup_({}); });
+  var vendors = vdAllRows_(ss).filter(function (r) { return r.dba_name; });
+  var byId = {};
+  vendors.forEach(function (v) { byId[v.vendor_id] = v; });
+  var today = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd');
+  var who = vdStr_(data.reviewed_by) || (data._bom ? 'BOM Hub' : 'Ops Hub');
+  var col = {};
+  VD_BC_HEADERS.forEach(function (h, i) { col[h] = i; });
+
+  var added = 0, updated = 0, errors = [], out = [];
+  VD_BC_TABS.forEach(function (b) {
+    var mine = rows.filter(function (r) { return (r.market || 'lv') === b.key; });
+    if (!mine.length) return;
+    var sh = ss.getSheetByName(b.name);
+    var last = Math.max(sh.getLastRow(), 1);
+    var rng = sh.getRange(1, 1, last, VD_BC_HEADERS.length);
+    var vals = rng.getValues();
+    var head = vals[0].map(vdStr_);
+    // Tabs created before Sep 4 2026 lack the review columns; write the headers in.
+    var headFix = false;
+    VD_BC_HEADERS.forEach(function (h, i) { if (head[i] !== h) { vals[0][i] = h; headFix = true; } });
+    var index = {};
+    for (var i = 1; i < vals.length; i++) {
+      var k = [vdStr_(vals[i][col.vendor_id]) || vdStr_(vals[i][col.vendor]).toLowerCase(),
+               vdStr_(vals[i][col.last_name]).toLowerCase(), vdStr_(vals[i][col.first_name]).toLowerCase()].join('|');
+      index[k] = i;
+    }
+    var appends = [], pending = {};
+    mine.forEach(function (r) {
+      var p = {};
+      VD_BC_HEADERS.forEach(function (h) { if (r[h] !== undefined && h !== 'added') p[h] = vdStr_(r[h]); });
+      if (p.vendor_id && byId[p.vendor_id]) p.vendor = byId[p.vendor_id].dba_name;
+      if (p.result !== undefined) {
+        if (p.result && VD_BC_RESULT.indexOf(p.result) < 0) { errors.push('Bad result for ' + r.first_name + ' ' + r.last_name); return; }
+        p.status = p.result === 'Pass' ? 'Cleared' : p.result === 'Fail' ? 'Removed' : p.result === 'Pending' ? 'Pending' : (p.status || 'Cleared');
+        p.result_date = p.result ? today : '';
+        p.reviewed_by = p.result ? who : '';
+      }
+      if (p.check_type !== undefined) p.ten_year = /10-Year/.test(p.check_type) ? 'Yes' : '';
+      var i = Number(r.row) >= 2 ? Number(r.row) - 1 : -1;
+      var k = [p.vendor_id || vdStr_(p.vendor).toLowerCase(), vdStr_(p.last_name).toLowerCase(), vdStr_(p.first_name).toLowerCase()].join('|');
+      if (i < 0 || i >= vals.length) {
+        if (index[k] !== undefined) i = index[k];
+        else if (pending[k] !== undefined) {   // same person twice in one batch
+          Object.keys(p).forEach(function (h) { if (col[h] !== undefined) appends[pending[k]][col[h]] = p[h]; });
+          return;
+        }
+      }
+      if (i >= 1) {
+        Object.keys(p).forEach(function (h) { if (col[h] !== undefined) vals[i][col[h]] = p[h]; });
+        updated++;
+        out.push({ row: i + 1, market: b.key, vendor_id: vdStr_(vals[i][col.vendor_id]) });
+      } else {
+        if (!vdStr_(p.first_name) && !vdStr_(p.last_name)) { errors.push('A person needs a name'); return; }
+        if (!p.status) p.status = 'Cleared';
+        if (!p.check_type) { p.check_type = 'Standard'; p.ten_year = ''; }
+        p.added = today;
+        if (!p.most_recent_check) p.most_recent_check = today;
+        if (!p.first_check) p.first_check = p.most_recent_check;
+        pending[k] = appends.length;
+        appends.push(VD_BC_HEADERS.map(function (h) { return p[h] == null ? '' : p[h]; }));
+      }
+    });
+    if (headFix || updated) rng.setValues(vals);
+    if (appends.length) {
+      var at = vdNextRow_(sh);
+      sh.getRange(at, 1, appends.length, VD_BC_HEADERS.length).setValues(appends);
+      appends.forEach(function (a, j) { out.push({ row: at + j, market: b.key, vendor_id: a[col.vendor_id] }); });
+      added += appends.length;
+    }
+  });
+  return vdOut_({ ok: true, added: added, updated: updated, errors: errors, rows: out });
+}
+
+// Asana, read-only, for the BOM Hub cards. app.asana.com refuses to be framed, so
+// the hub shows live task lists fetched here with a personal access token kept in
+// the ASANA_PAT script property (Project Settings > Script properties, or the
+// vd_bom_asana_setup kind below with the team passcode). Cached two minutes.
+var VD_ASANA_PROP = 'ASANA_PAT';
+function vdBomAsana_(data) {
+  var pat = PropertiesService.getScriptProperties().getProperty(VD_ASANA_PROP) || '';
+  if (!data._bom && vdStr_(data.set_token)) {
+    PropertiesService.getScriptProperties().setProperty(VD_ASANA_PROP, vdStr_(data.set_token));
+    return vdOut_({ ok: true, saved: true });
+  }
+  if (!pat) return vdOut_({ ok: false, needs_setup: true, error: 'Asana token not set.' });
+  var cache = CacheService.getScriptCache();
+  // Team mode: the projects in one Asana team, so a new project shows on the hub
+  // without a code change. {kind:'vd_bom_asana', team:'<team gid>'}
+  var team = vdStr_(data.team);
+  if (/^\d+$/.test(team)) {
+    var tk = 'asana_team_' + team, th = cache.get(tk);
+    if (th && !data.fresh) return vdOut_(JSON.parse(th));
+    var tf = 'name,color,permalink_url,notes,archived,current_status.title,current_status.color,default_view,modified_at';
+    var tr = UrlFetchApp.fetch('https://app.asana.com/api/1.0/teams/' + team + '/projects?archived=false&limit=100&opt_fields=' + encodeURIComponent(tf),
+      { headers: { Authorization: 'Bearer ' + pat }, muteHttpExceptions: true });
+    if (tr.getResponseCode() !== 200) return vdOut_({ ok: false, error: 'Asana said ' + tr.getResponseCode(), detail: tr.getContentText().slice(0, 300) });
+    var projects = (JSON.parse(tr.getContentText()).data || []).map(function (p) {
+      return { gid: p.gid, name: p.name, color: p.color || '', url: p.permalink_url, notes: String(p.notes || '').slice(0, 300),
+               view: p.default_view || 'list', status: p.current_status ? { title: p.current_status.title, color: p.current_status.color } : null,
+               modified: p.modified_at };
+    });
+    var tp = { ok: true, team: team, projects: projects, fetched: new Date().toISOString() };
+    try { cache.put(tk, JSON.stringify(tp), 300); } catch (e) {}
+    return vdOut_(tp);
+  }
+  var project = vdStr_(data.project);
+  if (!/^\d+$/.test(project)) return vdOut_({ ok: false, error: 'project id required' });
+  var limit = Math.min(Number(data.limit) || 100, 100);
+  var ck = 'asana_' + project + '_' + limit + '_' + (data.completed ? 'all' : 'open');
+  var hit = cache.get(ck);
+  if (hit && !data.fresh) return vdOut_(JSON.parse(hit));
+  var fields = 'name,completed,completed_at,due_on,assignee.name,permalink_url,memberships.section.name,modified_at,custom_fields.name,custom_fields.display_value,notes';
+  var url = 'https://app.asana.com/api/1.0/projects/' + project + '/tasks?opt_fields=' + encodeURIComponent(fields) +
+            '&limit=' + limit + (data.completed ? '' : '&completed_since=now');
+  var resp = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + pat }, muteHttpExceptions: true });
+  if (resp.getResponseCode() !== 200) {
+    return vdOut_({ ok: false, error: 'Asana said ' + resp.getResponseCode(), detail: resp.getContentText().slice(0, 300) });
+  }
+  var body = JSON.parse(resp.getContentText());
+  var tasks = (body.data || []).map(function (t) {
+    var sec = (t.memberships || []).map(function (m) { return m.section && m.section.name; }).filter(Boolean)[0] || '';
+    var cf = {};
+    (t.custom_fields || []).forEach(function (f) { if (f.display_value) cf[f.name] = f.display_value; });
+    return { gid: t.gid, name: t.name, completed: !!t.completed, due: t.due_on || '', assignee: t.assignee ? t.assignee.name : '',
+             url: t.permalink_url, section: sec, modified: t.modified_at, fields: cf, notes: String(t.notes || '').slice(0, 240) };
+  });
+  var payload = { ok: true, project: project, tasks: tasks, more: !!body.next_page, fetched: new Date().toISOString() };
+  try { cache.put(ck, JSON.stringify(payload), 120); } catch (e) {}
+  return vdOut_(payload);
 }
 
 // ------------------------------------------------------------ intake -------

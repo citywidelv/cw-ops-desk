@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Active Vendors | CW Ops Hub</title>
-<!-- build 2026-08-22c
+<!-- build 2026-09-04a
 Active Vendors directory. Reads the CW Vendor Directory Sheet through the CW
 Solicitations Apps Script (kind vd_list), passcode checked on the server, taken
 from the Ops Hub session. No vendor data is stored in this repo.
@@ -154,6 +154,9 @@ p.lede{color:var(--grey);margin:9px 0 16px;max-width:74ch;font-size:13px}
 .bc{display:flex;flex-wrap:wrap;gap:6px 8px;padding:8px 0 2px}
 .bc span{background:#fff;border:1px solid var(--border);border-radius:14px;padding:3px 10px;font-size:12px;white-space:nowrap}
 .bc span.nnv{border-color:var(--teal)}
+.bc span i{font-style:normal;font-size:9.5px;font-weight:700;margin-left:6px;letter-spacing:.04em}
+.bc span i.ten{background:var(--black);color:#E5B423;border-radius:7px;padding:1px 6px}
+.bc span i.ok{color:#1E8E5A}
 .bcnote{font-size:11px;color:var(--grey);margin-top:6px}
 .note{background:#FBF3D6;border:1px solid var(--gold);border-radius:7px;padding:8px 11px;
   font-size:12px;margin:11px 0 0}
@@ -272,12 +275,14 @@ function clearedHtml(v){
   }
   var mixed = list.some(function(p){ return p.tab !== list[0].tab; });
   return '<div class="bc">' + list.map(function(p){
-      return '<span class="' + (p.tab === "nnv" ? "nnv" : "") + '" title="' + esc(tabName[p.tab] || "") + '">' + esc(p.name) + "</span>";
+      var ttl = (tabName[p.tab] || "") + (p.check_type ? " | " + p.check_type : "") + (p.result ? " | " + p.result : "");
+      return '<span class="' + (p.tab === "nnv" ? "nnv" : "") + '" title="' + esc(ttl) + '">' + esc(p.name) +
+        (p.ten_year ? '<i class="ten">10-Yr</i>' : "") + (p.result === "Pass" ? '<i class="ok" title="Passed review">&#10003;</i>' : "") + "</span>";
     }).join("") + "</div>"
     + '<div class="bcnote">' + list.length + (list.length === 1 ? " person" : " people")
-    + " with a completed background check on file. Names only; manage the list on the "
-    + (mixed ? "Background checks tabs" : esc(tabName[list[0].tab] || "Background checks") + " tab")
-    + " of the directory sheet. Set a row to Pending or Removed to take a name off this list.</div>";
+    + " with a completed background check on file. Names only. Pass or fail results are recorded on the "
+    + '<a href="https://citywidelv.github.io/cw-bom-hub/background-checks.html">BOM Hub</a>; a failed person drops off this list. '
+    + "10-Yr marks the Arroweye package.</div>";
 }
 
 function detailHtml(v){
