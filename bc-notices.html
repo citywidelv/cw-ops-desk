@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Background Check Notices | CW Ops Hub</title>
 <!--
-  Background Check Notices. Build 2026-09-04c (wording v2: provider-neutral, property not account).
+  Background Check Notices. Build 2026-09-04d (wording v3: human closing line with the market DOO).
 
   Emails each checked janitorial vendor the list of cleaners City Wide has a
   background check on file for, with the Asana form link for anyone missing.
@@ -138,7 +138,7 @@ pre.prev{white-space:pre-wrap;background:#fafafa;border:1px solid #e6e6e6;border
 
   <div class="card">
     <h2>Email wording</h2>
-    <p class="sub">Placeholders: {dba} {contact} {names} {count} {link} {market}. Gmail sends add a City Wide Compliance footer with the market office; mail app sends get your own signature. Edits are kept on this browser.</p>
+    <p class="sub">Placeholders: {dba} {contact} {names} {count} {link} {market} {doo} (the market Director of Operations). Gmail sends add a City Wide Compliance footer with the market office; mail app sends get your own signature. Edits are kept on this browser.</p>
     <label>Subject</label>
     <input type="text" id="tSubject">
     <label>Body when names are on file</label>
@@ -191,6 +191,7 @@ pre.prev{white-space:pre-wrap;background:#fafafa;border:1px solid #e6e6e6;border
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var FORM_URL = "https://form.asana.com/?k=FRCnQmbTGjAVPieFt4bnWQ&d=13140959242873";
 var MARKET_NAME = { lv:"Las Vegas", nnv:"Northern Nevada" };
+var MARKET_DOO = { lv:"Robert Krause", nnv:"Jeremy Walker" };
 var STAMP_RE = /BC notice sent (\d{4}-\d{2}-\d{2})/;
 var DATA = null;
 var VENDORS = [];        // janitorial vendors, every market
@@ -198,10 +199,10 @@ var SEL = {};            // vendor_id -> true
 var CURRENT = null;      // vendor_id currently open in the mail app
 var SENT_LOCAL = {};     // vendor_id -> date, this browser, fallback when stamping is off
 
-var T_VERSION = 2;   // bump when the default wording changes so stale saved copies are dropped
+var T_VERSION = 3;   // bump when the default wording changes so stale saved copies are dropped
 var DEFAULT_T = {
   subject: "Background checks on file for {dba}",
-  body: "Hi {contact},\n\nAudit season is coming up.\n\nHere is who we have background checks on file for at {dba}:\n\n{names}\n\nYour agreement requires a background check on file for every person working at any property you service for City Wide. The check does not have to run through City Wide. Any provider works as long as it includes a Social Security address trace and a nationwide criminal database search. Use the button below to upload one you already have, or to have City Wide run it if you would rather. Either way, we are happy to help.\n\n{link}\n\nQuestions go to your FSM.\n\nThank you,",
+  body: "Hi {contact},\n\nAudit season is coming up.\n\nHere is who we have background checks on file for at {dba}:\n\n{names}\n\nYour agreement requires a background check on file for every person working at any property you service for City Wide. The check does not have to run through City Wide. Any provider works as long as it includes a Social Security address trace and a nationwide criminal database search. Use the button below to upload one you already have, or to have City Wide run it if you would rather. Either way, we are happy to help.\n\n{link}\n\nIf you have any questions and want to speak to someone, reach out to the FSM who manages your accounts or {doo}, our Director of Operations.\n\nThank you,",
   none: "We do not have anyone listed for {dba} yet."
 };
 
@@ -346,7 +347,7 @@ function firstName(v){
   return c ? c.split(/\s+/)[0] : (v.dba_name||'').trim();
 }
 function fill(tpl, v){
-  var mk = MARKET_NAME[(v.regions||[])[0]] || MARKET_NAME[el('market').value];
+  var mkKey = el('market').value, mk = MARKET_NAME[mkKey], doo = MARKET_DOO[mkKey] || MARKET_DOO.lv;
   var names = v._names.length ? v._names.map(function(x){ return '- '+x; }).join('\n') : '';
   var out = tpl;
   if(!v._names.length && /\{names\}/.test(tpl)){
@@ -360,7 +361,7 @@ function fill(tpl, v){
     out = paras.join('\n\n');
   }
   return out.replace(/\{dba\}/g, v.dba_name||'').replace(/\{contact\}/g, firstName(v)).replace(/\{names\}/g, names)
-            .replace(/\{count\}/g, String(v._names.length)).replace(/\{link\}/g, FORM_URL).replace(/\{market\}/g, mk);
+            .replace(/\{count\}/g, String(v._names.length)).replace(/\{link\}/g, FORM_URL).replace(/\{market\}/g, mk).replace(/\{doo\}/g, doo);
 }
 function preview(){
   var ids = Object.keys(SEL).filter(function(k){ return SEL[k]; });
