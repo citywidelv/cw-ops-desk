@@ -61,11 +61,9 @@ textarea{min-height:60px;resize:vertical;}
 <div class="wrap">
 
 <div id="gate" class="card">
-  <h2>Open this page from the Ops Hub</h2>
-  <p class="sub">This page signs you in automatically once you have unlocked the Ops Hub on this browser. If you are seeing this, open the Ops Hub first, or enter the team passcode below.</p>
-  <input type="text" id="pass" autocomplete="off">
+  <h2>Opening from the Ops Hub</h2>
+  <p class="sub">Signing you in with the passcode saved on this browser. Nothing to type.</p>
   <div class="err" id="gateErr"></div>
-  <p style="margin-top:14px;"><button class="btn" onclick="unlock()">Continue</button></p>
 </div>
 
 <div id="app">
@@ -152,6 +150,7 @@ textarea{min-height:60px;resize:vertical;}
 </div>
 </div>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK='https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec';
 var LOGO='https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
@@ -176,24 +175,20 @@ var FTYPES=[
 function el(id){return document.getElementById(id);}
 // No separate passcode for this page: it reuses the Ops Hub sign-in cached on this
 // browser (same origin). Manual entry is only a fallback when the hub was never unlocked.
-function pass(){return localStorage.getItem('cwOpsHubPass')||localStorage.getItem('cw_vio_auth')||'';}
+function pass(){return CWAuth.get();}
 
 function post(payload){
   payload.passcode=pass();
   return fetch(WEBHOOK,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).then(function(r){return r.json();});
 }
 
-function unlock(){
-  localStorage.setItem('cw_vio_auth', el('pass').value.trim());
-  boot();
-}
 
 function boot(){
-  if(!pass())return;
+  if(!CWAuth.require({hub:"ops"}))return;
   el('gateErr').style.display='none';
   post({kind:'vio_roster'}).then(function(r){
     if(!r.ok){
-      if(/passcode/i.test(r.error||''))localStorage.removeItem('cw_vio_auth');
+      if(/passcode/i.test(r.error||'')){CWAuth.locked("ops",r.error);return;}
       el('gateErr').textContent=r.error||'Could not load';el('gateErr').style.display='block';return;}
     DATA=r;
     var srcItems=SOURCE_FALLBACK;
@@ -506,7 +501,7 @@ function another(){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-if(pass())boot();
+boot();
 </script>
 </body>
 </html>

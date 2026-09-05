@@ -104,6 +104,7 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:66ch}
 <div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
 
 <script src="notify.js?v=20260904c"></script>
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var FEED = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var KEY = "cwOpsHubPass";
@@ -116,7 +117,7 @@ function money(v){
   return String(v||"");
 }
 function num(v){var n=Number(String(v==null?"":v).replace(/,/g,""));return isNaN(n)||n<=0?"":n.toLocaleString("en-US");}
-function pass(){try{return localStorage.getItem(KEY)||"";}catch(e){return "";}}
+function pass(){return CWAuth.get();}
 function parseDate(s){var d=new Date(String(s||""));return isNaN(d)?0:d.getTime();}
 
 function card(p){
@@ -164,29 +165,11 @@ document.getElementById("list").addEventListener("click",function(e){
   var b=e.target.closest('[data-act="email"]');if(!b)return;
   var cardEl=b.closest(".pcard"),id=cardEl.getAttribute("data-id");
   var p=ITEMS.filter(function(x){return String(x.id)===id;})[0];if(!p)return;
-  if(!pass()){PENDING={cardEl:cardEl,p:p};showGate("");cardEl.scrollIntoView({behavior:"smooth",block:"start"});document.getElementById("gate").scrollIntoView({behavior:"smooth"});return;}
+  if(!pass()){CWAuth.bounce("ops","locked");return;}
   openPanel(cardEl,p);
 });
-function showGate(msg){
-  document.getElementById("gate").classList.remove("hidden");
-  document.getElementById("gmsg").textContent=msg||"";
-  document.getElementById("gpass").focus();
-}
-function tryPass(){
-  var v=document.getElementById("gpass").value.trim();if(!v)return;
-  // Validate by asking the directory for its list; the panel caches the answer.
-  fetch(FEED,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({kind:"vd_list",passcode:v})})
-    .then(function(r){return r.json();})
-    .then(function(r){
-      if(r&&r.ok){
-        try{localStorage.setItem(KEY,v);}catch(e){}
-        document.getElementById("gate").classList.add("hidden");
-        if(PENDING){openPanel(PENDING.cardEl,PENDING.p);PENDING=null;}
-      }else showGate((r&&r.error)||"Wrong passcode.");
-    }).catch(function(){showGate("Could not reach the service. Try again.");});
-}
-document.getElementById("ggo").addEventListener("click",tryPass);
-document.getElementById("gpass").addEventListener("keydown",function(e){if(e.key==="Enter")tryPass();});
+function showGate(msg){ CWAuth.locked("ops", msg); }
+/* The passcode box is gone: this page bounces to the Ops Hub gate instead (cw-auth.js). */
 function load(){
   document.getElementById("list").innerHTML='<div class="state">Loading&hellip;</div>';
   fetch(FEED+"?t="+Date.now()).then(function(r){return r.json();}).then(function(r){

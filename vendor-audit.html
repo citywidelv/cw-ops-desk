@@ -257,6 +257,7 @@ A pending background check is recorded as a finding; the person can be on site w
 
 <div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var KEY = "cwOpsHubPass";
@@ -581,15 +582,12 @@ loadCtx("");
 });
 $("vendor").addEventListener("change", pickVendor);
 
-function showGate(msg){
-$("app").classList.add("hidden"); $("gate").classList.remove("hidden");
-if (msg){ $("gmsg").textContent = msg + " Unlock the Ops Hub in this browser and come back."; $("gmsg").className = "err"; }
-}
+function showGate(msg){ CWAuth.locked("ops", msg); }
 (function(){
 var q = {}; location.search.replace(/^\?/, "").split("&").forEach(function(kv){ var p = kv.split("="); if (p[0]) q[decodeURIComponent(p[0])] = decodeURIComponent(p[1]||""); });
 if (q.market === "nnv"){ MKT = "nnv"; Array.prototype.forEach.call(document.querySelectorAll("#mkt button"), function(x){ x.classList.toggle("on", x.getAttribute("data-m") === "nnv"); }); }
-var p = localStorage.getItem(KEY);
-if (!p){ showGate(""); return; }
+var p = CWAuth.require({hub:"ops"});
+if (!p) return;
 PASS = p;
 $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
 loadCtx(q.vendor || "");

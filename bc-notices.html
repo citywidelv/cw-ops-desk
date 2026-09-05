@@ -95,11 +95,9 @@ pre.prev{white-space:pre-wrap;background:#fafafa;border:1px solid #e6e6e6;border
 <div class="wrap">
 
 <div id="gate" class="card">
-  <h2>Open this page from the Ops Hub</h2>
-  <p class="sub">This page signs you in automatically once you have unlocked the Ops Hub on this browser. If you are seeing this, open the Ops Hub first, or enter the team passcode below.</p>
-  <input type="text" id="pass" autocomplete="off">
+  <h2>Opening from the Ops Hub</h2>
+  <p class="sub">Signing you in with the passcode saved on this browser. Nothing to type.</p>
   <div class="err" id="gateErr"></div>
-  <p style="margin-top:14px;"><button class="btn" onclick="unlock()">Continue</button></p>
 </div>
 
 <div id="app" style="display:none;">
@@ -192,6 +190,7 @@ pre.prev{white-space:pre-wrap;background:#fafafa;border:1px solid #e6e6e6;border
 </div>
 </div>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var FORM_URL = "https://form.asana.com/?k=FRCnQmbTGjAVPieFt4bnWQ&d=13140959242873";
@@ -216,34 +215,15 @@ function esc(s){ var d=document.createElement('div'); d.textContent=String(s==nu
 function today(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 
 /* ------------------------------------------------------------- passcode ---- */
-var PASS_KEYS = ['cwOpsHubPass','cw_ins_auth','cw_vio_auth'];
-function pass(){
-  for(var i=0;i<PASS_KEYS.length;i++){
-    var v=''; try{ v=localStorage.getItem(PASS_KEYS[i])||''; }catch(e){}
-    if(v.trim()) return v.trim();
-  }
-  return '';
-}
-function clearPass(){ PASS_KEYS.forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} }); }
-function savePass(v){ try{ localStorage.setItem('cwOpsHubPass', String(v||'').trim()); }catch(e){} }
+function pass(){ return CWAuth.get(); }
+function clearPass(){ CWAuth.clear(); }
 function post(payload){
   payload.passcode = pass();
   return fetch(WEBHOOK,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)}).then(function(r){ return r.json(); });
 }
-function showGate(msg){
-  el('app').style.display='none'; el('gate').style.display='block'; el('pass').value='';
-  if(msg){ el('gateErr').textContent=msg; el('gateErr').style.display='block'; }
-  el('pass').focus();
-}
-function unlock(){
-  var v=el('pass').value.trim();
-  if(!v){ el('gateErr').textContent='Enter the team passcode.'; el('gateErr').style.display='block'; return; }
-  savePass(v); boot();
-}
-
-/* ----------------------------------------------------------------- boot ---- */
+function showGate(msg){ CWAuth.locked("ops", msg); }
 function boot(){
-  if(!pass()){ showGate(''); return; }
+  if(!pass()){ CWAuth.bounce('ops','locked'); return; }
   el('gateErr').style.display='none';
   post({kind:'vd_list'}).then(function(r){
     if(!r.ok){
@@ -521,7 +501,6 @@ var S_KEY = 'cw_bc_notice_sent';
 function loadLocalSent(){ try{ SENT_LOCAL = JSON.parse(localStorage.getItem(S_KEY)||'{}')||{}; }catch(e){ SENT_LOCAL={}; } }
 function saveLocalSent(){ try{ localStorage.setItem(S_KEY, JSON.stringify(SENT_LOCAL)); }catch(e){} }
 
-el('pass').addEventListener('keydown', function(e){ if(e.key==='Enter') unlock(); });
 boot();
 </script>
 </body>

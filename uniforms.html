@@ -332,7 +332,7 @@ async function load(){
     PRODUCTS = (data.products||[]).filter(p=>p.name);
   }catch(e){
     document.getElementById("loading").innerHTML =
-      'Could not load the catalog. Check your connection and refresh.<br><a href="https://citywide.bennettuniform.com" style="color:#D22730;font-weight:700">Browse Bennett Uniform directly</a>';
+      'Could not load the catalog. Check your connection and refresh.<br><a href="https://citywide.bennettuniform.com" target="_blank" rel="noopener" style="color:#D22730;font-weight:700">Browse Bennett Uniform directly</a>';
     return;
   }
   document.getElementById("loading").style.display = "none";

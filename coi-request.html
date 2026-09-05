@@ -389,9 +389,10 @@ Pick <b>Customer did not say</b> when the email is silent; a blank is what gets 
 
 <div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only &middot; GoCityWide.com</div>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
-var KEYS = ["cwOpsHubPass", "cw_sales_auth", "cwBomHubPass"];
+var HUB = /cw-bom-hub/.test(document.referrer || "") ? "bom" : "ops";
 var LOG_URL = "https://citywidelv.github.io/cw-bom-hub/coi-log.html";
 var PASS = "", CTX = { staff: [], markets: {} }, FILES = [];
 var TEST = /[?&]test=1/.test(location.search);
@@ -784,7 +785,7 @@ function submit(e){
          sections: built.sections, checklist_text: text, files: FILES }, function(r){
     btn.disabled = false; btn.textContent = "Send the request"; $("sendnote").textContent = "";
     if(!r || !r.ok){
-      if(r && r.error === "Wrong passcode."){ KEYS.forEach(function(k){ try{ localStorage.removeItem(k); }catch(x){} }); showGate("Your passcode expired. Enter it again."); return; }
+      if(r && r.error === "Wrong passcode."){ CWAuth.locked(HUB, r.error); return; }
       say((r && r.error) || "The request did not send. Nothing was lost; copy the checklist and try again."); return;
     }
     var mailOk = /^sent/.test(r.mail_status || "");
@@ -812,33 +813,29 @@ function copyText(t, btn){
 }
 
 /* ---------- gate ---------- */
-function showGate(msg){
-  $("app").classList.add("hidden"); $("gate").classList.remove("hidden");
-  if(msg){ $("gmsg").textContent = msg; $("gmsg").className = "err"; }
-  $("pc").focus();
-}
+function showGate(msg){ CWAuth.locked(HUB, msg); }
 function load(pass, isAuto, next){
   PASS = pass;
   var btn = $("enter"); btn.disabled = true;
   post({ kind:"vd_coi_context" }, function(r){
     btn.disabled = false;
     if(r && r.ok){
-      try{ localStorage.setItem("cwOpsHubPass", pass); }catch(e){}
+      if(pass !== CWAuth.getBom()) CWAuth.set(pass);
       CTX = r; if(r.markets){ Object.keys(r.markets).forEach(function(k){ if(MARKETS[k]) MARKETS[k].entity = r.markets[k].entity || MARKETS[k].entity; }); }
       $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
       buildStaff(); render();
     } else if(isAuto && next){ next(); }
     else {
-      if(r && r.error === "Wrong passcode."){ KEYS.forEach(function(k){ try{ localStorage.removeItem(k); }catch(x){} }); }
       showGate((r && r.error) || "That passcode is not right.");
     }
   });
 }
 function tryCached(){
-  var cands = [];
-  KEYS.forEach(function(k){ try{ var v = localStorage.getItem(k); if(v && cands.indexOf(v) < 0) cands.push(v); }catch(e){} });
+  var cands = [], t = CWAuth.get(), b = CWAuth.getBom();
+  if(t) cands.push(t); if(b && cands.indexOf(b) < 0) cands.push(b);
+  if(!cands.length){ CWAuth.bounce(HUB, "locked"); return; }
   var i = 0;
-  (function step(){ if(i >= cands.length){ showGate(""); return; } var p = cands[i++]; load(p, true, step); })();
+  (function step(){ if(i >= cands.length){ CWAuth.locked(HUB, "Wrong passcode."); return; } var p = cands[i++]; load(p, true, step); })();
 }
 
 (function init(){

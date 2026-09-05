@@ -88,11 +88,9 @@ table.rt td{padding:8px;border-bottom:1px solid #f0f0f0;vertical-align:top;}
 <div class="wrap">
 
 <div id="gate" class="card">
-  <h2>Open this page from the Ops Hub</h2>
-  <p class="sub">This page signs you in automatically once you have unlocked the Ops Hub on this browser. If you are seeing this, open the Ops Hub first, or enter the team passcode below.</p>
-  <input type="text" id="pass" autocomplete="off">
+  <h2>Opening from the Ops Hub</h2>
+  <p class="sub">Signing you in with the passcode saved on this browser. Nothing to type.</p>
   <div class="err" id="gateErr"></div>
-  <p style="margin-top:14px;"><button class="btn" onclick="unlock()">Continue</button></p>
 </div>
 
 <div id="app" style="display:none;">
@@ -165,6 +163,7 @@ table.rt td{padding:8px;border-bottom:1px solid #f0f0f0;vertical-align:top;}
 </div>
 </div>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var DATA = null;
@@ -186,47 +185,18 @@ function esc(s){ var d=document.createElement('div'); d.textContent=String(s==nu
 // box below could never fix it, because manual entry wrote the key that was being
 // shadowed. Now: one key is authoritative, a rejection clears ALL of them, and the
 // box is put back in front of the user instead of an error under a hidden form.
-var PASS_KEYS = ['cwOpsHubPass','cw_ins_auth','cw_vio_auth'];
-function pass(){
-  for(var i=0;i<PASS_KEYS.length;i++){
-    var v = '';
-    try{ v = localStorage.getItem(PASS_KEYS[i]) || ''; }catch(e){}
-    if(v.trim()) return v.trim();
-  }
-  return '';
-}
-function clearPass(){
-  PASS_KEYS.forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} });
-}
-function savePass(v){
-  // Written to the hub's key so the hub, violations and this page all agree.
-  try{ localStorage.setItem('cwOpsHubPass', String(v||'').trim()); }catch(e){}
-  try{ localStorage.removeItem('cw_ins_auth'); }catch(e){}
-}
-
+function pass(){ return CWAuth.get(); }
+function clearPass(){ CWAuth.clear(); }
 function post(payload){
   payload.passcode = pass();
   return fetch(WEBHOOK,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)})
     .then(function(r){ return r.json(); });
 }
 
-function showGate(msg){
-  el('app').style.display='none';
-  el('gate').style.display='block';
-  el('pass').value='';
-  if(msg){ el('gateErr').textContent = msg; el('gateErr').style.display='block'; }
-  el('pass').focus();
-}
-
-function unlock(){
-  var v = el('pass').value.trim();
-  if(!v){ el('gateErr').textContent='Enter the team passcode.'; el('gateErr').style.display='block'; return; }
-  savePass(v);
-  boot();
-}
+function showGate(msg){ CWAuth.locked("ops", msg); }
 
 function boot(){
-  if(!pass()){ showGate(''); return; }
+  if(!pass()){ CWAuth.bounce('ops','locked'); return; }
   el('gateErr').style.display='none';
   post({kind:'ins_roster'}).then(function(r){
     if(!r.ok){

@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
-<!-- build 2026-07-29b: landing page v2 per TJ.
+<!-- build 2026-09-05c: one team unlock per device (cw-auth.js), external menu links open in a new tab, Team Apps sub-menu, Handteq Point, InsurLink, Verified First, Amazon Business, Company Store links.
+     build 2026-07-29b: landing page v2 per TJ.
 Kept: top bar, dropdown nav (now cascading groups), skyline hero, Most Used
 bar (new picks), Building Information Sheets band. Removed: the link
 directory. Added: the Ops Wall (team announcements) fed by the Apps Script
@@ -324,7 +325,7 @@ border-top:3px solid var(--red);max-height:65vh;overflow-y:auto}
 <div class="box">
 <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
 <h1>Operations Hub</h1>
-<p>Internal team access. Enter the team passcode to continue.</p>
+<p id="gnote">Internal team access. Enter the team passcode once. This browser stays unlocked until the passcode changes.</p>
 <input type="password" id="pc" placeholder="Team passcode" autocomplete="current-password" autofocus>
 <button id="enter">Enter</button>
 <div class="err" id="gerr"></div>
@@ -494,6 +495,7 @@ search box to jump straight to what you need.</p>
 </div></footer>
 </div>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var KEY = "cwOpsHubPass";
@@ -525,6 +527,8 @@ var MENU = [
 {label:"Maintenance Work Ticket", href:"work-order.html"},
 {ghead:"Snow & Ice"},
 {label:"Snow Service Report", href:"snow-report.html"},
+{ghead:"7-Eleven"},
+{label:"Handteq Point (7-Eleven maintenance app)", href:"https://point.handteq.com/development/app/output2/seveneleven/web/gray.0.7.0"},
 {ghead:"CCCNV (Comprehensive Cancer)"},
 {label:"CCCNV Work Requests", href:"https://form.jotform.com/252935932465163"},
 {label:"CCCNV Requests Log", href:"https://www.jotform.com/tables/252935932465163"},
@@ -569,13 +573,16 @@ var MENU = [
   {sub:"Insurance", items:[
     {label:"Request COIs from Vendors", href:"insurance.html"},
     {label:"Insurance Request Log (Sheet)", href:"https://docs.google.com/spreadsheets/d/16Hf_lY_N8n3hPq4WDpPmXtyEs4Gdn-KV54-OUQUa-NI/edit"},
-    {label:"Vendor Upload Page", href:VS+"upload.html"}
+    {label:"Vendor Upload Page", href:VS+"upload.html"},
+    {ghead:"Broker Portal"},
+    {label:"InsurLink (Vertafore)", href:"https://insurlink.vertafore.com/end-insured/2260313c6a34459c8a098ede23d21fb7/2094911/overview"}
     ]},
   {sub:"Background Checks", items:[
     {label:"Record Pass / Fail Results (BOM Hub)", href:"https://citywidelv.github.io/cw-bom-hub/background-checks.html"},
     {label:"Send Background Check Notices", href:"bc-notices.html"},
     {label:"Background Checks on File (Sheet)", href:"https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit"},
-    {label:"Vendor Background Check Form (Asana)", href:"https://form.asana.com/?k=FRCnQmbTGjAVPieFt4bnWQ&d=13140959242873"}
+    {label:"Vendor Background Check Form (Asana)", href:"https://form.asana.com/?k=FRCnQmbTGjAVPieFt4bnWQ&d=13140959242873"},
+    {label:"Verified First (portal)", href:"https://portal.verifiedfirst.com/#/dashboard"}
     ]},
 {sub:"Request a Vendor Packet", items:[
 {ghead:"Las Vegas"},
@@ -653,14 +660,25 @@ var MENU = [
 {label:"Asana", href:"https://app.asana.com/"},
 {label:"Employee Uniforms", href:"uniforms.html"},
 {label:"ADP TotalSource", href:"https://workforcenow.adp.com/"},
-{label:"Order CW Merch", href:"https://cwlv.printful.me/"}
+{label:"Order CW Merch", href:"https://cwlv.printful.me/"},
+{label:"Team Emails by Position (BOM Hub)", href:"https://citywidelv.github.io/cw-bom-hub/team-emails.html"}
+]},
+{sub:"Team Apps", items:[
+{label:"Slack", href:"https://slack.com/signin"},
+{label:"Microsoft Bookings", href:"https://bookings.cloud.microsoft/bookings/homepage"},
+{label:"Jotform", href:"https://www.jotform.com/myforms/"},
+{label:"ZoomInfo", href:"https://app.zoominfo.com/"},
+{label:"CW Score Cloud", href:"https://cwfscorecloud.gocitywide.com/login"}
 ]},
 {sub:"Supplier Ordering", items:[
 {label:"Order More EnvirOx", href:"envirox.html"},
 {ghead:"Supply Distributors"},
 {label:"Brady Industries", href:"https://www.bradyindustries.com/"},
 {label:"Staples Advantage", href:"https://www.staplesadvantage.com/"},
-{label:"HD Supply Solutions", href:"https://hdsupplysolutions.com/"}
+{label:"HD Supply Solutions", href:"https://hdsupplysolutions.com/"},
+{ghead:"Marketplaces"},
+{label:"Amazon Business", href:"https://www.amazon.com/business"},
+{label:"City Wide Company Store", href:"https://shopcitywide.mybrightsites.com/"}
 ]}
 ]}
 ];
@@ -711,7 +729,7 @@ dd.style.top = Math.round(r.bottom + 6) + "px";
 window.addEventListener("resize", closeMenus);
 }
 function menuLink(label, href, icon){
-var tgt = (/^https?:/.test(href) && href.indexOf("citywidelv.github.io")<0) ? ' target="" rel="noopener"' : '';
+var tgt = (/^https?:/.test(href) && href.indexOf("citywidelv.github.io")<0) ? ' target="_blank" rel="noopener"' : '';
 return '<a href="' + esc(href) + '"' + tgt + '>' + (icon ? iconSvg(icon, 14) : '') + esc(label) + '</a>';
 }
 function closeMenus(){
@@ -826,57 +844,22 @@ p.textContent = r.count + " open"; p.classList.add("show");
 Announcements still come back on the auth response and posting still works
 via kind:"announcement" - both are now used by citywidelv.github.io. ---------- */
 
-function unlock(r){
-document.getElementById("gate").classList.add("hidden");
-document.getElementById("app").classList.remove("hidden");
+function unlock(){
 renderMainNav();
 buildSearchIndex();
 renderQuick();
 loadPill();
 }
 
-function tryPass(pass, isAuto){
-var btn = document.getElementById("enter");
-var err = document.getElementById("gerr");
-err.textContent = "";
-if(!pass){ err.textContent = "Enter the passcode."; return; }
-btn.disabled = true; btn.textContent = "Checking...";
-fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"},
-body: JSON.stringify({ kind:"auth", passcode: pass }) })
-.then(function(r){ return r.json(); })
-.then(function(r){
-btn.disabled = false; btn.textContent = "Enter";
-if(r && r.ok && r.sections){
-try{ localStorage.setItem(KEY, pass); }catch(e){}
-unlock(r);
-} else {
-if(isAuto){ try{ localStorage.removeItem(KEY); }catch(e){} }
-err.textContent = (r && r.error) ? r.error : "That passcode is not right.";
-}
-})
-.catch(function(){
-btn.disabled = false; btn.textContent = "Enter";
-err.textContent = "Could not reach the server. Check your connection and try again.";
-});
-}
-
-document.getElementById("enter").addEventListener("click", function(){
-tryPass(document.getElementById("pc").value.trim(), false);
-});
-document.getElementById("pc").addEventListener("keydown", function(e){
-if(e.key === "Enter") tryPass(this.value.trim(), false);
-});
+/* ---------- Gate: one team unlock per device (cw-auth.js). The passcode is checked
+server side; the cached copy is a convenience. Sub pages bounce here with ?next= and
+go straight back after the unlock. ---------- */
+CWAuth.hubGate({ hub:"ops", kind:"auth", input:"pc", button:"enter", err:"gerr", note:"gnote", gate:"gate", app:"app",
+onUnlock: function(){ unlock(); } });
 document.getElementById("signout").addEventListener("click", function(e){
 e.preventDefault();
-try{ localStorage.removeItem(KEY); }catch(e){}
-location.reload();
+CWAuth.signOut();
 });
-
-(function(){
-var saved = "";
-try{ saved = localStorage.getItem(KEY) || ""; }catch(e){}
-if(saved) tryPass(saved, true);
-})();
 </script>
 </body>
 </html>

@@ -122,6 +122,7 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:66ch}
 
 <div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var KEY = "cwOpsHubPass";
@@ -233,13 +234,9 @@ function load(pass){
         showGate((r&&r.error)||"Wrong passcode.");
       }
     })
-    .catch(function(){showGate("Could not reach the service. Try again.");});
+    .catch(function(){CWAuth.banner("Could not reach the service. Try again.");});
 }
-function showGate(msg){
-  document.getElementById("app").classList.add("hidden");
-  document.getElementById("gate").classList.remove("hidden");
-  document.getElementById("gmsg").textContent=msg||"";
-}
+function showGate(msg){ CWAuth.locked("ops", msg); }
 document.getElementById("ggo").addEventListener("click",function(){
   var p=document.getElementById("gpass").value.trim();
   if(p)load(p);
@@ -248,7 +245,7 @@ document.getElementById("gpass").addEventListener("keydown",function(e){
   if(e.key==="Enter"){var p=this.value.trim();if(p)load(p);}
 });
 document.getElementById("reload").addEventListener("click",function(){
-  var p=localStorage.getItem(KEY);if(p)load(p);
+  var p=CWAuth.get();if(p)load(p);
 });
 document.getElementById("q").addEventListener("input",function(){QUERY=this.value.trim();render();});
 Array.prototype.forEach.call(document.querySelectorAll(".fbtn"),function(b){
@@ -258,8 +255,8 @@ Array.prototype.forEach.call(document.querySelectorAll(".fbtn"),function(b){
   });
 });
 (function(){
-  var p=localStorage.getItem(KEY);
-  if(p)load(p);else showGate("");
+  var p=CWAuth.require({hub:"ops"});
+  if(p)load(p);
 })();
 </script>
 </body>

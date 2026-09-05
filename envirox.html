@@ -276,6 +276,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
   Prices live in the EnvirOx Catalog tab of the CW Solicitations Sheet &middot; Something off? Tell TJ.
 </div></footer>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var KEY = "cwOpsHubPass";
@@ -685,12 +686,8 @@ function useCatalog(rows, live){
   renderAll();
 }
 (function boot(){
-  var pass = "";
-  try{ pass = localStorage.getItem(KEY) || ""; }catch(e){}
-  if(!pass){
-    document.getElementById("gate").classList.remove("hidden");
-    return;
-  }
+  var pass = CWAuth.require({hub:"ops"});
+  if(!pass) return;
   document.getElementById("app").classList.remove("hidden");
   renderEntity();
   document.getElementById("oregion").addEventListener("change", renderEntity);
@@ -699,11 +696,7 @@ function useCatalog(rows, live){
   .then(function(r){ return r.json(); })
   .then(function(r){
     if(r && r.ok && r.rows && r.rows.length) useCatalog(r.rows, true);
-    else if(r && r.error === "bad_passcode"){
-      document.getElementById("app").classList.add("hidden");
-      document.getElementById("gate").classList.remove("hidden");
-      try{ localStorage.removeItem(KEY); }catch(e){}
-    }
+    else if(r && r.error === "bad_passcode"){ CWAuth.locked("ops", "Wrong passcode."); }
     else useCatalog(EMBEDDED_CATALOG, false);
   })
   .catch(function(){ useCatalog(EMBEDDED_CATALOG, false); });

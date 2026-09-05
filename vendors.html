@@ -208,6 +208,7 @@ p.lede{color:var(--grey);margin:9px 0 16px;max-width:74ch;font-size:13px}
 
 <div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var KEY = "cwOpsHubPass";
@@ -684,14 +685,7 @@ function route(){
 // asking. The credential still goes with every request because the repo is public
 // and this payload carries vendor contact and compliance detail, but that is
 // invisible to anyone who came in through the hub.
-function showGate(msg){
-  $("app").classList.add("hidden");
-  $("gate").classList.remove("hidden");
-  if (msg){
-    $("gmsg").textContent = msg + " Unlock the Ops Hub in this browser and come back.";
-    $("gmsg").className = "err";
-  }
-}
+function showGate(msg){ CWAuth.locked("ops", msg); }
 function load(pass){
   PASS = pass;
   post({ kind:"vd_list" }, function(r){
@@ -710,7 +704,7 @@ function load(pass){
 }
 
 window.addEventListener("hashchange", function(){ QUERY = ""; FILTER = "all"; STATUSF = ""; route(); });
-(function(){ var p = localStorage.getItem(KEY); if (p) load(p); else showGate(""); })();
+(function(){ var p = CWAuth.require({hub:"ops"}); if (p) load(p); })();
 </script>
 </body>
 </html>

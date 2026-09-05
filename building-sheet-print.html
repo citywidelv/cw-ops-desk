@@ -72,7 +72,7 @@ table.sched td:first-child{font-weight:700;background:#FAFAFA;width:90px}
   <button class="tb-red" onclick="window.print()">Print / Save as PDF</button>
 </div>
 
-<div class="gate" id="gate">
+<div class="gate hidden" id="gate">
   <h2>Team Passcode</h2>
   <p>Same passcode as the Ops Hub.</p>
   <label>Passcode</label><input type="text" id="gpc">
@@ -97,6 +97,7 @@ table.sched td:first-child{font-weight:700;background:#FAFAFA;width:90px}
   <div class="inner" id="inner"></div>
 </div>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbwQKATsO_nRIKKaCJYqtjVDn3kPs5h71ChFdGudR8zYkxSeLOKufEvlRXWNNMxfG-oIKQ/exec";
 var KEY = "cwOpsHubPass";
@@ -186,13 +187,13 @@ function load(pc,auto){
     if(r&&r.ok){try{localStorage.setItem(KEY,pc);}catch(e){} renderSheet(r.sheet||{},r.meta||{});}
     else{
       q("loading").classList.add("hidden");
-      if(auto){try{localStorage.removeItem(KEY);}catch(e){} q("gate").classList.remove("hidden");}
-      else{q("gate").classList.remove("hidden");q("gerr").textContent=(r&&r.error)||"Could not open that sheet.";}
+      if(r&&/passcode/i.test(r.error||""))CWAuth.locked("ops",r.error);
+      else{q("notfound").classList.remove("hidden");q("notfound").textContent=(r&&r.error)||"Could not open that sheet.";}
     }
-  }).catch(function(){q("loading").classList.add("hidden");q("gate").classList.remove("hidden");q("gerr").textContent="Could not reach the server.";});
+  }).catch(function(){q("loading").classList.add("hidden");CWAuth.banner("Could not reach the server.");});
 }
 q("genter").addEventListener("click",function(){load(q("gpc").value.trim(),false);});
 q("gpc").addEventListener("keydown",function(e){if(e.key==="Enter")load(this.value.trim(),false);});
-(function(){var s="";try{s=localStorage.getItem(KEY)||"";}catch(e){} if(s)load(s,true);})();
+(function(){var s=CWAuth.require({hub:"ops"}); if(s)load(s,true);})();
 </script>
 </body></html>

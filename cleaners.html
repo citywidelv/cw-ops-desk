@@ -130,6 +130,7 @@ sit at the top. Nothing here is ever deleted; people who came off stay on the re
 
 <datalist id="acctList"></datalist>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var KEY = "cwOpsHubPass";
@@ -317,11 +318,7 @@ function resolveAcct(eventId){
   });
 }
 
-function showGate(msg){
-  $("app").classList.add("hidden");
-  $("gate").classList.remove("hidden");
-  $("gmsg").textContent = msg || "";
-}
+function showGate(msg){ CWAuth.locked("ops", msg); }
 function load(pass){
   PASS = pass;
   $("list").innerHTML = '<div class="state">Loading...</div>';
@@ -349,7 +346,7 @@ Array.prototype.forEach.call(document.querySelectorAll(".fbtn"), function(b){
     b.classList.add("on"); FILTER = b.getAttribute("data-f"); render();
   });
 });
-(function(){ var p = localStorage.getItem(KEY); if (p) load(p); else showGate(""); })();
+(function(){ var p = CWAuth.require({hub:"ops"}); if (p) load(p); })();
 </script>
 </body>
 </html>

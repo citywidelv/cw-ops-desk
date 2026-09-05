@@ -348,7 +348,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
     <div><label>Your Name <span class="req">*</span></label><input type="text" id="contact_name" placeholder="First Last"></div>
     <div><label>Your Email <span class="req">*</span></label><input type="email" id="contact_email" placeholder="you@gocitywide.com"></div>
     <div><label>Your Phone</label><input type="tel" id="contact_phone" placeholder="(702) 555-1234"></div>
-    <div><label>Team Passcode <span class="req">*</span></label><input type="text" id="passcode" placeholder="Ask TJ if you do not have it"></div>
+    <div id="passwrap" class="hidden"><label>Team Passcode <span class="req">*</span></label><input type="text" id="passcode" placeholder="Ask TJ if you do not have it"></div>
     <div class="full"><label>Account / Client Name (Internal Only)</label>
       <input type="text" id="account_name" placeholder="e.g., Kitty Academy - Craig Rd">
       <div class="hint">Logged to the Sheet and internal emails so we can track the account. NEVER shown to vendors; they see it after we pick them for the walkthrough.</div>
@@ -375,6 +375,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
 citywidelv.github.io/cw-vendor-hub/opportunities.html</div>
 
 <script src="notify.js?v=20260904c"></script>
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var BS_WEBHOOK = "https://script.google.com/macros/s/AKfycbwQKATsO_nRIKKaCJYqtjVDn3kPs5h71ChFdGudR8zYkxSeLOKufEvlRXWNNMxfG-oIKQ/exec";
@@ -404,6 +405,12 @@ function fsmPhotoUrl(k){
 function fsmInitials(name){
   return name.split(/\s+/).filter(Boolean).slice(0,2).map(function(w){ return w.charAt(0).toUpperCase(); }).join("");
 }
+/* One team unlock per device (cw-auth.js): the passcode comes from the hub unlock and
+   the field stays hidden. Without a cached passcode the page bounces to the Ops Hub gate. */
+(function(){
+  var p = CWAuth.require({hub:"ops"});
+  if (p) document.getElementById("passcode").value = p;
+})();
 (function buildFsmPick(){
   var box = document.getElementById("fsmPick");
   Object.keys(FSM_ROSTER).forEach(function(k){
@@ -759,6 +766,7 @@ document.getElementById("go").addEventListener("click", function () {
       } else {
         btn.disabled = false; msg.className = "err";
         msg.textContent = (r && r.error) ? r.error : "Something went wrong. Try again.";
+        if (r && /passcode/i.test(r.error || "")) CWAuth.locked("ops", r.error);
       }
     })
     .catch(function () {

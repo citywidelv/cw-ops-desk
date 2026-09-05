@@ -60,7 +60,7 @@ input:focus{outline:none;border-color:var(--red)}
 <p>Every account's building sheet in one place. Open the print view for a walkthrough-ready packet, or edit to keep it current.</p>
 </div></section>
 
-<div class="gate" id="gate">
+<div class="gate hidden" id="gate">
   <h2>Team Passcode</h2>
   <p>Same passcode as the Ops Hub.</p>
   <label>Passcode</label><input type="text" id="gpc" placeholder="Ask TJ if you do not have it">
@@ -79,6 +79,7 @@ input:focus{outline:none;border-color:var(--red)}
 </div>
 <div class="foot"><b>City Wide Facility Solutions</b> &middot; Ops Desk &middot; Internal use only.</div>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbwQKATsO_nRIKKaCJYqtjVDn3kPs5h71ChFdGudR8zYkxSeLOKufEvlRXWNNMxfG-oIKQ/exec";
 var KEY = "cwOpsHubPass";
@@ -93,12 +94,12 @@ function tryPass(pc,auto){
   if(!pc){q("gerr").textContent="Enter the passcode.";return;}
   post({kind:"building_sheet_list",passcode:pc}).then(function(r){
     if(r&&r.ok){PASS=pc;ALL=r.sheets||[];try{localStorage.setItem(KEY,pc);}catch(e){} unlock();}
-    else {if(auto){try{localStorage.removeItem(KEY);}catch(e){}} q("gerr").textContent=(r&&r.error)||"That passcode is not right.";}
-  }).catch(function(){q("gerr").textContent="Could not reach the server.";});
+    else CWAuth.locked("ops",(r&&r.error)||"Wrong passcode.");
+  }).catch(function(){CWAuth.banner("Could not reach the server.");});
 }
 q("genter").addEventListener("click",function(){tryPass(q("gpc").value.trim(),false);});
 q("gpc").addEventListener("keydown",function(e){if(e.key==="Enter")tryPass(this.value.trim(),false);});
-(function(){var s="";try{s=localStorage.getItem(KEY)||"";}catch(e){} if(s)tryPass(s,true);})();
+(function(){var s=CWAuth.require({hub:"ops"}); if(s){PASS=s;unlock();}})();
 
 function fmt(d){ if(!d)return ""; try{ var x=new Date(d); if(!isNaN(x)) return x.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); }catch(e){} return String(d).split(" ")[0]; }
 function render(){
@@ -119,7 +120,7 @@ function render(){
   q("count").textContent=rows.length+" of "+ALL.length+" sheet"+(ALL.length===1?"":"s");
 }
 function refresh(){
-  post({kind:"building_sheet_list",passcode:PASS}).then(function(r){ if(r&&r.ok){ALL=r.sheets||[];} render(); });
+  post({kind:"building_sheet_list",passcode:PASS}).then(function(r){ if(r&&r.ok){ALL=r.sheets||[];} else if(r&&/passcode/i.test(r.error||"")){CWAuth.locked("ops",r.error);return;} render(); });
   render();
 }
 q("search").addEventListener("input",render);

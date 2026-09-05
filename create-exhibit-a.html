@@ -101,11 +101,9 @@ table.mini td input:focus{outline:2px solid var(--teal);}
 <div class="wrap">
 
 <div id="gate" class="card">
-  <h2>Open this page from the Ops Hub</h2>
-  <p class="sub">This page signs you in automatically once you have unlocked the Ops Hub on this browser. If you are seeing this, open the Ops Hub first, or enter the team passcode below.</p>
-  <input type="text" id="pass" autocomplete="off">
+  <h2>Opening from the Ops Hub</h2>
+  <p class="sub">Signing you in with the passcode saved on this browser. Nothing to type.</p>
   <div class="err" id="gateErr"></div>
-  <p style="margin-top:14px;"><button class="btn" onclick="unlock()">Continue</button></p>
 </div>
 
 <div id="app">
@@ -299,6 +297,7 @@ table.mini td input:focus{outline:2px solid var(--teal);}
 
 </div><!-- /app -->
 </div><!-- /wrap -->
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 "use strict";
 /* ======================= constants ======================= */
@@ -728,7 +727,7 @@ function loadLogo(file){
 /* ---------- team list (staff sheet) and vendor directory ---------- */
 var STAFF=[], VENDORS=[];
 function postHook(payload){
-  payload.passcode = localStorage.getItem(KEY)||localStorage.getItem("cw_exa_auth")||"";
+  payload.passcode = CWAuth.get();
   return fetch(WEBHOOK,{method:"POST",headers:{"Content-Type":"text/plain"},
     body:JSON.stringify(payload)}).then(function(r){return r.json();});
 }
@@ -1635,36 +1634,20 @@ el("genBtn").onclick=function(){runGenerate(false);};
 el("prevBtn").onclick=function(){runGenerate(true);};
 
 /* ======================= gate ======================= */
-function pass(){ return localStorage.getItem(KEY)||localStorage.getItem("cw_exa_auth")||""; }
-function unlock(){
-  localStorage.setItem("cw_exa_auth", el("pass").value.trim());
-  boot();
-}
+function pass(){ return CWAuth.get(); }
+/* One team unlock per device (cw-auth.js). No passcode box here: without a cached
+   passcode this page bounces to the Ops Hub gate and comes straight back. The server
+   still checks the passcode on every call. */
 function boot(){
-  if(!pass()) return;
-  el("gateErr").style.display="none";
-  fetch(WEBHOOK, {method:"POST", headers:{"Content-Type":"text/plain"},
-    body: JSON.stringify({kind:"auth", passcode: pass()})})
-  .then(function(r){return r.json();})
-  .then(function(r){
-    if(r && r.ok){
-      el("gate").style.display="none";
-      el("app").style.display="block";
-      loadStaff();
-      loadVendors();
-      loadOptions();
-    } else {
-      localStorage.removeItem("cw_exa_auth");
-      el("gateErr").textContent=(r&&r.error)||"That passcode is not right.";
-      el("gateErr").style.display="block";
-    }
-  })
-  .catch(function(){
-    el("gateErr").textContent="Could not reach the server. Check your connection and try again.";
-    el("gateErr").style.display="block";
-  });
+  var p = CWAuth.require({hub:"ops"});
+  if(!p) return;
+  el("gate").style.display="none";
+  el("app").style.display="block";
+  loadStaff();
+  loadVendors();
+  loadOptions();
+  CWAuth.validate(p, "auth").then(function(res){ if(res.ok === false) CWAuth.locked("ops", "Wrong passcode."); });
 }
-el("pass").addEventListener("keydown", function(e){ if(e.key==="Enter") unlock(); });
 
 /* ======================= init ======================= */
 buildDirGroups();

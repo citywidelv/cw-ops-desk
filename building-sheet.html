@@ -212,6 +212,7 @@ table.sched input{border-radius:6px;padding:8px 9px;font-size:12.5px}
 </div>
 <div class="foot"><b>City Wide Facility Solutions</b> &middot; Ops Desk &middot; Internal use only. Codes live on the Alarm &amp; Key Tracker.</div>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbwQKATsO_nRIKKaCJYqtjVDn3kPs5h71ChFdGudR8zYkxSeLOKufEvlRXWNNMxfG-oIKQ/exec";
 var KEY = "cwOpsHubPass";
@@ -240,9 +241,9 @@ function post(payload){
    existing one, which is checked server side. Reuses the Ops Hub passcode
    cached on this device, so most people never see the box. */
 var pendingLoad = false;
-try{ PASS = localStorage.getItem(KEY) || ""; }catch(e){}
-function askPass(){ q("gate").classList.remove("hidden"); q("gerr").textContent=""; q("gpc").focus(); }
-function clearPass(){ PASS=""; try{localStorage.removeItem(KEY);}catch(e){} }
+PASS = CWAuth.get();
+function askPass(){ CWAuth.bounce("ops","locked"); }
+function clearPass(){ PASS=""; CWAuth.clear(); }
 function tryPass(pc){
   q("gerr").textContent="";
   if(!pc){q("gerr").textContent="Enter the passcode.";return;}

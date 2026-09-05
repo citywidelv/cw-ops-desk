@@ -188,6 +188,7 @@ file never wipe data already in the directory, and nothing is written until you 
 
 <div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
 
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var KEY = "cwOpsHubPass";
@@ -1137,14 +1138,7 @@ $("approve").addEventListener("click", apply);
 $("reset").addEventListener("click", function(){ location.reload(); });
 
 // ---------------------------------------------------------------- gate -------
-function showGate(msg){
-  $("app").classList.add("hidden");
-  $("gate").classList.remove("hidden");
-  if (msg){
-    $("gmsg").textContent = msg + " Unlock the Ops Hub in this browser and come back.";
-    $("gmsg").className = "err";
-  }
-}
+function showGate(msg){ CWAuth.locked("ops", msg); }
 function load(pass){
   PASS = pass;
   post({ kind:"vd_list" }, function(r){
@@ -1164,7 +1158,7 @@ function load(pass){
     }
   });
 }
-(function(){ var p = localStorage.getItem(KEY); if (p) load(p); else showGate(""); })();
+(function(){ var p = CWAuth.require({hub:"ops"}); if (p) load(p); })();
 </script>
 </body>
 </html>
