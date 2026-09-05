@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Log an Account Change | CW Ops Hub</title>
+<!-- build 2026-09-05a
+Digital ACT and Ledger Changes entry. Replaces the four Excel workbooks (ACT Document
+Las Vegas, LV Ledger Changes, ACT Document NNV 2.0, NNV Ledger Changes). An FSM picks
+the region and month, answers "What kind of ledger change are you doing?", and fills a
+form shaped like that Excel section. Accounts come from the account directory and ICs
+from the CW Vendor Directory; both have Add and Rename buttons that write straight to
+the directories and notify the other side to check the name. Saves through ActLedger.gs
+(kind vd_act_add). Review, edits, and the Accounting Complete box live on the BOM Hub
+(act-document.html). Gate: team passcode cached by any hub on this origin (cw-auth.js).
+Prefill: ?region=lv|nnv&doc=act|ledger&section=<key>&month=YYYY-MM
+-->
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;--border:#E5E5E5;--gold:#E5B423;--gold-bg:#FFF4D6;--teal:#0AA6A9;--green:#1E8E5A;--green-bg:#E7F6EE;--navy:#203864;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+a{color:var(--red)}
+.hidden{display:none!important}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.head .bar{max-width:1180px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);border-left:2px solid var(--border);padding-left:14px}
+.head .back{margin-left:auto;font-size:12px;font-weight:700;background:var(--red);color:#fff;text-decoration:none;border-radius:6px;padding:8px 14px;white-space:nowrap}
+.head .back:hover{background:var(--red-dark);color:#fff}
+.wrap{max-width:1180px;margin:0 auto;padding:26px 20px 60px}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 20px;max-width:78ch}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px;margin-bottom:16px}
+.card h2{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.card h2 .n{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--black);color:#fff;font-size:12px;align-items:center;justify-content:center;flex:none}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.row .fld{min-width:200px;flex:1}
+.fld label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin-bottom:4px}
+.fld input,.fld select{width:100%;font:inherit;font-size:13px;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;background:#fff;min-height:38px}
+.seg{display:inline-flex;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;background:#fff}
+.seg button{border:none;background:none;font:inherit;font-size:12.5px;font-weight:700;padding:9px 14px;cursor:pointer;color:var(--grey);white-space:nowrap;min-height:38px}
+.seg button.on{background:var(--black);color:#fff}
+.kinds{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.kind{border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;background:#fff;cursor:pointer;text-align:left;font:inherit;transition:border-color .12s}
+.kind:hover{border-color:var(--red)}
+.kind.on{border-color:var(--red);background:#FFF6F6;box-shadow:inset 0 0 0 1px var(--red)}
+.kind b{display:block;font-size:13px;margin-bottom:3px}
+.kind small{color:var(--grey);font-size:11.5px;line-height:1.4;display:block}
+.kind .doc{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--navy);border-radius:4px;padding:1px 6px;float:right;margin-left:6px}
+.kind .doc.ledger{background:var(--teal)}
+.khead{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);margin:14px 0 8px;grid-column:1/-1}
+.btn{font:inherit;font-size:13px;font-weight:700;border:1.5px solid var(--border);background:#fff;color:var(--black);border-radius:8px;padding:9px 16px;cursor:pointer;min-height:40px;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--red);color:var(--red)}
+.btn.solid{background:var(--red);border-color:var(--red);color:#fff}.btn.solid:hover{background:var(--red-dark)}
+.btn:disabled{opacity:.55;cursor:default}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}
+.probs{background:#FFF1F1;border:1px solid #F3C2C5;border-radius:8px;padding:10px 12px;font-size:12.5px;color:var(--red-dark);margin-top:12px}
+.probs ul{margin:4px 0 0 18px}
+.ok{background:var(--green-bg);border:1px solid #BFE5CF;border-radius:10px;padding:16px 18px}
+.ok b{color:var(--green)}
+.summary{background:var(--light);border-radius:8px;padding:10px 12px;font-size:12.5px;margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:4px 16px}
+.summary span{color:var(--grey)}
+.note{font-size:12px;color:var(--grey)}
+.testbar{background:var(--black);color:var(--gold);font-size:12px;font-weight:700;text-align:center;padding:6px}
+.gatebox{background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px 20px;max-width:520px;margin:0 auto}
+.gatebox input{width:100%;font:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:8px;padding:9px 10px;margin:10px 0}
+.loading{color:var(--grey);font-size:13px;padding:24px;text-align:center}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:sp .8s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(45,42,38,.45);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal .box{background:#fff;border-radius:12px;width:min(560px,100%);padding:20px 22px;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:92vh;overflow:auto}
+.modal h3{font-size:16px;margin-bottom:6px}
+.modal p{font-size:12.5px;color:var(--grey);margin-bottom:12px}
+.modal .fld{margin-bottom:10px}
+.modal .err{color:var(--red);font-size:12.5px;margin-top:8px;min-height:18px}
+.pill{display:inline-block;font-size:10.5px;font-weight:700;border-radius:999px;padding:2px 9px;background:var(--light);color:var(--grey)}
+.pill.warn{background:var(--gold-bg);color:#8A5A00}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--black);color:#fff;font-size:12.5px;padding:10px 16px;border-radius:8px;opacity:0;transition:.2s;z-index:120;pointer-events:none;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.toast.err{background:var(--red)}
+@media(max-width:640px){.head .t{display:none}.wrap{padding:18px 12px 60px}.card{padding:14px}}
+</style>
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t">Log an Account Change</span>
+  <a class="back" id="backlink" href="index.html">&larr; Ops Hub</a>
+</div></header>
+<div id="testbar" class="testbar hidden">Notifications are in TEST mode: emails go to the test address in Config, not to the team.</div>
+
+<div class="wrap">
+<h1>Log an Account Change</h1>
+<p class="lede">This replaces the ACT and Ledger Changes workbooks. Pick the region and month, say what kind of change it is, and fill in the same boxes the Excel had. Accounting reviews and checks it off on the BOM Hub.</p>
+
+<div id="gate" class="gatebox hidden">
+  <b>Team passcode</b>
+  <p id="gmsg" class="note">This page uses the team passcode. If you already unlocked the Ops Hub, Sales Hub, or BOM Hub in this browser it opens on its own.</p>
+  <input type="password" id="pc" placeholder="Passcode" autocomplete="current-password">
+  <button class="btn solid" id="enter" type="button">Enter</button>
+</div>
+<div id="loading" class="loading"><span class="spin"></span>Loading accounts, vendors, and lists...</div>
+
+<div id="app" class="hidden">
+<div class="card">
+  <h2><span class="n">1</span>Where and when</h2>
+  <div class="row">
+    <div class="fld" style="flex:0 0 auto"><label>Region</label>
+      <div class="seg" id="region"><button type="button" data-v="Las Vegas" class="on">Las Vegas</button><button type="button" data-v="Northern Nevada">Northern Nevada</button></div></div>
+    <div class="fld" style="max-width:220px"><label for="month">Month (the tab it goes on)</label><select id="month"></select></div>
+    <div class="fld" style="max-width:240px"><label for="who">Your name</label><input id="who" placeholder="So accounting knows who logged it"></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2><span class="n">2</span>What kind of ledger change are you doing?</h2>
+  <div class="kinds" id="kinds"></div>
+</div>
+
+<div class="card hidden" id="formcard">
+  <h2><span class="n">3</span><span id="ftitle">Details</span></h2>
+  <p class="note" id="fblurb" style="margin-bottom:12px"></p>
+  <div id="form"></div>
+  <div id="probs" class="probs hidden"></div>
+  <div class="actions">
+    <button class="btn solid" id="save" type="button">Save to the <span id="savedoc">ACT</span></button>
+    <button class="btn" id="clear" type="button">Clear</button>
+    <span class="note" id="savenote"></span>
+  </div>
+</div>
+
+<div class="card hidden" id="done">
+  <div class="ok">
+    <b>Saved.</b> <span id="donemsg"></span>
+    <div class="summary" id="donesum"></div>
+    <div class="actions">
+      <button class="btn solid" id="again" type="button">Log another of the same kind</button>
+      <button class="btn" id="other" type="button">A different kind of change</button>
+      <a class="btn" id="viewlink" href="#" target="_blank" rel="noopener">Open this month on the BOM Hub</a>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<div id="modal" class="modal hidden"></div>
+<div id="toast" class="toast"></div>
+
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script src="https://citywidelv.github.io/cw-bom-hub/act-shared.js"></script>
+<script>
+var HUB = "ops", PASS = "", CTX = null, FORM = null, SEC = null;
+var esc = ACT.esc;
+function $(id){ return document.getElementById(id); }
+var Q = {}; (location.search || "").replace(/^\?/, "").split("&").forEach(function(p){ if(!p) return; var i = p.indexOf("="); Q[decodeURIComponent(p.slice(0, i < 0 ? p.length : i))] = decodeURIComponent(i < 0 ? "" : p.slice(i + 1)); });
+var REGION = ACT.KEY_REGION[(Q.region || "").toLowerCase()] || "Las Vegas";
+var TEST = false;
+var toastTimer;
+function toast(m, kind){ var t = $("toast"); t.textContent = m; t.className = "toast show" + (kind ? " " + kind : ""); clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.className = "toast"; }, kind === "err" ? 6000 : 3000); }
+function who(){ return ($("who").value || "").trim(); }
+function api(payload){ return ACT.post(payload, PASS).then(function(r){ if(r && r.ok === false && /passcode/i.test(r.error || "")){ CWAuth.locked(HUB, r.error); } return r; }); }
+
+/* ---------- step 1 ---------- */
+function buildMonths(){
+  var cur = ACT.monthKey();
+  var keys = ACT.monthRange(ACT.shiftMonth(cur, -3), ACT.shiftMonth(cur, 3));
+  var want = /^\d{4}-\d{2}$/.test(Q.month || "") ? Q.month : cur;
+  if(keys.indexOf(want) < 0) keys.push(want);
+  keys.sort();
+  $("month").innerHTML = keys.map(function(k){ return '<option value="' + k + '"' + (k === want ? ' selected' : '') + '>' + ACT.monthName(k) + (k === cur ? ' (this month)' : '') + '</option>'; }).join("");
+}
+function setRegion(r){
+  REGION = r;
+  $("region").querySelectorAll("button").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-v") === r); });
+  if(SEC) showForm(SEC, FORM ? FORM.read() : null);
+}
+$("region").addEventListener("click", function(e){ var b = e.target.closest("button"); if(b) setRegion(b.getAttribute("data-v")); });
+
+/* ---------- step 2 ---------- */
+function buildKinds(){
+  var h = '<div class="khead">Account Change Tracking (ACT)</div>';
+  ACT.SECTIONS.filter(function(s){ return s.entry && s.doc === "ACT"; }).forEach(function(s){
+    h += '<button type="button" class="kind" data-k="' + s.key + '"><span class="doc">ACT</span><b>' + esc(s.name) + '</b><small>' + esc(s.blurb) + '</small></button>';
+  });
+  h += '<div class="khead">Ledger Changes</div>';
+  ACT.SECTIONS.filter(function(s){ return s.entry && s.doc === "Ledger"; }).forEach(function(s){
+    h += '<button type="button" class="kind" data-k="' + s.key + '"><span class="doc ledger">Ledger</span><b>' + esc(s.name) + '</b><small>' + esc(s.blurb) + '</small></button>';
+  });
+  $("kinds").innerHTML = h;
+  $("kinds").querySelectorAll(".kind").forEach(function(b){ b.addEventListener("click", function(){ pick(b.getAttribute("data-k")); }); });
+}
+function pick(key){
+  var s = ACT.section(key); if(!s) return;
+  $("kinds").querySelectorAll(".kind").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-k") === key); });
+  $("done").classList.add("hidden");
+  showForm(s, null);
+  $("formcard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ---------- step 3 ---------- */
+function showForm(sec, values){
+  SEC = sec;
+  $("formcard").classList.remove("hidden");
+  $("ftitle").textContent = sec.name + " · " + REGION;
+  $("fblurb").textContent = sec.blurb;
+  $("savedoc").textContent = sec.doc === "Ledger" ? "Ledger" : "ACT";
+  $("probs").classList.add("hidden");
+  var v = values || {}; v.__month = $("month").value;
+  FORM = ACT.buildForm($("form"), sec, REGION, v, { onAddAccount: addAccount, onRenameAccount: renameAccount, onAddVendor: addVendor, onRenameVendor: renameVendor });
+  if(!values) setTimeout(function(){ FORM.focusFirst(); }, 50);
+}
+$("clear").addEventListener("click", function(){ if(SEC) showForm(SEC, null); });
+$("save").addEventListener("click", save);
+function save(){
+  if(!SEC || !FORM) return;
+  var p = FORM.problems();
+  if(!who()) p.unshift("Your name (step 1) so accounting knows who logged it.");
+  if(p.length){ $("probs").innerHTML = '<b>Not saved yet:</b><ul>' + p.map(function(x){ return '<li>' + esc(x) + '</li>'; }).join("") + '</ul>'; $("probs").classList.remove("hidden"); return; }
+  $("probs").classList.add("hidden");
+  var fields = FORM.read();
+  Object.keys(fields).forEach(function(k){ if(fields[k] === "" || fields[k] === null) delete fields[k]; });
+  var month = $("month").value;
+  $("save").disabled = true; $("savenote").textContent = "Saving...";
+  try { localStorage.setItem("cwOpsName", who()); } catch(e){}
+  api({ kind: "vd_act_add", section: SEC.key, region: REGION, month: month, fields: fields, by: who(), source: "Ops Hub entry" }).then(function(r){
+    $("save").disabled = false; $("savenote").textContent = "";
+    if(!r || !r.ok){ $("probs").innerHTML = '<b>Not saved:</b> ' + esc((r && r.error) || "no answer from the server"); $("probs").classList.remove("hidden"); return; }
+    $("donemsg").textContent = SEC.name + " entry " + r.entry_id + " is on the " + ACT.monthName(month) + " tab of the " + REGION + " " + (SEC.doc === "Ledger" ? "Ledger Changes" : "ACT") + ".";
+    $("donesum").innerHTML = Object.keys(fields).map(function(k){ return '<div><span>' + esc(k) + ':</span> ' + esc(ACT.display(k, fields[k])) + '</div>'; }).join("");
+    $("viewlink").href = ACT.BOM + "act-document.html#/" + ACT.REGION_KEY[REGION] + "/" + (SEC.doc === "Ledger" ? "ledger" : "act") + "/" + month + "/" + r.entry_id;
+    $("formcard").classList.add("hidden"); $("done").classList.remove("hidden");
+    $("done").scrollIntoView({ behavior: "smooth", block: "start" });
+    toast("Saved " + r.entry_id);
+  }).catch(function(){ $("save").disabled = false; $("savenote").textContent = ""; $("probs").innerHTML = "<b>Not saved:</b> could not reach the server. Try again."; $("probs").classList.remove("hidden"); });
+}
+$("again").addEventListener("click", function(){ $("done").classList.add("hidden"); showForm(SEC, null); $("formcard").scrollIntoView({ behavior: "smooth" }); });
+$("other").addEventListener("click", function(){ $("done").classList.add("hidden"); $("formcard").classList.add("hidden"); SEC = null; $("kinds").querySelectorAll(".kind").forEach(function(b){ b.classList.remove("on"); }); $("kinds").scrollIntoView({ behavior: "smooth" }); });
+
+/* ---------- add / rename modals ---------- */
+function modal(html){ var m = $("modal"); m.innerHTML = '<div class="box">' + html + '</div>'; m.classList.remove("hidden"); m.onclick = function(e){ if(e.target === m) closeModal(); }; }
+function closeModal(){ $("modal").classList.add("hidden"); $("modal").innerHTML = ""; }
+document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeModal(); });
+
+function addAccount(typed, cb){
+  modal('<h3>Add an account to the ' + esc(REGION) + ' directory</h3>' +
+    '<p>Use the name exactly as it reads in CRM and Business Central. The BOM is notified and checks that it matches before it is marked Verified. You can use it on this entry right away.</p>' +
+    '<div class="fld"><label>Account name</label><input id="m_name" value="' + esc(typed) + '"></div>' +
+    '<div class="row"><div class="fld"><label>Status</label><select id="m_status"><option>Active</option><option>Prospect</option><option>Other</option></select></div>' +
+    '<div class="fld"><label>FSM</label><select id="m_fsm"><option value="">Pick one</option>' + ACT.fsmsFor(REGION).map(function(f){ return '<option>' + esc(f) + '</option>'; }).join("") + '</select></div></div>' +
+    '<div class="fld"><label>BC customer number (if you have it)</label><input id="m_bc" placeholder="01089..."></div>' +
+    '<div class="fld"><label>Note for the BOM (optional)</label><input id="m_note" placeholder="Where the name came from"></div>' +
+    '<div class="err" id="m_err"></div><div class="actions"><button class="btn solid" id="m_go" type="button">Add account</button><button class="btn" type="button" onclick="closeModal()">Cancel</button></div>');
+  $("m_name").focus();
+  $("m_go").onclick = function(allowDup){
+    var name = $("m_name").value.trim(); if(!name){ $("m_err").textContent = "Name is required."; return; }
+    $("m_go").disabled = true; $("m_err").textContent = "Saving...";
+    api({ kind: "vd_act_account_save", by: who(), source: "Ops Hub entry", context: SEC ? SEC.name + " entry, " + ACT.monthName($("month").value) : "",
+          allow_duplicate: allowDup === true,
+          account: { name: name, region: REGION, status: $("m_status").value, fsm: $("m_fsm").value, bc_customer_no: $("m_bc").value.trim(), notes: $("m_note").value.trim() } }).then(function(r){
+      $("m_go").disabled = false;
+      if(r && r.duplicate){ $("m_err").innerHTML = esc(r.error) + ' <button class="mini" type="button" id="m_use">Use ' + esc(r.name) + '</button> <button class="mini" type="button" id="m_dup">Add anyway</button>';
+        $("m_use").onclick = function(){ closeModal(); cb.set(r.name); }; $("m_dup").onclick = function(){ $("m_go").onclick(true); }; return; }
+      if(!r || !r.ok){ $("m_err").textContent = (r && r.error) || "Could not save."; return; }
+      CTX.accounts.push({ id: r.account_id, name: name, region: REGION, status: $("m_status").value, verified: false, fsm: $("m_fsm").value });
+      refreshCombos();
+      cb.set(name);
+      closeModal();
+      toast("Added " + name + " (" + r.account_id + ")" + (r.notified && r.notified.to ? ". Notice sent" + (r.notified.test ? " (test mode)" : "") + "." : ""));
+    }).catch(function(){ $("m_go").disabled = false; $("m_err").textContent = "Could not reach the server."; });
+  };
+}
+function renameAccount(current, cb){
+  var a = (CTX.accounts || []).filter(function(x){ return x.region === REGION && x.name === current; })[0];
+  if(!a){ toast("Pick an account from the list first.", "err"); return; }
+  modal('<h3>Rename an account</h3><p>Use this when the customer changed its name. The old name stays in the record as a former name, every past entry keeps the name it was logged under, and the BOM is notified to confirm the new name matches CRM.</p>' +
+    '<div class="fld"><label>Current name</label><input value="' + esc(a.name) + '" disabled></div>' +
+    '<div class="fld"><label>New name</label><input id="m_name" value="' + esc(a.name) + '"></div>' +
+    '<div class="err" id="m_err"></div><div class="actions"><button class="btn solid" id="m_go" type="button">Rename</button><button class="btn" type="button" onclick="closeModal()">Cancel</button></div>');
+  $("m_name").focus(); $("m_name").select();
+  $("m_go").onclick = function(){
+    var name = $("m_name").value.trim(); if(!name || name === a.name){ $("m_err").textContent = "Type the new name."; return; }
+    $("m_go").disabled = true; $("m_err").textContent = "Saving...";
+    api({ kind: "vd_act_account_save", by: who(), context: SEC ? SEC.name + " entry" : "", account: { account_id: a.id, name: name } }).then(function(r){
+      $("m_go").disabled = false;
+      if(!r || !r.ok){ $("m_err").textContent = (r && r.error) || "Could not save."; return; }
+      a.name = name; a.verified = false; refreshCombos(); cb.set(name); closeModal(); toast("Renamed to " + name + ". The BOM was notified.");
+    }).catch(function(){ $("m_go").disabled = false; $("m_err").textContent = "Could not reach the server."; });
+  };
+}
+function addVendor(typed, cb){
+  if(ACT.FIXED_ICS.indexOf(typed) >= 0){ cb.set(typed); return; }
+  modal('<h3>Add a vendor to the CW Vendor Directory</h3>' +
+    '<p>Quick add for the IC list. The vendor lands as <b>In Progress</b> with the name you give; the full record (packet, insurance, contacts) still gets completed on <a href="vendor-add.html" target="_blank" rel="noopener">Add a Vendor</a>. The BOM is notified to check the name matches CRM and Business Central.</p>' +
+    '<div class="fld"><label>Vendor name (DBA)</label><input id="m_name" value="' + esc(typed) + '"></div>' +
+    '<div class="row"><div class="fld"><label>Region</label><select id="m_region"><option' + (REGION === "Las Vegas" ? ' selected' : '') + '>Las Vegas</option><option' + (REGION !== "Las Vegas" ? ' selected' : '') + '>Northern Nevada</option><option>Both</option></select></div>' +
+    '<div class="fld"><label>Service type</label><select id="m_type"><option value="janitorial">Janitorial</option><option value="day-porter">Day porter</option><option value="floor-care">Floor care</option><option value="window-cleaning">Window cleaning</option><option value="landscaping">Landscaping</option><option value="pressure-washing">Pressure washing</option><option value="handyman">Handyman</option><option value="pest-control">Pest control</option><option value="parking-lot">Parking lot</option><option value="security">Security</option><option value="hvac">HVAC</option><option value="plumbing">Plumbing</option><option value="electrical">Electrical</option><option value="unclassified">Other / not sure</option></select></div></div>' +
+    '<div class="err" id="m_err"></div><div class="actions"><button class="btn solid" id="m_go" type="button">Add vendor</button><button class="btn" type="button" onclick="closeModal()">Cancel</button></div>');
+  $("m_name").focus();
+  $("m_go").onclick = function(allowDup){
+    var name = $("m_name").value.trim(); if(!name){ $("m_err").textContent = "Name is required."; return; }
+    $("m_go").disabled = true; $("m_err").textContent = "Saving...";
+    api({ kind: "vd_act_vendor_quick", by: who(), context: SEC ? SEC.name + " entry, " + ACT.monthName($("month").value) : "", allow_duplicate: allowDup === true,
+          dba_name: name, region: $("m_region").value, service_types: $("m_type").value }).then(function(r){
+      $("m_go").disabled = false;
+      if(r && r.duplicate){ $("m_err").innerHTML = esc(r.error) + ' <button class="mini" type="button" id="m_use">Use ' + esc(r.name) + '</button>';
+        $("m_use").onclick = function(){ if(!(CTX.vendors || []).some(function(v){ return v.name === r.name; })) CTX.vendors.push({ id: r.vendor_id, name: r.name, region: r.region, status: r.status }); refreshCombos(); closeModal(); cb.set(r.name); }; return; }
+      if(!r || !r.ok){ $("m_err").textContent = (r && r.error) || "Could not save."; return; }
+      CTX.vendors.push({ id: r.vendor_id, name: name, region: r.region, status: r.status });
+      refreshCombos(); cb.set(name); closeModal();
+      toast("Added " + name + " (" + r.vendor_id + ")" + (r.notified && r.notified.to ? ". Notice sent" + (r.notified.test ? " (test mode)" : "") + "." : ""));
+    }).catch(function(){ $("m_go").disabled = false; $("m_err").textContent = "Could not reach the server."; });
+  };
+}
+function renameVendor(current, cb){
+  if(ACT.FIXED_ICS.indexOf(current) >= 0){ toast(current + " is a fixed choice, not a vendor.", "err"); return; }
+  var v = (CTX.vendors || []).filter(function(x){ return x.name === current; })[0];
+  if(!v){ toast("Pick a vendor from the list first.", "err"); return; }
+  modal('<h3>Rename a vendor</h3><p>Use this when the vendor changed its business name. The old name is kept in the vendor record notes, past entries keep the name they were logged under, and the BOM is notified to confirm it matches CRM and Business Central.</p>' +
+    '<div class="fld"><label>Current name</label><input value="' + esc(v.name) + '" disabled></div>' +
+    '<div class="fld"><label>New name</label><input id="m_name" value="' + esc(v.name) + '"></div>' +
+    '<div class="err" id="m_err"></div><div class="actions"><button class="btn solid" id="m_go" type="button">Rename</button><button class="btn" type="button" onclick="closeModal()">Cancel</button></div>');
+  $("m_name").focus(); $("m_name").select();
+  $("m_go").onclick = function(){
+    var name = $("m_name").value.trim(); if(!name || name === v.name){ $("m_err").textContent = "Type the new name."; return; }
+    $("m_go").disabled = true; $("m_err").textContent = "Saving...";
+    api({ kind: "vd_act_vendor_quick", by: who(), context: SEC ? SEC.name + " entry" : "", vendor_id: v.id, dba_name: name }).then(function(r){
+      $("m_go").disabled = false;
+      if(!r || !r.ok){ $("m_err").textContent = (r && r.error) || "Could not save."; return; }
+      v.name = name; refreshCombos(); cb.set(name); closeModal(); toast("Renamed to " + name + ". The BOM was notified.");
+    }).catch(function(){ $("m_go").disabled = false; $("m_err").textContent = "Could not reach the server."; });
+  };
+}
+function refreshCombos(){
+  if(!FORM) return;
+  Object.keys(FORM.combos).forEach(function(h){
+    var t = ACT.FIELD[h];
+    if(t === "account") FORM.combos[h].setOptions(ACT.accountsFor(REGION).map(function(a){ return { value: a.name, label: a.name, sub: (a.status || "") + (a.verified ? "" : " · not yet verified"), tag: a.status === "Needs review" ? "review" : "" }; }));
+    if(t === "ic") FORM.combos[h].setOptions(ACT.FIXED_ICS.map(function(x){ return { value: x, label: x, tag: "fixed" }; }).concat(ACT.vendorsFor(REGION).map(function(x){ return { value: x.name, label: x.name, sub: x.status || "", alt: x.legal || "" }; })));
+  });
+}
+
+/* ---------- gate + boot ---------- */
+function load(pass, isAuto, next){
+  PASS = pass;
+  var btn = $("enter"); btn.disabled = true;
+  ACT.post({ kind: "vd_act_context" }, pass).then(function(r){
+    btn.disabled = false;
+    if(r && r.ok){
+      if(pass !== CWAuth.getBom()) CWAuth.set(pass);
+      CTX = r; ACT.setContext(r); ACT.injectCss();
+      if(r.vendors === null) toast("The vendor directory could not be read; IC lists are empty.", "err");
+      TEST = !r.live; if(TEST) $("testbar").classList.remove("hidden");
+      $("gate").classList.add("hidden"); $("loading").classList.add("hidden"); $("app").classList.remove("hidden");
+      boot();
+    } else if(isAuto && next){ next(); }
+    else { $("loading").classList.add("hidden"); $("gate").classList.remove("hidden"); $("gmsg").textContent = (r && r.error) || "That passcode is not right."; }
+  }).catch(function(){ btn.disabled = false; $("loading").classList.add("hidden"); $("gate").classList.remove("hidden"); $("gmsg").textContent = "Could not reach the server. Check your connection and try again."; });
+}
+function tryCached(){
+  var cands = [], t = CWAuth.get(), b = CWAuth.getBom();
+  if(t) cands.push(t); if(b && cands.indexOf(b) < 0) cands.push(b);
+  if(!cands.length){ CWAuth.bounce(HUB, "locked"); return; }
+  var i = 0;
+  (function step(){ if(i >= cands.length){ CWAuth.locked(HUB, "Wrong passcode."); return; } var p = cands[i++]; load(p, true, step); })();
+}
+$("enter").addEventListener("click", function(){ var v = $("pc").value.trim(); if(v) load(v, false); });
+$("pc").addEventListener("keydown", function(e){ if(e.key === "Enter"){ var v = $("pc").value.trim(); if(v) load(v, false); } });
+function boot(){
+  buildMonths(); buildKinds();
+  try { $("who").value = localStorage.getItem("cwOpsName") || localStorage.getItem("cwBomName") || ""; } catch(e){}
+  setRegion(REGION);
+  if(Q.section && ACT.section(Q.section) && ACT.section(Q.section).entry) pick(Q.section);
+  else if((Q.doc || "").toLowerCase() === "ledger") pick("ledger_changes");
+  var ref = document.referrer || "";
+  if(/cw-bom-hub/.test(ref)){ $("backlink").href = ACT.BOM; $("backlink").innerHTML = "&larr; BOM Hub"; }
+}
+tryCached();
+</script>
+</body>
+</html>

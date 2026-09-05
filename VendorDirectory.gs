@@ -6,6 +6,7 @@
 //        vd_patch, vd_types, vd_intake, vd_bc_seed, vd_bc_list, vd_bc_send,
 //        vd_bc_rows, vd_bc_upsert, vd_bom_auth, vd_bom_setpass, vd_bom_asana (Sep 4 2026, BOM Hub)
 //        vd_coi_* -> coiDispatch in CoiRequest.gs (Sep 5 2026, customer COI requests)
+//        vd_act_* -> actDispatch in ActLedger.gs (Sep 5 2026, digital ACT and Ledger Changes)
 // Aug 22 2026: VD_HEADERS gained last_audit, audit_result, audit_next_due, audit_pdf,
 // written by VendorAudit.gs and shown on vendors.html.
 //
@@ -167,11 +168,15 @@ function vdDispatch(data) {
   if (kind === 'vd_intake') return vdIntake_(data);
 
   var teamOk = (data.passcode || '') !== '' && (data.passcode || '') === vdPass_();
-  var bomOk = !teamOk && vdBomPass_() && (data.passcode || '') === vdBomPass_() && VD_BOM_KINDS.indexOf(kind) >= 0;
+  // Sep 5 2026: every account-change kind (ActLedger.gs) is BOM work too, except setup and seed.
+  var bomKind = VD_BOM_KINDS.indexOf(kind) >= 0 || (/^vd_act_/.test(kind) && kind !== 'vd_act_setup' && kind !== 'vd_act_seed');
+  var bomOk = !teamOk && vdBomPass_() && (data.passcode || '') === vdBomPass_() && bomKind;
   if (!teamOk && !bomOk) return vdOut_({ ok: false, error: 'Wrong passcode.' });
   data._bom = bomOk;
 
   if (kind === 'vd_bom_auth') return vdOut_({ ok: true, who: bomOk ? 'bom' : 'team' });
+  // Sep 5 2026: ACT and Ledger Changes (digital ACT) live in ActLedger.gs.
+  if (kind.indexOf('vd_act_') === 0) return actDispatch(data);
   // Sep 5 2026: customer certificate of insurance requests live in CoiRequest.gs.
   if (kind.indexOf('vd_coi_') === 0) return coiDispatch(data);
   if (kind === 'vd_bom_setpass') return vdBomSetPass_(data);

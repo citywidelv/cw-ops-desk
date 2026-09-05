@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
-<!-- build 2026-09-05c: one team unlock per device (cw-auth.js), external menu links open in a new tab, Team Apps sub-menu, Handteq Point, InsurLink, Verified First, Amazon Business, Company Store links.
+<!-- build 2026-09-05d: Accounts & Buildings > Account Changes (ACT & Ledger) menu for the digital ACT.
+     build 2026-09-05c: one team unlock per device (cw-auth.js), external menu links open in a new tab, Team Apps sub-menu, Handteq Point, InsurLink, Verified First, Amazon Business, Company Store links.
      build 2026-07-29b: landing page v2 per TJ.
 Kept: top bar, dropdown nav (now cascading groups), skyline hero, Most Used
 bar (new picks), Building Information Sheets band. Removed: the link
@@ -624,6 +625,14 @@ var MENU = [
 ]}
 ]},
 { label:"Accounts & Buildings", icon:"map", items:[
+{sub:"Account Changes (ACT & Ledger)", items:[
+{label:"Log an Account Change", href:"act-entry.html"},
+{label:"Log a Ledger Change", href:"act-entry.html?doc=ledger"},
+{label:"ACT and Ledger Documents (BOM Hub)", href:"https://citywidelv.github.io/cw-bom-hub/act-document.html"},
+{label:"Accounting Queue (BOM Hub)", href:"https://citywidelv.github.io/cw-bom-hub/accounting-queue.html"},
+{ghead:"Directory"},
+{label:"Account Directory (BOM Hub)", href:"https://citywidelv.github.io/cw-bom-hub/accounts.html"}
+]},
 {sub:"Building Info Sheets (DBIS)", items:[
 {label:"Sheet Library", href:"building-sheets.html"},
 {label:"New / Update a Sheet", href:"building-sheet.html"}
