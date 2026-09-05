@@ -7,7 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23D22730'/%3E%3Ctext x='16' y='23' font-family='Verdana' font-size='16' font-weight='bold' fill='white' text-anchor='middle'%3E%24%3C/text%3E%3C/svg%3E">
 <style>
 :root{
-  --cw-red:#D22730; --cw-red-dk:#A81E26; --cw-black:#2D2A26; --cw-grey:#636466;
+  --cw-red:#D22730; --cw-red-dk:#B01F27; --cw-black:#2D2A26; --cw-grey:#636466;
   --cw-white:#FFFFFF; --cw-teal:#0AA6A9; --cw-teal-dk:#07807F; --cw-gold:#E5B423; --cw-orange:#F68C28;
   --lg:#F5F5F5; --bd:#E5E5E5; --bd2:#D6D6D6; --ph:#E8E8E8;
   --sp-xs:4px; --sp-sm:8px; --sp-md:16px; --sp-lg:24px; --sp-xl:32px;
@@ -270,6 +270,14 @@ body.planprint .sheet{max-width:1180px}
   @page planpage{size:landscape}
 }
 </style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script>/* Internal tool. One team unlock per device (cw-auth.js). No passcode box here: without a
+   saved passcode this page sends the browser to the hub gate and comes straight back. */
+(function(){ if(!window.CWAuth) return; var hub = /sales-hub/.test(document.referrer||"") ? "sales" : "ops";
+  var p = CWAuth.require({hub:hub}); if(!p){ document.documentElement.style.visibility="hidden"; return; }
+  window.addEventListener("load", function(){ CWAuth.validate(p,"auth").then(function(r){ if(r.ok===false) CWAuth.locked(hub,"Wrong passcode."); }); }); })();
+</script>
 </head>
 <body>
 <header class="topbar">
@@ -278,7 +286,7 @@ body.planprint .sheet{max-width:1180px}
       <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
       <div class="t"><b>OS Pricing Tool</b><span>Other Services &amp; Trade Work</span></div>
     </div>
-    <a class="backhub" href="https://citywidelv.github.io/cw-ops-desk/">&larr; Back to the Ops Hub</a>
+    <a class="backhub" href="https://citywidelv.github.io/cw-ops-desk/">&larr; Ops Hub</a>
     <div class="topbar-sp"></div>
     <span class="feedchip" id="feedChip" title="Where the rates came from"><span class="dot"></span><span id="feedTxt">Loading rates</span></span>
     <button class="btn btn-ghost btn-sm" id="btnReload" title="Re-read the rate feed">Refresh rates</button>
@@ -562,7 +570,7 @@ body.planprint .sheet{max-width:1180px}
 <div class="footer">
   <b>City Wide Facility Solutions</b>
   <span>GoCityWide.com</span>
-  <a href="https://citywidelv.github.io/cw-ops-desk/">Back to the Ops Hub</a>
+  <a href="https://citywidelv.github.io/cw-ops-desk/">&larr; Ops Hub</a>
   <span id="footFeed"></span>
   <span style="margin-left:auto">Internal pricing tool. Do not send this page to a customer.</span>
 </div>

@@ -84,6 +84,14 @@ font-size:11px;color:var(--grey);flex-wrap:wrap}
 .foot b{color:var(--black)}
 .hp{position:absolute;left:-9999px;top:-9999px}
 </style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script>/* Internal tool. One team unlock per device (cw-auth.js). No passcode box here: without a
+   saved passcode this page sends the browser to the hub gate and comes straight back. */
+(function(){ if(!window.CWAuth) return; var hub = /sales-hub/.test(document.referrer||"") ? "sales" : "ops";
+  var p = CWAuth.require({hub:hub}); if(!p){ document.documentElement.style.visibility="hidden"; return; }
+  window.addEventListener("load", function(){ CWAuth.validate(p,"auth").then(function(r){ if(r.ok===false) CWAuth.locked(hub,"Wrong passcode."); }); }); })();
+</script>
 </head>
 <body>
 

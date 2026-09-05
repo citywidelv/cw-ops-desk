@@ -47,10 +47,10 @@ border-radius:18px;padding:8px 32px 8px 34px;background:var(--light);outline:non
 .hsearch .x{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;
 background:none;color:var(--grey);font-size:14px;cursor:pointer;padding:4px 6px;display:none}
 .hsearch .x.show{display:block}
-.head .badge{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+.head .badge{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
 background:var(--black);color:#fff;border-left:3px solid var(--gold);padding:4px 10px;white-space:nowrap}
-.head .out{font-size:11px;font-weight:700;color:var(--grey);cursor:pointer;text-decoration:none;
-border:1px solid var(--border);border-radius:14px;padding:5px 12px;background:var(--light);white-space:nowrap}
+.head .out{font-size:12px;font-weight:700;color:var(--grey);cursor:pointer;text-decoration:none;
+border:1px solid var(--border);border-radius:18px;padding:0 14px;min-height:36px;display:inline-flex;align-items:center;background:var(--light);white-space:nowrap}
 .head .out:hover{background:var(--red);color:#fff;border-color:var(--red)}
 
 /* nav bar: cascading dropdowns (static menu tree in this repo) */
@@ -58,7 +58,7 @@ nav.mainnav{background:var(--black);border-bottom:3px solid var(--red)}
 .nav-in{max-width:1160px;margin:0 auto;padding:0 12px;display:flex;align-items:stretch;
 gap:2px;flex-wrap:wrap}
 .nitem{position:relative;flex:none}
-.nbtn{background:none;border:none;color:#fff;font-family:inherit;font-size:11.5px;font-weight:700;
+.nbtn{background:none;border:none;color:#fff;font-family:inherit;font-size:12px;min-height:44px;font-weight:700;
 letter-spacing:.04em;text-transform:uppercase;padding:12px 13px;display:flex;align-items:center;
 gap:7px;white-space:nowrap;cursor:pointer}
 .nbtn svg{opacity:.9;flex:none}
@@ -68,12 +68,12 @@ gap:7px;white-space:nowrap;cursor:pointer}
 border:1px solid var(--border);border-top:3px solid var(--red);border-radius:0 0 10px 10px;
 box-shadow:var(--shadow-lift);padding:6px 0;z-index:70}
 .nmenu.show{display:block}
-.nmenu a{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:700;
-color:var(--black);text-decoration:none;padding:9px 16px}
+.nmenu a{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;
+color:var(--black);text-decoration:none;padding:10px 16px;min-height:40px}
 .nmenu a:hover{background:var(--light);color:var(--red)}
 .nmenu a svg{color:var(--red);flex:none}
-.nmenu .ghead{font-weight:700;color:var(--grey);font-size:10px;padding:9px 16px 3px;
-text-transform:uppercase;letter-spacing:.1em}
+.nmenu .ghead{font-weight:700;color:var(--grey);font-size:12px;padding:9px 16px 3px;
+text-transform:uppercase;letter-spacing:.08em}
 .nmenu .ghead:not(:first-child){border-top:1px solid var(--border);margin-top:5px}
 .nsub{position:relative}
 .nsub>a.subbtn{justify-content:space-between}
@@ -123,7 +123,7 @@ color:var(--grey)}
 .quick .qhead .bar-accent{flex:none;width:18px;height:3px;background:var(--red);border-radius:2px;
 align-self:center}
 .qrow{display:flex;flex-wrap:wrap;gap:9px}
-.qbtn{position:relative;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;
+.qbtn{position:relative;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;min-height:44px;
 color:var(--black);text-decoration:none;border:1.5px solid var(--border);border-radius:10px;
 padding:9px 13px;background:#fff;transition:all .15s;white-space:nowrap}
 .qbtn svg{color:var(--red);flex:none}
@@ -267,9 +267,11 @@ cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.28)}
 .totop.show{display:block}
 .foot{border-top:1px solid var(--border);margin-top:26px;background:#fff}
 .foot .fin{max-width:1160px;margin:0 auto;padding:20px;display:flex;align-items:center;gap:14px;
-font-size:11px;color:var(--grey);flex-wrap:wrap}
+font-size:12px;color:var(--grey);flex-wrap:wrap}
+.foot .fin a{color:var(--grey);font-weight:700;font-style:italic;text-decoration:none}
+.foot .fin a:hover{color:var(--red)}
 .foot b{color:var(--black)}
-.foot .fr{margin-left:auto;font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+.foot .fr{margin-left:auto;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
 .foot .fr span{color:var(--red);padding:0 6px}
 
 /* Gate (unchanged behavior) */
@@ -300,14 +302,26 @@ color:var(--grey);text-decoration:none}
 .wallgrid{grid-template-columns:1fr}
 }
 @media(max-width:820px){
-.nav-in{flex-wrap:wrap;padding:2px 6px}
-.nbtn{padding:9px 8px;font-size:10.5px;gap:5px}
+.nav-in{flex-wrap:nowrap;overflow-x:auto;padding:0 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.nav-in::-webkit-scrollbar{display:none}
+.nbtn{padding:0 10px;font-size:12px;gap:5px}
 .nmenu{position:fixed;left:10px;right:10px;max-width:none;border-radius:10px;
 border-top:3px solid var(--red);max-height:65vh;overflow-y:auto}
 .nsubmenu{position:static;border:none;box-shadow:none;padding:0 0 4px 14px;display:none}
 .nsubmenu.show{display:block}
 .head .t,.head .badge{display:none}
 .hsearch{max-width:none}
+}
+@media(max-width:640px){
+/* phones: the bar wraps (logo and pills, then the search on its own row) and only the
+   nav stays pinned, so the sticky strip is 44px instead of a quarter of the screen */
+.head{position:static;box-shadow:none}
+nav.mainnav{position:sticky;top:0;z-index:50}
+.head .bar{height:auto;flex-wrap:wrap;padding:8px 12px;row-gap:8px;gap:8px}
+.head img{height:28px}
+.head .out{margin-left:auto}
+.head #signout{order:10;margin-left:0}
+.hsearch{order:9;flex:1 1 auto;min-width:0;margin-left:0}
 .hero .wrap{padding-bottom:104px}
 .quick{margin-top:-40px}
 .fcard{gap:14px}
@@ -318,6 +332,7 @@ border-top:3px solid var(--red);max-height:65vh;overflow-y:auto}
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
 </head>
 <body>
 
@@ -466,12 +481,12 @@ search box to jump straight to what you need.</p>
 <h3>Finding your way around</h3>
 <p>Every tool, form, and calculator now lives in the menus above. Grouped the way we work:</p>
 <ul>
-<li><span>Opportunities</span> &nbsp;post, active postings, board, responses</li>
-<li><span>Vendors</span> &nbsp;packets, Exhibit A, resources</li>
-<li><span>Accounts &amp; Buildings</span> &nbsp;sheets, maps, survey</li>
+<li><span>Work Tickets</span> &nbsp;maintenance, snow, CCCNV, 7-Eleven</li>
+<li><span>Vendors</span> &nbsp;directory, opportunities, audits, violations, insurance, background checks, packets, Exhibit A</li>
+<li><span>Accounts &amp; Buildings</span> &nbsp;building sheets, COI requests, maps, survey</li>
 <li><span>Pricing &amp; Bids</span> &nbsp;every calculator</li>
 <li><span>Night Ops</span> &nbsp;inspections &amp; route outs</li>
-<li><span>Team &amp; Admin</span> &nbsp;CRM, billing, payroll</li>
+<li><span>Team &amp; Admin</span> &nbsp;CRM, billing, team apps, ordering</li>
 </ul>
 <div class="keys"><b>/</b>jumps to search from anywhere</div>
 </aside>
@@ -490,7 +505,7 @@ search box to jump straight to what you need.</p>
 
 <footer class="foot"><div class="fin">
 <b>City Wide Facility Solutions</b> &middot; Operations Hub &middot; Internal use only
-&middot; Something missing? Tell TJ.
+&middot; Something missing? Tell TJ. &middot; <a href="https://www.gocitywide.com" target="_blank" rel="noopener">GoCityWide.com</a>
 <span class="fr">Las Vegas<span>&bull;</span>Reno</span>
 </div></footer>
 </div>
@@ -533,8 +548,8 @@ var MENU = [
 {label:"CCCNV Work Requests", href:"https://form.jotform.com/252935932465163"},
 {label:"CCCNV Requests Log", href:"https://www.jotform.com/tables/252935932465163"},
 {ghead:"Tracking"},
-{label:"Work Tickets Sheet", href:"https://docs.google.com/spreadsheets/d/17awrIV6X-Ugaxkw0VLDIH8WVpJ51Ux_5ntNxHu2tzBg/edit"},
-{label:"Snow Reports Sheet", href:"https://docs.google.com/spreadsheets/d/17awrIV6X-Ugaxkw0VLDIH8WVpJ51Ux_5ntNxHu2tzBg/edit"}
+{label:"Work Tickets Sheet", href:"https://docs.google.com/spreadsheets/d/17awrIV6X-Ugaxkw0VLDIH8WVpJ51Ux_5ntNxHu2tzBg/edit#gid=0"},
+{label:"Snow Reports Sheet", href:"https://docs.google.com/spreadsheets/d/17awrIV6X-Ugaxkw0VLDIH8WVpJ51Ux_5ntNxHu2tzBg/edit#gid=129546338"}
 ]},
 { label:"Vendors", icon:"clip", items:[
 {sub:"Active Vendors", items:[
@@ -548,13 +563,13 @@ var MENU = [
 {label:"Prospects", href:"vendors.html#/nnv/prospects"},
 {ghead:"Maintain"},
 {label:"Add a Vendor", href:"vendor-add.html"},
-{label:"Vendor Directory (Sheet)", href:"https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit"}
+{label:"Vendor Directory (Sheet)", href:"https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit#gid=1052522802"}
 ]},
 {sub:"Quarterly Audits", items:[
 {label:"Submit a Vendor Audit", href:"vendor-audit.html"},
 {label:"Audits Due (Las Vegas)", href:"vendors.html#/lv/janitorial/audit"},
 {label:"Audits Due (Northern Nevada)", href:"vendors.html#/nnv/janitorial/audit"},
-{label:"Audit Log (Sheet)", href:"https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit"}
+{label:"Audit Log (Sheet)", href:"https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit#gid=1687889006"}
 ]},
 {sub:"Opportunities", items:[
 {label:"Post an Opportunity", href:"post.html"},
@@ -564,15 +579,15 @@ var MENU = [
 {label:"Request a Walkthrough Email", href:"https://form.asana.com/?k=lnuBJNlGrHJNAeW8QWbXzA&d=13140959242873"},
 {ghead:"Tracking"},
 {label:"Cleaner Roster", href:"cleaners.html"},
-  {label:"Opportunities Tracker (Sheet)", href:"https://docs.google.com/spreadsheets/d/1ymbqR7LMvA7sbgZe2Ro5o2dNiXhP08Tn9Hw1b-H5AeQ/edit"}
+  {label:"Opportunities Tracker (Sheet)", href:"https://docs.google.com/spreadsheets/d/1ymbqR7LMvA7sbgZe2Ro5o2dNiXhP08Tn9Hw1b-H5AeQ/edit#gid=0"}
   ]},
   {sub:"Violations", items:[
     {label:"Issue a Violation Notice", href:"violations.html"},
-    {label:"Violation Log (Sheet)", href:"https://docs.google.com/spreadsheets/d/16Hf_1Y_N8n3hPq4WDpPmXtyEs4Gdn-KV54-OUQUa-NI/edit"}
+    {label:"Violation Log (Sheet)", href:"https://docs.google.com/spreadsheets/d/16Hf_lY_N8n3hPq4WDpPmXtyEs4Gdn-KV54-OUQUa-NI/edit#gid=1631177301"}
     ]},
   {sub:"Insurance", items:[
     {label:"Request COIs from Vendors", href:"insurance.html"},
-    {label:"Insurance Request Log (Sheet)", href:"https://docs.google.com/spreadsheets/d/16Hf_lY_N8n3hPq4WDpPmXtyEs4Gdn-KV54-OUQUa-NI/edit"},
+    {label:"Insurance Request Log (Sheet)", href:"https://docs.google.com/spreadsheets/d/16Hf_lY_N8n3hPq4WDpPmXtyEs4Gdn-KV54-OUQUa-NI/edit#gid=65207254"},
     {label:"Vendor Upload Page", href:VS+"upload.html"},
     {ghead:"Broker Portal"},
     {label:"InsurLink (Vertafore)", href:"https://insurlink.vertafore.com/end-insured/2260313c6a34459c8a098ede23d21fb7/2094911/overview"}
@@ -580,7 +595,8 @@ var MENU = [
   {sub:"Background Checks", items:[
     {label:"Record Pass / Fail Results (BOM Hub)", href:"https://citywidelv.github.io/cw-bom-hub/background-checks.html"},
     {label:"Send Background Check Notices", href:"bc-notices.html"},
-    {label:"Background Checks on File (Sheet)", href:"https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit"},
+    {label:"Background Checks on File (Las Vegas Sheet)", href:"https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit#gid=12628813"},
+    {label:"Background Checks on File (Northern Nevada Sheet)", href:"https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit#gid=448859233"},
     {label:"Vendor Background Check Form (Asana)", href:"https://form.asana.com/?k=FRCnQmbTGjAVPieFt4bnWQ&d=13140959242873"},
     {label:"Verified First (portal)", href:"https://portal.verifiedfirst.com/#/dashboard"}
     ]},
@@ -617,8 +633,8 @@ var MENU = [
 ]},
 {label:"Building Survey", href:"https://citywidelv.github.io/BuildingSurvey/"},
 {sub:"Accounts Map", items:[
-{label:"Las Vegas", href:"https://www.google.com/maps/d/viewer?mid=1ewhUmSrFCo0--ALiJP0O1pLTbH0qlk4"},
-{label:"Northern Nevada", href:"https://www.google.com/maps/d/viewer?mid=1_o8DPUf6zH9kiAcZuNEOCAbZLq93nnc"}
+{label:"Las Vegas Accounts Map", href:"https://www.google.com/maps/d/viewer?mid=1ewhUmSrFCo0--ALiJP0O1pLTbH0qlk4"},
+{label:"Northern Nevada Accounts Map", href:"https://www.google.com/maps/d/viewer?mid=1_o8DPUf6zH9kiAcZuNEOCAbZLq93nnc"}
 ]}
 ]},
 { label:"Pricing & Bids", icon:"margin", items:[
@@ -642,9 +658,9 @@ var MENU = [
 { label:"Night Ops", icon:"clock", items:[
 {label:"Night Manager Inspection", href:"https://form.jotform.com/233486327771060"},
 {sub:"Nightly Route Outs", items:[
-{label:"Night Manager Route Out", href:"https://form.jotform.com/241440730763149"},
-{label:"View Submissions Table", href:"https://www.jotform.com/tables/241440730763149"},
-{label:"Northern Nevada", href:"https://form.jotform.com/team/253234894174059/nnv-night-manager-route-out"}
+{label:"Las Vegas Route Out", href:"https://form.jotform.com/241440730763149"},
+{label:"Las Vegas Route Out Submissions", href:"https://www.jotform.com/tables/241440730763149"},
+{label:"Northern Nevada Route Out", href:"https://form.jotform.com/team/253234894174059/nnv-night-manager-route-out"}
 ]},
 {label:"Night Manager AI Tool", href:"https://chatgpt.com/g/g-681233262c3c81918605de9bd3edf7be-city-wide-night-manager-tool"}
 ]},
