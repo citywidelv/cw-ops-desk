@@ -391,10 +391,16 @@ var FSM_ROSTER = {
   tj:     { name:"TJ Roberts",      title:"Chief Operating Officer",     region:"Las Vegas & Northern Nevada" }
 };
 var FSM_PHOTO_BASE = "https://emailer.emfluence.com/clients/citywide/uploadedfiles/Franchise-Location-Uploads/Las_Vegas/";
-var FSM_PHOTOS = { alex:"IMG_4680.jpg", brett:"IMG_4080.PNG", jake:"IMG_3966.jpg", sam:"IMG_5569.jpg",
+var FSM_PHOTOS = { allison:"https://citywidelv.github.io/cw-ops-desk/images/fsm-allison-donovan.jpg",
+  alex:"IMG_4680.jpg", brett:"IMG_4080.PNG", jake:"IMG_3966.jpg", sam:"IMG_5569.jpg",
   jeremy:"IMG_3968.jpg", robert:"IMG_3964.jpg", josh:"IMG_3963.jpg", tj:"IMG_3962.jpg" };
-// No hosted photo yet: the tile falls back to initials so it still looks intentional.
-// Drop the filename in FSM_PHOTOS above and the photo takes over, no other change.
+// A value starting with http is used as is, anything else hangs off FSM_PHOTO_BASE.
+// No entry at all falls back to initials so a new manager still looks intentional.
+function fsmPhotoUrl(k){
+  var p = FSM_PHOTOS[k];
+  if (!p) return "";
+  return p.indexOf("http") === 0 ? p : FSM_PHOTO_BASE + p;
+}
 function fsmInitials(name){
   return name.split(/\s+/).filter(Boolean).slice(0,2).map(function(w){ return w.charAt(0).toUpperCase(); }).join("");
 }
@@ -404,8 +410,9 @@ function fsmInitials(name){
     var f = FSM_ROSTER[k];
     var b = document.createElement("button");
     b.type = "button"; b.setAttribute("data-fsm", k);
-    var face = FSM_PHOTOS[k]
-      ? '<img src="' + FSM_PHOTO_BASE + FSM_PHOTOS[k] + '" alt="' + f.name + '">'
+    var photo = fsmPhotoUrl(k);
+    var face = photo
+      ? '<img src="' + photo + '" alt="' + f.name + '">'
       : '<span class="fp-i" aria-hidden="true">' + fsmInitials(f.name) + '</span>';
     b.innerHTML = face
       + '<span class="fp-n">' + f.name
