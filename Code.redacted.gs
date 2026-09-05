@@ -1,4 +1,4 @@
-// ARCHIVE COPY of the live CW Solicitations Code.gs (deployment v82, Sep 5 2026).
+// ARCHIVE COPY of the live CW Solicitations Code.gs (deployment v83, Sep 5 2026).
 // The two passcode values are replaced with __REDACTED__ on purpose. NEVER load this file into
 // the editor wholesale: it would blank the passcodes. Apply targeted edits or restore the values first.
 
@@ -128,6 +128,7 @@ function doPostBase(e) {
     if (data.kind === 'vendor_emails') return handleVendorEmails(data);
     if (data.kind === 'setup_vendor_directory') return handleVendorSetup(data);
     if (data.kind === 'docupload') return handleDocUpload(data);
+    if (data.kind === 'profile_update') return handleProfileUpdate(data);
     if (data.kind === 'response') return handleResponse(data);
     if (data.kind === 'snow_report') return handleSnowReport(data);
     if (data.kind === 'invoice_upload') return handleInvoiceUpload(data);
@@ -2535,6 +2536,7 @@ var CW_DIGEST_HEAD = ['queued', 'tag', 'to', 'subject', 'summary', 'sent', 'cade
 var CW_DIGEST_SLOT_CELL = 'K1';   // last slot key sent, e.g. d20260905-16
 var CW_DIGEST_WEEK_CELL = 'L1';   // last weekly key sent, e.g. w20260907
 var CW_DIGEST_SENDER = 'City Wide Ops Digest';
+var CW_TEST_TO = 'tjroberts@gocitywide.com';   // self-test digests go here, never to the service inboxes
 var CW_TAG_LABEL = {
   posting: 'New opportunities posted', response: 'Vendor responses to opportunities',
   cleaner: 'Cleaner tracker reviews', work_ticket: 'Maintenance work tickets',
@@ -2667,8 +2669,8 @@ function cwSendSlotDigest_(slot) {
   var sh = cwDigestSheet_();
   var rows = cwRows_(sh).filter(function (r) { return !r.sent && r.cadence === 'daily'; });
   if (!rows.length) return 'nothing to send';
-  var label = slot === '16' ? 'Afternoon digest' : 'Morning digest';
-  var when = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'EEE MMM d') + (slot === '16' ? ', 4 PM' : ', 8 AM');
+  var label = slot === '16' ? 'Afternoon digest' : (slot === 'now' ? 'Digest' : 'Morning digest');
+  var when = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'EEE MMM d') + (slot === '16' ? ', 4 PM' : (slot === 'now' ? ', ' + Utilities.formatDate(new Date(), 'America/Los_Angeles', 'h:mm a') : ', 8 AM'));
   var sentCount = 0;
   cwGroupByTo_(rows).forEach(function (g) {
     var cc = Object.keys(g.cc).join(',');
@@ -2784,7 +2786,7 @@ function cwInstallDigestTrigger() {
   Logger.log(out.join(', ')); return out.join(', ');
 }
 // Force the current slot's digest now (ignores the once-per-slot marker). Marks rows sent.
-function cwSendDigestNow() { var r = cwSendSlotDigest_(Number(Utilities.formatDate(new Date(), 'America/Los_Angeles', 'H')) >= 16 ? '16' : '08'); Logger.log(r); return r; }
+function cwSendDigestNow() { var r = cwSendSlotDigest_('now'); Logger.log(r); return r; }
 function cwSendWeeklyNow() { var r = cwSendWeeklyRollup_(); Logger.log(r); return r; }
 // Backward-compatible names (old triggers, old notes)
 function cwSendDailyDigest() { return cwSendDigestNow(); }
@@ -2828,7 +2830,7 @@ function cwDigestOff() {
 // Queues two sample rows addressed to `to` and sends a digest with ONLY those rows, so the
 // engine can be proven without emailing the service inboxes. Rows are marked sent.
 function cwDigestSelfTest(to) {
-  to = to || Session.getEffectiveUser().getEmail();
+  to = to || CW_TEST_TO;
   var sh = cwDigestSheet_();
   cwQueueDigest_('posting', { to: to, subject: 'ZZ SELFTEST posting', body: 'selftest', digest: { title: 'ZZ SELFTEST posting - Night clean, Spring Valley', id: 'LV-TEST', region: 'Las Vegas',
     fields: [['Posting', 'LV-TEST'], ['Type', 'recurring'], ['Pay', '$1,200 per month'], ['Posted by', 'Ops Hub']], links: [['Live board', BOARD_URL]] } }, 'daily');
