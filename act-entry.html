@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Log an Account Change | CW Ops Hub</title>
-<!-- build 2026-09-05a
+<!-- build 2026-09-05b (name pick-list; dropdown comboboxes and usual-entry pick-lists come from act-shared.js c)
 Digital ACT and Ledger Changes entry. Replaces the four Excel workbooks (ACT Document
 Las Vegas, LV Ledger Changes, ACT Document NNV 2.0, NNV Ledger Changes). An FSM picks
 the region and month, answers "What kind of ledger change are you doing?", and fills a
@@ -116,7 +116,7 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:78ch}
     <div class="fld" style="flex:0 0 auto"><label>Region</label>
       <div class="seg" id="region"><button type="button" data-v="Las Vegas" class="on">Las Vegas</button><button type="button" data-v="Northern Nevada">Northern Nevada</button></div></div>
     <div class="fld" style="max-width:220px"><label for="month">Month (the tab it goes on)</label><select id="month"></select></div>
-    <div class="fld" style="max-width:240px"><label for="who">Your name</label><input id="who" placeholder="So accounting knows who logged it"></div>
+    <div class="fld" style="max-width:240px"><label for="who">Your name</label><input id="who" list="wholist" placeholder="Pick or type your name" autocomplete="off"><datalist id="wholist"></datalist></div>
   </div>
 </div>
 
@@ -373,8 +373,13 @@ function tryCached(){
 }
 $("enter").addEventListener("click", function(){ var v = $("pc").value.trim(); if(v) load(v, false); });
 $("pc").addEventListener("keydown", function(e){ if(e.key === "Enter"){ var v = $("pc").value.trim(); if(v) load(v, false); } });
+function buildWho(){
+  var names = {};
+  ACT.REGIONS.forEach(function(r){ ACT.fsmsFor(r).forEach(function(n){ names[n] = 1; }); });
+  $("wholist").innerHTML = Object.keys(names).sort().map(function(n){ return '<option value="' + esc(n) + '">'; }).join("");
+}
 function boot(){
-  buildMonths(); buildKinds();
+  buildMonths(); buildKinds(); buildWho();
   try { $("who").value = localStorage.getItem("cwOpsName") || localStorage.getItem("cwBomName") || ""; } catch(e){}
   setRegion(REGION);
   if(Q.section && ACT.section(Q.section) && ACT.section(Q.section).entry) pick(Q.section);

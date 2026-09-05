@@ -344,9 +344,10 @@ function actContext_(data) {
       vendors.push({ id: r.vendor_id, name: r.dba_name, legal: r.legal_name || '', region: vdRegion_(r.region), status: r.status || '', types: r.service_types || '' });
     });
   } catch (e) { vendors = null; }
-  var months = actMonthsPresent_(ss);
+  var scan = actScan_(ss);
+  var months = scan.months;
   var cfg = actConfig_(ss);
-  var out = { ok: true, sections: ACT_SECTIONS, lists: lists, accounts: accounts, vendors: vendors, months: months,
+  var out = { ok: true, sections: ACT_SECTIONS, lists: lists, accounts: accounts, vendors: vendors, months: months, suggest: scan.suggest,
               sheet_url: ss.getUrl(), gids: actGids_(ss), live: actTrue_(cfg.live), import_done: cfg.import_done || '',
               who: data._bom ? 'bom' : 'team' };
   return actOut_(out);
@@ -372,6 +373,52 @@ function actLists_(ss) {
     else if (list === 'key_ic') { if (region && out.key_ics[region]) out.key_ics[region].push(v); }
   });
   return out;
+}
+// One pass over every section tab: which months have entries (per region and
+// document) and, for the free-text columns, the values the team uses again and
+// again (so the entry form can offer them as a pick-list before free typing).
+var ACT_SUGGEST_COLS = { 'Notes': 1, 'Description or Reason': 1, 'Project Type': 1, 'Reason Detail': 1, 'Insurance Notes': 1 };
+function actScan_(ss) {
+  var seen = {}, counts = {};
+  ACT_SECTIONS.forEach(function (sec) {
+    var sh = ss.getSheetByName(sec.name);
+    if (!sh || sh.getLastRow() < 2) return;
+    var head = actHeaders_(sec);
+    var want = [];
+    if (sec.entry) sec.cols.forEach(function (h, i) { if (ACT_SUGGEST_COLS[h]) want.push({ h: h, c: head.indexOf(h) }); });
+    var width = want.length ? head.length : ACT_META_HEAD.length;
+    var vals = sh.getRange(2, 1, sh.getLastRow() - 1, width).getValues();
+    vals.forEach(function (v) {
+      if (!actStr_(v[0])) return;
+      var region = actStr_(v[1]), doc = actStr_(v[2]), mk = actMk_(v[4]) || actMk_(v[3]);
+      var status = actStr_(v[5]);
+      if (mk && region && status !== 'Voided') {
+        var k = region + '|' + doc;
+        seen[k] = seen[k] || {};
+        seen[k][mk] = (seen[k][mk] || 0) + 1;
+      }
+      want.forEach(function (w) {
+        var s = actStr_(v[w.c]);
+        if (s.length < 3 || s.length > 140) return;
+        var key = sec.key + '|' + w.h;
+        counts[key] = counts[key] || {};
+        var nk = s.toLowerCase();
+        if (!counts[key][nk]) counts[key][nk] = { text: s, n: 0 };
+        counts[key][nk].n++;
+      });
+    });
+  });
+  var months = {};
+  Object.keys(seen).forEach(function (k) {
+    months[k] = Object.keys(seen[k]).sort().map(function (mk) { return { key: mk, name: actMonthName_(mk), n: seen[k][mk] }; });
+  });
+  var suggest = {};
+  Object.keys(counts).forEach(function (key) {
+    var arr = Object.keys(counts[key]).map(function (nk) { return counts[key][nk]; }).filter(function (x) { return x.n >= 2; });
+    arr.sort(function (a, b) { return b.n - a.n || a.text.localeCompare(b.text); });
+    if (arr.length) suggest[key] = arr.slice(0, 15).map(function (x) { return x.text; });
+  });
+  return { months: months, suggest: suggest };
 }
 function actMonthsPresent_(ss) {
   var seen = {};
