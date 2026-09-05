@@ -20,9 +20,11 @@
 //   Lists: FSMs, contract types per region, ledger reasons (with the needs-new-IC
 //     flag), month-affected choices, and the IC names from the Excel Keys (for the
 //     "not in the vendor directory yet" report).
+//   Comments: the chat thread on each entry (accounting questions, FSM notes).
+//     comment_id | entry_id | when | who | text | needs_reply | region | section | hidden
 //   Change Log: every edit, check, uncheck, void, add, rename, verify.
 //   Config: key/value. live (FALSE = every email goes to test_to), test_to,
-//     notify_accounts_lv/nnv, notify_vendors_lv/nnv, next_entry_id.
+//     notify_accounts_lv/nnv, notify_vendors_lv/nnv, notify_comments_lv/nnv, next_entry_id.
 //
 // Nothing here deletes a row. Entries are voided (status Voided) and hidden by
 // default; accounts and vendors are hidden with hide=TRUE.
@@ -75,6 +77,7 @@ var ACT_ACCOUNT_HEADERS = ['account_id', 'name', 'region', 'status', 'relationsh
 var ACT_ACCOUNT_STATUS = ['Active', 'Prospect', 'Past Client', 'Inactive', 'Vendor', 'Needs review', 'Other'];
 var ACT_LIST_HEADERS = ['list', 'region', 'value', 'flag', 'active', 'note'];
 var ACT_LOG_HEADERS = ['when', 'who', 'action', 'id', 'tab', 'field', 'old', 'new'];
+var ACT_COMMENT_HEADERS = ['comment_id', 'entry_id', 'when', 'who', 'text', 'needs_reply', 'region', 'section', 'hidden'];
 var ACT_CONFIG_HEADERS = ['key', 'value', 'note'];
 var ACT_CONFIG_DEFAULTS = [
   ['live', 'FALSE', 'FALSE = every notification email goes to test_to instead of the real lists'],
@@ -83,6 +86,8 @@ var ACT_CONFIG_DEFAULTS = [
   ['notify_accounts_nnv', '', 'Comma-separated emails told when a Northern Nevada account is added or renamed'],
   ['notify_vendors_lv', '', 'Comma-separated emails told when a Las Vegas vendor is quick-added or renamed from an entry'],
   ['notify_vendors_nnv', '', 'Comma-separated emails told when a Northern Nevada vendor is quick-added or renamed from an entry'],
+  ['notify_comments_lv', '', 'Comma-separated emails told when someone posts a chat note on a Las Vegas entry'],
+  ['notify_comments_nnv', '', 'Comma-separated emails told when someone posts a chat note on a Northern Nevada entry'],
   ['next_entry_id', '1', 'Counter for AC- entry ids. Setup and seed keep it ahead of the highest id in the book'],
   ['import_done', '', 'Set by vd_act_seed when the Excel history finished loading']
 ];
@@ -239,7 +244,7 @@ function actDispatch(data) {
     return actOut_({ ok: false, error: 'Team passcode required.' });
   }
   var lock = null;
-  var writes = { vd_act_add: 1, vd_act_update: 1, vd_act_complete: 1, vd_act_void: 1, vd_act_account_save: 1,
+  var writes = { vd_act_add: 1, vd_act_update: 1, vd_act_complete: 1, vd_act_void: 1, vd_act_account_save: 1, vd_act_comment_add: 1,
                  vd_act_account_verify: 1, vd_act_vendor_quick: 1, vd_act_seed: 1, vd_act_setup: 1 };
   if (writes[kind]) {
     lock = LockService.getScriptLock();
@@ -259,6 +264,8 @@ function actDispatch(data) {
     if (kind === 'vd_act_vendor_quick') return actVendorQuick_(data);
     if (kind === 'vd_act_seed') return actSeed_(data);
     if (kind === 'vd_act_log') return actLogRead_(data);
+    if (kind === 'vd_act_comments') return actComments_(data);
+    if (kind === 'vd_act_comment_add') return actCommentAdd_(data);
     return actOut_({ ok: false, error: 'Unknown vd_act kind' });
   } catch (e) {
     return actOut_({ ok: false, error: 'Server error: ' + (e && e.message ? e.message : e) });
@@ -291,6 +298,7 @@ function actSetup_(data) {
   });
   actTab_(ss, 'Lists', ACT_LIST_HEADERS, '#636466');
   actTab_(ss, 'Change Log', ACT_LOG_HEADERS, '#636466');
+  actTab_(ss, 'Comments', ACT_COMMENT_HEADERS, '#203864');
   var cfg = actTab_(ss, 'Config', ACT_CONFIG_HEADERS, '#636466');
   var have = actConfig_(ss);
   ACT_CONFIG_DEFAULTS.forEach(function (d) { if (have[d[0]] === undefined) cfg.appendRow(d); });
@@ -457,6 +465,7 @@ function actEntries_(data) {
   var q = actStr_(data.q).toLowerCase();
   var openOnly = !!data.open_only;
   var incVoid = !!data.include_voided;
+  var cmap = actCommentMap_(ss);
   var out = [];
   ACT_SECTIONS.forEach(function (sec) {
     if (wantSec && wantSec.key !== sec.key) return;
@@ -482,7 +491,8 @@ function actEntries_(data) {
       out.push({ entry_id: r.entry_id, region: r.region, doc: r.doc, month: actMonthName_(rmk), month_key: rmk, section: sec.name, section_key: sec.key,
                  status: status, fields: fields, complete: complete, completed_by: r.completed_by, completed_at: r.completed_at,
                  created: r.created, created_by: r.created_by, updated: r.updated, updated_by: r.updated_by,
-                 source: r.source, layout: r.layout, legacy_extras: r.legacy_extras, _row: r._row });
+                 source: r.source, layout: r.layout, legacy_extras: r.legacy_extras, _row: r._row,
+                 comments: (cmap[r.entry_id] || {}).n || 0, last_comment: (cmap[r.entry_id] || {}).last || '', open_q: !!(cmap[r.entry_id] || {}).open_q });
     });
   });
   out.sort(function (a, b) { return a.month_key < b.month_key ? -1 : a.month_key > b.month_key ? 1 : (a._row - b._row); });
@@ -631,6 +641,86 @@ function actLogRead_(data) {
   if (id) rows = rows.filter(function (r) { return actStr_(r.id) === id; });
   rows = rows.slice(-Number(data.limit || 200));
   return actOut_({ ok: true, rows: rows });
+}
+
+// ------------------------------------------------------------ comments -----
+// The chat thread on an entry. Anyone with the team or BOM passcode can post;
+// nothing is deleted (hidden=TRUE hides a comment). needs_reply marks a question;
+// the entry shows an open-question badge until someone posts after it.
+
+function actCommentsSheet_(ss) {
+  var sh = ss.getSheetByName('Comments');
+  if (!sh) {
+    sh = actTab_(ss, 'Comments', ACT_COMMENT_HEADERS, '#203864');
+    var cfg = ss.getSheetByName('Config');
+    if (cfg) {
+      var have = actConfig_(ss);
+      ACT_CONFIG_DEFAULTS.forEach(function (d) { if (/^notify_comments_/.test(d[0]) && have[d[0]] === undefined) cfg.appendRow(d); });
+    }
+  }
+  return sh;
+}
+function actCommentRows_(ss) {
+  var sh = ss.getSheetByName('Comments');
+  if (!sh || sh.getLastRow() < 2) return [];
+  return actRows_(sh).rows.filter(function (r) { return r.comment_id && !actTrue_(r.hidden); }).map(function (r) {
+    return { comment_id: r.comment_id, entry_id: actStr_(r.entry_id), when: actStr_(r.when), who: actStr_(r.who), text: actStr_(r.text),
+             needs_reply: actTrue_(r.needs_reply), region: r.region, section: r.section, _row: r._row };
+  });
+}
+// entry_id -> { n, last: 'when · who', open_q } for the table badges.
+function actCommentMap_(ss) {
+  var map = {};
+  actCommentRows_(ss).forEach(function (c) {
+    var m = map[c.entry_id] || (map[c.entry_id] = { n: 0, last: '', open_q: false });
+    m.n++;
+    m.last = c.when + (c.who ? ' · ' + c.who : '');
+    m.open_q = c.needs_reply;   // rows are in post order, so the last one decides
+  });
+  return map;
+}
+function actComments_(data) {
+  var ss = actSS_();
+  var id = actStr_(data.entry_id);
+  var rows = actCommentRows_(ss);
+  if (id) rows = rows.filter(function (c) { return c.entry_id === id; });
+  else if (data.open_only) {
+    var map = actCommentMap_(ss);
+    rows = rows.filter(function (c) { return map[c.entry_id] && map[c.entry_id].open_q && c.needs_reply; });
+  }
+  rows = rows.slice(-Number(data.limit || 500));
+  return actOut_({ ok: true, comments: rows, n: rows.length });
+}
+function actCommentAdd_(data) {
+  var ss = actSS_();
+  var text = actStr_(data.text).slice(0, 2000);
+  var who = actWho_(data);
+  if (!text) return actOut_({ ok: false, error: 'Type the note first.' });
+  if (!who) return actOut_({ ok: false, error: 'Put your name in first.' });
+  var hit = actFind_(ss, data.entry_id);
+  if (!hit) return actOut_({ ok: false, error: 'No entry ' + data.entry_id });
+  var sh = actCommentsSheet_(ss);
+  var row = actNextRow_(sh);
+  var region = actStr_(hit.sh.getRange(hit.row, hit.head.indexOf('region') + 1).getValue());
+  var month = actStr_(hit.sh.getRange(hit.row, hit.head.indexOf('month') + 1).getValue());
+  var acct = hit.head.indexOf('Account') > 0 ? actStr_(hit.sh.getRange(hit.row, hit.head.indexOf('Account') + 1).getValue()) : '';
+  var cid = 'CM-' + Utilities.formatDate(new Date(), ACT_TZ, 'yyMMddHHmmss') + '-' + String(row);
+  var needs = actTrue_(data.needs_reply);
+  var when = actNow_();
+  sh.getRange(row, 1, 1, ACT_COMMENT_HEADERS.length).setValues([[cid, hit.sh.getRange(hit.row, 1).getValue(), when, who, text, needs, region, hit.sec.name, false]]);
+  sh.getRange(row, 3).setNumberFormat('@');
+  actLog_(ss, who, needs ? 'question' : 'note', data.entry_id, hit.sec.name, 'chat', '', text.slice(0, 200));
+  var docKey = hit.sec.doc === 'Ledger' ? 'ledger' : 'act';
+  var mk = actMk_(hit.sh.getRange(hit.row, hit.head.indexOf('month_key') + 1).getValue()) || actMonthKey_(month);
+  var link = 'https://citywidelv.github.io/cw-bom-hub/act-document.html#/' + (actRegion_(region) === 'Northern Nevada' ? 'nnv' : 'lv') + '/' + docKey + '/' + mk + '/' + actStr_(data.entry_id);
+  var mail = actNotify_(ss, 'comment', region, {
+    subject: (needs ? 'Question on ' : 'Note on ') + actStr_(data.entry_id) + (acct ? ' - ' + acct : '') + ' (' + hit.sec.name + ', ' + month + ')',
+    lines: [who + (needs ? ' asked a question on ' : ' left a note on ') + actStr_(data.entry_id) + (acct ? ' (' + acct + ')' : '') + ':', '', text, '',
+            (needs ? 'Reply on the entry so the question clears: ' : 'Open the entry: ') + link]
+  });
+  var map = actCommentMap_(ss)[actStr_(data.entry_id)] || { n: 1, last: when + ' · ' + who, open_q: needs };
+  return actOut_({ ok: true, comment: { comment_id: cid, entry_id: actStr_(data.entry_id), when: when, who: who, text: text, needs_reply: needs },
+                   comments: map.n, last_comment: map.last, open_q: map.open_q, mail: mail });
 }
 
 // ------------------------------------------------------------ accounts -----
@@ -841,7 +931,7 @@ function actNotify_(ss, kind, region, msg) {
   try {
     var cfg = actConfig_(ss);
     var live = actTrue_(cfg.live);
-    var k = (kind === 'vendor' ? 'notify_vendors_' : 'notify_accounts_') + (actRegion_(region) === 'Northern Nevada' ? 'nnv' : 'lv');
+    var k = (kind === 'vendor' ? 'notify_vendors_' : kind === 'comment' ? 'notify_comments_' : 'notify_accounts_') + (actRegion_(region) === 'Northern Nevada' ? 'nnv' : 'lv');
     var to = actStr_(cfg[k]);
     var test = !live;
     if (test) to = actStr_(cfg.test_to);
