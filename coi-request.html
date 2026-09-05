@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Request a COI for a Customer | CW Ops Hub</title>
+<!-- build 2026-09-05a
+Customer certificate of insurance (COI) request. A rep or FSM answers every question a
+customer can ask for on an ACORD 25, pastes the customer's own email, and attaches a
+sample or spec if one was sent. The page renders the broker checklist and posts it
+(kind vd_coi_submit, CoiRequest.gs) which stores the row + files and sends ONE email to
+the market compliance inbox. Status is tracked on the BOM Hub (coi-log.html).
+Gate: reuses the team passcode cached by the Ops Hub, Sales Hub, or BOM Hub on this
+origin; the server checks it on every call. Add ?test=1 to send to the test inbox.
+This is the customer-facing direction. Vendor COIs coming in are insurance.html.
+-->
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--gold-bg:#FFF4D6;--teal:#0AA6A9;--green:#1E8E5A;--green-bg:#E7F6EE;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+a{color:var(--red)}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.head .bar{max-width:1180px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  border-left:2px solid var(--border);padding-left:14px}
+.head .back{margin-left:auto;font-size:12px;font-weight:700;background:var(--red);color:#fff;
+  text-decoration:none;border-radius:6px;padding:8px 14px;white-space:nowrap}
+.head .back:hover{background:var(--red-dark);color:#fff}
+.wrap{max-width:1180px;margin:0 auto;padding:26px 20px 60px}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 20px;max-width:78ch}
+.testbar{background:var(--gold);color:var(--black);font-weight:700;font-size:12.5px;border-radius:8px;padding:10px 14px;margin-bottom:16px}
+.gatebox{max-width:380px;background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.gatebox input{width:100%;font-family:inherit;font-size:14px;border:1.5px solid var(--border);
+  border-radius:8px;padding:10px 12px;margin:12px 0;text-align:center}
+.gatebox b{display:block;font-size:16px;margin-bottom:10px}
+#gmsg{font-size:12.5px;color:var(--grey);margin-bottom:12px;line-height:1.55}
+#gmsg.err{color:var(--red);font-weight:700}
+.btn{font-family:inherit;font-size:14px;font-weight:700;background:var(--red);color:#fff;border:none;
+  border-radius:8px;padding:12px 24px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn:hover{background:var(--red-dark);color:#fff}
+.btn.ghost{background:#fff;color:var(--black);border:2px solid var(--border)}
+.btn.ghost:hover{border-color:var(--black);background:#fff;color:var(--black)}
+.btn.sm{font-size:12px;padding:8px 14px}
+.btn:disabled{opacity:.55;cursor:default}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start}
+@media(max-width:1000px){.grid{grid-template-columns:1fr}.preview{position:static!important}}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+  padding:22px 24px;margin-bottom:16px}
+.card>h2{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);margin-bottom:4px}
+.card>h2 .n{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;
+  background:var(--black);color:#fff;font-size:11px;letter-spacing:0;margin-right:8px;vertical-align:middle}
+.card>h2:after{content:"";display:block;width:34px;height:3px;background:var(--red);border-radius:2px;margin:8px 0 16px}
+.card .why{font-size:12px;color:var(--grey);margin:-8px 0 14px;max-width:80ch}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 20px}
+label{display:block;margin-bottom:14px}
+label>span,.q>span{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--grey);margin-bottom:5px}
+label>span i,.q>span i{color:var(--red);font-style:normal}
+input[type=text],input[type=email],input[type=date],input[type=url],select,textarea{
+  width:100%;font-family:inherit;font-size:14px;color:var(--black);background:#fff;
+  border:1.5px solid var(--border);border-radius:8px;padding:10px 12px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--black)}
+textarea{min-height:76px;resize:vertical;line-height:1.55}
+textarea.tall{min-height:180px}
+input.bad,textarea.bad,select.bad{border-color:var(--red);background:#FDEEEF}
+.full{grid-column:1/-1}
+.hint{font-size:11.5px;color:var(--grey);margin:-9px 0 14px;line-height:1.5}
+.q{margin-bottom:14px}
+.q.bad>span{color:var(--red)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{font-family:inherit;font-size:12.5px;font-weight:700;background:#fff;color:var(--grey);
+  border:2px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer}
+.seg button:hover{border-color:var(--black);color:var(--black)}
+.seg button.on{background:var(--black);border-color:var(--black);color:#fff}
+.seg button.on.no{background:var(--grey);border-color:var(--grey)}
+.seg button.on.ns{background:#fff;border-color:var(--black);color:var(--black)}
+.seg.mk button.on{background:var(--red);border-color:var(--red)}
+.sub{border-left:3px solid var(--border);padding:4px 0 0 16px;margin:-4px 0 14px}
+.sub .row{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;margin-bottom:14px}
+.checks label{display:flex;align-items:flex-start;gap:9px;margin:0;background:var(--light);
+  border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:13px}
+.checks label:hover{border-color:var(--black)}
+.checks label.on{background:#FDEEEF;border-color:var(--red)}
+.checks label>span{display:inline;font-size:13px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--black);margin:0}
+.checks label>span small{display:block;font-size:11px;color:var(--grey);margin-top:2px}
+.checks input{margin-top:3px;flex:none}
+.checks.flags label.on{background:var(--gold-bg);border-color:var(--gold)}
+.tagi{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+.tagi.b{background:var(--black);color:#fff}
+.tagi.i{background:#fff;color:var(--grey);border:1px solid var(--border)}
+.ni{background:var(--light);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px}
+.ni b{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin-bottom:2px}
+.files{border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;font-size:13px;color:var(--grey);margin-bottom:12px;background:#fff}
+.files input{display:none}
+.files b{color:var(--black)}
+.flist{font-size:12.5px;margin-bottom:12px}
+.flist div{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--light)}
+.flist div span{flex:1}
+.flist small{color:var(--grey)}
+.flist button{font-family:inherit;font-size:11px;font-weight:700;background:#fff;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;color:var(--grey)}
+.msg{border-radius:8px;padding:12px 14px;font-size:13px;margin-bottom:16px;display:none}
+.msg.show{display:block}
+.msg.err{background:#FDEEEF;border:1px solid var(--red);color:var(--black)}
+.msg.warn{background:var(--gold-bg);border:1px solid var(--gold)}
+.preview{position:sticky;top:80px}
+.preview .card{padding:18px 20px}
+.preview pre{font-family:inherit;font-size:11.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;
+  max-height:70vh;overflow:auto;background:var(--light);border:1px solid var(--border);border-radius:8px;padding:12px 14px;color:var(--black)}
+.preview .pv{font-size:11.5px;color:var(--grey);margin-bottom:10px}
+.preview .flagcount{font-size:11.5px;font-weight:700;color:#8a5a00;background:var(--gold-bg);border-radius:6px;padding:6px 10px;margin-bottom:10px;display:none}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.done{background:#fff;border:1px solid var(--border);border-left:5px solid var(--teal);border-radius:12px;
+  box-shadow:var(--shadow);padding:34px 28px;text-align:center;max-width:760px;margin:0 auto}
+.done b{display:block;font-size:19px;margin-bottom:8px}
+.done p{color:var(--grey);font-size:13px;margin-bottom:8px}
+.done .id{font-size:22px;font-weight:700;color:var(--red);letter-spacing:.04em;margin:10px 0 14px}
+.done .warn{background:var(--gold-bg);border:1px solid var(--gold);color:var(--black);border-radius:8px;padding:10px 14px;margin:12px auto;max-width:560px;font-size:12.5px;text-align:left}
+.hidden{display:none!important}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:24px}
+</style>
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t">Request a COI for a Customer</span>
+  <a class="back" id="backlink" href="index.html">&larr; Ops Hub</a>
+</div></header>
+
+<div class="wrap">
+<div id="gate" class="gatebox hidden">
+  <b>Team passcode</b>
+  <p id="gmsg">This page uses the team passcode. If you already unlocked the Ops Hub, Sales Hub, or BOM Hub in this browser it opens on its own.</p>
+  <input type="password" id="pc" placeholder="Passcode" autocomplete="current-password">
+  <button class="btn" id="enter">Enter</button>
+</div>
+
+<div id="app" class="hidden">
+<h1>Request a COI for a Customer</h1>
+<p class="lede">Answer every question from the customer's request, paste their email, and attach the sample if they sent one.
+The checklist on the right is what the Business Operations Manager forwards to the broker, so nothing is left to memory.
+Pick <b>Customer did not say</b> when the email is silent; a blank is what gets a certificate kicked back.</p>
+<div id="testbar" class="testbar hidden">TEST MODE. This request emails the test inbox with a TEST prefix and is flagged TEST on the log.</div>
+<div id="msg" class="msg"></div>
+
+<div class="grid">
+<form id="f" autocomplete="off">
+
+<div class="card">
+  <h2><span class="n">1</span>Who is asking</h2>
+  <div class="q" id="q_market"><span>Market <i>*</i></span>
+    <div class="seg mk" data-for="market"><button type="button" data-v="Las Vegas">Las Vegas</button><button type="button" data-v="Northern Nevada">Northern Nevada</button></div>
+  </div>
+  <div class="ni" id="ni"><b>Named insured on the certificate</b><span id="ni_text">Pick the market first.</span></div>
+  <div class="row">
+    <label><span>Requested by <i>*</i></span>
+      <select id="requester_pick"><option value="">Loading the team list...</option></select></label>
+    <label><span>Your email <i>*</i></span><input type="email" id="requester_email" placeholder="you@gocitywide.com"></label>
+    <label id="rn_wrap" class="hidden"><span>Your name <i>*</i></span><input type="text" id="requester_name"></label>
+    <label><span>Your role</span>
+      <select id="requester_role"><option value="">Pick one</option><option>Facility Solutions Manager</option><option>Sales</option><option>Director of Operations</option><option>General Manager</option><option>Business Operations Manager</option><option>Chief Operating Officer</option><option>Other</option></select></label>
+  </div>
+  <div class="hint">The broker's questions come back to this email. Nobody else is copied.</div>
+  <div class="row">
+    <label class="full"><span>Customer / account name <i>*</i></span><input type="text" id="account_name" placeholder="As it appears in the CRM"></label>
+    <label><span>Customer contact who asked</span><input type="text" id="customer_contact_name" placeholder="Name"></label>
+    <label><span>Their email or phone</span><input type="text" id="customer_contact_email"></label>
+    <label><span>Needed by</span><input type="date" id="needed_by"></label>
+    <label><span>Why the certificate is needed</span>
+      <select id="reason"><option value="">Pick one</option><option>New account start</option><option>Annual renewal</option><option>Revision of a certificate already issued</option><option>Vendor portal or credentialing</option><option>Specific job, project, or PO</option><option>Contract signing</option><option>Other</option></select></label>
+  </div>
+  <div class="hint">Leave the date blank only if the customer gave none. Scheduling and final payment wait on an accepted certificate, so a date moves it up the pile.</div>
+</div>
+
+<div class="card">
+  <h2><span class="n">2</span>Certificate holder</h2>
+  <p class="why">The holder is the customer's legal entity, letter for letter as they wrote it, at the address they gave. City Wide's entity is the named insured, never the holder.</p>
+  <div class="row">
+    <label class="full"><span>Certificate holder name <i>*</i></span><input type="text" id="holder_name" placeholder="Exact legal entity, e.g. Transwestern Investment Holdings VD, LLC"></label>
+    <label class="full"><span>Certificate holder address <i>*</i></span><textarea id="holder_address" placeholder="Street, suite, city, state, ZIP. Remote corporate addresses are common; use what the customer gave."></textarea></label>
+  </div>
+  <div class="q" data-yn="holder_multi"><span>Did the customer ask for more than one entity in the holder box?</span><div class="seg"></div></div>
+  <div class="sub hidden" data-show="holder_multi=Yes">
+    <label class="full"><span>Other entities, exactly as written</span><textarea id="holder_extra" placeholder="One per line, with c/o or address when given"></textarea></label>
+    <div class="hint">The ACORD 25 holder box fits one name and address. Extra entities are normally listed as additional insureds in the description of operations. The broker decides; list them all.</div>
+  </div>
+  <div class="row">
+    <label><span>How the certificate is delivered</span>
+      <select id="deliver_method"><option value="Not specified">Customer did not say</option><option>Email to the customer contact</option><option>Upload to the customer's vendor portal</option><option>Broker sends it directly to the customer</option><option>Other</option></select></label>
+    <label><span>Send to (email or instructions)</span><input type="text" id="deliver_to" placeholder="certs@customer.com, or the portal name"></label>
+  </div>
+  <div class="q" data-yn="direct_from_broker"><span>Must the certificate come directly from the broker, not forwarded by City Wide?</span><div class="seg"></div></div>
+</div>
+
+<div class="card">
+  <h2><span class="n">3</span>Additional insured</h2>
+  <div class="q" data-yn="ai_required"><span>Additional insured status requested?</span><div class="seg"></div></div>
+  <div class="sub hidden" data-show="ai_required=Yes">
+    <div class="row">
+      <label><span>Who is the additional insured</span>
+        <select id="ai_who"><option>Same as the certificate holder</option><option>The holder plus the entities below</option><option>Different entities, listed below</option></select></label>
+      <div class="q"><span>On which lines</span>
+        <div class="checks" style="margin:0">
+          <label><input type="checkbox" data-multi="ai_lines" value="General Liability" checked><span>General Liability</span></label>
+          <label><input type="checkbox" data-multi="ai_lines" value="Auto (hired and non-owned)"><span>Auto (hired and non-owned)</span></label>
+          <label><input type="checkbox" data-multi="ai_lines" value="Umbrella / Excess"><span>Umbrella / Excess</span></label>
+        </div></div>
+      <label class="full"><span>Additional insured entities, exactly as written</span><textarea id="ai_list" placeholder="One per line. Owners, management companies, lenders, affiliates, whoever the customer named."></textarea></label>
+    </div>
+    <div class="q"><span>Scope on General Liability</span>
+      <div class="checks" style="margin-bottom:10px">
+        <label><input type="checkbox" data-multi="ai_scope" value="Ongoing operations" checked><span>Ongoing operations<small>CG 20 10, CG 20 33, or CG 20 38, or a carrier form</small></span></label>
+        <label><input type="checkbox" data-multi="ai_scope" value="Completed operations"><span>Completed operations<small>CG 20 37 or CG 20 40, or a carrier form</small></span></label>
+      </div>
+    </div>
+    <div class="row">
+      <label><span>Blanket or scheduled</span>
+        <select id="ai_form_type"><option value="Not specified">Customer did not say</option><option>Blanket (automatic) endorsement is acceptable</option><option>Customer requires their name printed on a scheduled endorsement</option></select></label>
+      <label><span>Endorsement forms the customer named</span><input type="text" id="ai_forms_specified" placeholder="e.g. CG 20 10 04 13 and CG 20 37 04 13, or CG 20 38 12 19 + CG 20 40 12 19"></label>
+    </div>
+    <div class="hint">If the policy carries a blanket endorsement the customer's name never prints on it. Some customers reject that and want a scheduled form. Ask if the email is unclear.</div>
+  </div>
+  <div class="q" data-yn="pnc"><span>Primary and non-contributory?</span><div class="seg"></div></div>
+  <div class="hint">This is an endorsement (CG 20 01 or the carrier's equivalent), not wording in the description box.</div>
+</div>
+
+<div class="card">
+  <h2><span class="n">4</span>Waivers of subrogation</h2>
+  <div class="row">
+    <div class="q" data-yn="wos_gl"><span>On General Liability</span><div class="seg"></div></div>
+    <div class="q" data-yn="wos_wc"><span>On Workers' Compensation</span><div class="seg"></div></div>
+    <div class="q" data-yn="wos_auto"><span>On Auto</span><div class="seg"></div></div>
+    <div class="q" data-yn="wos_umb"><span>On Umbrella / Excess</span><div class="seg"></div></div>
+  </div>
+  <div class="row">
+    <label><span>Blanket or scheduled waiver</span>
+      <select id="wos_form_type"><option value="Not specified">Customer did not say</option><option>Blanket waiver is acceptable</option><option>Customer requires their name on the waiver (scheduled)</option></select></label>
+  </div>
+  <div class="hint">The workers' comp waiver is WC 00 03 13 (permitted in Nevada). The GL waiver is CG 24 04. Both are endorsements with their own pages.</div>
+</div>
+
+<div class="card">
+  <h2><span class="n">5</span>Coverage lines and minimum limits</h2>
+  <p class="why">Type the limits the customer wrote. If a required limit is higher than what the policy carries, that is a coverage decision, not a certificate fix, and the broker needs to see it up front.</p>
+  <div class="q" data-yn="gl_required"><span>General Liability shown?</span><div class="seg"></div></div>
+  <div class="sub hidden" data-show="gl_required=Yes">
+    <div class="row">
+      <label><span>Each occurrence</span><input type="text" id="gl_occ" placeholder="$1,000,000"></label>
+      <label><span>General aggregate</span><input type="text" id="gl_agg" placeholder="$2,000,000"></label>
+      <label><span>Aggregate applies per</span>
+        <select id="gl_agg_per"><option value="Not specified">Customer did not say</option><option>Policy</option><option>Project (CG 25 03)</option><option>Location (CG 25 04)</option></select></label>
+      <label class="full"><span>Other GL limits named</span><input type="text" id="gl_other" placeholder="Products / completed ops aggregate, personal & advertising injury, damage to rented premises, medical expense"></label>
+    </div>
+  </div>
+  <div class="q" data-yn="wc_required"><span>Workers' Compensation and Employer's Liability shown?</span><div class="seg"></div></div>
+  <div class="sub hidden" data-show="wc_required=Yes">
+    <div class="row">
+      <label class="full"><span>Employer's Liability limits</span><input type="text" id="el_limits" placeholder="$1,000,000 each accident / $1,000,000 disease, policy limit / $1,000,000 disease, each employee"></label>
+    </div>
+    <div class="q" data-yn="wc_separate_cert"><span>Separate certificate for workers' comp only?</span><div class="seg"></div></div>
+  </div>
+  <div class="q" data-yn="auto_required"><span>Auto Liability shown?</span><div class="seg"></div></div>
+  <div class="sub hidden" data-show="auto_required=Yes">
+    <div class="row">
+      <label><span>Combined single limit</span><input type="text" id="auto_limit" placeholder="$1,000,000"></label>
+    </div>
+    <div class="hint">City Wide owns no vehicles. The certificate shows Hired and Non-Owned Autos only. If the customer wrote Any Auto, check it in section 6.</div>
+  </div>
+  <div class="q" data-yn="umb_required"><span>Umbrella / Excess shown?</span><div class="seg"></div></div>
+  <div class="sub hidden" data-show="umb_required=Yes">
+    <div class="row">
+      <label><span>Each occurrence</span><input type="text" id="umb_occ" placeholder="$5,000,000"></label>
+      <label><span>Aggregate</span><input type="text" id="umb_agg" placeholder="$5,000,000"></label>
+    </div>
+  </div>
+  <label class="full"><span>Any other line the customer named</span><input type="text" id="other_lines" placeholder="Pollution, cyber, property, anything else. Leave blank if none."></label>
+</div>
+
+<div class="card">
+  <h2><span class="n">6</span>Asks City Wide cannot provide as written</h2>
+  <p class="why">Check anything the customer asked for from this list. Each one goes on the checklist with what to say, so it is settled at request time and not at the broker.</p>
+  <div class="checks flags" id="flags"></div>
+  <label class="full"><span>Anything else that looks impossible or odd</span><input type="text" id="flag_other"></label>
+</div>
+
+<div class="card">
+  <h2><span class="n">7</span>Endorsement pages</h2>
+  <p class="why">The most common reason a certificate comes back. Customers want the carrier's endorsement forms attached, not a typed note.</p>
+  <div class="row">
+    <div class="q" data-yn="end_attach"><span>All endorsement pages attached, not just the ACORD 25?</span><div class="seg"></div></div>
+    <div class="q" data-yn="end_policyno"><span>Policy numbers printed on every endorsement and waiver page?</span><div class="seg"></div></div>
+    <div class="q" data-yn="end_carrier"><span>Carrier-issued forms only (typed note in the description box rejected)?</span><div class="seg"></div></div>
+  </div>
+  <label class="full"><span>Other endorsement instructions</span><input type="text" id="end_notes" placeholder="Approved form sets, edition dates, anything the customer spelled out"></label>
+</div>
+
+<div class="card">
+  <h2><span class="n">8</span>Description of operations</h2>
+  <div class="row">
+    <label class="full"><span>Exact wording the customer dictated, if any</span><textarea id="desc_exact" placeholder="Copy it word for word. If it is long the broker moves it to an ACORD 101 page."></textarea></label>
+    <label><span>Job number</span><input type="text" id="job_number"></label>
+    <label><span>Project name</span><input type="text" id="project_name"></label>
+    <label class="full"><span>Property address or site the certificate covers</span><input type="text" id="property_address"></label>
+    <label><span>Purchase order or requisition number</span><input type="text" id="po_number"></label>
+    <label><span>Contract or agreement reference</span><input type="text" id="contract_ref" placeholder="Agreement name and date"></label>
+  </div>
+</div>
+
+<div class="card">
+  <h2><span class="n">9</span>Documents requested alongside the certificate</h2>
+  <p class="why">Broker items go on the broker checklist. Internal items stay with the BOM.</p>
+  <div class="checks" id="docs"></div>
+  <div class="sub hidden" data-show="doc_letter=on">
+    <label class="full"><span>Letter wording the customer dictated</span><textarea id="letter_wording" placeholder="e.g. no non-covered vehicles will be on job sites"></textarea></label>
+  </div>
+  <label class="full"><span>Other documents named</span><input type="text" id="docs_other"></label>
+</div>
+
+<div class="card">
+  <h2><span class="n">10</span>Vendor portal or credentialing system</h2>
+  <div class="row">
+    <label><span>Portal</span>
+      <select id="portal_name"><option value="">None</option><option>RealPage Vendor Credentialing</option><option>Yardi VendorCafe (VendorShield)</option><option>Avetta</option><option>ISNetworld</option><option>CBRE Supplier Shield</option><option>Customer prequalification package</option><option>Other</option></select></label>
+    <label><span>Portal name if Other</span><input type="text" id="portal_other"></label>
+  </div>
+  <div class="sub hidden" data-show="portal_name=*">
+    <div class="row">
+      <label><span>Who uploads the certificate</span>
+        <select id="portal_uploader"><option value="Not specified">Customer did not say</option><option>Broker (agent) uploads</option><option>City Wide uploads</option></select></label>
+      <label><span>Portal deadline</span><input type="date" id="portal_deadline"></label>
+      <label class="full"><span>Portal link or invitation</span><input type="text" id="portal_link"></label>
+      <label class="full"><span>Fees, login, or anything the portal needs</span><input type="text" id="portal_notes" placeholder="Annual fee, single Tax ID, licenses and W-9 also required, etc."></label>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2><span class="n">11</span>How many certificates, and renewals</h2>
+  <div class="row">
+    <label><span>Certificates needed</span>
+      <select id="separate_certs"><option>One certificate</option><option>Separate certificate per property</option><option>Separate certificate per legal entity</option><option>Separate certificate per job or PO</option></select></label>
+  </div>
+  <div class="sub hidden" data-show="separate_certs=*">
+    <label class="full"><span>List each property, entity, or job</span><textarea id="separate_list" placeholder="One per line"></textarea></label>
+  </div>
+  <div class="q" data-yn="standing_renewal"><span>Customer wants a renewal certificate automatically each policy year?</span><div class="seg"></div></div>
+</div>
+
+<div class="card">
+  <h2><span class="n">12</span>The customer's own words</h2>
+  <label class="full"><span>Paste the customer's email or requirements <i>*</i></span><textarea id="raw_email" class="tall" placeholder="Paste the whole thing. The broker reads this when a checklist line is unclear."></textarea></label>
+  <div class="q"><span>Sample certificate or spec sheet, if the customer sent one</span></div>
+  <div class="files" id="drop"><input type="file" id="fileinput" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.eml,.msg,.txt"><b>Attach files</b> (PDF, image, Word, Excel, or an email export). Up to 3 files, 8 MB each. They travel with the email and are stored in Drive.</div>
+  <div class="flist" id="flist"></div>
+  <label class="full"><span>Anything the customer asked for that these questions did not cover</span><textarea id="other_asks"></textarea></label>
+</div>
+
+<div class="actions">
+  <button type="submit" class="btn" id="go">Send the request</button>
+  <button type="button" class="btn ghost" id="copy">Copy the checklist</button>
+  <span id="sendnote" style="font-size:12px;color:var(--grey)"></span>
+</div>
+</form>
+
+<aside class="preview">
+  <div class="card">
+    <h2>Broker checklist preview</h2>
+    <div class="pv">Builds as you answer. This is what lands in the compliance inbox.</div>
+    <div class="flagcount" id="flagcount"></div>
+    <pre id="pre"></pre>
+  </div>
+</aside>
+</div>
+
+<div id="done" class="done hidden"></div>
+</div>
+</div>
+
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only &middot; GoCityWide.com</div>
+
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var KEYS = ["cwOpsHubPass", "cw_sales_auth", "cwBomHubPass"];
+var LOG_URL = "https://citywidelv.github.io/cw-bom-hub/coi-log.html";
+var PASS = "", CTX = { staff: [], markets: {} }, FILES = [];
+var TEST = /[?&]test=1/.test(location.search);
+var NS = "Not specified";
+var A = {};   // answers
+
+var MARKETS = {
+  "Las Vegas": { entity: "Low Drag, LLC dba City Wide Facility Solutions", compliance: "LVcompliance@gocitywide.com" },
+  "Northern Nevada": { entity: "Dash Two, LLC dba City Wide Facility Solutions", compliance: "rncompliance@gocitywide.com" }
+};
+
+// Asks that cannot be met as written. Each carries what the checklist says.
+var FLAGS = [
+  { id: "flag_anyauto", label: "Any Auto, Owned Autos, or Scheduled Autos", small: "Symbol 1, 2, or 7 on the auto line",
+    say: "City Wide owns no vehicles. The certificate shows Hired and Non-Owned Autos only. Offer a letter on company letterhead confirming no company-owned vehicles will be on site." },
+  { id: "flag_crime", label: "Crime, employee dishonesty, third-party fidelity, or a janitorial bond", small: "Common on property management and Yardi requirement sets",
+    say: "Not carried. The BOM tells the customer before the broker is asked. Buying it is a separate decision for TJ." },
+  { id: "flag_eo", label: "Professional liability / E&O", small: "Asked for on large resort accounts",
+    say: "Not on the current program (priced, not bound, per TJ's notes). Confirm with the broker before promising anything." },
+  { id: "flag_aiwc", label: "Additional insured on Workers' Compensation", small: "",
+    say: "No workers' comp policy offers additional insured status. Offer the waiver of subrogation (WC 00 03 13) instead." },
+  { id: "flag_notice", label: "30-day notice of cancellation to the certificate holder", small: "",
+    say: "The certificate cannot promise it; ACORD 25 says notice follows the policy provisions. Broker to say whether the carrier offers a notice-of-cancellation endorsement naming this holder, and how many days." },
+  { id: "flag_name", label: "Named insured shown as City Wide Facility Solutions without the LLC", small: "",
+    say: "The named insured must match the policy: the LLC dba City Wide Facility Solutions. The dba is the most that can be added." },
+  { id: "flag_indemnity", label: "Hold harmless or indemnity language on the certificate", small: "",
+    say: "Indemnity lives in the signed agreement, not on a certificate. The description box can say 'as required by written contract' and nothing more." }
+];
+
+// Side documents. broker=true goes on the broker checklist; the rest stays internal.
+var DOCS = [
+  { id: "doc_umbrella", label: "Copy of the umbrella / excess policy", broker: true },
+  { id: "doc_dec", label: "Declarations pages", broker: true },
+  { id: "doc_emr", label: "EMR letter or loss runs", broker: true },
+  { id: "doc_w9", label: "W-9 (often per property)", broker: false },
+  { id: "doc_goodstanding", label: "Nevada Certificate of Good Standing", broker: false },
+  { id: "doc_license", label: "State and city business licenses", broker: false },
+  { id: "doc_contractor", label: "Contractor license number, class, expiration", broker: false },
+  { id: "doc_msa", label: "Signed vendor agreement / MSA / addendum", broker: false },
+  { id: "doc_letter", label: "Letter on company letterhead (dictated wording)", broker: false },
+  { id: "doc_bgcheck", label: "Background check or badging clearance for crew", broker: false },
+  { id: "doc_safety", label: "Safety program, OSHA logs, prequalification forms", broker: false },
+  { id: "doc_reqsheet", label: "Customer's insurance requirements sheet returned with the submission", broker: false }
+];
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d = document.createElement("div"); d.textContent = String(s == null ? "" : s); return d.innerHTML; }
+function val(id){ var e = $(id); return e ? String(e.value || "").trim() : ""; }
+function post(body, cb){
+  body.passcode = PASS;
+  fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) })
+    .then(function(r){ return r.json(); }).then(cb)
+    .catch(function(){ cb({ ok:false, error:"Could not reach the service. Check the connection and try again." }); });
+}
+function say(text, cls){ var m = $("msg"); m.className = "msg show " + (cls || "err"); m.innerHTML = text; window.scrollTo({ top:0, behavior:"smooth" }); }
+function quiet(){ $("msg").className = "msg"; }
+
+/* ---------- yes / no / not specified controls ---------- */
+function buildYn(){
+  document.querySelectorAll(".q[data-yn]").forEach(function(q){
+    var id = q.getAttribute("data-yn");
+    var seg = q.querySelector(".seg");
+    seg.innerHTML = '<button type="button" data-v="Yes">Yes</button><button type="button" data-v="No">No</button><button type="button" data-v="' + NS + '" class="nsb">Customer did not say</button>';
+    seg.querySelectorAll("button").forEach(function(b){
+      b.addEventListener("click", function(){
+        seg.querySelectorAll("button").forEach(function(x){ x.className = x.classList.contains("nsb") ? "nsb" : ""; });
+        b.classList.add("on"); if(b.dataset.v === "No") b.classList.add("no"); if(b.dataset.v === NS) b.classList.add("ns");
+        A[id] = b.dataset.v; q.classList.remove("bad"); showSubs(); render();
+      });
+    });
+  });
+  document.querySelectorAll(".seg.mk button").forEach(function(b){
+    b.addEventListener("click", function(){
+      document.querySelectorAll(".seg.mk button").forEach(function(x){ x.classList.remove("on"); });
+      b.classList.add("on"); A.market = b.dataset.v; $("q_market").classList.remove("bad");
+      $("ni_text").textContent = MARKETS[A.market].entity + " (email goes to " + MARKETS[A.market].compliance + ")";
+      render();
+    });
+  });
+}
+function showSubs(){
+  document.querySelectorAll("[data-show]").forEach(function(el){
+    var rule = el.getAttribute("data-show").split("=");
+    var k = rule[0], want = rule[1], have;
+    if(k === "portal_name" || k === "separate_certs") have = val(k);
+    else if(k.indexOf("doc_") === 0) have = $(k) && $(k).checked ? "on" : "";
+    else have = A[k] || "";
+    var on = want === "*" ? (have && have !== "One certificate") : have === want;
+    el.classList.toggle("hidden", !on);
+  });
+}
+
+/* ---------- checklists of checkboxes ---------- */
+function buildChecks(){
+  $("flags").innerHTML = FLAGS.map(function(f){
+    return '<label><input type="checkbox" id="' + f.id + '"><span>' + esc(f.label) + (f.small ? '<small>' + esc(f.small) + '</small>' : '') + '</span></label>';
+  }).join("");
+  $("docs").innerHTML = DOCS.map(function(d){
+    return '<label><input type="checkbox" id="' + d.id + '"><span>' + esc(d.label) + '<span class="tagi ' + (d.broker ? 'b">Broker' : 'i">Internal') + '</span></span></label>';
+  }).join("");
+  document.querySelectorAll(".checks input").forEach(function(c){
+    c.addEventListener("change", function(){ c.parentElement.classList.toggle("on", c.checked); showSubs(); render(); });
+  });
+}
+function multi(name){
+  return Array.prototype.slice.call(document.querySelectorAll('input[data-multi="' + name + '"]:checked')).map(function(c){ return c.value; });
+}
+
+/* ---------- requester picker ---------- */
+function buildStaff(){
+  var s = $("requester_pick");
+  var opts = '<option value="">Pick your name</option>';
+  CTX.staff.forEach(function(p, i){ opts += '<option value="' + i + '">' + esc(p.name) + (p.role ? ' (' + esc(p.role) + ')' : '') + '</option>'; });
+  opts += '<option value="other">Someone else</option>';
+  s.innerHTML = opts;
+  var saved = null;
+  try{ saved = JSON.parse(localStorage.getItem("cwCoiRequester") || "null"); }catch(e){}
+  if(saved){
+    var idx = -1;
+    CTX.staff.forEach(function(p, i){ if(p.name === saved.name) idx = i; });
+    if(idx >= 0){ s.value = String(idx); applyStaff(idx); }
+    else { s.value = "other"; $("rn_wrap").classList.remove("hidden"); $("requester_name").value = saved.name || ""; }
+    if(saved.email) $("requester_email").value = saved.email;
+    if(saved.role) $("requester_role").value = saved.role;
+  }
+  s.addEventListener("change", function(){
+    if(s.value === "other"){ $("rn_wrap").classList.remove("hidden"); $("requester_name").value = ""; }
+    else { $("rn_wrap").classList.add("hidden"); if(s.value !== "") applyStaff(parseInt(s.value, 10)); }
+    render();
+  });
+}
+function applyStaff(i){
+  var p = CTX.staff[i]; if(!p) return;
+  $("requester_name").value = p.name;
+  if(p.email){ $("requester_email").value = p.email; $("requester_email").classList.remove("bad"); }
+  $("requester_pick").classList.remove("bad");
+  if(p.role){ var r = $("requester_role"); r.value = p.role; if(r.value !== p.role) r.value = "Other"; }
+  if(!A.market && p.market && MARKETS[p.market]){
+    var b = document.querySelector('.seg.mk button[data-v="' + p.market + '"]'); if(b) b.click();
+  }
+}
+function requesterName(){
+  var s = $("requester_pick");
+  if(s.value === "other" || s.value === "") return val("requester_name");
+  var p = CTX.staff[parseInt(s.value, 10)]; return p ? p.name : "";
+}
+
+/* ---------- files ---------- */
+function fmtSize(n){ return n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.round(n / 1024) + " KB"; }
+function renderFiles(){
+  $("flist").innerHTML = FILES.map(function(f, i){
+    return '<div><span>' + esc(f.name) + ' <small>' + fmtSize(f.size) + '</small></span><button type="button" data-i="' + i + '">Remove</button></div>';
+  }).join("");
+  $("flist").querySelectorAll("button").forEach(function(b){ b.addEventListener("click", function(){ FILES.splice(parseInt(b.dataset.i, 10), 1); renderFiles(); render(); }); });
+}
+function addFiles(list){
+  var okExt = /\.(pdf|jpe?g|png|docx?|xlsx?|eml|msg|txt)$/i;
+  Array.prototype.forEach.call(list, function(file){
+    if(FILES.length >= 3){ say("Up to 3 files per request."); return; }
+    if(!okExt.test(file.name)){ say('"' + esc(file.name) + '" is not an accepted type. PDF, image, Word, Excel, or an email export.'); return; }
+    if(file.size > 8 * 1024 * 1024){ say('"' + esc(file.name) + '" is over 8 MB.'); return; }
+    var total = FILES.reduce(function(s, f){ return s + f.size; }, 0) + file.size;
+    if(total > 15 * 1024 * 1024){ say("All files together must stay under 15 MB."); return; }
+    var reader = new FileReader();
+    reader.onload = function(){
+      FILES.push({ name: file.name, type: file.type || "application/octet-stream", size: file.size, data: String(reader.result).split(",")[1] || "" });
+      renderFiles(); render();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function buildFiles(){
+  var drop = $("drop"), inp = $("fileinput");
+  drop.addEventListener("click", function(){ inp.click(); });
+  inp.addEventListener("change", function(){ addFiles(inp.files); inp.value = ""; });
+  drop.addEventListener("dragover", function(e){ e.preventDefault(); drop.style.borderColor = "#2D2A26"; });
+  drop.addEventListener("dragleave", function(){ drop.style.borderColor = ""; });
+  drop.addEventListener("drop", function(e){ e.preventDefault(); drop.style.borderColor = ""; addFiles(e.dataTransfer.files); });
+}
+
+/* ---------- the checklist ---------- */
+function yn(id){ return A[id] || ""; }
+function ynText(id){ var v = yn(id); return v === NS ? "Customer did not say" : (v || "(not answered)"); }
+function joinLines(s){ return String(s || "").split(/\n+/).map(function(x){ return x.trim(); }).filter(Boolean).join("; "); }
+
+function buildSections(){
+  var S = [];
+  function sec(title, internal){ var s = { title: title, internal: !!internal, lines: [] }; S.push(s); return s; }
+  function line(s, label, value, flag){ if(value === undefined || value === null || value === "") return; s.lines.push({ label: label, value: String(value), flag: !!flag }); }
+  var mk = A.market && MARKETS[A.market] ? MARKETS[A.market] : null;
+
+  var s1 = sec("1. Named insured");
+  line(s1, "Named insured", mk ? mk.entity : "(pick the market)");
+  line(s1, "Market", A.market || "(pick the market)");
+
+  var s2 = sec("2. Certificate holder");
+  line(s2, "Certificate holder", val("holder_name") || "(required)");
+  line(s2, "Holder address", val("holder_address") || "(required)");
+  if(yn("holder_multi") === "Yes") line(s2, "Other entities requested in the holder box", joinLines(val("holder_extra")) + ". Holder box fits one; list the rest as additional insureds unless the customer insists.", true);
+  var dm = val("deliver_method"), dt = val("deliver_to");
+  line(s2, "Deliver the certificate", (dm === "Not specified" ? "Customer did not say how" : dm) + (dt ? ": " + dt : ""));
+  if(yn("direct_from_broker") === "Yes") line(s2, "Sent directly by the broker", "Yes, the customer will not accept a copy forwarded by City Wide" + (dt ? ". Send to " + dt : ""), true);
+
+  var s3 = sec("3. Additional insured");
+  if(yn("ai_required") === "Yes"){
+    var who = val("ai_who"), list = joinLines(val("ai_list"));
+    line(s3, "Additional insured", who + (list ? ": " + list : (who !== "Same as the certificate holder" ? " (no names given, ask the requester)" : "")), who !== "Same as the certificate holder" && !list);
+    line(s3, "On lines", multi("ai_lines").join(", ") || "(none picked)");
+    var scope = multi("ai_scope");
+    line(s3, "GL scope", scope.length ? scope.join(" and ") : "Customer did not say; default to ongoing operations");
+    line(s3, "Blanket or scheduled", val("ai_form_type") === "Not specified" ? "Customer did not say" : val("ai_form_type"), val("ai_form_type").indexOf("scheduled") >= 0);
+    line(s3, "Forms the customer named", val("ai_forms_specified"));
+  } else line(s3, "Additional insured", ynText("ai_required"));
+  line(s3, "Primary and non-contributory", yn("pnc") === "Yes" ? "Yes. Endorsement CG 20 01 or carrier equivalent, attached" : ynText("pnc"));
+
+  var s4 = sec("4. Waivers of subrogation");
+  line(s4, "General Liability (CG 24 04)", ynText("wos_gl"));
+  line(s4, "Workers' Compensation (WC 00 03 13)", ynText("wos_wc"));
+  line(s4, "Auto", ynText("wos_auto"));
+  line(s4, "Umbrella / Excess", ynText("wos_umb"));
+  var wft = val("wos_form_type"); if(wft !== "Not specified") line(s4, "Blanket or scheduled", wft, wft.indexOf("scheduled") >= 0);
+
+  var s5 = sec("5. Coverage lines and minimum limits");
+  if(yn("gl_required") === "Yes"){
+    line(s5, "General Liability", "Yes. Each occurrence " + (val("gl_occ") || "not stated") + ", general aggregate " + (val("gl_agg") || "not stated") +
+      (val("gl_agg_per") !== "Not specified" ? ", aggregate applies per " + val("gl_agg_per") : "") + (val("gl_other") ? ". Also: " + val("gl_other") : ""),
+      val("gl_agg_per").indexOf("Project") >= 0 || val("gl_agg_per").indexOf("Location") >= 0);
+  } else line(s5, "General Liability", ynText("gl_required"));
+  if(yn("wc_required") === "Yes"){
+    line(s5, "Workers' Comp / Employer's Liability", "Yes. EL limits " + (val("el_limits") || "not stated"));
+    if(yn("wc_separate_cert") === "Yes") line(s5, "Separate WC-only certificate", "Yes", true);
+  } else line(s5, "Workers' Comp / Employer's Liability", ynText("wc_required"));
+  line(s5, "Auto Liability", yn("auto_required") === "Yes" ? "Yes, Hired and Non-Owned only. CSL " + (val("auto_limit") || "not stated") : ynText("auto_required"));
+  line(s5, "Umbrella / Excess", yn("umb_required") === "Yes" ? "Yes. Each occurrence " + (val("umb_occ") || "not stated") + ", aggregate " + (val("umb_agg") || "not stated") : ynText("umb_required"));
+  line(s5, "Other lines named", val("other_lines"));
+
+  var s6 = sec("6. Asks City Wide cannot provide as written");
+  var flagged = [];
+  FLAGS.forEach(function(f){ if($(f.id) && $(f.id).checked){ line(s6, f.label, f.say, true); flagged.push(f.label); } });
+  if(val("flag_other")){ line(s6, "Other", val("flag_other"), true); flagged.push(val("flag_other")); }
+  if(!s6.lines.length) line(s6, "None flagged", "Nothing on the customer's list is outside the program");
+
+  var s7 = sec("7. Endorsement pages");
+  line(s7, "All endorsement pages attached", ynText("end_attach"));
+  line(s7, "Policy numbers on every endorsement page", ynText("end_policyno"));
+  line(s7, "Carrier-issued forms only", ynText("end_carrier"));
+  line(s7, "Instructions", val("end_notes"));
+
+  var s8 = sec("8. Description of operations");
+  line(s8, "Exact wording dictated", val("desc_exact"));
+  var jr = [];
+  if(val("job_number")) jr.push("Job " + val("job_number"));
+  if(val("project_name")) jr.push(val("project_name"));
+  if(val("po_number")) jr.push("PO " + val("po_number"));
+  if(val("contract_ref")) jr.push("Contract: " + val("contract_ref"));
+  line(s8, "Job / project / PO / contract", jr.join(" | "));
+  line(s8, "Property or site covered", val("property_address"));
+  if(!s8.lines.length) line(s8, "Description", "Nothing specific requested. Standard operations wording.");
+
+  var s9 = sec("9. Documents from the broker");
+  DOCS.forEach(function(d){ if(d.broker && $(d.id) && $(d.id).checked) line(s9, d.label, "Requested"); });
+  if(!s9.lines.length) line(s9, "None", "Certificate and endorsements only");
+
+  var s10 = sec("10. Portal or credentialing system");
+  var pn = val("portal_name") === "Other" ? val("portal_other") || "Other" : val("portal_name");
+  if(pn){
+    line(s10, "Portal", pn);
+    line(s10, "Who uploads", val("portal_uploader") === "Not specified" ? "Customer did not say" : val("portal_uploader"), val("portal_uploader").indexOf("Broker") >= 0);
+    line(s10, "Deadline", val("portal_deadline"));
+    line(s10, "Link", val("portal_link"));
+    line(s10, "Notes", val("portal_notes"));
+  } else line(s10, "Portal", "None");
+
+  var s11 = sec("11. Certificates and renewals");
+  var sc = val("separate_certs");
+  line(s11, "Certificates needed", sc + (sc !== "One certificate" && val("separate_list") ? ": " + joinLines(val("separate_list")) : ""), sc !== "One certificate");
+  line(s11, "Renewal each policy year", yn("standing_renewal") === "Yes" ? "Yes, standing request. Send a replacement certificate before each expiration without being asked" : ynText("standing_renewal"), yn("standing_renewal") === "Yes");
+  line(s11, "Needed by", val("needed_by") || "No date given");
+
+  var i1 = sec("Documents City Wide provides (internal)", true);
+  DOCS.forEach(function(d){ if(!d.broker && $(d.id) && $(d.id).checked) line(i1, d.label, d.id === "doc_letter" && val("letter_wording") ? "Wording: " + val("letter_wording") : "Requested"); });
+  line(i1, "Other documents", val("docs_other"));
+  if(!i1.lines.length) line(i1, "None", "");
+
+  var i2 = sec("Request details (internal)", true);
+  line(i2, "Requested by", requesterName() + (val("requester_role") ? " (" + val("requester_role") + ")" : "") + (val("requester_email") ? ", " + val("requester_email") : ""));
+  line(i2, "Customer contact", (val("customer_contact_name") + " " + val("customer_contact_email")).trim());
+  line(i2, "Reason", val("reason"));
+  line(i2, "Sample or spec attached", FILES.length ? FILES.map(function(f){ return f.name; }).join(", ") : "None");
+  line(i2, "Other asks", val("other_asks"));
+
+  return { sections: S, flagged: flagged };
+}
+
+function checklistText(built){
+  var mk = A.market && MARKETS[A.market] ? MARKETS[A.market] : null;
+  var out = "CERTIFICATE OF INSURANCE REQUEST\n";
+  out += "Customer: " + (val("account_name") || "(required)") + "\n";
+  out += "Market: " + (A.market || "(pick one)") + (mk ? "  |  Named insured: " + mk.entity : "") + "\n";
+  out += "Needed by: " + (val("needed_by") || "no date given") + "\n";
+  var internalStarted = false;
+  built.sections.forEach(function(s){
+    if(s.internal && !internalStarted){ out += "\n============================\nINTERNAL ONLY. Trim before forwarding to the broker.\n============================\n"; internalStarted = true; }
+    out += "\n" + s.title.toUpperCase() + "\n";
+    s.lines.forEach(function(l){ out += (l.flag ? "  ! " : "  - ") + l.label + (l.value ? ": " + l.value : "") + "\n"; });
+  });
+  return out;
+}
+
+function render(){
+  var built = buildSections();
+  $("pre").textContent = checklistText(built);
+  var fc = $("flagcount");
+  if(built.flagged.length){ fc.style.display = "block"; fc.textContent = built.flagged.length + " ask" + (built.flagged.length > 1 ? "s" : "") + " the program cannot meet as written. The checklist says what to tell the customer."; }
+  else fc.style.display = "none";
+}
+
+function summaryFields(built){
+  var lim = [];
+  built.sections[4].lines.forEach(function(l){ lim.push(l.label + ": " + l.value); });
+  var side = [];
+  DOCS.forEach(function(d){ if($(d.id).checked) side.push(d.label + (d.broker ? " [broker]" : " [internal]")); });
+  if(val("docs_other")) side.push(val("docs_other"));
+  var pn = val("portal_name") === "Other" ? val("portal_other") || "Other" : val("portal_name");
+  var jr = []; ["job_number", "project_name", "property_address", "po_number", "contract_ref"].forEach(function(k){ if(val(k)) jr.push(val(k)); });
+  var ai = yn("ai_required") === "Yes" ? (val("ai_who") + (val("ai_list") ? ": " + joinLines(val("ai_list")) : "")) : ynText("ai_required");
+  return {
+    customer_contact: (val("customer_contact_name") + " " + val("customer_contact_email")).trim(),
+    deliver_to: val("deliver_method") + (val("deliver_to") ? ": " + val("deliver_to") : "") + (yn("direct_from_broker") === "Yes" ? " (direct from broker)" : ""),
+    additional_insureds: ai,
+    ai_lines: yn("ai_required") === "Yes" ? multi("ai_lines").join(", ") + " | " + multi("ai_scope").join(", ") : "",
+    limits: lim.join(" | "),
+    job_reference: jr.join(" | "),
+    side_documents: side.join("; "),
+    portal: pn ? pn + (val("portal_uploader") !== "Not specified" ? " (" + val("portal_uploader") + ")" : "") + (val("portal_deadline") ? " by " + val("portal_deadline") : "") : "",
+    separate_certs: val("separate_certs") + (val("separate_list") ? ": " + joinLines(val("separate_list")) : ""),
+    flags: built.flagged.join("; ")
+  };
+}
+
+/* ---------- validation + submit ---------- */
+function validate(){
+  var missing = [];
+  function need(id, label){ var e = $(id); var ok = !!val(id); e.classList.toggle("bad", !ok); if(!ok) missing.push(label); }
+  if(!A.market){ $("q_market").classList.add("bad"); missing.push("Market"); }
+  if(!requesterName()){ $("requester_pick").classList.add("bad"); if(!$("rn_wrap").classList.contains("hidden")) $("requester_name").classList.add("bad"); missing.push("Your name"); } else { $("requester_pick").classList.remove("bad"); $("requester_name").classList.remove("bad"); }
+  need("requester_email", "Your email");
+  if(val("requester_email") && val("requester_email").indexOf("@") < 1){ $("requester_email").classList.add("bad"); missing.push("A real email"); }
+  need("account_name", "Customer / account name");
+  need("holder_name", "Certificate holder name");
+  need("holder_address", "Certificate holder address");
+  need("raw_email", "The customer's own words");
+  document.querySelectorAll(".q[data-yn]").forEach(function(q){
+    var hiddenSub = q.closest(".sub") && q.closest(".sub").classList.contains("hidden");
+    if(hiddenSub) return;
+    var id = q.getAttribute("data-yn");
+    var ok = !!A[id]; q.classList.toggle("bad", !ok);
+    if(!ok) missing.push(q.querySelector("span").textContent.replace(/\?$/, ""));
+  });
+  return missing;
+}
+
+function submit(e){
+  e.preventDefault(); quiet();
+  var missing = validate();
+  if(missing.length){
+    say("<b>Still needed:</b> " + missing.map(esc).join(", ") + ". Every yes or no must be answered; pick Customer did not say when the email is silent.");
+    var bad = document.querySelector(".bad"); if(bad) bad.scrollIntoView({ behavior:"smooth", block:"center" });
+    return;
+  }
+  var built = buildSections();
+  var text = checklistText(built);
+  var answers = {};
+  ["requester_email", "requester_role", "account_name", "customer_contact_name", "customer_contact_email", "needed_by", "reason",
+   "holder_name", "holder_address", "holder_extra", "deliver_method", "deliver_to", "ai_who", "ai_list", "ai_form_type", "ai_forms_specified",
+   "wos_form_type", "gl_occ", "gl_agg", "gl_agg_per", "gl_other", "el_limits", "auto_limit", "umb_occ", "umb_agg", "other_lines", "flag_other",
+   "end_notes", "desc_exact", "job_number", "project_name", "property_address", "po_number", "contract_ref", "letter_wording", "docs_other",
+   "portal_name", "portal_other", "portal_uploader", "portal_deadline", "portal_link", "portal_notes", "separate_certs", "separate_list",
+   "raw_email", "other_asks"].forEach(function(k){ answers[k] = val(k); });
+  Object.keys(A).forEach(function(k){ answers[k] = A[k]; });
+  answers.requester_name = requesterName();
+  answers.ai_lines = multi("ai_lines"); answers.ai_scope = multi("ai_scope");
+  answers.flags = FLAGS.filter(function(f){ return $(f.id).checked; }).map(function(f){ return f.id; });
+  answers.docs = DOCS.filter(function(d){ return $(d.id).checked; }).map(function(d){ return d.id; });
+  try{ localStorage.setItem("cwCoiRequester", JSON.stringify({ name: answers.requester_name, email: answers.requester_email, role: answers.requester_role })); }catch(x){}
+
+  var btn = $("go"); btn.disabled = true; btn.textContent = "Sending...";
+  $("sendnote").textContent = FILES.length ? "Uploading " + FILES.length + " file" + (FILES.length > 1 ? "s" : "") + " and sending." : "";
+  post({ kind:"vd_coi_submit", market: A.market, test: TEST, answers: answers, summary: summaryFields(built),
+         sections: built.sections, checklist_text: text, files: FILES }, function(r){
+    btn.disabled = false; btn.textContent = "Send the request"; $("sendnote").textContent = "";
+    if(!r || !r.ok){
+      if(r && r.error === "Wrong passcode."){ KEYS.forEach(function(k){ try{ localStorage.removeItem(k); }catch(x){} }); showGate("Your passcode expired. Enter it again."); return; }
+      say((r && r.error) || "The request did not send. Nothing was lost; copy the checklist and try again."); return;
+    }
+    var mailOk = /^sent/.test(r.mail_status || "");
+    $("f").classList.add("hidden"); document.querySelector(".preview").classList.add("hidden");
+    $("done").innerHTML = '<b>Request logged' + (mailOk ? ' and sent' : '') + '</b>' +
+      '<div class="id">' + esc(r.id) + '</div>' +
+      (mailOk ? '<p>The checklist' + (r.files ? ' and ' + r.files + ' file' + (r.files > 1 ? 's' : '') : '') + ' went to <b>' + esc(r.sent_to) + '</b>. The Business Operations Manager forwards it to the broker and tracks it on the log. Replies come to your email.</p>'
+              : '<div class="warn"><b>The email did not send</b> (' + esc(r.mail_status) + '). The request is on the log' + (r.links && r.links.length ? ' with the files in Drive' : '') + '. Copy the checklist below and email it to ' + esc((MARKETS[A.market] || {}).compliance || "the compliance inbox") + ' with the request number.</div>') +
+      (TEST ? '<div class="warn">TEST request. It went to the test inbox and is flagged TEST on the log.</div>' : '') +
+      '<div class="actions" style="justify-content:center;margin-top:16px">' +
+      '<button type="button" class="btn ghost" id="copy2">Copy the checklist</button>' +
+      '<a class="btn ghost" href="' + LOG_URL + '">Open the request log</a>' +
+      '<a class="btn" href="' + location.pathname + (TEST ? '?test=1' : '') + '">Start another request</a></div>' +
+      '<pre id="pre2" style="text-align:left;font-family:inherit;font-size:11.5px;line-height:1.5;white-space:pre-wrap;background:#F5F5F5;border:1px solid #E5E5E5;border-radius:8px;padding:12px 14px;margin-top:18px;max-height:50vh;overflow:auto"></pre>';
+    $("pre2").textContent = text + "\n\nRequest " + r.id;
+    $("done").classList.remove("hidden");
+    $("copy2").addEventListener("click", function(){ copyText(text + "\n\nRequest " + r.id, $("copy2")); });
+    window.scrollTo({ top:0, behavior:"smooth" });
+  });
+}
+function copyText(t, btn){
+  function ok(){ var was = btn.textContent; btn.textContent = "Copied"; setTimeout(function(){ btn.textContent = was; }, 1600); }
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(ok, function(){ fallback(); }); } else fallback();
+  function fallback(){ var ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); ok(); }catch(e){} document.body.removeChild(ta); }
+}
+
+/* ---------- gate ---------- */
+function showGate(msg){
+  $("app").classList.add("hidden"); $("gate").classList.remove("hidden");
+  if(msg){ $("gmsg").textContent = msg; $("gmsg").className = "err"; }
+  $("pc").focus();
+}
+function load(pass, isAuto, next){
+  PASS = pass;
+  var btn = $("enter"); btn.disabled = true;
+  post({ kind:"vd_coi_context" }, function(r){
+    btn.disabled = false;
+    if(r && r.ok){
+      try{ localStorage.setItem("cwOpsHubPass", pass); }catch(e){}
+      CTX = r; if(r.markets){ Object.keys(r.markets).forEach(function(k){ if(MARKETS[k]) MARKETS[k].entity = r.markets[k].entity || MARKETS[k].entity; }); }
+      $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
+      buildStaff(); render();
+    } else if(isAuto && next){ next(); }
+    else {
+      if(r && r.error === "Wrong passcode."){ KEYS.forEach(function(k){ try{ localStorage.removeItem(k); }catch(x){} }); }
+      showGate((r && r.error) || "That passcode is not right.");
+    }
+  });
+}
+function tryCached(){
+  var cands = [];
+  KEYS.forEach(function(k){ try{ var v = localStorage.getItem(k); if(v && cands.indexOf(v) < 0) cands.push(v); }catch(e){} });
+  var i = 0;
+  (function step(){ if(i >= cands.length){ showGate(""); return; } var p = cands[i++]; load(p, true, step); })();
+}
+
+(function init(){
+  if(TEST) $("testbar").classList.remove("hidden");
+  var ref = document.referrer || "";
+  var back = $("backlink");
+  if(/sales-hub/.test(ref)){ back.href = "https://citywidelv.github.io/sales-hub/"; back.innerHTML = "&larr; Sales Hub"; }
+  else if(/cw-bom-hub/.test(ref)){ back.href = "https://citywidelv.github.io/cw-bom-hub/"; back.innerHTML = "&larr; BOM Hub"; }
+  buildYn(); buildChecks(); buildFiles();
+  document.querySelectorAll("#f input, #f select, #f textarea").forEach(function(el){
+    el.addEventListener("input", function(){ el.classList.remove("bad"); showSubs(); render(); });
+    el.addEventListener("change", function(){ showSubs(); render(); });
+  });
+  $("f").addEventListener("submit", submit);
+  $("copy").addEventListener("click", function(){ copyText(checklistText(buildSections()), $("copy")); });
+  $("enter").addEventListener("click", function(){ var p = val("pc"); if(p) load(p, false); });
+  $("pc").addEventListener("keydown", function(e){ if(e.key === "Enter"){ var p = val("pc"); if(p) load(p, false); } });
+  tryCached();
+})();
+</script>
+</body>
+</html>

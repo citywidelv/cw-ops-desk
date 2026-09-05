@@ -13,6 +13,7 @@ directory. Added: the Ops Wall (team announcements) fed by the Apps Script
 Every tool that was in the old directory is reachable from the dropdowns.
 Search now indexes the dropdown menus.
 build 2026-09-04: Active Postings (postings.html) added to the Opportunities menu and quick bar.
+build 2026-09-05: Accounts & Buildings > Customer COI Requests (coi-request.html + BOM Hub log); vendor insurance item relabelled Request COIs from Vendors.
 build 2026-08-06: added Back to the Nevada Team Portal links (gate + header).
 build 2026-08-07: the Ops Wall MOVED to the Nevada Team Portal (citywidelv.github.io)
 as the Team Wall. Same Apps Script feed (auth response `announcements`, POST
@@ -566,7 +567,7 @@ var MENU = [
     {label:"Violation Log (Sheet)", href:"https://docs.google.com/spreadsheets/d/16Hf_1Y_N8n3hPq4WDpPmXtyEs4Gdn-KV54-OUQUa-NI/edit"}
     ]},
   {sub:"Insurance", items:[
-    {label:"Request Certificates of Insurance", href:"insurance.html"},
+    {label:"Request COIs from Vendors", href:"insurance.html"},
     {label:"Insurance Request Log (Sheet)", href:"https://docs.google.com/spreadsheets/d/16Hf_lY_N8n3hPq4WDpPmXtyEs4Gdn-KV54-OUQUa-NI/edit"},
     {label:"Vendor Upload Page", href:VS+"upload.html"}
     ]},
@@ -602,6 +603,10 @@ var MENU = [
 {sub:"Building Info Sheets (DBIS)", items:[
 {label:"Sheet Library", href:"building-sheets.html"},
 {label:"New / Update a Sheet", href:"building-sheet.html"}
+]},
+{sub:"Customer COI Requests", items:[
+{label:"Request a COI for a Customer", href:"coi-request.html"},
+{label:"COI Request Log (BOM Hub)", href:"https://citywidelv.github.io/cw-bom-hub/coi-log.html"}
 ]},
 {label:"Building Survey", href:"https://citywidelv.github.io/BuildingSurvey/"},
 {sub:"Accounts Map", items:[
