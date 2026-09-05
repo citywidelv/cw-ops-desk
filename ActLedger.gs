@@ -114,6 +114,22 @@ function actMonthKey_(month) {
   if (i < 0) return '';
   return p[2] + '-' + (i + 1 < 10 ? '0' : '') + (i + 1);
 }
+// Sheets auto-parses "2026-08" and "August 2026" into dates when a cell is not
+// text-formatted. Every reader goes through this so a date-typed cell still
+// yields the month key.
+function actMk_(v) {
+  var s = actStr_(v);
+  var m = /^(\d{4})-(\d{2})/.exec(s);
+  if (m) return m[1] + '-' + m[2];
+  return actMonthKey_(s);
+}
+// Force text format on the month / month_key cells of a block before writing.
+var ACT_TEXT_COLS = ['month', 'month_key', 'Month Affected', 'EC Number', 'EC (If Applicable)', 'bc_customer_no', 'zip'];
+function actTextCols_(sh, head, row, n) {
+  head.forEach(function (h, i) {
+    if (ACT_TEXT_COLS.indexOf(h) >= 0) sh.getRange(row, i + 1, n, 1).setNumberFormat('@');
+  });
+}
 function actMonthName_(key) {
   var names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var m = /^(\d{4})-(\d{2})$/.exec(actStr_(key));
@@ -254,6 +270,7 @@ function actSetup_(data) {
       var cb = SpreadsheetApp.newDataValidation().requireCheckbox().build();
       sh.getRange(2, c, 5000, 1).setDataValidation(cb);
     }
+    actTextCols_(sh, actHeaders_(sec), 2, 5000);
   });
   ACT_ACCOUNT_TABS.forEach(function (t) {
     var sh = actTab_(ss, t.name, ACT_ACCOUNT_HEADERS, '#D22730');
@@ -262,6 +279,7 @@ function actSetup_(data) {
     var cb = SpreadsheetApp.newDataValidation().requireCheckbox().build();
     sh.getRange(2, ACT_ACCOUNT_HEADERS.indexOf('verified') + 1, 3000, 1).setDataValidation(cb);
     sh.getRange(2, ACT_ACCOUNT_HEADERS.indexOf('hide') + 1, 3000, 1).setDataValidation(cb);
+    actTextCols_(sh, ACT_ACCOUNT_HEADERS, 2, 3000);
   });
   actTab_(ss, 'Lists', ACT_LIST_HEADERS, '#636466');
   actTab_(ss, 'Change Log', ACT_LOG_HEADERS, '#636466');
@@ -293,6 +311,7 @@ function actSeed_(data) {
       return v;
     });
   });
+  actTextCols_(sh, head, start, vals.length);
   sh.getRange(start, 1, vals.length, head.length).setValues(vals);
   if (data.next_entry_id) actSetConfig_(ss, 'next_entry_id', String(data.next_entry_id));
   if (data.import_done) actSetConfig_(ss, 'import_done', actNow_() + ' ' + actStr_(data.import_done));
@@ -354,7 +373,7 @@ function actMonthsPresent_(ss) {
     var head = actHeaders_(sec);
     var vals = sh.getRange(2, 1, sh.getLastRow() - 1, ACT_META_HEAD.length).getValues();
     vals.forEach(function (v) {
-      var region = actStr_(v[1]), doc = actStr_(v[2]), mk = actStr_(v[4]);
+      var region = actStr_(v[1]), doc = actStr_(v[2]), mk = actMk_(v[4]) || actMk_(v[3]);
       if (!mk || !region) return;
       var k = region + '|' + doc;
       seen[k] = seen[k] || {};
@@ -393,7 +412,8 @@ function actEntries_(data) {
     rr.rows.forEach(function (r) {
       if (!r.entry_id) return;
       if (region && r.region !== region) return;
-      if (mk && r.month_key !== mk) return;
+      var rmk = actMk_(r.month_key) || actMk_(r.month);
+      if (mk && rmk !== mk) return;
       var status = r.status || 'Open';
       if (!incVoid && status === 'Voided') return;
       var complete = actTrue_(r['Accounting Complete']);
@@ -404,7 +424,7 @@ function actEntries_(data) {
         var hay = [r.entry_id, r.month, r.region, sec.name].concat(sec.cols.map(function (h) { return r[h]; })).join(' ').toLowerCase();
         if (hay.indexOf(q) < 0) return;
       }
-      out.push({ entry_id: r.entry_id, region: r.region, doc: r.doc, month: r.month, month_key: r.month_key, section: sec.name, section_key: sec.key,
+      out.push({ entry_id: r.entry_id, region: r.region, doc: r.doc, month: actMonthName_(rmk), month_key: rmk, section: sec.name, section_key: sec.key,
                  status: status, fields: fields, complete: complete, completed_by: r.completed_by, completed_at: r.completed_at,
                  created: r.created, created_by: r.created_by, updated: r.updated, updated_by: r.updated_by,
                  source: r.source, layout: r.layout, legacy_extras: r.legacy_extras, _row: r._row });
@@ -474,6 +494,7 @@ function actAdd_(data) {
     return actCoerce_(h, f[h]);
   });
   var r = actNextRow_(sh);
+  actTextCols_(sh, head, r, 1);
   sh.getRange(r, 1, 1, head.length).setValues([row]);
   actLog_(ss, who, 'add', id, sec.name, '', '', sec.name + ' / ' + actMonthName_(mk) + ' / ' + region);
   return actOut_({ ok: true, entry_id: id, row: r, tab: sec.name });
@@ -509,6 +530,7 @@ function actUpdate_(data) {
   if (changed) {
     vals[hit.head.indexOf('updated')] = actNow_();
     vals[hit.head.indexOf('updated_by')] = who;
+    actTextCols_(hit.sh, hit.head, hit.row, 1);
     hit.sh.getRange(hit.row, 1, 1, hit.head.length).setValues([vals]);
   }
   return actOut_({ ok: true, changed: changed });
