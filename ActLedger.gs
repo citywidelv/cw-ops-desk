@@ -216,10 +216,18 @@ function actLog_(ss, who, action, id, tab, field, oldv, newv) {
 function actNextEntryId_(ss) {
   var cfg = actConfig_(ss);
   var n = Number(cfg.next_entry_id) || 1;
+  // Never hand out an id that is already in the book, whatever the counter says
+  // (the counter can lag after an import or a hand edit of the Config tab).
+  var id;
+  for (var tries = 0; tries < 5000; tries++) {
+    var s = String(n);
+    while (s.length < 6) s = '0' + s;
+    id = 'AC-' + s;
+    if (!actFind_(ss, id)) break;
+    n++;
+  }
   actSetConfig_(ss, 'next_entry_id', String(n + 1));
-  var s = String(n);
-  while (s.length < 6) s = '0' + s;
-  return 'AC-' + s;
+  return id;
 }
 function actWho_(data) { return actStr_(data.by || data.who || '').slice(0, 80); }
 
@@ -301,6 +309,8 @@ function actSeed_(data) {
   var rows = data.rows || [];
   var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(actStr_);
   if (data.mode === 'replace' && sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, sh.getLastColumn()).clearContent();
+  if (data.next_entry_id) actSetConfig_(ss, 'next_entry_id', String(data.next_entry_id));
+  if (data.import_done) actSetConfig_(ss, 'import_done', actNow_() + ' ' + actStr_(data.import_done));
   if (!rows.length) return actOut_({ ok: true, appended: 0, cleared: data.mode === 'replace' });
   var start = actNextRow_(sh);
   var vals = rows.map(function (r) {
@@ -313,8 +323,6 @@ function actSeed_(data) {
   });
   actTextCols_(sh, head, start, vals.length);
   sh.getRange(start, 1, vals.length, head.length).setValues(vals);
-  if (data.next_entry_id) actSetConfig_(ss, 'next_entry_id', String(data.next_entry_id));
-  if (data.import_done) actSetConfig_(ss, 'import_done', actNow_() + ' ' + actStr_(data.import_done));
   return actOut_({ ok: true, appended: vals.length, first_row: start });
 }
 
