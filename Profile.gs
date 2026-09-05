@@ -391,7 +391,7 @@ function profTeamEmail_(id, region, company, submitter, role, callback, semail, 
       profRow_('Address on file', onFile.business_address)
     : profRow_('Directory match', 'None found. Look the vendor up in the Vendor Directory and CRM before calling.');
   var steps = [];
-  steps.push('Call or email the vendor at the contact ON FILE (above), not the contact in this request. Confirm the request came from them.');
+  steps.push('Call or email the vendor at the contact ON FILE (see "On file now" below), not the contact in this request. Confirm the request came from them.');
   if (hasBank) steps.push('Bank letter: read the account name off the attached letter and confirm it matches the legal name on the W-9. Do not apply from a voicemail or a reply to this email.');
   if (hasName) steps.push('Name change: a new W-9 is required before anything else changes. ' + (f.entity_change && /Yes/i.test(f.entity_change) ? 'They said it is a NEW ENTITY or EIN: new agreement and new COI too.' : 'They said same entity, name or DBA only.'));
   steps.push('Mark the row Verified on the request log, make the edits in the systems below, then mark it Applied and tell the vendor.');
