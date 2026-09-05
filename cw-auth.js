@@ -42,7 +42,7 @@
   function ls(fn){ try { return fn(); } catch(e){ return null; } }
   function getTeam(){
     var v = ls(function(){ return localStorage.getItem(KEY); }) || "";
-    if(v) return v;
+    if(v){ LEGACY.forEach(function(k){ ls(function(){ localStorage.removeItem(k); }); }); return v; }
     for(var i = 0; i < LEGACY.length; i++){
       var k = LEGACY[i];
       v = ls(function(){ return localStorage.getItem(k); }) || "";
