@@ -5,6 +5,7 @@
 // Kinds: vd_setup, vd_seed, vd_append, vd_region_backfill, vd_list, vd_save,
 //        vd_patch, vd_types, vd_intake, vd_bc_seed, vd_bc_list, vd_bc_send,
 //        vd_bc_rows, vd_bc_upsert, vd_bom_auth, vd_bom_setpass, vd_bom_asana (Sep 4 2026, BOM Hub)
+//        vd_coi_* -> coiDispatch in CoiRequest.gs (Sep 5 2026, customer COI requests)
 // Aug 22 2026: VD_HEADERS gained last_audit, audit_result, audit_next_due, audit_pdf,
 // written by VendorAudit.gs and shown on vendors.html.
 //
@@ -77,7 +78,9 @@ var VD_BC_TYPES = ['Standard', '10-Year', 'Standard + 10-Year'];
 // Sep 4 2026: the BOM Hub has its own passcode (script property BOM_PASSCODE, set
 // with vd_bom_setpass using the team passcode). It unlocks only the kinds below.
 var VD_BOM_PROP = 'BOM_PASSCODE';
-var VD_BOM_KINDS = ['vd_bom_auth', 'vd_list', 'vd_bc_list', 'vd_bc_rows', 'vd_bc_upsert', 'vd_bom_asana', 'vd_types'];
+var VD_BOM_KINDS = ['vd_bom_auth', 'vd_list', 'vd_bc_list', 'vd_bc_rows', 'vd_bc_upsert', 'vd_bom_asana', 'vd_types',
+  // Sep 5 2026: customer COI requests (CoiRequest.gs) are BOM work too.
+  'vd_coi_context', 'vd_coi_submit', 'vd_coi_rows', 'vd_coi_status'];
 
 var VD_HEADERS = [
   'vendor_id', 'status', 'dba_name', 'legal_name', 'service_types', 'region',
@@ -169,6 +172,8 @@ function vdDispatch(data) {
   data._bom = bomOk;
 
   if (kind === 'vd_bom_auth') return vdOut_({ ok: true, who: bomOk ? 'bom' : 'team' });
+  // Sep 5 2026: customer certificate of insurance requests live in CoiRequest.gs.
+  if (kind.indexOf('vd_coi_') === 0) return coiDispatch(data);
   if (kind === 'vd_bom_setpass') return vdBomSetPass_(data);
   if (kind === 'vd_bom_asana') return vdBomAsana_(data);
   if (kind === 'vd_bc_rows') return vdBcRows_(data);
