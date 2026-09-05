@@ -13,6 +13,19 @@
 
 var VIO_TABS = { LOG: 'Notices', ROSTER: 'Roster', ISSUERS: 'Issuers', CONFIG: 'Config', DD: 'Dropdowns' };
 
+// People who can issue a notice. Kept in sync onto the Issuers tab by the setup run.
+var VIO_ISSUER_SEED = [
+  ['TJ Roberts', 'tjroberts@gocitywide.com', 'TRUE'],
+  ['Allison Donovan', 'Allison.Donovan@gocitywide.com', 'TRUE'],
+  ['Jake Schmidt', 'jschmidt@gocitywide.com', 'TRUE'],
+  ['Alex Manon', 'alejandro.manon@gocitywide.com', 'TRUE'],
+  ['Brett Stephens', 'brett.stephens@gocitywide.com', 'TRUE'],
+  ['Robert Krause', 'rkraus@gocitywide.com', 'TRUE'],
+  ['Sam Morse', 'smorse@gocitywide.com', 'TRUE'],
+  ['Jeremy Walker', '', 'TRUE'],
+  ['Joshua Smith', 'joshuasmith@gocitywide.com', 'TRUE']
+];
+
 var VIO_LOG_HEADERS = [
   'notice_id', 'issued', 'test', 'market', 'level', 'nature', 'issuer_name', 'issuer_email',
   'ic_dba', 'ic_owner', 'ic_email', 'vendor_no', 'account', 'inspection_date',
@@ -172,16 +185,15 @@ function vioSetup_(data) {
   tab(VIO_TABS.ROSTER, VIO_ROSTER_HEADERS, '#2D2A26');
   var isr = tab(VIO_TABS.ISSUERS, VIO_ISSUER_HEADERS, '#636466');
   if (isr.getLastRow() < 2) {
-    isr.getRange(2, 1, 8, 3).setValues([
-      ['TJ Roberts', 'tjroberts@gocitywide.com', 'TRUE'],
-      ['Jake Schmidt', '', 'TRUE'],
-      ['Alex Manon', '', 'TRUE'],
-      ['Brett Stephens', '', 'TRUE'],
-      ['Robert Krause', '', 'TRUE'],
-      ['Sam Morse', '', 'TRUE'],
-      ['Jeremy Walker', '', 'TRUE'],
-      ['Joshua Smith', '', 'TRUE']
-    ]);
+    isr.getRange(2, 1, VIO_ISSUER_SEED.length, 3).setValues(VIO_ISSUER_SEED);
+  } else {
+    // Idempotent: adds anyone missing on later runs, so a new manager shows up in
+    // the issuer picker without hand editing the sheet.
+    var isrVals = isr.getDataRange().getValues();
+    var isrHave = {};
+    for (var ii = 1; ii < isrVals.length; ii++) { isrHave[String(isrVals[ii][0]).trim().toLowerCase()] = true; }
+    var isrAdd = VIO_ISSUER_SEED.filter(function (r) { return !isrHave[String(r[0]).trim().toLowerCase()]; });
+    if (isrAdd.length) { isr.getRange(isr.getLastRow() + 1, 1, isrAdd.length, 3).setValues(isrAdd); }
   }
   var dd = tab(VIO_TABS.DD, VIO_DD_HEADERS, '#636466');
   if (dd.getLastRow() < 2) {

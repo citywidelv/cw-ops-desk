@@ -745,7 +745,14 @@ function fillStaffSelect(sel, roleRe, inputName, inputPhone){
   var list = staffSort(STAFF.filter(function(p){return roleRe.test(p.role||"");}));
   var rest = staffSort(STAFF.filter(function(p){return !roleRe.test(p.role||"");}));
   var html = '<option value="">Select...</option>';
-  function opt(p){ return '<option value="'+esc(p.name)+'" data-phone="'+esc(p.phone)+'">'+esc(p.name)+(p.role?" ("+esc(p.role)+(p.market&&p.market!=="Both"?", "+esc(p.market):"")+")":"")+'</option>'; }
+  function opt(p){
+    var tail = "";
+    if(p.role){
+      tail = " ("+esc(p.role)+(p.market&&p.market!=="Both"?", "+esc(p.market):"")
+           +(p.territory?" \u00b7 "+esc(p.territory):"")+")";
+    }
+    return '<option value="'+esc(p.name)+'" data-phone="'+esc(p.phone)+'">'+esc(p.name)+tail+'</option>';
+  }
   list.forEach(function(p){ html+=opt(p); });
   if(rest.length) html+='<optgroup label="Everyone else">'+rest.map(opt).join("")+'</optgroup>';
   html+='<option value="__type__">Type a name instead...</option>';
