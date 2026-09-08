@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Power BI Reports | CW Ops Hub</title>
+<link rel="icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+--border:#E5E5E5;--gold:#E5B423;
+--shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+.head{background:#fff;position:sticky;top:0;z-index:50;box-shadow:0 1px 8px rgba(45,42,38,.10)}
+.head .bar{max-width:1100px;margin:0 auto;padding:0 20px;height:60px;display:flex;align-items:center;gap:14px}
+.head img{height:36px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+border-left:2px solid var(--border);padding-left:14px}
+.head .back{font-size:12px;font-weight:700;color:var(--grey);text-decoration:none;margin-left:auto;
+border:1px solid var(--border);border-radius:18px;padding:0 14px;min-height:36px;
+display:inline-flex;align-items:center;background:var(--light);white-space:nowrap}
+.head .back:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.foot{border-top:1px solid var(--border);background:#fff}
+.foot .fin{max-width:1100px;margin:0 auto;padding:18px 20px;display:flex;align-items:center;gap:14px;
+font-size:12px;color:var(--grey);flex-wrap:wrap}
+.foot .fin a{color:var(--grey);font-weight:700;font-style:italic;text-decoration:none}
+.foot .fin a:hover{color:var(--red)}
+.foot b{color:var(--black)}
+.foot .fr{margin-left:auto;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+.foot .fr span{color:var(--red);padding:0 6px}
+@media(max-width:640px){.head{position:static;box-shadow:none}
+.head .bar{height:auto;flex-wrap:wrap;padding:8px 12px;row-gap:8px;gap:8px}
+.head img{height:28px}.head .t{display:none}}
+
+.pb-wrap{max-width:1100px;margin:0 auto;padding:0 20px 40px}
+.pb-top{padding:22px 0 4px}
+.pb-titlerow{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.pb-titlerow h1{font-size:24px;line-height:1.2;margin:0;flex:none}
+.pb-pills{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.pb-pill{font-family:inherit;font-size:13px;font-weight:700;color:var(--black);background:#fff;
+ border:1.5px solid var(--border);border-radius:18px;padding:0 16px;min-height:40px;cursor:pointer;
+ display:inline-flex;align-items:center;white-space:nowrap}
+.pb-pill[aria-selected="true"]{background:var(--red);border-color:var(--red);color:#fff}
+.pb-search{position:relative;display:flex}
+.pb-search input{width:100%;font-family:inherit;font-size:15px;border:1.5px solid var(--border);
+ border-radius:22px;padding:11px 80px 11px 18px;background:#fff;outline:none;color:var(--black)}
+.pb-search input:focus{border-color:var(--red)}
+.pb-x{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:none;
+ color:var(--grey);font:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:8px 12px;min-height:36px}
+.pb-empty{font-size:14px;color:var(--grey);margin:14px 0 0}
+.pb-role[hidden]{display:none}
+.pb-what{font-size:15px;color:var(--grey);margin:16px 0 0;max-width:74ch}
+.pb-day{font-size:13px;color:var(--grey);background:var(--light);border-radius:8px;
+ padding:10px 14px;margin:12px 0 18px}
+.pb-day b{color:var(--black);margin-right:6px}
+
+.pb-tiles{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin-bottom:26px}
+.pb-tiles>*{min-width:0}
+.pb-tile{background:#fff;border:1px solid var(--border);border-left:4px solid var(--red);
+ border-radius:11px;padding:18px;min-width:0;box-shadow:var(--shadow,0 1px 3px rgba(45,42,38,.08))}
+.pb-app{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey)}
+.pb-tile h3{font-size:18px;margin:4px 0 6px;line-height:1.25}
+.pb-face{font-size:14px;color:var(--grey);margin:0 0 14px;max-width:62ch}
+.pb-act{display:flex;gap:8px;flex-wrap:wrap}
+
+.pb-listhead{font-size:13px;font-weight:700;border-bottom:1px solid var(--border);
+ padding-bottom:8px;margin-bottom:2px;display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
+.pb-listhead span{font-weight:400;color:var(--grey);font-size:12px}
+.pb-rows{display:block}
+.pb-row{border-bottom:1px solid var(--border);padding:12px 0;display:flex;gap:12px;
+ align-items:center;flex-wrap:wrap}
+.pb-row[hidden],.pb-tile[hidden]{display:none}
+.pb-rowmain{flex:1 1 260px;min-width:0}
+.pb-rowname{font-size:15px;font-weight:700}
+.pb-rownote{font-size:13px;color:var(--grey);margin-left:8px}
+.pb-rowapp{display:block;font-size:12px;color:var(--grey);text-transform:uppercase;
+ letter-spacing:.1em;font-weight:700;margin-top:2px}
+.pb-rowact{display:flex;gap:8px;flex:none;align-items:center}
+.pb-nolink{font-size:12px;color:var(--grey);font-style:italic;padding:0 6px}
+.pb-row .pb-drawer{flex:1 1 100%}
+
+.pb-bare{list-style:none;margin:0 0 4px;padding:0;display:grid;
+ grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:0}
+.pb-bare li{padding:10px 0;border-bottom:1px solid var(--border);font-size:14px}
+.pb-bare li[hidden]{display:none}
+.pb-bare span{display:block;font-size:12px;color:var(--grey);text-transform:uppercase;
+ letter-spacing:.1em;font-weight:700;margin-top:2px}
+.pb-fallback{margin-top:22px;background:var(--light);border-radius:8px;padding:12px 16px;
+ font-size:13px;color:var(--grey);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pb-fallback b{color:var(--black)}
+.pb-fallback .pb-btn{margin-left:auto}
+.pb-btn{font-family:inherit;font-size:13px;font-weight:700;border-radius:6px;
+ border:1px solid transparent;padding:0 16px;min-height:44px;display:inline-flex;
+ align-items:center;justify-content:center;cursor:pointer;text-decoration:none;white-space:nowrap}
+.pb-btn.pb-sm{min-height:36px;font-size:12px;padding:0 12px}
+.pb-primary{background:var(--red);color:#fff}
+.pb-primary:hover{background:var(--red-dark,#B01F27)}
+.pb-ghost{background:#fff;color:var(--black);border-color:var(--border)}
+.pb-ghost:hover{border-color:var(--grey)}
+.pb-off{background:var(--light);color:var(--grey);border-color:var(--border);cursor:not-allowed}
+.pb-more[aria-expanded="true"]{background:var(--black);color:#fff;border-color:var(--black)}
+
+.pb-drawer{margin-top:14px;border-top:1px solid var(--border);padding-top:14px;display:grid;gap:14px}
+.pb-drawer[hidden]{display:none}
+.pb-b{display:block}
+.pb-lab{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+ color:var(--grey);margin-bottom:6px}
+.pb-sub{font-size:13px;color:var(--grey);margin:0 0 8px;max-width:74ch}
+.pb-b .pb-sub:last-child{margin-bottom:0}
+.pb-reads{margin:0;display:grid;gap:10px}
+.pb-reads dt{font-size:13px;font-weight:700}
+.pb-reads dd{margin:2px 0 0;font-size:13px;color:var(--grey);max-width:74ch}
+.pb-ul{margin:0;padding-left:1.1em;font-size:13px;color:var(--grey);display:grid;gap:6px}
+.pb-ul a{color:var(--black);font-weight:700}
+.pb-flag{border-left:3px solid var(--red);background:var(--light);padding:10px 14px;
+ border-radius:0 8px 8px 0;font-size:13px;color:var(--grey)}
+.pb-flag b{color:var(--black);display:block;margin-bottom:2px}
+
+.pb-scroll{overflow-x:auto;border:1px solid var(--border);border-radius:8px;min-width:0;max-width:100%}
+table.pb-g{border-collapse:collapse;width:100%;font-size:13px;min-width:520px}
+table.pb-g th,table.pb-g td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--border);
+ vertical-align:top}
+table.pb-g th{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--grey);
+ background:var(--light);font-weight:700}
+table.pb-g tr:last-child td{border-bottom:none}
+table.pb-g td:nth-child(2),table.pb-g td:nth-child(3){white-space:nowrap}
+table.pb-g td:last-child{color:var(--grey)}
+table.pb-gloss td:nth-child(2){white-space:normal}
+table.pb-gloss tr.pb-conflict td:first-child{border-left:3px solid var(--red)}
+.pb-t{font-weight:700;color:var(--black)}
+.pb-exp{font-weight:400;color:var(--grey)}
+
+.pb-folds{margin-top:30px;display:grid;gap:10px}
+.pb-fold{background:#fff;border:1px solid var(--border);border-radius:11px}
+.pb-fold>summary{padding:14px 18px;cursor:pointer;list-style:none;font-size:13px;color:var(--grey);
+ display:flex;align-items:center;gap:8px;min-height:44px;flex-wrap:wrap}
+.pb-fold>summary::-webkit-details-marker{display:none}
+.pb-fold>summary b{color:var(--black);font-size:14px}
+.pb-fold>summary::after{content:"Show";margin-left:auto;color:var(--red);font-weight:700;font-size:12px}
+.pb-fold[open]>summary::after{content:"Hide"}
+.pb-foldbody{padding:0 18px 18px;display:grid;gap:14px}
+.pb-steps{margin:0;padding-left:1.3em;display:grid;gap:10px;font-size:13px;color:var(--grey)}
+.pb-steps b{color:var(--black)}
+.pb-frame{width:100%;height:560px;border:1px solid var(--border);border-radius:8px;
+ margin-top:12px;background:var(--light)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;
+ background:var(--light);padding:1px 4px;border-radius:3px;word-break:break-all;overflow-wrap:anywhere}
+
+@media(max-width:640px){
+ .pb-wrap{padding:0 14px 30px}
+ .pb-titlerow h1{font-size:21px;width:100%}
+ .pb-pills{margin-left:0;width:100%}
+ .pb-pill{flex:1 1 auto;justify-content:center}
+ .pb-tile{padding:15px}
+ .pb-act .pb-btn{flex:1 1 auto}
+ .pb-rowact{width:100%}
+ .pb-rowact .pb-btn{flex:1 1 auto}
+ .pb-foldbody{padding:0 14px 14px}
+ .pb-fold>summary{padding:12px 14px}
+ .pb-frame{height:380px}
+ .pb-scroll{border:none;border-radius:0;overflow:visible}
+ table.pb-g{min-width:0;width:100%;display:block}
+ table.pb-g thead{display:none}
+ table.pb-g tbody,table.pb-g tr,table.pb-g td{display:block;width:100%}
+ table.pb-g tr{border:1px solid var(--border);border-radius:8px;padding:11px;margin-bottom:10px}
+ table.pb-g td{border:none;padding:0 0 7px}
+ table.pb-g td:last-child{padding-bottom:0}
+ table.pb-g td::before{content:attr(data-l);display:block;font-size:12px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.1em;color:var(--grey)}
+ table.pb-g td:first-child::before{display:none}
+ table.pb-g td:first-child{font-size:15px}
+ table.pb-g td:nth-child(2),table.pb-g td:nth-child(3){white-space:normal}
+}
+
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body id="pbops">
+<header class="head"><div class="bar">
+<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+<span class="t">Power BI Reports</span>
+<a class="back" href="index.html">&larr; Ops Hub</a>
+</div></header>
+
+<main class="pb-wrap"><div class="pb-top"><div class="pb-titlerow"><h1 id="pbTitle">Power BI Reports</h1><div class="pb-pills" role="tablist"><button type="button" class="pb-pill" data-go="fsm" role="tab">Facility Solutions Manager</button><button type="button" class="pb-pill" data-go="director" role="tab">Director of Operations</button></div></div><div class="pb-search"><input type="search" id="pbFind" placeholder="Find a report by name, app, or what it answers" autocomplete="off"><button type="button" class="pb-x" id="pbClear" hidden>Clear</button></div><p class="pb-empty" id="pbEmpty" hidden>Nothing matches that. Clear the search to see everything again.</p></div><section class="pb-role" id="fsm"><p class="pb-what">You are an account manager for your book of business. You want to know which of your accounts are slipping and which three numbers to work this month.</p><div class="pb-day"><b>Day to day</b> Nothing here. Your day is in the field and in the service inbox, not in Power BI.</div><div class="pb-tiles"><article class="pb-tile" data-hay="fsm dashboard operations this is the strongest page in the whole stack and it is yours. it answers &quot;how is my book of business doing against every number i am measured on&quot;, and every gauge has its target line drawn on the dial and turns red when you are short."><div class="pb-app">Operations</div><h3>FSM Dashboard</h3><p class="pb-face">This is the strongest page in the whole stack and it is yours.</p><div class="pb-act"><a class="pb-btn pb-primary" href="https://app.powerbi.com/groups/me/apps/f968e7bf-c071-4321-8da3-0f409b56e8c5/reports/34a0f830-ee16-4edc-a044-08aac52ffdb4/ReportSection7b62f4aeca2c5e0cac22?experience=power-bi" target="_blank" rel="noopener">Open report</a><button type="button" class="pb-btn pb-ghost pb-more" aria-expanded="false">What is on it</button></div><div class="pb-drawer" hidden><p class="pb-sub">It answers &quot;how is my book of business doing against every number I am measured on&quot;, and every gauge has its target line drawn on the dial and turns red when you are short.</p><div class="pb-b"><div class="pb-lab">Set this first</div><p class="pb-sub">Filter to yourself using the person slicer. On this report it is labeled Blazer, not FSM, and it lists the whole team. Set it to your own name.</p></div><div class="pb-b"><div class="pb-lab">Targets</div><p class="pb-sub">Eight gauges, each with its target drawn on the dial. This is your month in four seconds.</p><div class="pb-scroll"><table class="pb-g"><thead><tr><th>Gauge</th><th>Target</th><th>Good</th><th>What it is</th></tr></thead><tbody><tr><td data-l="Gauge"><b>CRR</b></td><td data-l="Target"><span class="pb-t">90%</span></td><td data-l="Good">Higher</td><td data-l="What it is">Customer retention. Are you keeping accounts.</td></tr><tr><td data-l="Gauge"><b>TRR</b></td><td data-l="Target"><span class="pb-t">93%</span></td><td data-l="Good">Higher</td><td data-l="What it is">Revenue retention. You can hold every customer and still miss this if the accounts you kept got smaller.</td></tr><tr><td data-l="Gauge"><b>Complaints per 40 JS Accounts</b></td><td data-l="Target"><span class="pb-t">0.75 or fewer</span></td><td data-l="Good">Lower</td><td data-l="What it is">Past 30 days. The one gauge here where a high number is bad. Check the direction before you react to the color.</td></tr><tr><td data-l="Gauge"><b>Customer Rating YTD</b></td><td data-l="Target"><span class="pb-t">8.50</span></td><td data-l="Good">Higher</td><td data-l="What it is">The scale the 8.50 sits on is not printed on the report. Confirm it before quoting the number.</td></tr><tr><td data-l="Gauge"><b>OS % of JS</b></td><td data-l="Target"><span class="pb-t">51%</span></td><td data-l="Good">Higher</td><td data-l="What it is">Other Services revenue as a share of janitorial revenue. A dollar ratio, not a count of accounts.</td></tr><tr><td data-l="Gauge"><b>Supply % of JS</b></td><td data-l="Target"><span class="pb-t">7%</span></td><td data-l="Good">Higher</td><td data-l="What it is">Supply revenue as a share of janitorial revenue.</td></tr><tr><td data-l="Gauge"><b>Inspection Ratio</b></td><td data-l="Target"><span class="pb-t">90%</span></td><td data-l="Good">Higher</td><td data-l="What it is">The Operations Dashboard carries the account by account work list behind this number.</td></tr><tr><td data-l="Gauge"><b>% of Contracts w/FMP</b></td><td data-l="Target"><span class="pb-t">15%</span></td><td data-l="Good">Higher</td><td data-l="What it is">Share of your contracts carrying a Facility Maintenance Program.</td></tr></tbody></table></div></div><div class="pb-b"><div class="pb-lab">What the numbers mean</div><dl class="pb-reads"><dt>Header cards</dt><dd>FSM Headcount, Customers, Contract Monthly Value, Total Invoiced, JS Revenue, OS Revenue, Supply Revenue and Lost Account Value. These are the size of your book. No targets, just context for the gauges.</dd></dl></div><div class="pb-flag"><b>Your first Monday</b> Open this page, set the Blazer slicer to your name, and look only at which of the eight dials are red. Those are your month. Everything else on this page is for later.</div><div class="pb-flag"><b>One target disagrees with another report</b> This report draws CRR against 90%. The Operations Dashboard draws 12 Month CRR against 88%. Nobody has confirmed which one your review uses. Ask before you chase either number.</div><div class="pb-b"><div class="pb-lab">Embedded view</div><p class="pb-sub">It will say "Sign in to view this report" unless you have added <code>app.powerbi.com</code> to Chrome's third party cookie exceptions on this machine. Microsoft refuses to render its login inside a frame. Open report has no such problem.</p><button type="button" class="pb-btn pb-ghost pb-sm" data-frame="https://app.powerbi.com/reportEmbed?reportId=34a0f830-ee16-4edc-a044-08aac52ffdb4&amp;appId=f968e7bf-c071-4321-8da3-0f409b56e8c5&amp;autoAuth=true&amp;ctid=3b214a92-dd33-4a9c-a070-43f6783d144c">Load it anyway</button><div class="pb-slot"></div></div></div></article></div><div class="pb-listhead">Also yours <span>2 reports with something written down about them</span></div><div class="pb-rows"><div class="pb-row" data-hay="fsm os/supplies operations the account level detail behind the os % of js and supply % of js gauges on your dashboard."><div class="pb-rowmain"><span class="pb-rowname">FSM OS/Supplies</span> <span class="pb-rownote">The account level detail behind the OS % of JS and Supply % of JS gauges on your dashboard.</span><span class="pb-rowapp">Operations</span></div><div class="pb-rowact"><span class="pb-nolink">No link yet</span></div></div><div class="pb-row" data-hay="contests: operations contests operations contest standings."><div class="pb-rowmain"><span class="pb-rowname">Contests: Operations</span> <span class="pb-rownote">Operations contest standings.</span><span class="pb-rowapp">Contests</span></div><div class="pb-rowact"><span class="pb-nolink">No link yet</span></div></div></div><div class="pb-listhead">Assigned to you, nothing written down yet <span>4 reports. No link captured and no description. Open one, send TJ two sentences, and it moves up.</span></div><ul class="pb-bare"><li data-hay="fsm administrative reports operations"><b>FSM Administrative Reports</b><span>Operations</span></li><li data-hay="fsm retention activities operations"><b>FSM Retention Activities</b><span>Operations</span></li><li data-hay="ic reports operations"><b>IC Reports</b><span>Operations</span></li><li data-hay="night manager activity operations"><b>Night Manager Activity</b><span>Operations</span></li></ul><div class="pb-fallback"><b>Not finding it?</b> Corporate keeps a plain text index of everything across all eleven apps. <a class="pb-btn pb-ghost pb-sm" href="https://app.powerbi.com/groups/me/apps/39119af1-764b-4a21-824b-42560a3041d2/reports/022a955a-86f2-4c10-af1b-09fc0006547e/ReportSectionf7803a14124c60500cbe?experience=power-bi" target="_blank" rel="noopener">Open the CWFS Home Page</a></div></section><section class="pb-role" id="director" hidden><p class="pb-what">You run the FSM team and the retention number. You want a work list, not another scoreboard.</p><div class="pb-day"><b>Day to day</b> Nothing. This role does not need a daily report.</div><div class="pb-tiles"><article class="pb-tile" data-hay="operations dashboard operations it answers &quot;which accounts are being neglected and by whom&quot;, which is the only question in the stack that produces work rather than a score. everything else on it is the same retention and add on sales measures your fsms see, aggregated across the team."><div class="pb-app">Operations</div><h3>Operations Dashboard</h3><p class="pb-face">It answers &quot;which accounts are being neglected and by whom&quot;, which is the only question in the stack that produces work rather than a score.</p><div class="pb-act"><a class="pb-btn pb-primary" href="https://app.powerbi.com/groups/me/apps/f968e7bf-c071-4321-8da3-0f409b56e8c5/reports/8e310ae2-1852-430c-9190-5c46d2aa4250/cd9dc50a90d35ee37d9d?experience=power-bi" target="_blank" rel="noopener">Open report</a><button type="button" class="pb-btn pb-ghost pb-more" aria-expanded="false">What is on it</button></div><div class="pb-drawer" hidden><p class="pb-sub">Everything else on it is the same retention and add on sales measures your FSMs see, aggregated across the team.</p><div class="pb-b"><div class="pb-lab">Set this first</div><p class="pb-sub">Franchise defaults to Las Vegas here. There is also an FSM slicer and a Job Title slicer, so you can read the whole team or one person.</p></div><div class="pb-b"><div class="pb-lab">Targets</div><p class="pb-sub">The team level version of what your FSMs see on their own dashboard.</p><div class="pb-scroll"><table class="pb-g"><thead><tr><th>Gauge</th><th>Target</th><th>Good</th><th>What it is</th></tr></thead><tbody><tr><td data-l="Gauge"><b>12 Month CRR</b></td><td data-l="Target"><span class="pb-t">88%</span></td><td data-l="Good">Higher</td><td data-l="What it is">Rolling twelve month customer retention, target marked on the visual. The FSM Dashboard draws CRR against 90%. See the flag below.</td></tr><tr><td data-l="Gauge"><b>JS Account Inspections</b></td><td data-l="Target"><span class="pb-t">90%</span></td><td data-l="Good">Higher</td><td data-l="What it is">The gauge Neglected Accounts is the detail for. If this is short, that table names the accounts and the FSM.</td></tr><tr><td data-l="Gauge"><b>JS Accounts with OS</b></td><td data-l="Target"><span class="pb-t">50%</span></td><td data-l="Good">Higher</td><td data-l="What it is">Share of janitorial accounts that have bought Other Services. Counts accounts, not dollars.</td></tr><tr><td data-l="Gauge"><b>JS Accounts with Supplies</b></td><td data-l="Target"><span class="pb-t">50%</span></td><td data-l="Good">Higher</td><td data-l="What it is">Share of janitorial accounts buying supplies.</td></tr><tr><td data-l="Gauge"><b>Complaints per 40 JS Accounts</b></td><td data-l="Target"><span class="pb-t">None drawn here</span></td><td data-l="Good">Lower</td><td data-l="What it is">The FSM Dashboard draws this against 0.75. No target line was observed on this version.</td></tr></tbody></table></div></div><div class="pb-b"><div class="pb-lab">What the numbers mean</div><dl class="pb-reads"><dt>Neglected Accounts</dt><dd>A table of FSM, Customer and Last Inspected, with a matching percentage gauge. The only visual in the entire stack that is a work list rather than a score. Name, date, and the person responsible. Take it into your Monday meeting as is.</dd><dt>Star Accounts</dt><dd>Customer and star rating, with its own gauge. The other end of the same list.</dd><dt>OS % of JS</dt><dd>The revenue ratio, not the account count. Read the glossary before you compare this to JS Accounts with OS. Different math on the same words.</dd></dl></div><div class="pb-b"><div class="pb-lab">Also worth opening</div><ul class="pb-ul"><li><a href="https://vimeo.com/1072632984/313ecdd885" target="_blank" rel="noopener">Corporate explainer video (Vimeo)</a></li></ul></div><div class="pb-flag"><b>Two CRR targets exist</b> This report marks 12 Month CRR against 88%. The FSM Dashboard marks CRR against 90%. The names are not identical and the windows may differ, but your FSMs will notice and ask. Get one answer from Daria Kalishina.</div><div class="pb-flag"><b>Same words, different denominators</b> JS Accounts with OS here (target 50%) counts accounts. OS % of JS on the FSM Dashboard (target 51%) counts dollars. The numbers being one point apart makes this worse, not better. Do not use them interchangeably in a review.</div><div class="pb-flag"><b>The only documentation corporate published</b> The Vimeo link above is the single piece of explanation that exists anywhere in the product for any of the eleven apps. Worth twenty minutes.</div><div class="pb-b"><div class="pb-lab">Embedded view</div><p class="pb-sub">It will say "Sign in to view this report" unless you have added <code>app.powerbi.com</code> to Chrome's third party cookie exceptions on this machine. Microsoft refuses to render its login inside a frame. Open report has no such problem.</p><button type="button" class="pb-btn pb-ghost pb-sm" data-frame="https://app.powerbi.com/reportEmbed?reportId=8e310ae2-1852-430c-9190-5c46d2aa4250&amp;appId=f968e7bf-c071-4321-8da3-0f409b56e8c5&amp;autoAuth=true&amp;ctid=3b214a92-dd33-4a9c-a070-43f6783d144c">Load it anyway</button><div class="pb-slot"></div></div></div></article></div><div class="pb-listhead">Also yours <span>3 reports with something written down about them</span></div><div class="pb-rows"><div class="pb-row" data-hay="age at termination contracts how long accounts survive before they cancel. the companion question to the retention gauges: not just how many you lost, but how fast."><div class="pb-rowmain"><span class="pb-rowname">Age at Termination</span> <span class="pb-rownote">How long accounts survive before they cancel.</span><span class="pb-rowapp">Contracts</span></div><div class="pb-rowact"><button type="button" class="pb-btn pb-ghost pb-sm pb-more" aria-expanded="false">Details</button><span class="pb-nolink">No link yet</span></div><div class="pb-drawer" hidden><p class="pb-sub">The companion question to the retention gauges: not just how many you lost, but how fast.</p></div></div><div class="pb-row" data-hay="crr &amp; trr over time owner dashboard the trend behind the two retention gauges, rather than the current value."><div class="pb-rowmain"><span class="pb-rowname">CRR &amp; TRR Over Time</span> <span class="pb-rownote">The trend behind the two retention gauges, rather than the current value.</span><span class="pb-rowapp">Owner Dashboard</span></div><div class="pb-rowact"><span class="pb-nolink">No link yet</span></div></div><div class="pb-row" data-hay="ic-insurance compliance data cleanup which crews are carrying current insurance. a compliance list, not a performance measure."><div class="pb-rowmain"><span class="pb-rowname">IC-Insurance Compliance</span> <span class="pb-rownote">Which crews are carrying current insurance.</span><span class="pb-rowapp">Data Cleanup</span></div><div class="pb-rowact"><button type="button" class="pb-btn pb-ghost pb-sm pb-more" aria-expanded="false">Details</button><span class="pb-nolink">No link yet</span></div><div class="pb-drawer" hidden><p class="pb-sub">A compliance list, not a performance measure.</p></div></div></div><div class="pb-listhead">Assigned to you, nothing written down yet <span>4 reports. No link captured and no description. Open one, send TJ two sentences, and it moves up.</span></div><ul class="pb-bare"><li data-hay="retention results operations"><b>Retention Results</b><span>Operations</span></li><li data-hay="cbs reports operations"><b>CBS Reports</b><span>Operations</span></li><li data-hay="contract starts and stops contracts"><b>Contract Starts and Stops</b><span>Contracts</span></li><li data-hay="contract margins contracts"><b>Contract Margins</b><span>Contracts</span></li></ul><div class="pb-fallback"><b>Not finding it?</b> Corporate keeps a plain text index of everything across all eleven apps. <a class="pb-btn pb-ghost pb-sm" href="https://app.powerbi.com/groups/me/apps/39119af1-764b-4a21-824b-42560a3041d2/reports/022a955a-86f2-4c10-af1b-09fc0006547e/ReportSectionf7803a14124c60500cbe?experience=power-bi" target="_blank" rel="noopener">Open the CWFS Home Page</a></div></section><div class="pb-folds"><details class="pb-fold"><summary><b>First time here?</b> Four things, once. Access, slicers, bookmarks, and who to ask.</summary><div class="pb-foldbody"><ol class="pb-steps"><li><b>Check you can open one.</b> Click Open report on your first tile. If it says access denied or the report does not exist, jump to step 4. Each app has to be shared with you by name.</li><li><b>Set your slicers.</b> Every report opens on somebody else's filters. Each report says which slicer to set under What is on it.</li><li><b>Save a personal bookmark.</b> With your slicers set, use Bookmarks in the report toolbar, add a personal bookmark, mark it default. After that the link lands on your view. <i>Not confirmed on our licenses yet. If the Bookmarks menu is missing or will not save, set your slicers each visit and tell TJ.</i></li><li><b>Access denied?</b> TJ Roberts, tjroberts@gocitywide.com or 806-206-6192. TJ escalates to the app owner at the Support Center. Say which report and paste the link. It is almost always that the app has not been shared with your account yet.</li></ol><p class="pb-sub"><b>A number that makes no sense?</b> Daria Kalishina owns Sales, Contracts, Operations, Data Cleanup and Contests. Tim Collett owns CWFS Dashboard and Owner Dashboard. Thanh Morrison owns Revenue, CWFS Rankings and Peer Performance Group. The app name is printed at the top of every card.</p></div></details><details class="pb-fold" id="pb-glossary"><summary><b>Glossary and targets</b> Every metric on these reports, what it means, and the number it is drawn against.</summary><div class="pb-foldbody"><p class="pb-sub">Targets were read off the gauges in the service. Where an expansion says confirm, nothing in the product spells it out. Do not put those in a review until the Support Center confirms them. Rows with a red edge are the two conflicts nobody has resolved.</p><div class="pb-scroll"><table class="pb-g pb-gloss"><thead><tr><th>Term</th><th>Target</th><th>Notes</th></tr></thead><tbody><tr class="pb-conflict"><td data-l="Term"><b>CRR</b> <span class="pb-exp">Customer Retention Rate (confirm)</span></td><td data-l="Target"><span class="pb-t">90% on the FSM Dashboard. 88% on the Operations Dashboard.</span></td><td data-l="Notes">Higher is better. Two reports draw different target lines for what reads as the same measure. The Operations Dashboard version is labeled 12 Month CRR, so the windows may differ. Confirm which number your review is scored against.</td></tr><tr><td data-l="Term"><b>TRR</b> <span class="pb-exp">Total Revenue Retention (confirm)</span></td><td data-l="Target"><span class="pb-t">93% on the FSM Dashboard.</span></td><td data-l="Notes">Higher is better. CRR counts customers, TRR counts dollars. You can hold customers and still miss TRR if the accounts you kept shrank.</td></tr><tr><td data-l="Term"><b>Complaints per 40 JS Accounts</b></td><td data-l="Target"><span class="pb-t">0.75 or fewer, past 30 days.</span></td><td data-l="Notes">Lower is better. The one gauge on the FSM Dashboard where a high number is bad.</td></tr><tr><td data-l="Term"><b>Customer Rating YTD</b></td><td data-l="Target"><span class="pb-t">8.50.</span></td><td data-l="Notes">Higher is better. The scale the 8.50 sits on is not printed on the report. Confirm it before quoting it.</td></tr><tr class="pb-conflict"><td data-l="Term"><b>OS % of JS</b> <span class="pb-exp">Other Services as a percentage of Janitorial Services (confirm)</span></td><td data-l="Target"><span class="pb-t">51% on the FSM Dashboard.</span></td><td data-l="Notes">Higher is better. Do not confuse this with JS Accounts with OS on the Operations Dashboard, target 50%. This one is a revenue ratio. That one is the share of accounts that bought anything. Same words, different math, different denominator.</td></tr><tr class="pb-conflict"><td data-l="Term"><b>JS Accounts with OS</b></td><td data-l="Target"><span class="pb-t">50% on the Operations Dashboard.</span></td><td data-l="Notes">Higher is better. Share of janitorial accounts that have bought Other Services.</td></tr><tr><td data-l="Term"><b>Supply % of JS</b></td><td data-l="Target"><span class="pb-t">7% on the FSM Dashboard.</span></td><td data-l="Notes">Higher is better. The Operations Dashboard shows a related but separate measure, JS Accounts with Supplies, against 50%.</td></tr><tr><td data-l="Term"><b>Inspection Ratio</b></td><td data-l="Target"><span class="pb-t">90% on the FSM Dashboard. JS Account Inspections carries the same 90% on the Operations Dashboard.</span></td><td data-l="Notes">Higher is better. The gauge the Neglected Accounts table is the work list for.</td></tr><tr><td data-l="Term"><b>% of Contracts w/FMP</b> <span class="pb-exp">Facility Maintenance Program (confirm)</span></td><td data-l="Target"><span class="pb-t">15% on the FSM Dashboard.</span></td><td data-l="Notes">Higher is better. FMP is one of the three revenue codes City Wide reports on, alongside JS and OS.</td></tr><tr><td data-l="Term"><b>JS / OS</b> <span class="pb-exp">Janitorial Services / Other Services (confirm)</span></td><td data-l="Target">not set</td><td data-l="Notes">The two main revenue codes. JS is the recurring contract cleaning. OS is everything sold on top of it.</td></tr><tr><td data-l="Term"><b>CBS</b></td><td data-l="Target">not set</td><td data-l="Notes">Appears as CBS Reports under Operations and YoY CBS Revenue on the Owners Dashboard. Nothing in the source spells this out either. Ask.</td></tr><tr><td data-l="Term"><b>Net Gain</b></td><td data-l="Target">not set</td><td data-l="Notes">New Contract plus Price Change plus New Line, less Lost Line and Lost Account, netted to a total. Read it monthly, not annualized.</td></tr></tbody></table></div></div></details><details class="pb-fold"><summary><b>Missing links and other roles</b> 4 of 17 reports on this page have a captured link.</summary><div class="pb-foldbody"><p class="pb-sub">Nine report GUIDs were captured out of roughly sixty pages across the eleven apps. Nothing is guessed, so a report with no link says so rather than sending you somewhere wrong. To add one: open the report in Power BI, copy the whole address bar, send it to TJ with two sentences on what the page answers.</p><div class="pb-b"><div class="pb-lab">Not your role?</div><ul class="pb-ul"><li><a href="https://citywidelv.github.io/sales-hub/powerbi.html">Salesperson and Sales Manager</a></li><li><a href="https://citywidelv.github.io/cw-bom-hub/powerbi.html">Business Operations Manager</a></li></ul></div></div></details></div></main>
+
+<footer class="foot"><div class="fin">
+<b>City Wide Facility Solutions</b> &middot; Operations Hub &middot; Internal use only
+&middot; No report data on this page. Power BI decides who can open what.
+&middot; <a href="https://www.gocitywide.com" target="_blank" rel="noopener">GoCityWide.com</a>
+<span class="fr">Las Vegas<span>&bull;</span>Reno</span>
+</div></footer>
+
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script>
+if(!CWAuth.require({hub:"ops"})){ document.body.style.display="none"; }
+
+(function(){
+  var roles=[].slice.call(document.querySelectorAll('.pb-role'));
+  var pills=[].slice.call(document.querySelectorAll('.pb-pill'));
+  var find=document.getElementById('pbFind');
+  var clear=document.getElementById('pbClear');
+  var empty=document.getElementById('pbEmpty');
+  var title=document.getElementById('pbTitle');
+  var KEY='cwPb_'+document.body.id;
+
+  function show(k){
+    if(roles.length<2) return;
+    var hit=roles.filter(function(r){ return r.id===k; })[0]||roles[0];
+    roles.forEach(function(r){ r.hidden=(r!==hit); });
+    pills.forEach(function(b){ b.setAttribute('aria-selected', b.getAttribute('data-go')===hit.id?'true':'false'); });
+    try{ localStorage.setItem(KEY,hit.id); }catch(e){}
+    if(find&&find.value) filter();
+  }
+  if(roles.length>1){
+    var want=(location.hash||'').replace('#','');
+    if(!want){ try{ want=localStorage.getItem(KEY)||''; }catch(e){} }
+    show(want||roles[0].id);
+    pills.forEach(function(b){ b.addEventListener('click',function(){
+      show(b.getAttribute('data-go'));
+      try{ history.replaceState(null,'','#'+b.getAttribute('data-go')); }catch(e){}
+    });});
+    window.addEventListener('hashchange',function(){ show((location.hash||'').replace('#','')); });
+  }
+
+  function filter(){
+    var q=(find.value||'').trim().toLowerCase();
+    clear.hidden=!q;
+    var live=roles.filter(function(r){ return !r.hidden; })[0]||document;
+    var items=[].slice.call(live.querySelectorAll('[data-hay]'));
+    var n=0;
+    items.forEach(function(el){
+      var on=!q||el.getAttribute('data-hay').indexOf(q)>-1;
+      el.hidden=!on; if(on) n++;
+    });
+    if(empty) empty.hidden=(n>0||!q);
+    var head=live.querySelector?live.querySelector('.pb-listhead'):null;
+    if(head) head.hidden=!!q;
+  }
+  if(find){
+    find.addEventListener('input',filter);
+    clear.addEventListener('click',function(){ find.value=''; filter(); find.focus(); });
+  }
+
+  document.addEventListener('click',function(e){
+    var t=e.target;
+    var more=t.closest?t.closest('.pb-more'):null;
+    if(more){
+      var host=more.closest('.pb-tile')||more.closest('.pb-row');
+      var d=host&&host.querySelector('.pb-drawer');
+      if(d){ var open=d.hidden; d.hidden=!open;
+        more.setAttribute('aria-expanded',open?'true':'false');
+        more.textContent=open?'Hide details':(host.classList.contains('pb-tile')?'What is on it':'Details'); }
+      return;
+    }
+    var fb=t.closest?t.closest('[data-frame]'):null;
+    if(fb){
+      var slot=fb.parentNode.querySelector('.pb-slot');
+      if(!slot||slot.querySelector('iframe')) return;
+      var f=document.createElement('iframe');
+      f.className='pb-frame'; f.src=fb.getAttribute('data-frame');
+      f.title='Embedded Power BI report'; f.setAttribute('allowfullscreen','');
+      slot.appendChild(f); fb.disabled=true; fb.textContent='Loaded';
+    }
+  });
+})();
+
+</script>
+</body>
+</html>
