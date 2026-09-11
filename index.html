@@ -1011,12 +1011,17 @@ AL.busy = false;
 if(!r || !r.ok){
 if(r && r.error && CWAuth.isPassError(r.error)){ CWAuth.locked("ops", r.error); return; }
 alSay('<span class="err">Could not load alerts. ' + esc((r && r.error) || "Check your connection and try Refresh.") + '</span>');
+if(!AL.items.length) document.getElementById("albody").innerHTML = '<div class="aempty"><b>Alerts are not available right now.</b>Try Refresh in a minute. If it keeps happening, tell TJ.</div>';
 return;
 }
 AL.items = r.items || []; AL.roster = r.roster || []; AL.statuses = r.statuses || {}; AL.days = r.days || 45;
 alFillWho(); alRender();
 alSay("Updated " + new Date().toLocaleTimeString([], { hour:"numeric", minute:"2-digit" }) + ". Checks for changes every 90 seconds. What you clear here clears for everyone.");
-}).catch(function(){ AL.busy = false; alSay('<span class="err">Could not reach the server. Try Refresh.</span>'); });
+}).catch(function(){
+AL.busy = false;
+alSay('<span class="err">Could not reach the server. Try Refresh.</span>');
+if(!AL.items.length) document.getElementById("albody").innerHTML = '<div class="aempty"><b>Alerts are not available right now.</b>Check your connection and try Refresh.</div>';
+});
 }
 function alFillWho(){
 var sel = document.getElementById("alwho");
