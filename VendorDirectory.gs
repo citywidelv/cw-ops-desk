@@ -4,6 +4,7 @@
 // Routing: doPost in Code.gs routes any kind starting 'vd_' to vdDispatch(data).
 // Kinds: vd_setup, vd_seed, vd_append, vd_region_backfill, vd_list, vd_save,
 //        vd_patch, vd_types, vd_intake, vd_bc_seed, vd_bc_list, vd_bc_send,
+//        vd_invite (Sep 11 2026, Invite a New Vendor on the Ops Hub)
 //        vd_bc_rows, vd_bc_upsert, vd_bom_auth, vd_bom_setpass, vd_bom_asana (Sep 4 2026, Admin Hub)
 //        vd_coi_* -> coiDispatch in CoiRequest.gs (Sep 5 2026, customer COI requests)
 //        vd_act_* -> actDispatch in ActLedger.gs (Sep 5 2026, digital ACT and Ledger Changes)
@@ -192,6 +193,7 @@ function vdDispatch(data) {
   if (kind === 'vd_save')  return vdSave_(data);
   if (kind === 'vd_patch') return vdPatch_(data);
   if (kind === 'vd_types') return vdTypes_(data);
+  if (kind === 'vd_invite') return vdInvite_(data);
   if (kind === 'vd_bc_seed') return vdBcSeed_(data);
   if (kind === 'vd_bc_list') return vdBcList_(data);
   if (kind === 'vd_bc_send') return vdBcSend_(data);
@@ -1278,10 +1280,37 @@ function vdIntake_(data) {
   var all = vdAllRows_(ss);
 
   var key = dba.toLowerCase();
+  var mail = vdStr_(v.email).toLowerCase();
   var hit = all.filter(function (r) { return r.dba_name.toLowerCase() === key; })[0];
+  // Sep 11 2026: an invited vendor is already on the list as a Prospect, usually
+  // under the name the FSM typed rather than the one the vendor types here.
+  // Match the email too so the evaluation lands on that row instead of opening a
+  // second one and splitting the same crew across two records.
+  if (!hit && mail) {
+    hit = all.filter(function (r) { return vdStr_(r.email).toLowerCase() === mail; })[0];
+  }
   var action = 'added', vid = '';
 
-  if (hit) {
+  if (hit && vdInvIsPlaceholder_(hit)) {
+    // An invite row is a placeholder the team typed. This is the vendor's own
+    // account of what they do, so it fills the row in. vendor_id, the outreach
+    // trail and the internal notes are kept; everything else the form sends wins.
+    action = 'invite upgraded';
+    vid = hit.vendor_id;
+    var keep = { vendor_id: 1, internal_notes: 1, outreach: 1, status: 1, source: 1,
+                 added_by: 1, hide: 1, last_audit: 1, audit_result: 1, audit_next_due: 1,
+                 audit_pdf: 1 };
+    VD_HEADERS.forEach(function (h) {
+      if (keep[h]) return;
+      if (v[h] === undefined || v[h] === null || String(v[h]) === '') return;
+      vdInvSet_(hit._sheet, hit._row, h, v[h]);
+    });
+    vdInvSet_(hit._sheet, hit._row, 'region', vdRegion_(v.region || hit.region));
+    vdInvSet_(hit._sheet, hit._row, 'status', 'In Progress');
+    vdInvSet_(hit._sheet, hit._row, 'source', 'Eval Form');
+    vdInvSet_(hit._sheet, hit._row, 'updated',
+      Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd'));
+  } else if (hit) {
     action = 'matched existing, not changed';
     vid = hit.vendor_id;
   } else {
@@ -1308,6 +1337,266 @@ function vdIntake_(data) {
   }
 
   return vdOut_({ ok: true, vendor_id: vid, action: action });
+}
+
+// ============================================================
+// vd_invite - invite a new vendor (Sep 11 2026)
+//
+// Replaces the four Asana "request a vendor packet" forms. An FSM picks the
+// market, types the company and the email, and this sends the vendor the link
+// to the New Vendor steps on the Vendor Hub and puts them on the directory as a
+// Prospect in the same call. One action, no handoff, nothing to chase.
+//
+// POST {kind:'vd_invite', passcode, market:'lv'|'nnv', business, contact, email,
+//       phone, service_types, note, by, test} -> {ok, vendor_id, action, sent_to}
+//
+// The directory row is the point. The invite is only useful if the person who
+// sent it can see later who was invited and whether anything came back, so the
+// row is written even when the email fails, and the failure is reported.
+//
+// Service type is optional on purpose. TJ's rule is that the invite does not
+// fork by trade the way the old packets did. Anyone with no type picked lands on
+// the 'unsorted' type so they still appear on a prospect tile instead of
+// vanishing, and their own evaluation form overwrites it (see vdIntake_).
+// ============================================================
+
+var VD_INV_HUB = 'https://citywidelv.github.io/cw-vendor-hub/new-vendors.html';
+var VD_INV_LOGO = 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
+var VD_INV_UNSORTED = 'unsorted';
+var VD_INV_TEST_TO = 'lvservicecall@gocitywide.com';
+var VD_INV_MARKETS = {
+  lv: {
+    key: 'lv', name: 'Las Vegas', region: 'Las Vegas',
+    sender: 'City Wide of Las Vegas', reply: 'lvservicecall@gocitywide.com',
+    phone: '(702) 483-1874'
+  },
+  nnv: {
+    key: 'nnv', name: 'Northern Nevada', region: 'Northern Nevada',
+    sender: 'City Wide of Northern Nevada', reply: 'rnservicecall@gocitywide.com',
+    phone: '(775) 453-4718'
+  }
+};
+
+function vdInvMarket_(raw) {
+  var s = vdStr_(raw).toLowerCase();
+  if (!s) return null;
+  if (s === 'lv' || s.indexOf('vegas') >= 0) return VD_INV_MARKETS.lv;
+  if (s === 'nnv' || s.indexOf('northern') >= 0 || s.indexOf('reno') >= 0) return VD_INV_MARKETS.nnv;
+  return null;
+}
+
+function vdInvEmailOk_(s) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(vdStr_(s)); }
+
+function vdInvEsc_(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function vdInvToday_() {
+  return Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd');
+}
+
+// A row this flow created and the vendor has not filled in yet. Only these get
+// overwritten by the evaluation form.
+function vdInvIsPlaceholder_(r) {
+  return vdStr_(r.source).toLowerCase() === 'hub invite';
+}
+
+// The catch-all service type. Created on first use so nobody has to remember to
+// run setup, and left alone if the team has renamed it on the sheet.
+function vdEnsureUnsorted_(ss) {
+  var sh = ss.getSheetByName(VD_TABS.TYPES);
+  if (!sh) return;
+  var vals = sh.getDataRange().getValues();
+  for (var i = 1; i < vals.length; i++) {
+    if (vdStr_(vals[i][0]).toLowerCase() === VD_INV_UNSORTED) return;
+  }
+  sh.getRange(vdNextRow_(sh), 1, 1, VD_TYPE_HEADERS.length).setValues([[
+    VD_INV_UNSORTED, 'Not Sorted Yet',
+    'Invited from the Ops Hub. Their evaluation form sets the real service types.',
+    '900', 'TRUE'
+  ]]);
+}
+
+function vdInvite_(data) {
+  var mk = vdInvMarket_(data.market || data.region);
+  if (!mk) return vdOut_({ ok: false, error: 'Pick a market: Las Vegas or Northern Nevada.' });
+
+  var business = vdStr_(data.business);
+  var email = vdStr_(data.email);
+  var contact = vdStr_(data.contact);
+  var phone = vdStr_(data.phone);
+  var note = vdStr_(data.note);
+  var by = vdStr_(data.by) || 'Ops Hub';
+  var test = data.test === true || String(data.test).toUpperCase() === 'TRUE';
+
+  if (!business) return vdOut_({ ok: false, error: 'Type the company name. It is how they go on the directory.' });
+  if (!vdInvEmailOk_(email)) return vdOut_({ ok: false, error: 'That email address does not look right.' });
+
+  var types = vdStr_(data.service_types);
+  if (!types) types = VD_INV_UNSORTED;
+
+  var ss = vdSS_();
+  if (!vdVendorSheets_(ss).length) vdSetup_({});
+  if (types === VD_INV_UNSORTED) vdEnsureUnsorted_(ss);
+
+  var all = vdAllRows_(ss);
+  var key = business.toLowerCase();
+  var mail = email.toLowerCase();
+
+  // Email first. Two crews can trade under names that read the same; nobody
+  // shares a mailbox.
+  var hit = all.filter(function (r) { return vdStr_(r.email).toLowerCase() === mail; })[0];
+  if (!hit) hit = all.filter(function (r) { return r.dba_name.toLowerCase() === key; })[0];
+
+  var today = vdInvToday_();
+  var stamp = 'Invited ' + today + ' by ' + by + ' (' + mk.name + ')';
+  var vid = '', action = '';
+
+  if (hit) {
+    // Already known. The invite still goes out, because an FSM asking for it
+    // usually knows something the sheet does not, but nothing about the record
+    // is rewritten except the outreach trail.
+    vid = hit.vendor_id;
+    action = 'already on the directory';
+    var notes = vdStr_(hit.internal_notes);
+    vdInvSet_(hit._sheet, hit._row, 'outreach', today);
+    vdInvSet_(hit._sheet, hit._row, 'internal_notes', notes ? notes + '\n' + stamp : stamp);
+    vdInvSet_(hit._sheet, hit._row, 'updated', today);
+  } else {
+    action = 'added as a prospect';
+    var v = {};
+    vid = vdNextId_(all);
+    v.vendor_id = vid;
+    v.status = 'Prospect';
+    v.dba_name = business;
+    v.service_types = types;
+    v.region = mk.region;
+    v.contact_name = contact;
+    v.email = email;
+    v.phone = phone;
+    v.source = 'Hub invite';
+    v.added_by = by;
+    v.outreach = today;
+    v.internal_notes = stamp + (note ? '\n' + note : '');
+    v.updated = today;
+    var out = VD_HEADERS.map(function (h) { return v[h] == null ? '' : String(v[h]); });
+    var sh = vdTabFor_(ss, mk.region);
+    sh.getRange(vdNextRow_(sh), 1, 1, VD_HEADERS.length).setValues([out]);
+  }
+
+  var to = test ? VD_INV_TEST_TO : email;
+  var link = VD_INV_HUB + '?region=' + mk.key;
+  var subject = (test ? 'TEST | ' : '') + 'Start here to work with City Wide ' + mk.name;
+  var sent = false, sendError = '';
+  try {
+    MailApp.sendEmail({
+      to: to,
+      replyTo: mk.reply,
+      name: mk.sender,
+      subject: subject,
+      htmlBody: vdInvEmailHtml_(business, contact, note, mk, link, test),
+      body: vdInvEmailText_(business, contact, note, mk, link, test)
+    });
+    sent = true;
+  } catch (e) {
+    sendError = String(e);
+  }
+
+  var log = ss.getSheetByName(VD_TABS.INTAKE);
+  if (log) {
+    log.appendRow([
+      Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd HH:mm'),
+      'INVITE', business, contact, email, phone, mk.region, types, vid,
+      (sent ? (test ? 'invite TEST sent to ' + to : 'invite sent') : 'INVITE EMAIL FAILED') +
+        ', ' + action,
+      JSON.stringify({ by: by, note: note, error: sendError }).slice(0, 45000)
+    ]);
+  }
+
+  if (!sent) {
+    return vdOut_({ ok: false, vendor_id: vid, action: action, saved: true,
+      error: 'They are on the directory as ' + vid + ', but the email did not go out: ' +
+             sendError + ' Send it again or reach out directly.' });
+  }
+  return vdOut_({ ok: true, vendor_id: vid, action: action, sent_to: to, test: test,
+                  market: mk.name, link: link });
+}
+
+function vdInvSet_(sh, row, header, value) {
+  var i = VD_HEADERS.indexOf(header);
+  if (i < 0) return;
+  sh.getRange(row, i + 1).setValue(String(value == null ? '' : value));
+}
+
+// The email. Short on purpose. One link, one reason to click it.
+function vdInvEmailHtml_(business, contact, note, mk, link, test) {
+  var F = 'font-family:Verdana,Arial,sans-serif;';
+  var banner = test ?
+    '<tr><td style="background:#E5B423;padding:8px 30px;' + F + 'font-size:12px;font-weight:bold;' +
+    'color:#2d2a26;">TEST. Routed to the internal inbox. Not sent to a vendor.</td></tr>' : '';
+
+  function p(t) {
+    return '<p style="margin:0 0 16px;' + F + 'font-size:14px;line-height:1.6;color:#2d2a26;">' + t + '</p>';
+  }
+
+  return '' +
+  '<table bgcolor="#f4f4f4" border="0" cellpadding="0" cellspacing="0" width="100%">' +
+  '<tr><td align="center" style="padding:20px 0;">' +
+  '<table bgcolor="#ffffff" border="0" cellpadding="0" cellspacing="0" width="640" style="max-width:640px;">' +
+  banner +
+  '<tr><td style="padding:24px 30px 0;">' +
+  '<img src="' + VD_INV_LOGO + '" height="38" alt="City Wide Facility Solutions" ' +
+  'style="display:block;border:0;height:38px;width:auto;"></td></tr>' +
+
+  '<tr><td style="padding:18px 30px 0;">' +
+  '<div style="background:#D22730;color:#ffffff;' + F + 'font-size:16px;font-weight:bold;' +
+  'padding:12px 16px;letter-spacing:0.5px;">BECOME A CITY WIDE VENDOR</div></td></tr>' +
+
+  '<tr><td style="padding:18px 30px 30px;">' +
+  '<p style="margin:0 0 16px;' + F + 'font-size:13px;color:#636466;">' +
+  vdInvEsc_(business) + (contact ? ', attn ' + vdInvEsc_(contact) : '') + '</p>' +
+
+  (note ? p(vdInvEsc_(note)) : '') +
+
+  p('City Wide Facility Solutions manages the cleaning and facility work for hundreds of ' +
+    'buildings across ' + vdInvEsc_(mk.name) + '. The work is done by independent crews like yours.') +
+  p('Everything it takes to start with us is on one page. Five steps, at your pace.') +
+
+  '<table border="0" cellpadding="0" cellspacing="0" style="margin:6px 0 18px;"><tr>' +
+  '<td bgcolor="#D22730" style="border-radius:6px;">' +
+  '<a href="' + link + '" style="background:#D22730;color:#ffffff;' + F + 'font-size:17px;' +
+  'font-weight:bold;text-decoration:none;padding:18px 34px;display:inline-block;' +
+  'border-radius:6px;">Start Here</a></td></tr></table>' +
+
+  p('Step one is a short evaluation form that tells us what your crew does. When work opens ' +
+    'that matches, you hear from us first.') +
+
+  '<p style="margin:0 0 22px;' + F + 'font-size:12px;line-height:1.5;color:#636466;' +
+  'word-break:break-all;">Or paste this into your browser:<br>' +
+  '<a href="' + link + '" style="color:#636466;">' + vdInvEsc_(link) + '</a></p>' +
+
+  '<div style="border-top:1px solid #E5E5E5;padding-top:16px;">' +
+  '<p style="margin:0;' + F + 'font-size:12px;line-height:1.7;color:#636466;">' +
+  '<b style="color:#2d2a26;">' + vdInvEsc_(mk.sender) + '</b><br>' +
+  vdInvEsc_(mk.phone) + '<br>' +
+  '<a href="mailto:' + mk.reply + '" style="color:#636466;">' + mk.reply + '</a><br>' +
+  '<a href="https://www.gocitywide.com" style="color:#636466;">GoCityWide.com</a></p></div>' +
+
+  '</td></tr></table></td></tr></table>';
+}
+
+function vdInvEmailText_(business, contact, note, mk, link, test) {
+  return (test ? 'TEST. Routed to the internal inbox. Not sent to a vendor.\n\n' : '') +
+    business + (contact ? ', attn ' + contact : '') + '\n\n' +
+    (note ? note + '\n\n' : '') +
+    'City Wide Facility Solutions manages the cleaning and facility work for hundreds of ' +
+    'buildings across ' + mk.name + '. The work is done by independent crews like yours.\n\n' +
+    'Everything it takes to start with us is on one page. Five steps, at your pace.\n\n' +
+    link + '\n\n' +
+    'Step one is a short evaluation form that tells us what your crew does. When work opens ' +
+    'that matches, you hear from us first.\n\n' +
+    mk.sender + '\n' + mk.phone + '\n' + mk.reply + '\nGoCityWide.com\n';
 }
 
 // ------------------------------------------------------------ run helpers --

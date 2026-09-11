@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Invite a New Vendor | CW Ops Hub</title>
+<!-- build 2026-09-11
+Invite a new vendor for Las Vegas or Northern Nevada. Replaces the four Asana
+"request a vendor packet" forms. Posts kind vd_invite (VendorDirectory.gs): the
+vendor gets the New Vendor steps on the Vendor Hub, and the same call puts them
+on the CW Vendor Directory as a Prospect so the list stays in sync.
+Service type is optional. Anyone invited without one lands on "Not Sorted Yet"
+and their own evaluation form fills the record in.
+Gate: reuses the cached team passcode (cw-auth.js).
+-->
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+a{color:var(--red)}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.head .bar{max-width:860px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  border-left:2px solid var(--border);padding-left:14px}
+.head .back{margin-left:auto;font-size:12px;font-weight:700;background:var(--red);color:#fff;
+  text-decoration:none;border-radius:6px;padding:8px 14px;white-space:nowrap}
+.head .back:hover{background:var(--red-dark);color:#fff}
+.wrap{max-width:860px;margin:0 auto;padding:26px 20px 60px}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 20px;max-width:70ch}
+.gatebox{max-width:360px;background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.gatebox b{display:block;font-size:16px;margin-bottom:10px}
+#gmsg{font-size:12.5px;color:var(--grey);line-height:1.55}
+.btn{font-family:inherit;font-size:14px;font-weight:700;background:var(--red);color:#fff;border:none;
+  border-radius:8px;padding:12px 24px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn:hover{background:var(--red-dark);color:#fff}
+.btn.ghost{background:#fff;color:var(--black);border:2px solid var(--border)}
+.btn:disabled{opacity:.55;cursor:default}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+  padding:22px 24px;margin-bottom:16px}
+.card>h2{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  margin-bottom:4px}
+.card>h2:after{content:"";display:block;width:34px;height:3px;background:var(--red);border-radius:2px;
+  margin:8px 0 16px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0 20px}
+label{display:block;margin-bottom:14px}
+label>span{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--grey);margin-bottom:5px}
+label>span i{color:var(--red);font-style:normal}
+input[type=text],input[type=email],input[type=tel],select,textarea{
+  width:100%;font-family:inherit;font-size:14px;color:var(--black);background:#fff;
+  border:1.5px solid var(--border);border-radius:8px;padding:10px 12px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--black)}
+textarea{min-height:74px;resize:vertical;line-height:1.55}
+.full{grid-column:1/-1}
+.hint{font-size:11.5px;color:var(--grey);margin:-9px 0 14px}
+.types{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:6px}
+.types label{display:flex;align-items:flex-start;gap:8px;margin:0;background:var(--light);
+  border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:13px}
+.types label:hover{border-color:var(--black)}
+.types label.on{background:#FDEEEF;border-color:var(--red)}
+.types label>span{display:inline;font-size:13px;font-weight:400;letter-spacing:0;text-transform:none;
+  color:var(--black);margin:0}
+.types input{margin-top:3px;flex:none}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.pick button{font-family:inherit;text-align:left;background:#fff;border:2px solid var(--border);
+  border-radius:12px;padding:16px 18px;cursor:pointer;box-shadow:var(--shadow);color:var(--black)}
+.pick button:hover{border-color:var(--black)}
+.pick button.on{border-color:var(--red);box-shadow:0 0 0 3px rgba(210,39,48,.12)}
+.pick b{display:block;font-size:15px}
+.pick span{display:block;font-size:12.5px;color:var(--grey);margin-top:4px}
+.msg{border-radius:8px;padding:12px 14px;font-size:13px;margin-bottom:16px;display:none}
+.msg.show{display:block}
+.msg.err{background:#FDEEEF;border:1px solid var(--red);color:var(--black)}
+.sends{background:var(--light);border:1px solid var(--border);border-radius:10px;padding:14px 16px;
+  font-size:12.5px;color:var(--grey);line-height:1.6;margin-bottom:16px}
+.sends b{color:var(--black)}
+.tst{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--grey);margin:0 0 4px}
+.tst input{flex:none}
+.done{background:#fff;border:1px solid var(--border);border-left:5px solid var(--teal);border-radius:12px;
+  box-shadow:var(--shadow);padding:34px 28px;text-align:center}
+.done b{display:block;font-size:19px;margin-bottom:8px}
+.done p{color:var(--grey);max-width:56ch;margin:0 auto}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.hidden{display:none!important}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:24px}
+@media(max-width:600px){.pick{grid-template-columns:1fr}}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t">Invite a Vendor</span>
+  <a class="back" href="index.html">&larr; Ops Hub</a>
+</div></header>
+
+<div class="wrap">
+<div id="gate" class="gatebox hidden"><b>Team passcode</b><p id="gmsg">Loading...</p></div>
+
+<div id="app" class="hidden">
+<h1>Invite a New Vendor</h1>
+<p class="lede">Send a crew the link to the New Vendor steps on the Vendor Hub. They get the five steps, starting with the evaluation form, and they go on the vendor directory as a prospect the moment you send it.</p>
+
+<div class="pick" id="pick">
+<button type="button" data-m="lv" class="on"><b>Las Vegas</b><span>Sends from City Wide of Las Vegas. Replies go to lvservicecall.</span></button>
+<button type="button" data-m="nnv"><b>Northern Nevada</b><span>Sends from City Wide of Northern Nevada. Replies go to rnservicecall.</span></button>
+</div>
+
+<div class="msg err" id="msg"></div>
+
+<form id="frm" novalidate>
+<div class="card">
+<h2>Who are you inviting</h2>
+<div class="row">
+<label class="full"><span>Company name <i>*</i></span><input type="text" id="business" maxlength="140" placeholder="The name they do business as" autocomplete="off"></label>
+<label><span>Contact name</span><input type="text" id="contact" maxlength="90" autocomplete="off"></label>
+<label><span>Email <i>*</i></span><input type="email" id="email" maxlength="120" autocomplete="off"></label>
+<label><span>Phone</span><input type="tel" id="phone" maxlength="40" autocomplete="off"></label>
+</div>
+<div class="hint">The company name is how they go on the directory. If they are already on it, nothing is overwritten and the invite still sends.</div>
+</div>
+
+<div class="card">
+<h2>What they do</h2>
+<div class="types" id="types"><span class="hint">Loading the service types...</span></div>
+<div class="hint">Optional. Skip it if you are not sure yet. They pick their own services on the evaluation form, and that answer replaces whatever is set here.</div>
+</div>
+
+<div class="card">
+<h2>Send it</h2>
+<label class="full"><span>A line just for them</span><textarea id="note" maxlength="600" placeholder="Optional. Goes at the top of the email, above everything else. Leave it blank and the email reads as a clean introduction."></textarea></label>
+<div class="row">
+<label><span>Your first name <i>*</i></span><input type="text" id="by" maxlength="60" autocomplete="given-name"></label>
+</div>
+<div class="sends" id="sends"></div>
+<label class="tst"><input type="checkbox" id="test"> Send it to the office inbox instead so I can read it first</label>
+<div class="actions"><button class="btn" id="send" type="submit">Send the invite</button><a class="btn ghost" href="https://citywidelv.github.io/cw-vendor-hub/new-vendors.html" target="_blank" rel="noopener">See what they get</a></div>
+</div>
+</form>
+
+<div class="done hidden" id="done"><b>Invite sent</b><p id="doneMsg"></p><div class="actions" style="justify-content:center;margin-top:18px"><a class="btn ghost" href="vendor-invite.html">Invite someone else</a><a class="btn" id="dirLink" href="vendors.html#/lv/prospects">See them on the directory</a></div></div>
+</div>
+</div>
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
+
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var PASS = "", MKT = "lv", TYPES = [];
+var LINK = "https://citywidelv.github.io/cw-vendor-hub/new-vendors.html";
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function post(body, cb){
+  body.passcode = PASS;
+  fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) })
+    .then(function(r){ return r.json(); }).then(cb).catch(function(){ cb(null); });
+}
+function say(m){ var e = $("msg"); e.textContent = m; e.classList.toggle("show", !!m); if(m) e.scrollIntoView({ block:"center" }); }
+
+function setMkt(m){
+  MKT = m;
+  Array.prototype.forEach.call($("pick").querySelectorAll("button"), function(b){
+    b.classList.toggle("on", b.getAttribute("data-m") === m);
+  });
+  showSends();
+}
+$("pick").addEventListener("click", function(e){ var b = e.target.closest("button"); if(b) setMkt(b.getAttribute("data-m")); });
+if(/[?&]region=nnv/.test(location.search)) setMkt("nnv");
+
+function showSends(){
+  var name = MKT === "nnv" ? "City Wide of Northern Nevada" : "City Wide of Las Vegas";
+  var to = $("test").checked ? "the office inbox, not the vendor" : ($("email").value.trim() || "the address above");
+  $("sends").innerHTML = "Sends as <b>" + esc(name) + "</b> to <b>" + esc(to) + "</b>, " +
+    "with the link to <b>" + esc(LINK + "?region=" + MKT) + "</b>";
+}
+["test","email"].forEach(function(id){ $(id).addEventListener("input", showSends); $(id).addEventListener("change", showSends); });
+
+function renderTypes(){
+  if(!TYPES.length){ $("types").innerHTML = '<span class="hint">Could not load the service types. You can still send the invite.</span>'; return; }
+  $("types").innerHTML = TYPES.map(function(t){
+    return '<label><input type="checkbox" value="' + esc(t.slug) + '"><span>' + esc(t.name) + '</span></label>';
+  }).join("");
+}
+$("types").addEventListener("change", function(e){
+  var l = e.target.closest("label");
+  if(l) l.classList.toggle("on", e.target.checked);
+});
+function pickedTypes(){
+  return Array.prototype.slice.call($("types").querySelectorAll("input:checked")).map(function(i){ return i.value; }).join(",");
+}
+
+$("frm").addEventListener("submit", function(e){
+  e.preventDefault();
+  var business = $("business").value.trim(), email = $("email").value.trim(), by = $("by").value.trim();
+  var m = !business ? "Type the company name." :
+          !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? "That email address does not look right." :
+          !by ? "Add your first name so we know who invited them." : "";
+  if(m){ say(m); return; }
+  say("");
+  var btn = $("send"); btn.disabled = true; btn.textContent = "Sending...";
+  post({
+    kind:"vd_invite", market:MKT, business:business, contact:$("contact").value.trim(),
+    email:email, phone:$("phone").value.trim(), service_types:pickedTypes(),
+    note:$("note").value.trim(), by:by, test:$("test").checked
+  }, function(r){
+    btn.disabled = false; btn.textContent = "Send the invite";
+    if(!r){ say("Could not reach the server. Nothing was sent. Check your connection and try again."); return; }
+    if(!r.ok){ say(r.error || "Could not send the invite."); return; }
+    var where = r.action === "already on the directory"
+      ? business + " was already on the directory as " + r.vendor_id + ". The invite went out and the outreach is logged on their record."
+      : business + " is on the " + r.market + " directory as " + r.vendor_id + ", status Prospect.";
+    $("doneMsg").textContent = (r.test ? "Test copy sent to the office inbox. Nothing went to the vendor. " : "Sent to " + r.sent_to + ". ") + where;
+    $("dirLink").setAttribute("href", "vendors.html#/" + (MKT === "nnv" ? "nnv" : "lv") + "/prospects");
+    $("frm").classList.add("hidden"); $("pick").classList.add("hidden"); $("done").classList.remove("hidden");
+    window.scrollTo({ top:0, behavior:"smooth" });
+  });
+});
+
+function load(pass){
+  PASS = pass;
+  post({ kind:"vd_types" }, function(r){
+    if(r && r.ok){
+      TYPES = (r.types || []).filter(function(t){ return t.slug !== "unsorted"; });
+      renderTypes();
+    } else if(r && r.error && /passcode/i.test(r.error)){
+      CWAuth.locked("ops", r.error); return;
+    } else {
+      renderTypes();
+    }
+    $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
+    try{ $("by").value = (localStorage.getItem("cwOpsName") || localStorage.getItem("cwAlertsWho") || "").split(" ")[0]; }catch(x){}
+    showSends();
+  });
+}
+(function(){ var p = CWAuth.require({hub:"ops"}); if (p) load(p); })();
+</script>
+</body>
+</html>

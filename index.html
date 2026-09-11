@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
-<!-- build 2026-09-11: Alerts card (vendor replies, building supply orders and shop orders grouped by FSM, shared check-offs through alerts_list / alerts_set in the CW Solicitations Apps Script, Alert Status tab) placed between the Building Information Sheets band and the Ops Wall, plus a What's New note for the team.
+<!-- build 2026-09-11b: hub cleanup per TJ. Removed: Request a Walkthrough Email (postings.html
+does it here now), the four Asana vendor packet forms, Request an Exhibit A (LV) (create-exhibit-a.html
+does it here now). Added: Vendors > Invite a New Vendor (vendor-invite.html, kind vd_invite) which emails
+the New Vendor steps on the Vendor Hub and writes the prospect to the directory in one call. Vendor
+Resources rebuilt against the live cw-vendor-hub page list.
+build 2026-09-11: Alerts card (vendor replies, building supply orders and shop orders grouped by FSM, shared check-offs through alerts_list / alerts_set in the CW Solicitations Apps Script, Alert Status tab) placed between the Building Information Sheets band and the Ops Wall, plus a What's New note for the team.
 build 2026-09-05d: Accounts & Buildings > Account Changes (ACT & Ledger) menu for the digital ACT.
      build 2026-09-05c: one team unlock per device (cw-auth.js), external menu links open in a new tab, Team Apps sub-menu, Handteq Point, InsurLink, Verified First, Amazon Business, Company Store links.
      build 2026-07-29b: landing page v2 per TJ.
@@ -584,7 +589,7 @@ search box to jump straight to what you need.</p>
 <p>Every tool, form, and calculator now lives in the menus above. Grouped the way we work:</p>
 <ul>
 <li><span>Work Tickets</span> &nbsp;maintenance, snow, CCCNV, 7-Eleven</li>
-<li><span>Vendors</span> &nbsp;directory, opportunities, audits, violations, insurance, background checks, packets, Exhibit A</li>
+<li><span>Vendors</span> &nbsp;directory, invites, opportunities, audits, violations, insurance, background checks, Exhibit A</li>
 <li><span>Accounts &amp; Buildings</span> &nbsp;building sheets, COI requests, maps, survey</li>
 <li><span>Pricing &amp; Bids</span> &nbsp;every calculator</li>
 <li><span>Night Ops</span> &nbsp;inspections &amp; route outs</li>
@@ -678,7 +683,6 @@ var MENU = [
 {label:"Active Postings (Email Vendors)", href:"postings.html"},
 {label:"Live Board", href:VS+"opportunities.html"},
 {label:"Vendor Responses", href:"responses.html"},
-{label:"Request a Walkthrough Email", href:"https://form.asana.com/?k=lnuBJNlGrHJNAeW8QWbXzA&d=13140959242873"},
 {ghead:"Tracking"},
 {label:"Cleaner Roster", href:"cleaners.html"},
   {label:"Opportunities Tracker (Sheet)", href:"https://docs.google.com/spreadsheets/d/1ymbqR7LMvA7sbgZe2Ro5o2dNiXhP08Tn9Hw1b-H5AeQ/edit#gid=0"}
@@ -709,26 +713,45 @@ var MENU = [
     {label:"Vendor Background Check Form (Asana)", href:"https://form.asana.com/?k=FRCnQmbTGjAVPieFt4bnWQ&d=13140959242873"},
     {label:"Verified First (portal)", href:"https://portal.verifiedfirst.com/#/dashboard"}
     ]},
-{sub:"Request a Vendor Packet", items:[
-{ghead:"Las Vegas"},
-{label:"Janitorial Packet", href:"https://form.asana.com/?k=RdHag7PTO7L2imrLsWCCVQ&d=13140959242873"},
-{label:"Other Services Packet", href:"https://form.asana.com/?k=uX5QbBSefsA-Gq34EmjeJA&d=13140959242873"},
-{ghead:"Northern Nevada"},
-{label:"Janitorial Packet", href:"https://form.asana.com/?k=fF2mqfxy9BFvXbF-pnLYJA&d=13140959242873"},
-{label:"Other Services Packet", href:"https://form.asana.com/?k=J4_mbPCYb_6P2MesPMxUPw&d=13140959242873"}
+{sub:"Invite a New Vendor", items:[
+{label:"Invite for Las Vegas", href:"vendor-invite.html?region=lv"},
+{label:"Invite for Northern Nevada", href:"vendor-invite.html?region=nnv"},
+{ghead:"Where the invite takes them"},
+{label:"New Vendor Steps (Vendor Hub)", href:VS+"new-vendors.html"},
+{label:"Vendor Evaluation Form", href:"https://form.jotform.com/tjroberts/vendor-evaluation-form"},
+{ghead:"Then"},
+{label:"Prospects (Las Vegas)", href:"vendors.html#/lv/prospects"},
+{label:"Prospects (Northern Nevada)", href:"vendors.html#/nnv/prospects"},
+{label:"Add a Vendor by Hand", href:"vendor-add.html"}
 ]},
-{ghead:"Exhibit A"},
 {label:"Create an Exhibit A", href:"create-exhibit-a.html"},
-{label:"Request an Exhibit A (LV)", href:"https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873"},
-{label:"New Vendor Page", href:VS+"new-vendors.html"},
 {sub:"Vendor Resources", items:[
 {label:"Resource Home", href:VS},
-{label:"Crew Guides", href:VS+"#guides"},
-{label:"Workloading Guide", href:VS+"workloading.html"},
+{label:"New Vendor Steps", href:VS+"new-vendors.html"},
+{label:"Open Opportunities Board", href:VS+"opportunities.html"},
+{ghead:"Guides"},
+{label:"All Crew Guides", href:VS+"#guides"},
+{label:"Workloading and Crew Sizing", href:VS+"workloading.html"},
 {label:"New Building Planner", href:VS+"planner.html"},
+{label:"Choosing Your Equipment", href:VS+"equipment.html"},
+{label:"Color Coding System", href:VS+"color-coding.html"},
+{label:"Medical Facility Cleaning", href:VS+"medical.html"},
+{label:"Clean Room Cleaning", href:VS+"cleanroom.html"},
+{label:"GMP and Food Facility Cleaning", href:VS+"gmp.html"},
+{ghead:"Ordering"},
 {label:"Vendor Shop", href:VS+"shop/"},
-{label:"Invoice Page", href:VS+"invoice.html"},
-{label:"Building Supplies", href:VS+"building-supplies.html"}
+{label:"Starter Kit Builder", href:VS+"kit-builder.html"},
+{label:"Building Supplies", href:VS+"building-supplies.html"},
+{ghead:"Vendor Paperwork"},
+{label:"Submit an Invoice", href:VS+"invoice.html"},
+{label:"Upload Documents", href:VS+"upload.html"},
+{label:"Update Vendor Profile", href:VS+"profile-update.html"},
+{label:"Cleaner Roster", href:VS+"cleaner-roster.html"},
+{label:"Card Authorization", href:VS+"card-authorization.html"},
+{ghead:"Vendor Reporting"},
+{label:"Work Order", href:VS+"work-order.html"},
+{label:"Snow Service Report", href:VS+"snow-report.html"},
+{label:"Nominate a Vendor or G.O.A.T.", href:VS+"nominate.html"}
 ]}
 ]},
 { label:"Accounts & Buildings", icon:"map", items:[
@@ -905,8 +928,7 @@ var QUICK = [
 { label:"Live Board", href:"https://citywidelv.github.io/cw-vendor-hub/opportunities.html", icon:"board", pill:true },
 { label:"Nominate a Vendor / G.O.A.T.", href:"nominate.html", icon:"plus" },
 { label:"Create an Exhibit A", href:"create-exhibit-a.html", icon:"clip" },
-{ label:"Exhibit A Request", href:"https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873", icon:"clip" },
-{ label:"IC Walkthrough Email", href:"https://form.asana.com/?k=lnuBJNlGrHJNAeW8QWbXzA&d=13140959242873", icon:"mail" },
+{ label:"Invite a New Vendor", href:"vendor-invite.html", icon:"mail" },
 { label:"Night Inspection", href:"https://form.jotform.com/233486327771060", icon:"clip" },
 { label:"CW Sales CRM", href:"https://gocitywide.crm.dynamics.com/main.aspx", icon:"work" },
 { label:"Margin Calculator", href:"https://citywidelv.github.io/margincalculator/", icon:"margin" },
