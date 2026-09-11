@@ -22,7 +22,8 @@ var AL_TZ = 'America/Los_Angeles';
 var AL_STATUS = {
   response: ['Responded to', 'Not a fit'],
   supply: ['Ordered', 'Not needed'],
-  shop: ['Processed', 'Picked up']
+  shop: ['Processed', 'Picked up'],
+  posting: ['Mark filled']
 };
 
 function alDispatch(d) {
@@ -164,6 +165,50 @@ function alMatch_(text, region, accounts) {
 }
 
 // ------------------------------------------------------------ sources -----
+// Open postings (Filled unchecked). Marking one filled checks Filled on the
+// Solicitations row, which is what takes it off the vendor board.
+function alPostings_(statusMap) {
+  var items = [];
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ss.getSheetByName(TAB);
+  if (!sh) return items;
+  alRows_(sh).forEach(function (p) {
+    var id = alStr_(p.id);
+    if (!id) return;
+    var filled = p.filled === true || String(p.filled).toUpperCase() === 'TRUE';
+    var key = 'post:' + id;
+    if (filled && !(statusMap[key] && statusMap[key].status)) return; // filled from the sheet: not an alert
+    var when = alDate_(p.posted);
+    var n = Number(p.responses) || 0;
+    var dlD = alDate_(p.deadline);
+    var dl = dlD ? Utilities.formatDate(dlD, AL_TZ, 'MMM d') : alStr_(p.deadline);
+    items.push({
+      key: key, type: 'posting',
+      fsm: alFsmKey_(p.fsm) || alFsmKey_(p.contact_name),
+      region: alStr_(p.region),
+      when: alIso_(when), when_nice: alNice_(when),
+      from: alStr_(p.title) || id,
+      about: '',
+      summary: 'Open on the vendor board. ' + (n === 1 ? '1 reply so far.' : n + ' replies so far.') + (dl ? ' Deadline ' + dl + '.' : '') + (alStr_(p.account_name) ? ' ' + alStr_(p.account_name) + '.' : ''),
+      email: '', phone: '',
+      link: 'responses.html#' + id,
+      ref: id
+    });
+  });
+  return items;
+}
+function alPostingFilled_(id, flag) {
+  var sh = SpreadsheetApp.openById(SHEET_ID).getSheetByName(TAB);
+  if (!sh) return false;
+  var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(alStr_);
+  var cId = head.indexOf('id') + 1, cFilled = head.indexOf('filled') + 1;
+  if (!cId || !cFilled) return false;
+  var ids = sh.getRange(1, cId, sh.getLastRow(), 1).getValues();
+  for (var i = 1; i < ids.length; i++) {
+    if (alStr_(ids[i][0]) === id) { sh.getRange(i + 1, cFilled).setValue(!!flag); return true; }
+  }
+  return false;
+}
 function alResponses_(statusMap) {
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var posts = {};
@@ -186,14 +231,16 @@ function alResponses_(statusMap) {
       ? 'Quoted ' + (/^\$/.test(amt) ? amt : '$' + amt) + (alStr_(r.quote_basis) ? ' ' + alStr_(r.quote_basis) : '')
       : 'Interested';
     var filled = p.filled === true || String(p.filled).toUpperCase() === 'TRUE';
+    if (filled) return; // posting is filled: its replies leave the list with it
     items.push({
       key: 'resp:' + rid, type: 'response',
+      pid: alStr_(r.posting_id),
       fsm: alFsmKey_(p.fsm) || alFsmKey_(p.contact_name),
       region: alStr_(r.region) || alStr_(p.region),
       when: alIso_(when), when_nice: alNice_(when),
       from: alStr_(r.company) + (alStr_(r.contact_name) ? ' (' + alStr_(r.contact_name) + ')' : ''),
       about: alStr_(r.posting_title) || alStr_(p.title) || alStr_(r.posting_id),
-      summary: summary + (filled ? ' - posting is marked Filled' : ''),
+      summary: summary,
       email: alStr_(r.email), phone: alStr_(r.phone),
       link: alStr_(r.pdf_url) || ('responses.html#' + alStr_(r.posting_id)),
       ref: rid
@@ -267,7 +314,7 @@ function alList_(d) {
   var sh = alSheet_();
   var map = alStatusMap_(sh);
   var accounts = alAccounts_();
-  var items = alResponses_(map).concat(alSupply_(accounts)).concat(alShop_(accounts));
+  var items = alPostings_(map).concat(alResponses_(map)).concat(alSupply_(accounts)).concat(alShop_(accounts));
   var out = [];
   items.forEach(function (it) {
     var st = map[it.key];
@@ -303,7 +350,7 @@ function alSet_(d) {
     keys.slice(0, 200).forEach(function (k) {
       k = alStr_(k);
       if (!k) return;
-      var type = k.indexOf('resp:') === 0 ? 'response' : k.indexOf('sup:') === 0 ? 'supply' : k.indexOf('shop:') === 0 ? 'shop' : '';
+      var type = k.indexOf('resp:') === 0 ? 'response' : k.indexOf('sup:') === 0 ? 'supply' : k.indexOf('shop:') === 0 ? 'shop' : k.indexOf('post:') === 0 ? 'posting' : '';
       if (!type) return;
       if (status && valid[status] !== type) return; // status must fit the item
       var row = map[k] ? map[k].row : alNextRow_(sh);
@@ -311,6 +358,7 @@ function alSet_(d) {
       map[k] = { row: row, status: status, by: by, at: now };
       saved.push({ key: k, status: status, by: status ? by : '', at: status ? alIso_(now) : '', at_nice: status ? alNice_(now) : '' });
       if (type === 'shop') { try { alShopSync_(k, status); } catch (e) {} }
+      if (type === 'posting') { try { alPostingFilled_(k.slice(5), !!status); } catch (e) {} }
     });
     return { ok: true, saved: saved };
   } finally {
