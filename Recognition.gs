@@ -17,6 +17,10 @@
 //     rec_nominate   from the Vendor Hub and the Ops Hub. Honeypot field 'website'.
 //     rec_staff      names and titles only, for the public G.O.A.T. picker. No phones,
 //                    no emails, ever.
+//     rec_vendor_hint  autocomplete for the public nominate page. Returns at most 3
+//                    vendor names, and only when the typed text already covers 60% of a
+//                    name from its start, so a vendor can finish a name they know but
+//                    can never browse the directory (TJ's rule, Sep 11 2026).
 //     GET ?recognition=1   the wall: every visible winner, grouped by region and year.
 //   team passcode required (checked here on the server, like vd_*):
 //     rec_setup, rec_list, rec_save, rec_remove, rec_nom_status
@@ -67,6 +71,7 @@ function recDispatch(data) {
   if (kind === 'rec_nominate') return recNominate_(data);
   if (kind === 'rec_staff') return recStaffPublic_();
   if (kind === 'rec_wall') return recOut_(recWall_());
+  if (kind === 'rec_vendor_hint') return recVendorHint_(data);
   if ((data.passcode || '') !== recPass_()) return recOut_({ ok: false, error: 'Bad passcode' });
   if (kind === 'rec_setup') return recSetup_(data);
   if (kind === 'rec_list') return recList_(data);
@@ -199,6 +204,25 @@ function recStaffPublic_() {
   }
   out.sort(function (a, b) { return a.name < b.name ? -1 : 1; });
   return recOut_({ ok: true, staff: out });
+}
+
+function recVendorHint_(data) {
+  var q = recStr_(data.q).toLowerCase().replace(/\s+/g, ' ');
+  if (q.length < 4) return recOut_({ ok: true, names: [] });
+  var seen = {}, names = [];
+  try {
+    vdAllRows_(vdSS_()).forEach(function (r) {
+      if (recTrue_(r.hide)) return;
+      [r.dba_name, r.legal_name].forEach(function (n) {
+        n = recStr_(n); if (!n) return;
+        var k = n.toLowerCase().replace(/\s+/g, ' ');
+        if (k.indexOf(q) !== 0) return;
+        if (q.length < Math.ceil(k.length * 0.6)) return;
+        if (!seen[k]) { seen[k] = 1; names.push(n); }
+      });
+    });
+  } catch (e) {}
+  return recOut_({ ok: true, names: names.slice(0, 3) });
 }
 
 function recNominate_(data) {
