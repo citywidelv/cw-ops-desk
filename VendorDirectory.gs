@@ -1414,7 +1414,10 @@ function vdEnsureUnsorted_(ss) {
   for (var i = 1; i < vals.length; i++) {
     if (vdStr_(vals[i][0]).toLowerCase() === VD_INV_UNSORTED) return;
   }
-  sh.getRange(vdNextRow_(sh), 1, 1, VD_TYPE_HEADERS.length).setValues([[
+  // getLastRow, not vdNextRow_: this tab carries blank spacer rows, and scanning
+  // column A for the first empty cell drops the new type into the middle of the
+  // list (it did exactly that on Sep 11 2026, at row 17).
+  sh.getRange(sh.getLastRow() + 1, 1, 1, VD_TYPE_HEADERS.length).setValues([[
     VD_INV_UNSORTED, 'Needs Classification',
     'Trade not yet confirmed. Sort these into a real service type as you qualify them.',
     '900', 'TRUE'
