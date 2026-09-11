@@ -192,6 +192,13 @@ white-space:nowrap;transition:all .15s}
 .atype.supply{background:var(--black)}
 .atype.shop{background:var(--grey)}
 .atype.posting{background:var(--gold);color:var(--black)}
+.akidbtn{display:block;width:100%;text-align:left;background:#fdf8ea;border:none;border-top:1px solid var(--light);border-left:4px solid var(--gold);font-family:inherit;font-size:12px;font-weight:700;color:var(--black);padding:9px 20px;cursor:pointer;min-height:40px}
+.akidbtn:hover{color:var(--red)}
+.akidbtn .caret{display:inline-block;color:var(--grey);font-size:10px;margin-right:8px;transition:transform .15s}
+.akidbtn.open .caret{transform:rotate(90deg)}
+.akids{display:none;border-left:4px solid var(--gold);background:#fcfbf8}
+.akids.show{display:block}
+.akids .aitem{padding-left:34px}
 .aitem .amain{min-width:0;font-size:13px;line-height:1.5}
 .aitem .afrom{font-weight:700}
 .aitem .asum{color:var(--grey);font-size:12.5px;margin-top:2px;overflow-wrap:anywhere}
@@ -531,7 +538,7 @@ search box to jump straight to what you need.</p>
 <div class="anew">
 <h3>What's new</h3>
 <p>Vendor replies to your postings, building supply orders, and shop orders used to land in the service inbox and get lost. They now show up here, under the name of the FSM they belong to. Your open postings show here too. Mark one filled and it comes off the vendor board, and its replies clear with it.</p>
-<p>Pick your name once. This computer remembers it and opens your list first. Everyone else's list sits below yours, closed, with a count.</p>
+<p>Pick your name once. This computer remembers it and opens your list first. Everyone else's list sits below yours, closed, with a count. Replies to a posting sit under that posting. Open them to answer one at a time, or just mark the posting filled when the building is covered and they all clear.</p>
 <p>When you have answered the vendor, placed the order, processed the shop order, or filled the posting, click the button on that line. It clears for the whole team at the same time, so nobody works the same item twice. Clicked the wrong one? Use Undo.</p>
 <p>Nothing is deleted. The emails still go out and the details stay in the sheets. An item nobody clears drops off after 45 days. A supply or shop order we could not tie to an account shows under "No FSM matched", and anyone can clear those.</p>
 </div>
@@ -987,7 +994,7 @@ via kind:"announcement" - both are now used by citywidelv.github.io. ---------- 
 list, grouped by FSM. Read and write through the Apps Script (alerts_list / alerts_set,
 passcode checked server side). Check-offs live on the Alert Status tab of the CW
 Solicitations sheet, so one person's click shows for everyone. ---------- */
-var AL = { items:[], roster:[], statuses:{}, days:45, open:{}, showDone:{}, busy:false, timer:null };
+var AL = { items:[], roster:[], statuses:{}, days:45, open:{}, showDone:{}, showKids:{}, busy:false, timer:null };
 var AL_WHOKEY = "cwAlertsWho";
 function alPost(body){
 body.passcode = CWAuth.get();
@@ -1091,7 +1098,16 @@ html += '<div class="agroup' + (isOpen ? ' open' : '') + (mine ? ' mine' : '') +
 '<span class="gn' + (g.open.length ? '' : ' zero') + '">' + g.open.length + '</span></button>' +
 '<div class="agitems">';
 if(!g.open.length) html += '<div class="aempty">All clear.</div>';
-g.open.forEach(function(it){ html += alItem(it); });
+alNest(g.open).forEach(function(n){
+html += alItem(n.it);
+if(n.kids.length){
+var on = !!AL.showKids[n.it.key];
+html += '<button class="akidbtn' + (on ? ' open' : '') + '" type="button" data-kids="' + esc(n.it.key) + '"><span class="caret">&#9654;</span>' + (on ? 'Hide the ' : 'See the ') + n.kids.length + (n.kids.length === 1 ? ' reply' : ' replies') + ' to this posting</button>';
+html += '<div class="akids' + (on ? ' show' : '') + '">';
+n.kids.forEach(function(k){ html += alItem(k); });
+html += '</div>';
+}
+});
 html += '<div class="agfoot">' +
 (g.done.length ? '<button class="showdone" type="button" data-done="' + esc(g.key) + '">' + (AL.showDone[g.key] ? 'Hide' : 'Show') + ' ' + g.done.length + ' handled in the last 7 days</button>' : '<span></span>') +
 (g.open.length > 1 ? '<button class="markall" type="button" data-markall="' + esc(g.key) + '">Mark all ' + g.open.length + ' as handled</button>' : '') +
@@ -1100,6 +1116,16 @@ if(g.done.length){ html += '<div class="adonelist">'; g.done.forEach(function(it
 html += '</div></div>';
 });
 document.getElementById("albody").innerHTML = html;
+}
+function alNest(list){
+var posts = {}, order = [], loose = [];
+list.forEach(function(it){ if(it.type === "posting"){ posts[it.ref] = { it:it, kids:[] }; order.push(it.ref); } });
+list.forEach(function(it){
+if(it.type === "posting") return;
+if(it.type === "response" && it.pid && posts[it.pid]) posts[it.pid].kids.push(it);
+else loose.push({ it:it, kids:[] });
+});
+return order.map(function(k){ return posts[k]; }).concat(loose);
 }
 function alItem(it){
 var opts = AL.statuses[it.type] || ["Handled"];
@@ -1129,6 +1155,7 @@ if(t.hasAttribute("data-toggle")){
 var k = t.getAttribute("data-toggle"), g = t.parentElement, now = !g.classList.contains("open");
 AL.open[k] = now; g.classList.toggle("open", now); return;
 }
+if(t.hasAttribute("data-kids")){ var kk = t.getAttribute("data-kids"); AL.showKids[kk] = !AL.showKids[kk]; alRender(); return; }
 if(t.hasAttribute("data-done")){ var k2 = t.getAttribute("data-done"); AL.showDone[k2] = !AL.showDone[k2]; alRender(); return; }
 if(t.hasAttribute("data-key")){ alMark([t.getAttribute("data-key")], t.getAttribute("data-status"), t); return; }
 if(t.hasAttribute("data-undo")){ alMark([t.getAttribute("data-undo")], "", t); return; }
