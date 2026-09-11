@@ -1362,7 +1362,10 @@ function vdIntake_(data) {
 
 var VD_INV_HUB = 'https://citywidelv.github.io/cw-vendor-hub/new-vendors.html';
 var VD_INV_LOGO = 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
-var VD_INV_UNSORTED = 'unsorted';
+// The directory already had a catch-all service type before this flow existed.
+// Reuse it rather than inventing a second one; two catch-alls on the picker is
+// exactly the confusion an invite is supposed to avoid.
+var VD_INV_UNSORTED = 'unclassified';
 var VD_INV_TEST_TO = 'lvservicecall@gocitywide.com';
 var VD_INV_MARKETS = {
   lv: {
@@ -1402,8 +1405,8 @@ function vdInvIsPlaceholder_(r) {
   return vdStr_(r.source).toLowerCase() === 'hub invite';
 }
 
-// The catch-all service type. Created on first use so nobody has to remember to
-// run setup, and left alone if the team has renamed it on the sheet.
+// The catch-all service type. Normally already on the sheet; this only recreates
+// it if it has been removed, and leaves it alone if the team has renamed it.
 function vdEnsureUnsorted_(ss) {
   var sh = ss.getSheetByName(VD_TABS.TYPES);
   if (!sh) return;
@@ -1412,8 +1415,8 @@ function vdEnsureUnsorted_(ss) {
     if (vdStr_(vals[i][0]).toLowerCase() === VD_INV_UNSORTED) return;
   }
   sh.getRange(vdNextRow_(sh), 1, 1, VD_TYPE_HEADERS.length).setValues([[
-    VD_INV_UNSORTED, 'Not Sorted Yet',
-    'Invited from the Ops Hub. Their evaluation form sets the real service types.',
+    VD_INV_UNSORTED, 'Needs Classification',
+    'Trade not yet confirmed. Sort these into a real service type as you qualify them.',
     '900', 'TRUE'
   ]]);
 }
