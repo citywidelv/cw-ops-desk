@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Message Vendors | CW Ops Hub</title>
 <!--
-  Message Vendors. Build 2026-09-11a.
+  Message Vendors. Build 2026-09-11b.
 
   One screen to email vendors from the Ops Hub: pick a message (pre-written
   templates with hub links, or a custom note), pick the vendors from the
@@ -320,7 +320,7 @@ function boot(){
     el('myEmail').addEventListener('input', function(){ lsSet('cwVmEmail', el('myEmail').value); preview(); });
     el('by').addEventListener('input', function(){ lsSet('cwVmBy', el('by').value); });
     el('testTo').addEventListener('input', function(){ lsSet('cwVmTest', el('testTo').value); });
-    el('picker').addEventListener('change', function(e){ if(e.target && e.target.matches('input[data-id]')){ SEL[e.target.getAttribute('data-id')] = e.target.checked; if(!e.target.checked) delete SEL[e.target.getAttribute('data-id')]; syncCounts(); } });
+    el('picker').addEventListener('change', function(e){ if(e.target && e.target.matches('input[data-id]')){ if(e.target.checked) SEL[e.target.getAttribute('data-id')] = e.target.getAttribute('data-rg'); else delete SEL[e.target.getAttribute('data-id')]; syncCounts(); } });
     preview();
   }).catch(function(){ el('gateErr').textContent = 'Could not reach the server. Reload to try again.'; el('gateErr').style.display='block'; });
 }
@@ -349,8 +349,9 @@ var SENDER_LOCK = false;   // once the person picks a sender by hand, stop auto-
 function autoSender(){
   if(SENDER_LOCK) return;
   var picked = selectedVendors(); if(!picked.length) return;
+  // Follow the list the person picked from, not every region a vendor serves.
   var lv=false, nnv=false;
-  picked.forEach(function(v){ if(v.regions.indexOf('lv')>=0) lv=true; if(v.regions.indexOf('nnv')>=0) nnv=true; });
+  picked.forEach(function(v){ if(SEL[v.vendor_id]==='nnv') nnv=true; else lv=true; });
   el('sender').value = (lv && nnv) ? 'both' : (nnv ? 'nnv' : 'lv');
 }
 function currentReply(){
@@ -417,7 +418,7 @@ function buildPicker(){
         '<button type="button" class="tg" onclick="toggleGroup(\'' + esc(g.key) + '\')"><span class="caret">&#9654;</span><span>' + esc(g.name) + '</span><span class="gc" data-gc="' + esc(g.key) + '"><b>' + gp + '</b> of ' + gt + '</span></button>' +
         '<span class="acts"><button type="button" class="btn ghost sm" onclick="pickGroup(\'' + esc(g.key) + '\',true)">Pick all ' + gt + '</button><button type="button" class="btn ghost sm" onclick="pickGroup(\'' + esc(g.key) + '\',false)">None</button></span></div><div class="rows">';
       g.rows.sort(function(a,b){ return (a.dba_name||'').localeCompare(b.dba_name||''); }).forEach(function(v){
-        html += '<label class="row' + (v._ok?'':' noemail') + '"><input type="checkbox" data-id="' + esc(v.vendor_id) + '" data-g="' + esc(g.key) + '"' + (SEL[v.vendor_id]?' checked':'') + (v._ok?'':' disabled') + '>' +
+        html += '<label class="row' + (v._ok?'':' noemail') + '"><input type="checkbox" data-id="' + esc(v.vendor_id) + '" data-g="' + esc(g.key) + '" data-rg="' + rg + '"' + (SEL[v.vendor_id]?' checked':'') + (v._ok?'':' disabled') + '>' +
           '<span>' + esc(v.dba_name) + (v.contact_name ? ' <span style="color:var(--grey);">' + esc(v.contact_name) + '</span>' : '') + '</span>' +
           (v.status && v.status!=='Active' ? '<span class="st">' + esc(v.status) + '</span>' : '') +
           '<span class="em">' + (v._ok ? esc(v._email) : 'no email on file') + '</span></label>';
@@ -432,7 +433,7 @@ function buildPicker(){
 function toggleRegion(rg){ OPEN[rg] = !OPEN[rg]; var d = document.querySelector('.region[data-rg="' + rg + '"]'); if(d) d.classList.toggle('open', OPEN[rg]); }
 function toggleGroup(k){ GOPEN[k] = !GOPEN[k]; var d = document.querySelector('.grp[data-g="' + k + '"]'); if(d) d.classList.toggle('open', GOPEN[k]); }
 function pickGroup(k, on){
-  Array.prototype.forEach.call(document.querySelectorAll('input[data-g="' + k + '"]:not(:disabled)'), function(i){ i.checked = on; if(on) SEL[i.getAttribute('data-id')] = true; else delete SEL[i.getAttribute('data-id')]; });
+  Array.prototype.forEach.call(document.querySelectorAll('input[data-g="' + k + '"]:not(:disabled)'), function(i){ i.checked = on; if(on) SEL[i.getAttribute('data-id')] = i.getAttribute('data-rg'); else delete SEL[i.getAttribute('data-id')]; });
   if(on){ GOPEN[k] = true; var d = document.querySelector('.grp[data-g="' + k + '"]'); if(d) d.classList.add('open'); }
   syncCounts();
 }
