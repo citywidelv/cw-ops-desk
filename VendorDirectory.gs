@@ -4,7 +4,7 @@
 // Routing: doPost in Code.gs routes any kind starting 'vd_' to vdDispatch(data).
 // Kinds: vd_setup, vd_seed, vd_append, vd_region_backfill, vd_list, vd_save,
 //        vd_patch, vd_types, vd_intake, vd_bc_seed, vd_bc_list, vd_bc_send,
-//        vd_bc_rows, vd_bc_upsert, vd_bom_auth, vd_bom_setpass, vd_bom_asana (Sep 4 2026, BOM Hub)
+//        vd_bc_rows, vd_bc_upsert, vd_bom_auth, vd_bom_setpass, vd_bom_asana (Sep 4 2026, Admin Hub)
 //        vd_coi_* -> coiDispatch in CoiRequest.gs (Sep 5 2026, customer COI requests)
 //        vd_act_* -> actDispatch in ActLedger.gs (Sep 5 2026, digital ACT and Ledger Changes)
 // Aug 22 2026: VD_HEADERS gained last_audit, audit_result, audit_next_due, audit_pdf,
@@ -65,7 +65,7 @@ var VD_BC_HEADERS = [
   'vendor_id', 'vendor', 'last_name', 'first_name', 'status', 'check_type',
   'ten_year', 'first_check', 'most_recent_check', 'vf_file_no',
   'roster_company_as_typed', 'notes', 'added',
-  // Sep 4 2026: BOM Hub review columns. result is the Business Operations
+  // Sep 4 2026: Admin Hub review columns. result is the Business Operations
   // Manager's call (Pass / Fail / Pending); status keeps driving the Ops Hub list.
   'result', 'result_date', 'reviewed_by', 'market',
   // Sep 4 2026: source = who ran the check. 'City Wide' (Verified First, ordered by
@@ -76,7 +76,7 @@ var VD_BC_SOURCES = ['City Wide', 'Vendor submitted'];
 var VD_BC_STATUS = ['Cleared', 'Pending', 'Removed'];
 var VD_BC_RESULT = ['Pass', 'Fail', 'Pending'];
 var VD_BC_TYPES = ['Standard', '10-Year', 'Standard + 10-Year'];
-// Sep 4 2026: the BOM Hub has its own passcode (script property BOM_PASSCODE, set
+// Sep 4 2026: the Admin Hub has its own passcode (script property BOM_PASSCODE, set
 // with vd_bom_setpass using the team passcode). It unlocks only the kinds below.
 var VD_BOM_PROP = 'BOM_PASSCODE';
 var VD_BOM_KINDS = ['vd_bom_auth', 'vd_list', 'vd_bc_list', 'vd_bc_rows', 'vd_bc_upsert', 'vd_bom_asana', 'vd_types',
@@ -1062,10 +1062,10 @@ function vdBcSeed_(data) {
 }
 
 
-// ------------------------------------------------------------ BOM Hub ------
+// ------------------------------------------------------------ Admin Hub ------
 
 // Sep 4 2026. The Business Operations Manager runs and reviews every background
-// check. The BOM Hub (citywidelv.github.io/cw-bom-hub/) records the outcome per
+// check. The Admin Hub (citywidelv.github.io/cw-admin-hub/) records the outcome per
 // person: result Pass / Fail / Pending plus the check type (Standard, or the
 // 10-Year package Arroweye requires). status stays the switch the Ops Hub reads:
 // Pass -> Cleared, Fail -> Removed, Pending -> Pending, so the vendor directory
@@ -1127,7 +1127,7 @@ function vdBcUpsert_(data) {
   var byId = {};
   vendors.forEach(function (v) { byId[v.vendor_id] = v; });
   var today = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd');
-  var who = vdStr_(data.reviewed_by) || (data._bom ? 'BOM Hub' : 'Ops Hub');
+  var who = vdStr_(data.reviewed_by) || (data._bom ? 'Admin Hub' : 'Ops Hub');
   var col = {};
   VD_BC_HEADERS.forEach(function (h, i) { col[h] = i; });
 
@@ -1198,7 +1198,7 @@ function vdBcUpsert_(data) {
   return vdOut_({ ok: true, added: added, updated: updated, errors: errors, rows: out });
 }
 
-// Asana, read-only, for the BOM Hub cards. app.asana.com refuses to be framed, so
+// Asana, read-only, for the Admin Hub cards. app.asana.com refuses to be framed, so
 // the hub shows live task lists fetched here with a personal access token kept in
 // the ASANA_PAT script property (Project Settings > Script properties, or the
 // vd_bom_asana_setup kind below with the team passcode). Cached two minutes.

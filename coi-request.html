@@ -10,8 +10,8 @@ Customer certificate of insurance (COI) request. A rep or FSM answers every ques
 customer can ask for on an ACORD 25, pastes the customer's own email, and attaches a
 sample or spec if one was sent. The page renders the broker checklist and posts it
 (kind vd_coi_submit, CoiRequest.gs) which stores the row + files and sends ONE email to
-the market compliance inbox. Status is tracked on the BOM Hub (coi-log.html).
-Gate: reuses the team passcode cached by the Ops Hub, Sales Hub, or BOM Hub on this
+the market compliance inbox. Status is tracked on the Admin Hub (coi-log.html).
+Gate: reuses the team passcode cached by the Ops Hub, Sales Hub, or Admin Hub on this
 origin; the server checks it on every call. Add ?test=1 to send to the test inbox.
 This is the customer-facing direction. Vendor COIs coming in are insurance.html.
 -->
@@ -142,7 +142,7 @@ input.bad,textarea.bad,select.bad{border-color:var(--red);background:#FDEEEF}
 <div class="wrap">
 <div id="gate" class="gatebox hidden">
   <b>Team passcode</b>
-  <p id="gmsg">This page uses the team passcode. If you already unlocked the Ops Hub, Sales Hub, or BOM Hub in this browser it opens on its own.</p>
+  <p id="gmsg">This page uses the team passcode. If you already unlocked the Ops Hub, Sales Hub, or Admin Hub in this browser it opens on its own.</p>
   <input type="password" id="pc" placeholder="Passcode" autocomplete="current-password">
   <button class="btn" id="enter">Enter</button>
 </div>
@@ -393,8 +393,8 @@ Pick <b>Customer did not say</b> when the email is silent; a blank is what gets 
 <script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
-var HUB = /cw-bom-hub/.test(document.referrer || "") ? "bom" : "ops";
-var LOG_URL = "https://citywidelv.github.io/cw-bom-hub/coi-log.html";
+var HUB = /cw-admin-hub/.test(document.referrer || "") ? "bom" : "ops";
+var LOG_URL = "https://citywidelv.github.io/cw-admin-hub/coi-log.html";
 var PASS = "", CTX = { staff: [], markets: {} }, FILES = [];
 var TEST = /[?&]test=1/.test(location.search);
 var NS = "Not specified";
@@ -821,7 +821,7 @@ function load(pass, isAuto, next){
   post({ kind:"vd_coi_context" }, function(r){
     btn.disabled = false;
     if(r && r.ok){
-      if(pass !== CWAuth.getBom()) CWAuth.set(pass);
+      if(pass !== CWAuth.getAdmin()) CWAuth.set(pass);
       CTX = r; if(r.markets){ Object.keys(r.markets).forEach(function(k){ if(MARKETS[k]) MARKETS[k].entity = r.markets[k].entity || MARKETS[k].entity; }); }
       $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
       buildStaff(); render();
@@ -832,7 +832,7 @@ function load(pass, isAuto, next){
   });
 }
 function tryCached(){
-  var cands = [], t = CWAuth.get(), b = CWAuth.getBom();
+  var cands = [], t = CWAuth.get(), b = CWAuth.getAdmin();
   if(t) cands.push(t); if(b && cands.indexOf(b) < 0) cands.push(b);
   if(!cands.length){ CWAuth.bounce(HUB, "locked"); return; }
   var i = 0;
@@ -844,7 +844,7 @@ function tryCached(){
   var ref = document.referrer || "";
   var back = $("backlink");
   if(/sales-hub/.test(ref)){ back.href = "https://citywidelv.github.io/sales-hub/"; back.innerHTML = "&larr; Sales Hub"; }
-  else if(/cw-bom-hub/.test(ref)){ back.href = "https://citywidelv.github.io/cw-bom-hub/"; back.innerHTML = "&larr; BOM Hub"; }
+  else if(/cw-admin-hub/.test(ref)){ back.href = "https://citywidelv.github.io/cw-admin-hub/"; back.innerHTML = "&larr; Admin Hub"; }
   buildYn(); buildChecks(); buildFiles();
   document.querySelectorAll("#f input, #f select, #f textarea").forEach(function(el){
     el.addEventListener("input", function(){ el.classList.remove("bad"); showSubs(); render(); });

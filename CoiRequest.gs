@@ -2,7 +2,7 @@
 // CoiRequest.gs - customer certificate of insurance (COI) requests (Sep 5 2026)
 // File in the CW Solicitations Apps Script project.
 // Routing: vdDispatch in VendorDirectory.gs hands every kind starting 'vd_coi_'
-// to coiDispatch(data) AFTER the passcode check (team passcode, or the BOM Hub
+// to coiDispatch(data) AFTER the passcode check (team passcode, or the Admin Hub
 // passcode because the kinds below are in VD_BOM_KINDS). Code.gs is untouched.
 // Kinds: vd_coi_setup, vd_coi_context, vd_coi_submit, vd_coi_rows, vd_coi_status
 //
@@ -22,7 +22,7 @@
 // the email goes to COI_TEST_TO with a TEST prefix and the row is flagged test.
 //
 // Status lives on the row (Requested, Sent to broker, Received, Delivered to
-// customer) and is changed from cw-bom-hub/coi-log.html through vd_coi_status.
+// customer) and is changed from cw-admin-hub/coi-log.html through vd_coi_status.
 // Nothing here deletes a row. Test rows are kept and flagged, never removed.
 // ============================================================
 
@@ -32,7 +32,7 @@ var COI_FOLDER_PATH = ['Team Portal', 'Ops Hub', 'COI Requests'];
 var COI_TEST_TO = 'lvservicecall@gocitywide.com';
 var COI_SENDER = 'City Wide COI Requests';
 var COI_LOGO = 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
-var COI_LOG_URL = 'https://citywidelv.github.io/cw-bom-hub/coi-log.html';
+var COI_LOG_URL = 'https://citywidelv.github.io/cw-admin-hub/coi-log.html';
 
 var COI_STATUSES = ['Requested', 'Sent to broker', 'Received', 'Delivered to customer'];
 
@@ -361,7 +361,7 @@ function coiStatus_(data) {
   var status = coiStr_(data.status);
   var note = coiStr_(data.note);
   var link = coiStr_(data.cert_link);
-  var who = coiStr_(data.who) || 'BOM Hub';
+  var who = coiStr_(data.who) || 'Admin Hub';
   var now = coiNow_();
   if (status && COI_STATUSES.indexOf(status) < 0) throw new Error('Status must be one of: ' + COI_STATUSES.join(', '));
   if (!status && !note && !link) throw new Error('Nothing to change.');
@@ -455,7 +455,7 @@ function coiEmailHtml_(id, rec, market, sections, names, links, isTest) {
   '</div></td></tr>' +
   '<tr><td style="padding:22px 30px 26px;">' +
   '<a href="' + COI_LOG_URL + '" style="display:inline-block;background:#D22730;color:#ffffff;font-family:Verdana,Arial,sans-serif;font-size:12.5px;font-weight:bold;text-decoration:none;padding:10px 18px;">Open the COI request log</a>' +
-  '<p style="margin:14px 0 0;font-family:Verdana,Arial,sans-serif;font-size:10.5px;line-height:1.6;color:#636466;">Reply to this email to reach the requester. Update the status on the BOM Hub log as the certificate moves. City Wide Facility Solutions &middot; GoCityWide.com</p>' +
+  '<p style="margin:14px 0 0;font-family:Verdana,Arial,sans-serif;font-size:10.5px;line-height:1.6;color:#636466;">Reply to this email to reach the requester. Update the status on the Admin Hub log as the certificate moves. City Wide Facility Solutions &middot; GoCityWide.com</p>' +
   '</td></tr></table></td></tr></table>';
 }
 

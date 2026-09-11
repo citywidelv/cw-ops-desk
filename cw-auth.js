@@ -3,9 +3,9 @@
 
    How it works
    - Every internal repo publishes under the same origin, so localStorage is shared.
-   - The Ops Hub, Sales Hub, BOM Hub, and Team Portal are the only pages that show a
+   - The Ops Hub, Sales Hub, Admin Hub, and Team Portal are the only pages that show a
      passcode box. They store the passcode under ONE key (cwOpsHubPass) once the server
-     accepts it. The BOM Hub also accepts its own BOM-only passcode (cwBomHubPass).
+     accepts it. The Admin Hub also accepts its own Admin-only passcode (cwAdminHubPass).
    - Sub pages never show a passcode box. They call CWAuth.require(). If the device has
      no passcode they bounce to their hub gate with ?next= and come straight back after
      the unlock. If the server later rejects the cached passcode (it was rotated) they
@@ -22,13 +22,13 @@
   "use strict";
   var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
   var KEY = "cwOpsHubPass";
-  var BOMKEY = "cwBomHubPass";
+  var ADMINKEY = "cwAdminHubPass";
   var LEGACY = ["cw_sales_auth", "cw_exa_auth", "cw_vio_auth", "cw_ins_auth"];
   var MSGKEY = "cwAuthMsg";
   var ORIGIN = "https://citywidelv.github.io/";
   var HUBS = {
     ops:    ORIGIN + "cw-ops-desk/",
-    bom:    ORIGIN + "cw-bom-hub/",
+    admin:  ORIGIN + "cw-admin-hub/",
     sales:  ORIGIN + "sales-hub/",
     portal: ORIGIN
   };
@@ -50,17 +50,17 @@
     }
     return "";
   }
-  function getBom(){ return ls(function(){ return localStorage.getItem(BOMKEY); }) || ""; }
+  function getAdmin(){ return ls(function(){ return localStorage.getItem(ADMINKEY); }) || ""; }
   function setTeam(pass){
     ls(function(){ localStorage.setItem(KEY, pass); });
     LEGACY.forEach(function(k){ ls(function(){ localStorage.removeItem(k); }); });
   }
-  function setBom(pass){ ls(function(){ localStorage.setItem(BOMKEY, pass); }); }
+  function setAdmin(pass){ ls(function(){ localStorage.setItem(ADMINKEY, pass); }); }
   function clearTeam(){
     ls(function(){ localStorage.removeItem(KEY); });
     LEGACY.forEach(function(k){ ls(function(){ localStorage.removeItem(k); }); });
   }
-  function clearAll(){ clearTeam(); ls(function(){ localStorage.removeItem(BOMKEY); }); }
+  function clearAll(){ clearTeam(); ls(function(){ localStorage.removeItem(ADMINKEY); }); }
 
   /* Server check. Resolves {ok:true, r} / {ok:false, r} / {ok:null} (unreachable). */
   function validate(pass, kind){
@@ -118,7 +118,7 @@
     opts = opts || {};
     var hub = opts.hub || "ops";
     var pass = getTeam();
-    if(!pass && hub === "bom") pass = getBom();
+    if(!pass && hub === "admin") pass = getAdmin();
     if(!pass){ bounce(hub, "locked"); return ""; }
     return pass;
   }
@@ -127,7 +127,7 @@
      bounce; anything else (offline, server error) shows a bar with a retry. */
   function locked(hub, msg){
     if(isPassError(msg)){
-      if(hub === "bom"){ clearAll(); } else { clearTeam(); }
+      if(hub === "admin"){ clearAll(); } else { clearTeam(); }
       bounce(hub, "expired");
       return;
     }
@@ -155,7 +155,7 @@
   function signOut(){ clearAll(); ls(function(){ localStorage.removeItem("cwOpsName"); }); location.reload(); }
 
   /* Hub page gate. Wires an existing passcode box. opts:
-       hub: "ops" | "sales" | "bom" | "portal"
+       hub: "ops" | "sales" | "admin" | "portal"
        kind: "auth" (default) or "vd_bom_auth"
        input, button, err: element ids of the passcode field, Enter button, error line
        note: optional id of the gate's explanatory line (informational messages go there)
@@ -198,7 +198,7 @@
       say("");
     }
     function store(pass, r){
-      if(hub === "bom"){ if(r && r.who === "bom") setBom(pass); else setTeam(pass); }
+      if(hub === "admin"){ if(r && r.who === "bom") setAdmin(pass); else setTeam(pass); }
       else setTeam(pass);
     }
     function finish(pass, r){
@@ -232,8 +232,8 @@
        first so a rotated passcode never ping-pongs between a sub page and the gate. */
     var cands = [];
     var team = getTeam();
-    if(team) cands.push({ pass: team, bom: false });
-    if(hub === "bom"){ var bp = getBom(); if(bp) cands.push({ pass: bp, bom: true }); }
+    if(team) cands.push({ pass: team, admin: false });
+    if(hub === "admin"){ var bp = getAdmin(); if(bp) cands.push({ pass: bp, admin: true }); }
 
     if(!cands.length){
       var m = reason === "expired" ? MSG.expired : (reason === "locked" ? MSG.locked : "");
@@ -250,7 +250,7 @@
       if(i >= cands.length){
         /* Every cached passcode was rejected: it was rotated. */
         busy(false);
-        if(hub === "bom") clearAll(); else clearTeam();
+        if(hub === "admin") clearAll(); else clearTeam();
         if(!next && unlocked){
           ls(function(){ sessionStorage.setItem(MSGKEY, MSG.expired); });
           location.reload();
@@ -263,7 +263,7 @@
       var c = cands[i];
       validate(c.pass, kind).then(function(res){
         if(res.ok === true){
-          if(c.bom) setBom(c.pass); else setTeam(c.pass);
+          if(c.admin) setAdmin(c.pass); else setTeam(c.pass);
           if(next){ busy(false); finish(c.pass, res.r); return; }
           if(opts.onValidated) opts.onValidated(res.r, c.pass);
           return;
@@ -273,15 +273,15 @@
           if(next){ busy(false); location.replace(next); }
           return;
         }
-        if(c.bom){ ls(function(){ localStorage.removeItem(BOMKEY); }); } else { clearTeam(); }
+        if(c.admin){ ls(function(){ localStorage.removeItem(ADMINKEY); }); } else { clearTeam(); }
         tryNext(i + 1);
       });
     })(0);
   }
 
   window.CWAuth = {
-    KEY: KEY, BOMKEY: BOMKEY, HUBS: HUBS, MSG: MSG, WEBHOOK: WEBHOOK,
-    get: getTeam, getBom: getBom, set: setTeam, clear: clearTeam, clearAll: clearAll,
+    KEY: KEY, ADMINKEY: ADMINKEY, HUBS: HUBS, MSG: MSG, WEBHOOK: WEBHOOK,
+    get: getTeam, getAdmin: getAdmin, getBom: getAdmin, set: setTeam, clear: clearTeam, clearAll: clearAll,
     validate: validate, require: require, locked: locked, bounce: bounce, banner: banner,
     hubGate: hubGate, signOut: signOut, isPassError: isPassError
   };

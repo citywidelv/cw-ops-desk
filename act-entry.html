@@ -12,7 +12,7 @@ the region and month, answers "What kind of ledger change are you doing?", and f
 form shaped like that Excel section. Accounts come from the account directory and ICs
 from the CW Vendor Directory; both have Add and Rename buttons that write straight to
 the directories and notify the other side to check the name. Saves through ActLedger.gs
-(kind vd_act_add). Review, edits, and the Accounting Complete box live on the BOM Hub
+(kind vd_act_add). Review, edits, and the Accounting Complete box live on the Admin Hub
 (act-document.html). Gate: team passcode cached by any hub on this origin (cw-auth.js).
 Prefill: ?region=lv|nnv&doc=act|ledger&section=<key>&month=YYYY-MM
 -->
@@ -99,11 +99,11 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:78ch}
 
 <div class="wrap">
 <h1>Log an Account Change</h1>
-<p class="lede">This replaces the ACT and Ledger Changes workbooks. Pick the region and month, say what kind of change it is, and fill in the same boxes the Excel had. Accounting reviews and checks it off on the BOM Hub.</p>
+<p class="lede">This replaces the ACT and Ledger Changes workbooks. Pick the region and month, say what kind of change it is, and fill in the same boxes the Excel had. Accounting reviews and checks it off on the Admin Hub.</p>
 
 <div id="gate" class="gatebox hidden">
   <b>Team passcode</b>
-  <p id="gmsg" class="note">This page uses the team passcode. If you already unlocked the Ops Hub, Sales Hub, or BOM Hub in this browser it opens on its own.</p>
+  <p id="gmsg" class="note">This page uses the team passcode. If you already unlocked the Ops Hub, Sales Hub, or Admin Hub in this browser it opens on its own.</p>
   <input type="password" id="pc" placeholder="Passcode" autocomplete="current-password">
   <button class="btn solid" id="enter" type="button">Enter</button>
 </div>
@@ -144,7 +144,7 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:78ch}
     <div class="actions">
       <button class="btn solid" id="again" type="button">Log another of the same kind</button>
       <button class="btn" id="other" type="button">A different kind of change</button>
-      <a class="btn" id="viewlink" href="#" target="_blank" rel="noopener">Open this month on the BOM Hub</a>
+      <a class="btn" id="viewlink" href="#" target="_blank" rel="noopener">Open this month on the Admin Hub</a>
     </div>
   </div>
 </div>
@@ -155,7 +155,7 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:78ch}
 <div id="toast" class="toast"></div>
 
 <script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
-<script src="https://citywidelv.github.io/cw-bom-hub/act-shared.js"></script>
+<script src="https://citywidelv.github.io/cw-admin-hub/act-shared.js"></script>
 <script>
 var HUB = "ops", PASS = "", CTX = null, FORM = null, SEC = null;
 var esc = ACT.esc;
@@ -354,7 +354,7 @@ function load(pass, isAuto, next){
   ACT.post({ kind: "vd_act_context" }, pass).then(function(r){
     btn.disabled = false;
     if(r && r.ok){
-      if(pass !== CWAuth.getBom()) CWAuth.set(pass);
+      if(pass !== CWAuth.getAdmin()) CWAuth.set(pass);
       CTX = r; ACT.setContext(r); ACT.injectCss();
       if(r.vendors === null) toast("The vendor directory could not be read; IC lists are empty.", "err");
       TEST = !r.live; if(TEST) $("testbar").classList.remove("hidden");
@@ -365,7 +365,7 @@ function load(pass, isAuto, next){
   }).catch(function(){ btn.disabled = false; $("loading").classList.add("hidden"); $("gate").classList.remove("hidden"); $("gmsg").textContent = "Could not reach the server. Check your connection and try again."; });
 }
 function tryCached(){
-  var cands = [], t = CWAuth.get(), b = CWAuth.getBom();
+  var cands = [], t = CWAuth.get(), b = CWAuth.getAdmin();
   if(t) cands.push(t); if(b && cands.indexOf(b) < 0) cands.push(b);
   if(!cands.length){ CWAuth.bounce(HUB, "locked"); return; }
   var i = 0;
@@ -380,12 +380,12 @@ function buildWho(){
 }
 function boot(){
   buildMonths(); buildKinds(); buildWho();
-  try { $("who").value = localStorage.getItem("cwOpsName") || localStorage.getItem("cwBomName") || ""; } catch(e){}
+  try { $("who").value = localStorage.getItem("cwOpsName") || localStorage.getItem("cwAdminName") || ""; } catch(e){}
   setRegion(REGION);
   if(Q.section && ACT.section(Q.section) && ACT.section(Q.section).entry) pick(Q.section);
   else if((Q.doc || "").toLowerCase() === "ledger") pick("ledger_changes");
   var ref = document.referrer || "";
-  if(/cw-bom-hub/.test(ref)){ $("backlink").href = ACT.BOM; $("backlink").innerHTML = "&larr; BOM Hub"; }
+  if(/cw-admin-hub/.test(ref)){ $("backlink").href = ACT.BOM; $("backlink").innerHTML = "&larr; Admin Hub"; }
 }
 tryCached();
 </script>

@@ -141,7 +141,7 @@ pre.prev{white-space:pre-wrap;background:#fafafa;border:1px solid #e6e6e6;border
 
   <div class="card">
     <h2>Email wording</h2>
-    <p class="sub">Placeholders: {dba} {contact} {names} {count} {link} {market} {doo} (the market Director of Operations). {names} lists each person with the check type and where it stands (passed, pending, on file, or submitted by the vendor), as recorded on the <a href="https://citywidelv.github.io/cw-bom-hub/background-checks.html">BOM Hub</a>. Gmail sends add a City Wide Compliance footer with the market office; mail app sends get your own signature. Edits are kept on this browser.</p>
+    <p class="sub">Placeholders: {dba} {contact} {names} {count} {link} {market} {doo} (the market Director of Operations). {names} lists each person with the check type and where it stands (passed, pending, on file, or submitted by the vendor), as recorded on the <a href="https://citywidelv.github.io/cw-admin-hub/background-checks.html">Admin Hub</a>. Gmail sends add a City Wide Compliance footer with the market office; mail app sends get your own signature. Edits are kept on this browser.</p>
     <p class="sub"><label class="chk" style="margin:0;"><input type="checkbox" id="inclFail" checked> Include people who did not clear (shown as "Did not clear", no reason given)</label></p>
     <label>Subject</label>
     <input type="text" id="tSubject">
@@ -341,7 +341,7 @@ function firstName(v){
   var c = String(v.contact_name||'').trim();
   return c ? c.split(/\s+/)[0] : (v.dba_name||'').trim();
 }
-/* Per-person wording for the vendor. Result and source come from the BOM Hub.
+/* Per-person wording for the vendor. Result and source come from the Admin Hub.
    Failed people are listed as "Did not clear" only when the checkbox is on, and
    never with a reason. */
 function personLine(p){

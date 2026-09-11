@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Nominate a Vendor or G.O.A.T. of the Month | CW Ops Hub</title>
+<!-- build 2026-09-11
+Team nomination form for Vendor of the Month (a vendor crew, picked from the CW Vendor
+Directory, kind vd_list) and G.O.A.T. of the Month (a City Wide team member, picked from
+the CW Team Directory, kind staff_list). Posts kind rec_nominate (Recognition.gs) to the
+CW Recognition sheet; nobody is emailed. Winners are logged only on the Admin Hub
+(cw-admin-hub/recognition.html). Gate: reuses the cached team passcode; the pickers need
+it, the nomination itself does not.
+-->
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+a{color:var(--red)}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.head .bar{max-width:860px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  border-left:2px solid var(--border);padding-left:14px}
+.head .back{margin-left:auto;font-size:12px;font-weight:700;background:var(--red);color:#fff;
+  text-decoration:none;border-radius:6px;padding:8px 14px;white-space:nowrap}
+.head .back:hover{background:var(--red-dark);color:#fff}
+.wrap{max-width:860px;margin:0 auto;padding:26px 20px 60px}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 20px;max-width:70ch}
+.gatebox{max-width:360px;background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.gatebox input{width:100%;font-family:inherit;font-size:14px;border:1.5px solid var(--border);
+  border-radius:8px;padding:10px 12px;margin:12px 0;text-align:center}
+.btn{font-family:inherit;font-size:14px;font-weight:700;background:var(--red);color:#fff;border:none;
+  border-radius:8px;padding:12px 24px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn:hover{background:var(--red-dark);color:#fff}
+.btn.ghost{background:#fff;color:var(--black);border:2px solid var(--border)}
+.btn:disabled{opacity:.55;cursor:default}
+.gatebox b{display:block;font-size:16px;margin-bottom:10px}
+#gmsg{font-size:12.5px;color:var(--grey);margin-bottom:16px;line-height:1.55}
+#gmsg.err{color:var(--red);font-weight:700}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+  padding:22px 24px;margin-bottom:16px}
+.card>h2{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  margin-bottom:4px}
+.card>h2:after{content:"";display:block;width:34px;height:3px;background:var(--red);border-radius:2px;
+  margin:8px 0 16px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0 20px}
+label{display:block;margin-bottom:14px}
+label>span{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--grey);margin-bottom:5px}
+label>span i{color:var(--red);font-style:normal}
+input[type=text],input[type=email],input[type=tel],input[type=url],input[type=number],select,textarea{
+  width:100%;font-family:inherit;font-size:14px;color:var(--black);background:#fff;
+  border:1.5px solid var(--border);border-radius:8px;padding:10px 12px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--black)}
+textarea{min-height:84px;resize:vertical;line-height:1.55}
+.full{grid-column:1/-1}
+.hint{font-size:11.5px;color:var(--grey);margin:-9px 0 14px}
+/* service type checkboxes */
+.types{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.types label{display:flex;align-items:flex-start;gap:8px;margin:0;background:var(--light);
+  border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:13px}
+.types label:hover{border-color:var(--black)}
+.types label.on{background:#FDEEEF;border-color:var(--red)}
+.types label>span{display:inline;font-size:13px;font-weight:400;letter-spacing:0;text-transform:none;
+  color:var(--black);margin:0}
+.types input{margin-top:3px;flex:none}
+/* yes / no segments */
+.seg{display:flex;gap:6px;text-transform:none;letter-spacing:0;font-size:inherit}
+.seg button{font-family:inherit;font-size:12.5px;font-weight:700;background:#fff;color:var(--grey);
+  border:2px solid var(--border);border-radius:8px;padding:8px 16px;cursor:pointer;flex:1}
+.seg button.on{background:var(--black);border-color:var(--black);color:#fff}
+.seg button.on.no{background:var(--red);border-color:var(--red)}
+.msg{border-radius:8px;padding:12px 14px;font-size:13px;margin-bottom:16px;display:none}
+.msg.show{display:block}
+.msg.err{background:#FDEEEF;border:1px solid var(--red);color:var(--black)}
+.msg.warn{background:#FBF3D6;border:1px solid var(--gold)}
+.done{background:#fff;border:1px solid var(--border);border-left:5px solid var(--teal);border-radius:12px;
+  box-shadow:var(--shadow);padding:34px 28px;text-align:center}
+.done b{display:block;font-size:19px;margin-bottom:8px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.hidden{display:none!important}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:24px}
+</style>
+<style>
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.pick button{font-family:inherit;text-align:left;background:#fff;border:2px solid var(--border);border-radius:12px;padding:16px 18px;cursor:pointer;box-shadow:var(--shadow);color:var(--black)}
+.pick button:hover{border-color:var(--black)}
+.pick button.on{border-color:var(--red);box-shadow:0 0 0 3px rgba(210,39,48,.12)}
+.pick b{display:block;font-size:15px}
+.pick span{display:block;font-size:12.5px;color:var(--grey);margin-top:4px}
+.linked{font-size:11.5px;color:#1E8E5A;font-weight:700;margin:-9px 0 14px}
+.linked.no{color:var(--grey);font-weight:400}
+@media(max-width:600px){.pick{grid-template-columns:1fr}}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t">Nominate</span>
+  <a class="back" href="index.html">&larr; Ops Hub</a>
+</div></header>
+
+<div class="wrap">
+<div id="gate" class="gatebox hidden"><b>Team passcode</b><p id="gmsg">Loading...</p></div>
+
+<div id="app" class="hidden">
+<h1>Nominate a Vendor or a G.O.A.T. of the Month</h1>
+<p class="lede">Vendor of the Month is a crew that is setting the standard in our buildings. G.O.A.T. of the Month (Greatest of All Time) is a City Wide team member who went beyond the job. Nominations wait on the Admin Hub; the plate is logged there.</p>
+
+<div class="pick" id="pick">
+<button type="button" data-t="vendor" class="on"><b>Vendor of the Month</b><span>Pick a vendor from the directory.</span></button>
+<button type="button" data-t="goat"><b>G.O.A.T. of the Month</b><span>Pick a City Wide team member.</span></button>
+</div>
+
+<div class="msg err" id="msg"></div>
+
+<form id="frm" novalidate>
+<div class="card">
+<h2 id="cardTitle">Vendor of the Month</h2>
+<div class="row">
+<label><span>Region <i>*</i></span><select id="region"><option>Las Vegas</option><option>Northern Nevada</option></select></label>
+<label id="vendorL"><span>Vendor <i>*</i></span><input type="text" id="nominee" list="vendorList" placeholder="Start typing the vendor name" maxlength="120"><datalist id="vendorList"></datalist></label>
+<label id="staffL" class="hidden"><span>Team member <i>*</i></span><select id="staff"><option value="">Loading the team directory...</option></select></label>
+</div>
+<div class="linked no" id="vendorLink">Type a name from the directory and the nomination links to their record.</div>
+<label class="full"><span>Why they earned it <i>*</i></span><textarea id="reason" maxlength="1500" placeholder="What did they do? A sentence or two is plenty."></textarea></label>
+<div class="row">
+<label><span>Your first name <i>*</i></span><input type="text" id="first" maxlength="60" autocomplete="given-name"></label>
+</div>
+<div class="hint">Not anonymous. The admin team sees who nominated.</div>
+<div class="actions"><button class="btn" id="send" type="submit">Send the nomination</button><a class="btn ghost" href="https://citywidelv.github.io/cw-admin-hub/recognition.html">Nominations on the Admin Hub</a></div>
+</div>
+</form>
+
+<div class="done hidden" id="done"><b>Nomination sent</b><p id="doneMsg"></p><div class="actions" style="justify-content:center;margin-top:16px"><a class="btn ghost" href="nominate.html">Nominate someone else</a><a class="btn" href="https://citywidelv.github.io/cw-vendor-hub/#recognition">See the wall</a></div></div>
+</div>
+</div>
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
+
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var PASS = "", TYPE = "vendor", VENDORS = [], STAFF = [];
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function post(body, cb){
+  body.passcode = PASS;
+  fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) })
+    .then(function(r){ return r.json(); }).then(cb).catch(function(){ cb(null); });
+}
+function say(m){ var e = $("msg"); e.textContent = m; e.classList.toggle("show", !!m); if(m) e.scrollIntoView({ block:"center" }); }
+function setType(t){
+  TYPE = t;
+  Array.prototype.forEach.call($("pick").querySelectorAll("button"), function(b){ b.classList.toggle("on", b.getAttribute("data-t") === t); });
+  $("vendorL").classList.toggle("hidden", t !== "vendor"); $("vendorLink").classList.toggle("hidden", t !== "vendor");
+  $("staffL").classList.toggle("hidden", t !== "goat");
+  $("cardTitle").textContent = t === "goat" ? "G.O.A.T. of the Month" : "Vendor of the Month";
+}
+$("pick").addEventListener("click", function(e){ var b = e.target.closest("button"); if(b) setType(b.getAttribute("data-t")); });
+if(/[?&]type=goat/.test(location.search)) setType("goat");
+function vendorMatch(){
+  var k = $("nominee").value.trim().toLowerCase();
+  return VENDORS.filter(function(v){ return v.dba.toLowerCase() === k || (v.legal && v.legal.toLowerCase() === k); })[0] || null;
+}
+function showLink(){
+  var v = vendorMatch(), el = $("vendorLink");
+  el.className = "linked" + (v ? "" : " no");
+  el.textContent = v ? "Linked to " + v.dba + " (" + v.id + ", " + v.region + ")" : ($("nominee").value.trim() ? "Not in the directory as typed. It still sends with the name as typed." : "Type a name from the directory and the nomination links to their record.");
+}
+$("nominee").addEventListener("input", showLink);
+function renderStaff(){
+  var reg = $("region").value;
+  var list = STAFF.filter(function(s){ return !s.market || s.market === "Both" || s.market === reg; });
+  if(!list.length) list = STAFF;
+  $("staff").innerHTML = '<option value="">Pick a team member</option>' + list.map(function(s){ return '<option value="' + esc(s.name) + '">' + esc(s.name) + (s.role ? ' (' + esc(s.role) + ')' : '') + '</option>'; }).join("");
+}
+$("region").addEventListener("change", renderStaff);
+$("frm").addEventListener("submit", function(e){
+  e.preventDefault();
+  var nominee = TYPE === "goat" ? $("staff").value : $("nominee").value.trim();
+  var first = $("first").value.trim(), reason = $("reason").value.trim();
+  var m = !nominee ? (TYPE === "goat" ? "Pick the team member." : "Type or pick the vendor.") : !reason ? "Tell us why in a sentence or two." : !first ? "Add your first name." : "";
+  if(m){ say(m); return; }
+  say("");
+  var v = TYPE === "vendor" ? vendorMatch() : null;
+  var btn = $("send"); btn.disabled = true; btn.textContent = "Sending...";
+  post({ kind:"rec_nominate", type:TYPE, region:$("region").value, nominee:nominee, vendor_id: v ? v.id : "", nominator_first:first, nominator_company:"City Wide", reason:reason, source:"ops-hub", website:"" }, function(r){
+    btn.disabled = false; btn.textContent = "Send the nomination";
+    if(!r || !r.ok){ say((r && r.error) || "Could not send. Check your connection and try again."); return; }
+    $("doneMsg").textContent = nominee + " is in the queue on the Admin Hub for " + (TYPE === "goat" ? "G.O.A.T." : "Vendor") + " of the Month.";
+    $("frm").classList.add("hidden"); $("pick").classList.add("hidden"); $("done").classList.remove("hidden");
+    window.scrollTo({ top:0, behavior:"smooth" });
+  });
+});
+function load(pass){
+  PASS = pass;
+  post({ kind:"vd_list" }, function(r){
+    if(r && r.ok){
+      VENDORS = (r.vendors || []).map(function(v){ return { id:v.vendor_id, dba:String(v.dba_name || ""), legal:String(v.legal_name || ""), region:v.region || "" }; })
+        .filter(function(v){ return v.dba; }).sort(function(a, b){ return a.dba.toLowerCase() < b.dba.toLowerCase() ? -1 : 1; });
+      $("vendorList").innerHTML = VENDORS.map(function(v){ return '<option value="' + esc(v.dba) + '">' + esc(v.region) + '</option>'; }).join("");
+      $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
+      try{ $("first").value = (localStorage.getItem("cwAlertsWho") || localStorage.getItem("cwAdminName") || "").split(" ")[0]; }catch(x){}
+      post({ kind:"staff_list" }, function(s){ if(s && s.ok){ STAFF = (s.staff || []).sort(function(a, b){ return a.name < b.name ? -1 : 1; }); renderStaff(); } else { $("staff").innerHTML = '<option value="">Could not load the team directory</option>'; } });
+    } else {
+      CWAuth.locked("ops", (r && r.error) || "Wrong passcode.");
+    }
+  });
+}
+(function(){ var p = CWAuth.require({hub:"ops"}); if (p) load(p); })();
+</script>
+</body>
+</html>

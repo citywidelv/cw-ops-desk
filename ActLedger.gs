@@ -712,7 +712,7 @@ function actCommentAdd_(data) {
   actLog_(ss, who, needs ? 'question' : 'note', data.entry_id, hit.sec.name, 'chat', '', text.slice(0, 200));
   var docKey = hit.sec.doc === 'Ledger' ? 'ledger' : 'act';
   var mk = actMk_(hit.sh.getRange(hit.row, hit.head.indexOf('month_key') + 1).getValue()) || actMonthKey_(month);
-  var link = 'https://citywidelv.github.io/cw-bom-hub/act-document.html#/' + (actRegion_(region) === 'Northern Nevada' ? 'nnv' : 'lv') + '/' + docKey + '/' + mk + '/' + actStr_(data.entry_id);
+  var link = 'https://citywidelv.github.io/cw-admin-hub/act-document.html#/' + (actRegion_(region) === 'Northern Nevada' ? 'nnv' : 'lv') + '/' + docKey + '/' + mk + '/' + actStr_(data.entry_id);
   var mail = actNotify_(ss, 'comment', region, {
     subject: (needs ? 'Question on ' : 'Note on ') + actStr_(data.entry_id) + (acct ? ' - ' + acct : '') + ' (' + hit.sec.name + ', ' + month + ')',
     lines: [who + (needs ? ' asked a question on ' : ' left a note on ') + actStr_(data.entry_id) + (acct ? ' (' + acct + ')' : '') + ':', '', text, '',
@@ -841,8 +841,8 @@ function actAccountSave_(data) {
         'By: ' + (who || 'not given'),
         actStr_(data.context) ? 'From: ' + actStr_(data.context) : '',
         '',
-        'Please confirm the name matches CRM and Business Central, then mark it Verified on the BOM Hub:',
-        'https://citywidelv.github.io/cw-bom-hub/accounts.html?id=' + encodeURIComponent(a.account_id)
+        'Please confirm the name matches CRM and Business Central, then mark it Verified on the Admin Hub:',
+        'https://citywidelv.github.io/cw-admin-hub/accounts.html?id=' + encodeURIComponent(a.account_id)
       ]
     });
   }
