@@ -191,6 +191,7 @@ white-space:nowrap;transition:all .15s}
 .atype.response{background:var(--red)}
 .atype.supply{background:var(--black)}
 .atype.shop{background:var(--grey)}
+.atype.posting{background:var(--gold);color:var(--black)}
 .aitem .amain{min-width:0;font-size:13px;line-height:1.5}
 .aitem .afrom{font-weight:700}
 .aitem .asum{color:var(--grey);font-size:12.5px;margin-top:2px;overflow-wrap:anywhere}
@@ -529,9 +530,9 @@ search box to jump straight to what you need.</p>
 <div class="astatus" id="alstatus"></div>
 <div class="anew">
 <h3>What's new</h3>
-<p>Vendor replies to your postings, building supply orders, and shop orders used to land in the service inbox and get lost. They now show up here, under the name of the FSM they belong to.</p>
+<p>Vendor replies to your postings, building supply orders, and shop orders used to land in the service inbox and get lost. They now show up here, under the name of the FSM they belong to. Your open postings show here too. Mark one filled and it comes off the vendor board, and its replies clear with it.</p>
 <p>Pick your name once. This computer remembers it and opens your list first. Everyone else's list sits below yours, closed, with a count.</p>
-<p>When you have answered the vendor, placed the order, or processed the shop order, click the button on that line. It clears for the whole team at the same time, so nobody works the same item twice. Clicked the wrong one? Use Undo.</p>
+<p>When you have answered the vendor, placed the order, processed the shop order, or filled the posting, click the button on that line. It clears for the whole team at the same time, so nobody works the same item twice. Clicked the wrong one? Use Undo.</p>
 <p>Nothing is deleted. The emails still go out and the details stay in the sheets. An item nobody clears drops off after 45 days. A supply or shop order we could not tie to an account shows under "No FSM matched", and anyone can clear those.</p>
 </div>
 </section>
@@ -1102,7 +1103,7 @@ document.getElementById("albody").innerHTML = html;
 }
 function alItem(it){
 var opts = AL.statuses[it.type] || ["Handled"];
-var label = { response:"Vendor reply", supply:"Supply order", shop:"Shop order" }[it.type] || it.type;
+var label = { response:"Vendor reply", supply:"Supply order", shop:"Shop order", posting:"Open posting" }[it.type] || it.type;
 var meta = [];
 if(it.when_nice) meta.push(esc(it.when_nice));
 if(it.email) meta.push('<a href="mailto:' + esc(it.email) + '">' + esc(it.email) + '</a>');
@@ -1118,7 +1119,7 @@ return '<button class="abtn' + (i === 0 ? ' main' : '') + '" type="button" data-
 }).join('') + '</div>';
 }
 return '<div class="aitem' + (it.status ? ' done' : '') + '"><span class="atype ' + esc(it.type) + '">' + esc(label) + '</span>' +
-'<div class="amain"><span class="afrom">' + esc(it.from) + '</span> ' + (it.type === "response" ? 'on ' : 'for ') + esc(it.about) +
+'<div class="amain"><span class="afrom">' + esc(it.from) + '</span> ' + (it.about ? (it.type === "response" ? 'on ' : 'for ') + esc(it.about) : '') +
 '<div class="asum">' + esc(it.summary) + '</div><div class="ameta">' + meta.join(' &middot; ') + '</div></div>' + right + '</div>';
 }
 function alClick(e){
