@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Message Vendors | CW Ops Hub</title>
 <!--
-  Message Vendors. Build 2026-09-11b.
+  Message Vendors. Build 2026-09-11c.
 
   One screen to email vendors from the Ops Hub: pick a message (pre-written
   templates with hub links, or a custom note), pick the vendors from the
@@ -244,9 +244,13 @@ table.rt td{padding:6px 8px;border-bottom:1px solid #f0f0f0;}
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var VS = "https://citywidelv.github.io/cw-vendor-hub/";
-// Public Microsoft Bookings page for vendor audits. Empty until TJ supplies it;
-// the audit template carries a {bookings_link} placeholder until then.
-var BOOKINGS_URL = "";
+// Quarterly audit booking pages (Microsoft Bookings). Las Vegas books with Robert
+// Krause, Northern Nevada with Jeremy Walker. The audit template picks the link
+// from the sender chosen in step 3, and shows both when the sender is Nevada.
+var BOOKINGS = {
+  lv:  "https://outlook.office.com/book/CityWideFacilitySolutions@gocitywide.com/s/CfvcZnBXNU-uwAA6rKuaOA2",
+  nnv: "https://outlook.office.com/book/CWFSNewClientsCopy@gocitywide.com/s/GF_o2mGP5U-bLECn5JgH3Q2"
+};
 var MAILTO_MAX = 1800;
 var SENDERS = {
   lv:   { name:"City Wide of Las Vegas",       reply:"lvservicecall@gocitywide.com", foot:"City Wide Facility Solutions of Las Vegas, 3215 W Charleston Blvd, Suite 130, Las Vegas, NV 89102" },
@@ -261,7 +265,7 @@ var TEMPLATES = [
     body:"Hi team,\n\nDo you need uniforms? Make sure you pop into the Vendor Hub and tell us what you need. Remember, we place custom orders on the 1st and the 15th. Vests and aprons are available for pickup in our office while supplies last.\n\nShop uniforms and supplies: " + VS + "shop/\n\nRunning low on building supplies? Order them the same way and we will get them to the building.\n\nOrder building supplies: " + VS + "building-supplies.html\n\nThank you for everything you do for our clients." },
   { key:"audit", name:"Schedule your audit", blurb:"Bookings link, quarterly audit",
     subject:"It's time to schedule your audit",
-    body:"Hi team,\n\nIt's time to schedule your quarterly audit. Please use the link below to pick a time that works for you. The audit takes about an hour and covers your buildings, your crew list, and your paperwork.\n\nPick a time: {bookings_link}\n\nIf none of the open times work, reply to this email and we will find one together.\n\nThank you." },
+    body:"Hi team,\n\nIt's time to schedule your quarterly audit. Please use the link below to pick a time that works for you. Audits are in person at our office and take about an hour.\n\n{bookings_link}\n\nIf none of the open times work, reply to this email and we will find one together.\n\nThank you." },
   { key:"invoice", name:"Invoice reminder", blurb:"Monthly invoice, hub link",
     subject:"Reminder: monthly invoices are due",
     body:"Hi team,\n\nA quick reminder that monthly invoices are due by {due_date}. Submit yours through the Vendor Hub so it lands in the right place and gets paid on time.\n\nSubmit your invoice: " + VS + "invoice.html\n\nInvoices sent any other way take longer to process. Thank you." },
@@ -315,7 +319,7 @@ function boot(){
     ['subj','body'].forEach(function(id){ el(id).addEventListener('input', function(){ EDITS[TPL] = { subject: el('subj').value, body: el('body').value }; preview(); }); });
     el('search').addEventListener('input', buildPicker);
     el('showProspects').addEventListener('change', buildPicker);
-    el('sender').addEventListener('change', function(){ SENDER_LOCK = true; preview(); });
+    el('sender').addEventListener('change', function(){ SENDER_LOCK = true; if(TPL==='audit' && !EDITS.audit) loadTpl('audit'); else preview(); });
     el('replyTo').addEventListener('change', function(){ el('meBox').classList.toggle('hidden', el('replyTo').value !== 'me'); preview(); });
     el('myEmail').addEventListener('input', function(){ lsSet('cwVmEmail', el('myEmail').value); preview(); });
     el('by').addEventListener('input', function(){ lsSet('cwVmBy', el('by').value); });
@@ -332,7 +336,12 @@ function buildShelf(){
   }).join('');
 }
 function tplByKey(k){ return TEMPLATES.filter(function(t){ return t.key===k; })[0]; }
-function fill(s){ return s.replace(/\{bookings_link\}/g, BOOKINGS_URL || '{bookings_link}'); }
+function bookingsLines(){
+  var sk = el('sender').value;
+  if(sk==='both') return 'Las Vegas crews, pick a time: ' + BOOKINGS.lv + '\n\nNorthern Nevada crews, pick a time: ' + BOOKINGS.nnv;
+  return 'Pick a time: ' + BOOKINGS[sk==='nnv' ? 'nnv' : 'lv'];
+}
+function fill(s){ return s.replace(/\{bookings_link\}/g, bookingsLines()); }
 function loadTpl(k){
   TPL = k; var t = tplByKey(k); var e = EDITS[k];
   el('subj').value = e ? e.subject : fill(t.subject);
@@ -449,7 +458,7 @@ function syncCounts(){
   Array.prototype.forEach.call(document.querySelectorAll('[data-rc]'), function(s){
     var rg = s.getAttribute('data-rc'); var p = document.querySelectorAll('.region[data-rg="' + rg + '"] input:checked').length; s.querySelector('b').textContent = p;
   });
-  if(!SENDER_LOCK){ var before = el('sender').value; autoSender(); if(el('sender').value!==before){ preview(); return; } }
+  if(!SENDER_LOCK){ var before = el('sender').value; autoSender(); if(el('sender').value!==before){ if(TPL==='audit' && !EDITS.audit) loadTpl('audit'); else preview(); return; } }
   var bcc = el('envHead').querySelector('.bcc'); if(bcc) bcc.textContent = n + ' vendor' + (n===1?'':'s');
   el('quota').innerHTML = QUOTA >= 0 ? 'Gmail: <b>' + QUOTA + '</b> sends left today' : '';
   var w = el('gmailWarn');
