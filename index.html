@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
-<!-- build 2026-09-05d: Accounts & Buildings > Account Changes (ACT & Ledger) menu for the digital ACT.
+<!-- build 2026-09-11: Alerts card (vendor replies, building supply orders and shop orders grouped by FSM, shared check-offs through alerts_list / alerts_set in the CW Solicitations Apps Script, Alert Status tab) placed between the Building Information Sheets band and the Ops Wall, plus a What's New note for the team.
+build 2026-09-05d: Accounts & Buildings > Account Changes (ACT & Ledger) menu for the digital ACT.
      build 2026-09-05c: one team unlock per device (cw-auth.js), external menu links open in a new tab, Team Apps sub-menu, Handteq Point, InsurLink, Verified First, Amazon Business, Company Store links.
      build 2026-07-29b: landing page v2 per TJ.
 Kept: top bar, dropdown nav (now cascading groups), skyline hero, Most Used
@@ -153,6 +154,77 @@ white-space:nowrap;transition:all .15s}
 .fbtn.solid:hover{background:var(--red)}
 .fbtn.line{border:1.5px solid var(--border);color:var(--black);background:#fff}
 .fbtn.line:hover{border-color:var(--red);color:var(--red)}
+
+/* ---------- Alerts: vendor replies, supply orders, shop orders by FSM (Sep 2026) ---------- */
+.alerts{margin-top:18px}
+.acard{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.ahead{display:flex;align-items:center;gap:10px;padding:15px 20px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.ahead .bar-accent{flex:none;width:18px;height:3px;background:var(--red);border-radius:2px}
+.ahead h2{font-size:15px}
+.ahead .acount{font-size:12px;font-weight:700;background:var(--red);color:#fff;border-radius:10px;padding:2px 9px;white-space:nowrap}
+.ahead .acount.zero{background:var(--grey)}
+.ahead .awho{margin-left:auto;font-size:12px;font-weight:700;color:var(--grey);display:flex;align-items:center;gap:8px}
+.ahead select{font-family:inherit;font-size:13px;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;background:var(--light);min-height:36px;max-width:220px}
+.ahead select:focus{outline:none;border-color:var(--red);background:#fff}
+.ahead .arefresh{font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);border:1px solid var(--border);border-radius:18px;background:#fff;padding:0 12px;min-height:36px;cursor:pointer}
+.ahead .arefresh:hover{border-color:var(--red);color:var(--red)}
+.aempty{text-align:center;color:var(--grey);font-size:12.5px;padding:26px 20px}
+.aempty b{display:block;color:var(--black);font-size:13.5px;margin-bottom:4px}
+.agroup{border-bottom:1px solid var(--border)}
+.agroup:last-child{border-bottom:none}
+.agh{width:100%;display:flex;align-items:center;gap:12px;padding:12px 20px;background:#fff;border:none;border-left:4px solid transparent;font-family:inherit;text-align:left;cursor:pointer;min-height:52px}
+.agh:hover{background:var(--light)}
+.agh .gname{font-size:14px;font-weight:700;color:var(--black)}
+.agh .gsub{font-size:11px;color:var(--grey)}
+.agh .gn{margin-left:auto;font-size:12px;font-weight:700;color:#fff;background:var(--red);border-radius:10px;padding:2px 9px;min-width:30px;text-align:center}
+.agh .gn.zero{background:var(--border);color:var(--grey)}
+.agh .caret{color:var(--grey);font-size:10px;transition:transform .15s;flex:none}
+.agroup.open .agh .caret{transform:rotate(90deg)}
+.agroup.mine .agh{border-left-color:var(--gold);background:#fdf8ea}
+.agitems{display:none}
+.agroup.open .agitems{display:block}
+.aitem{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:6px 14px;padding:11px 20px;border-top:1px solid var(--light);align-items:start}
+.aitem .atype{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;border-radius:6px;padding:4px 7px;text-align:center;line-height:1.3;margin-top:2px}
+.atype.response{background:var(--red)}
+.atype.supply{background:var(--black)}
+.atype.shop{background:var(--grey)}
+.aitem .amain{min-width:0;font-size:13px;line-height:1.5}
+.aitem .afrom{font-weight:700}
+.aitem .asum{color:var(--grey);font-size:12.5px;margin-top:2px;overflow-wrap:anywhere}
+.aitem .ameta{font-size:11px;color:var(--grey);margin-top:3px}
+.aitem .ameta a{color:var(--grey);font-weight:700}
+.aitem .ameta a:hover{color:var(--red)}
+.aitem .abtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.abtn{font-family:inherit;font-size:12px;font-weight:700;border-radius:10px;padding:8px 13px;cursor:pointer;min-height:36px;white-space:nowrap;border:1.5px solid var(--border);background:#fff;color:var(--black);transition:all .15s}
+.abtn:hover{border-color:var(--red);color:var(--red)}
+.abtn.main{background:var(--black);border-color:var(--black);color:#fff}
+.abtn.main:hover{background:var(--red);border-color:var(--red);color:#fff}
+.abtn[disabled],.undo[disabled]{opacity:.5;cursor:wait}
+.aitem.done{background:var(--light)}
+.aitem.done .amain{color:var(--grey)}
+.aitem .adone{font-size:12px;font-weight:700;color:var(--black);text-align:right}
+.aitem .undo{margin-left:8px;font-size:11px;color:var(--grey);cursor:pointer;background:none;border:none;font-family:inherit;font-weight:700;text-decoration:underline;padding:4px 0}
+.aitem .undo:hover{color:var(--red)}
+.agfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 20px 12px;flex-wrap:wrap}
+.agfoot .showdone{background:none;border:none;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--grey);cursor:pointer;text-decoration:underline;padding:6px 0}
+.agfoot .showdone:hover{color:var(--red)}
+.agfoot .markall{font-family:inherit;font-size:11.5px;font-weight:700;color:var(--grey);border:1px solid var(--border);border-radius:8px;background:#fff;padding:6px 10px;cursor:pointer;margin-left:auto}
+.agfoot .markall:hover{border-color:var(--red);color:var(--red)}
+.adonelist{display:none}
+.agroup.showdone .adonelist{display:block}
+.astatus{padding:8px 20px;font-size:11px;color:var(--grey);border-top:1px solid var(--border);min-height:30px}
+.astatus .err{color:var(--red);font-weight:700}
+.anew{border-top:3px solid var(--red);background:var(--light);padding:16px 20px 18px}
+.anew h3{font-size:13px}
+.anew h3::after{content:"";display:block;width:34px;height:3px;background:var(--red);border-radius:2px;margin-top:8px}
+.anew p{font-size:12.5px;color:var(--black);margin-top:8px;max-width:720px}
+@media(max-width:640px){
+.aitem{grid-template-columns:1fr;gap:6px}
+.aitem .atype{justify-self:start}
+.aitem .abtns{justify-content:flex-start}
+.aitem .adone{text-align:left}
+.ahead .awho{margin-left:0;width:100%}
+}
 
 /* ---------- FSM photo band ---------- */
 .photoband{padding:30px 0 40px}
@@ -443,6 +515,23 @@ search box to jump straight to what you need.</p>
 <a class="fbtn line" href="building-sheet.html">New / Update a Sheet</a>
 </div>
 </div>
+</div>
+
+<div class="wrap alerts" id="alerts">
+<section class="acard">
+<div class="ahead"><span class="bar-accent"></span><h2>Alerts</h2><span class="acount" id="alcount">&hellip;</span>
+<label class="awho" for="alwho">You are <select id="alwho"><option value="">Pick your name</option></select></label>
+<button class="arefresh" id="alrefresh" type="button">Refresh</button></div>
+<div id="albody"><div class="aempty"><b>Loading alerts</b>One moment.</div></div>
+<div class="astatus" id="alstatus"></div>
+<div class="anew">
+<h3>What's new</h3>
+<p>Vendor replies to your postings, building supply orders, and shop orders used to land in the service inbox and get lost. They now show up here, under the name of the FSM they belong to.</p>
+<p>Pick your name once. This computer remembers it and opens your list first. Everyone else's list sits below yours, closed, with a count.</p>
+<p>When you have answered the vendor, placed the order, or processed the shop order, click the button on that line. It clears for the whole team at the same time, so nobody works the same item twice. Clicked the wrong one? Use Undo.</p>
+<p>Nothing is deleted. The emails still go out and the details stay in the sheets. An item nobody clears drops off after 45 days. A supply or shop order we could not tie to an account shows under "No FSM matched", and anyone can clear those.</p>
+</div>
+</section>
 </div>
 
 <div class="wrap wallzone">
@@ -890,11 +979,191 @@ p.textContent = r.count + " open"; p.classList.add("show");
 Announcements still come back on the auth response and posting still works
 via kind:"announcement" - both are now used by citywidelv.github.io. ---------- */
 
+/* ---------- Alerts (Sep 2026): vendor replies, supply orders and shop orders in one
+list, grouped by FSM. Read and write through the Apps Script (alerts_list / alerts_set,
+passcode checked server side). Check-offs live on the Alert Status tab of the CW
+Solicitations sheet, so one person's click shows for everyone. ---------- */
+var AL = { items:[], roster:[], statuses:{}, days:45, open:{}, showDone:{}, busy:false, timer:null };
+var AL_WHOKEY = "cwAlertsWho";
+function alPost(body){
+body.passcode = CWAuth.get();
+return fetch(WEBHOOK, { method:"POST", headers:{ "Content-Type":"text/plain" }, body: JSON.stringify(body) })
+.then(function(r){ return r.json(); });
+}
+function alWho(){ try{ return localStorage.getItem(AL_WHOKEY) || ""; }catch(e){ return ""; } }
+function alSetWho(k){ try{ localStorage.setItem(AL_WHOKEY, k); }catch(e){} }
+function alSay(html){ document.getElementById("alstatus").innerHTML = html || ""; }
+function alInit(){
+var sel = document.getElementById("alwho");
+sel.addEventListener("change", function(){ alSetWho(sel.value); alRender(); });
+document.getElementById("alrefresh").addEventListener("click", function(){ alLoad(true); });
+document.getElementById("albody").addEventListener("click", alClick);
+alLoad(false);
+window.addEventListener("focus", function(){ alLoad(false); });
+AL.timer = setInterval(function(){ if(!document.hidden) alLoad(false); }, 90000);
+}
+function alLoad(manual){
+if(AL.busy) return;
+AL.busy = true;
+if(manual) alSay("Refreshing...");
+alPost({ kind:"alerts_list" }).then(function(r){
+AL.busy = false;
+if(!r || !r.ok){
+if(r && r.error && CWAuth.isPassError(r.error)){ CWAuth.locked("ops", r.error); return; }
+alSay('<span class="err">Could not load alerts. ' + esc((r && r.error) || "Check your connection and try Refresh.") + '</span>');
+return;
+}
+AL.items = r.items || []; AL.roster = r.roster || []; AL.statuses = r.statuses || {}; AL.days = r.days || 45;
+alFillWho(); alRender();
+alSay("Updated " + new Date().toLocaleTimeString([], { hour:"numeric", minute:"2-digit" }) + ". Checks for changes every 90 seconds. What you clear here clears for everyone.");
+}).catch(function(){ AL.busy = false; alSay('<span class="err">Could not reach the server. Try Refresh.</span>'); });
+}
+function alFillWho(){
+var sel = document.getElementById("alwho");
+var cur = alWho();
+var html = '<option value="">Pick your name</option>';
+AL.roster.forEach(function(f){
+html += '<option value="' + esc(f.key) + '"' + (f.key === cur ? ' selected' : '') + '>' + esc(f.name) + '</option>';
+});
+html += '<option value="other"' + (cur === "other" ? ' selected' : '') + '>Someone else</option>';
+sel.innerHTML = html;
+}
+function alByName(){
+var who = alWho();
+var f = AL.roster.filter(function(x){ return x.key === who; })[0];
+return f ? f.name : (who === "other" ? "Someone else" : "");
+}
+function alGroups(){
+var me = alWho();
+var byKey = {}, un = {};
+AL.roster.forEach(function(f){
+byKey[f.key] = { key:f.key, name:f.name, sub:f.title + (f.region ? ", " + f.region : ""), open:[], done:[] };
+});
+AL.items.forEach(function(it){
+var g;
+if(it.fsm && byKey[it.fsm]) g = byKey[it.fsm];
+else {
+var rk = "un:" + (it.region || "Region unknown");
+if(!un[rk]) un[rk] = { key:rk, name:"No FSM matched", sub:(it.region || "Region unknown") + ". We could not tie these to an account. Anyone can clear them.", open:[], done:[] };
+g = un[rk];
+}
+(it.status ? g.done : g.open).push(it);
+});
+var list = [];
+Object.keys(byKey).forEach(function(k){ var g = byKey[k]; if(g.open.length || g.done.length || k === me) list.push(g); });
+Object.keys(un).forEach(function(k){ list.push(un[k]); });
+list.sort(function(a, b){
+if(a.key === me) return -1;
+if(b.key === me) return 1;
+if(b.open.length !== a.open.length) return b.open.length - a.open.length;
+return a.name.localeCompare(b.name);
+});
+return list;
+}
+function alRender(){
+var me = alWho();
+var groups = alGroups();
+var total = 0;
+groups.forEach(function(g){ total += g.open.length; });
+var cnt = document.getElementById("alcount");
+cnt.textContent = total + " open";
+cnt.classList.toggle("zero", !total);
+var html = "";
+if(!groups.length){
+html = '<div class="aempty"><b>Nothing waiting.</b>Vendor replies, supply orders and shop orders will show up here.' + (me ? '' : ' Pick your name above so your list opens first.') + '</div>';
+}
+groups.forEach(function(g){
+var isOpen = (AL.open[g.key] !== undefined) ? AL.open[g.key] : (g.key === me);
+var mine = g.key === me;
+html += '<div class="agroup' + (isOpen ? ' open' : '') + (mine ? ' mine' : '') + (AL.showDone[g.key] ? ' showdone' : '') + '">' +
+'<button class="agh" type="button" data-toggle="' + esc(g.key) + '"><span class="caret">&#9654;</span>' +
+'<span><span class="gname">' + esc(g.name) + (mine ? ' (you)' : '') + '</span><br><span class="gsub">' + esc(g.sub) + '</span></span>' +
+'<span class="gn' + (g.open.length ? '' : ' zero') + '">' + g.open.length + '</span></button>' +
+'<div class="agitems">';
+if(!g.open.length) html += '<div class="aempty">All clear.</div>';
+g.open.forEach(function(it){ html += alItem(it); });
+html += '<div class="agfoot">' +
+(g.done.length ? '<button class="showdone" type="button" data-done="' + esc(g.key) + '">' + (AL.showDone[g.key] ? 'Hide' : 'Show') + ' ' + g.done.length + ' handled in the last 7 days</button>' : '<span></span>') +
+(g.open.length > 1 ? '<button class="markall" type="button" data-markall="' + esc(g.key) + '">Mark all ' + g.open.length + ' as handled</button>' : '') +
+'</div>';
+if(g.done.length){ html += '<div class="adonelist">'; g.done.forEach(function(it){ html += alItem(it); }); html += '</div>'; }
+html += '</div></div>';
+});
+document.getElementById("albody").innerHTML = html;
+}
+function alItem(it){
+var opts = AL.statuses[it.type] || ["Handled"];
+var label = { response:"Vendor reply", supply:"Supply order", shop:"Shop order" }[it.type] || it.type;
+var meta = [];
+if(it.when_nice) meta.push(esc(it.when_nice));
+if(it.email) meta.push('<a href="mailto:' + esc(it.email) + '">' + esc(it.email) + '</a>');
+if(it.phone) meta.push(esc(it.phone));
+if(it.link) meta.push('<a href="' + esc(it.link) + '" target="_blank" rel="noopener">Open</a>');
+var right;
+if(it.status){
+right = '<div class="adone">' + esc(it.status) + ' by ' + esc(it.by || "someone") + (it.at_nice ? ', ' + esc(it.at_nice) : '') +
+'<button class="undo" type="button" data-undo="' + esc(it.key) + '">Undo</button></div>';
+} else {
+right = '<div class="abtns">' + opts.map(function(s, i){
+return '<button class="abtn' + (i === 0 ? ' main' : '') + '" type="button" data-key="' + esc(it.key) + '" data-status="' + esc(s) + '">' + esc(s) + '</button>';
+}).join('') + '</div>';
+}
+return '<div class="aitem' + (it.status ? ' done' : '') + '"><span class="atype ' + esc(it.type) + '">' + esc(label) + '</span>' +
+'<div class="amain"><span class="afrom">' + esc(it.from) + '</span> ' + (it.type === "response" ? 'on ' : 'for ') + esc(it.about) +
+'<div class="asum">' + esc(it.summary) + '</div><div class="ameta">' + meta.join(' &middot; ') + '</div></div>' + right + '</div>';
+}
+function alClick(e){
+var t = e.target.closest ? e.target.closest("button") : null;
+if(!t) return;
+if(t.hasAttribute("data-toggle")){
+var k = t.getAttribute("data-toggle"), g = t.parentElement, now = !g.classList.contains("open");
+AL.open[k] = now; g.classList.toggle("open", now); return;
+}
+if(t.hasAttribute("data-done")){ var k2 = t.getAttribute("data-done"); AL.showDone[k2] = !AL.showDone[k2]; alRender(); return; }
+if(t.hasAttribute("data-key")){ alMark([t.getAttribute("data-key")], t.getAttribute("data-status"), t); return; }
+if(t.hasAttribute("data-undo")){ alMark([t.getAttribute("data-undo")], "", t); return; }
+if(t.hasAttribute("data-markall")){
+var gk = t.getAttribute("data-markall");
+var grp = alGroups().filter(function(x){ return x.key === gk; })[0];
+if(!grp) return;
+var byType = {};
+grp.open.forEach(function(it){ (byType[it.type] = byType[it.type] || []).push(it.key); });
+Object.keys(byType).forEach(function(tp){ alMark(byType[tp], (AL.statuses[tp] || ["Handled"])[0], t); });
+}
+}
+function alMark(keys, status, btn){
+var by = alByName();
+if(!by){
+document.getElementById("alwho").focus();
+alSay('<span class="err">Pick your name first so the team can see who handled it.</span>');
+return;
+}
+var buttons = btn && btn.parentElement ? btn.parentElement.querySelectorAll("button") : [];
+Array.prototype.forEach.call(buttons, function(b){ b.disabled = true; });
+alPost({ kind:"alerts_set", keys:keys, status:status, by:by }).then(function(r){
+if(!r || !r.ok){
+Array.prototype.forEach.call(buttons, function(b){ b.disabled = false; });
+if(r && r.error && CWAuth.isPassError(r.error)){ CWAuth.locked("ops", r.error); return; }
+alSay('<span class="err">Could not save. ' + esc((r && r.error) || "Try again.") + '</span>');
+return;
+}
+(r.saved || []).forEach(function(s){
+AL.items.forEach(function(it){ if(it.key === s.key){ it.status = s.status; it.by = s.by; it.at = s.at; it.at_nice = s.at_nice; } });
+});
+alRender();
+alSay("Saved " + new Date().toLocaleTimeString([], { hour:"numeric", minute:"2-digit" }) + ". Everyone on the team sees this now.");
+}).catch(function(){
+Array.prototype.forEach.call(buttons, function(b){ b.disabled = false; });
+alSay('<span class="err">Could not reach the server. Try again.</span>');
+});
+}
+
 function unlock(){
 renderMainNav();
 buildSearchIndex();
 renderQuick();
 loadPill();
+alInit();
 }
 
 /* ---------- Gate: one team unlock per device (cw-auth.js). The passcode is checked
