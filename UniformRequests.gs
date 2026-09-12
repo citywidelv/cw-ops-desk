@@ -236,8 +236,14 @@ function crawlBennett_() {
     if (!html) continue;
     var catName = (html.match(/<h1[^>]*>[\s\S]*?<span[^>]*>([\s\S]*?)<\/span>/) || html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/) || [,''])[1];
     catName = clean_(catName);
+    // Sep 12 2026: only read the category's own product list (the first <ol ... product-items>).
+    // Every listing page also carries a "featured" strip of ~9 unrelated products below it;
+    // reading those tagged polos as Blankets & Towels, Aprons & Safety Vests, etc.
+    var mainM = html.match(/<ol class="[^"]*product-items[^"]*">([\s\S]*?)<\/ol>/);
+    var scope = mainM ? mainM[1] : html;
     var m;
-    while ((m = linkRe.exec(html)) !== null) {
+    linkRe.lastIndex = 0;
+    while ((m = linkRe.exec(scope)) !== null) {
       var u = m[1], nm = clean_(m[2]);
       if (!prodCats[u]) prodCats[u] = { name: nm, cats: [] };
       if (catName && prodCats[u].cats.indexOf(catName) < 0) prodCats[u].cats.push(catName);

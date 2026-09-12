@@ -340,6 +340,11 @@ async function load(){
     const res = await fetch(WEBHOOK + (WEBHOOK.includes("?") ? "&" : "?") + "cachebust=" + Date.now());
     const data = await res.json();
     PRODUCTS = (data.products||[]).filter(p=>p.name);
+    /* Employees wear the City Wide logo. The Independent Contractor logo is for crews and is
+       ordered through the Vendor Shop, so it never shows here. */
+    PRODUCTS.forEach(p=>{ (p.options||[]).forEach(o=>{
+      if(/^logo$/i.test(o.label)) o.values = o.values.filter(v=>!/contractor/i.test(v));
+    }); });
   }catch(e){
     document.getElementById("loading").innerHTML =
       'Could not load the catalog. Check your connection and refresh.<br><a href="https://citywide.bennettuniform.com" target="_blank" rel="noopener" style="color:#D22730;font-weight:700">Browse Bennett Uniform directly</a>';
@@ -518,6 +523,7 @@ function openProduct(id){
   }).join("");
   document.getElementById("pmBody").innerHTML =
     '<div class="pm-price" id="pmPrice">'+fmt(p.price)+(hasUp?' <small>base price</small>':'')+'</div>'+
+    '<div class="pm-desc" style="margin:-10px 0 14px;font-size:10.5px">Bennett Uniform\'s current price. City Wide orders it for you once your request is approved.</div>'+
     (p.description?'<div class="pm-desc">'+esc(p.description)+'</div>':'')+opts;
   document.getElementById("pmFoot").innerHTML =
     '<div class="qty"><button onclick="mStep(-1)">&minus;</button><input id="mqty" type="number" value="1" min="1" max="99"><button onclick="mStep(1)">+</button></div>'+
