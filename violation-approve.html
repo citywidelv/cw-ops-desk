@@ -47,7 +47,7 @@ body{margin:0;font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,
 <div class="card" id="loading"><h2>Loading the notice...</h2><p class="sub">One moment.</p><div class="err" id="loadErr"></div></div>
 
 <div id="app" style="display:none;">
-  <div class="warn" id="testWarn" style="display:none;">TEST notice. On approval it goes to lvservicecall@gocitywide.com, not to the vendor.</div>
+  <div class="warn" id="testWarn" style="display:none;">TEST notice. On approval it goes to tjroberts@gocitywide.com, not to the vendor.</div>
   <div class="warn" id="doneWarn" style="display:none;"></div>
 
   <div class="card">
@@ -134,7 +134,7 @@ function approve(){
     el('discardBtn').style.display='none';
     el('editBody').setAttribute('contenteditable','false');
     var ok=el('okBox');
-    ok.innerHTML='<b>Notice '+r.notice_id+' approved and sent.</b> '+(r.test?'TEST mode: it went to lvservicecall@gocitywide.com.':'Delivered to the vendor with a CC to the issuer.')+' Your approval is logged on the CW Violation Notices sheet.'+(r.relay_missing?'<br><b>Heads up:</b> the Reno relay is not configured, so this went out from the Las Vegas account.':'');
+    ok.innerHTML='<b>Notice '+r.notice_id+' approved and sent.</b> '+(r.test?'TEST mode: it went to tjroberts@gocitywide.com.':'Delivered to the vendor with a CC to the issuer.')+' Your approval is logged on the CW Violation Notices sheet.'+(r.relay_missing?'<br><b>Heads up:</b> the Reno relay is not configured, so this went out from the Las Vegas account.':'');
     ok.style.display='block';
   }).catch(function(e){
     b.disabled=false;b.textContent='Approved by Director. Send the Notice';

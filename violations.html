@@ -68,7 +68,7 @@ textarea{min-height:60px;resize:vertical;}
 </div>
 
 <div id="app">
-  <div class="warn" id="liveWarn" style="display:none;">Live sends are OFF. Every notice goes to lvservicecall@gocitywide.com as a TEST until the Config tab of the CW Violation Notices sheet has live set to TRUE.</div>
+  <div class="warn" id="liveWarn" style="display:none;">Live sends are OFF. Every notice goes to tjroberts@gocitywide.com as a TEST until the Config tab of the CW Violation Notices sheet has live set to TRUE.</div>
 
   <div class="card">
     <h2>Who is issuing</h2>
@@ -139,7 +139,7 @@ textarea{min-height:60px;resize:vertical;}
 
   <div class="card">
     <h2>Send</h2>
-    <label class="chk"><input type="checkbox" id="testChk"> Test notice (goes to lvservicecall@gocitywide.com, marked TEST, excluded from strike history)</label>
+    <label class="chk"><input type="checkbox" id="testChk"> Test notice (goes to tjroberts@gocitywide.com only, marked TEST, excluded from strike history)</label>
     <div class="err" id="sendErr"></div>
     <p style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;">
       <button class="btn dark" onclick="preview()">Preview the notice</button>
@@ -165,7 +165,7 @@ var FTYPES=[
  {type:'unauthorized',label:'Unauthorized person on site',hint:'People who are not crew at all. A badge is what authorizes presence in a client building.',items:['Person on site who is not an employee of the IC (friend, family member, or other non-crew person)','Crew member brought a helper or guest not reported to City Wide','Person on site refused or was unable to identify themselves','Person remained on site after being denied access or asked to leave','Other (describe in the details box)']},
  {type:'ineligible',label:'Person not cleared for access to City Wide accounts',hint:'Access based. The finding is clearance only. Never state the reason, the screening result, or anything about the person\'s history.',items:['Person on site who is not cleared for access to City Wide accounts','Person previously denied a badge found working a City Wide account','Person removed from an account found back on a City Wide site','Identity of a person on site does not match the person cleared for this account','Other (describe in the details box)']},
  {type:'minor',label:'Person under 18 on site',hint:'Labor law. Zero tolerance; suggested level starts at 2.',items:['Person under the age of 18 performing work at the account','Person under the age of 18 present during service (including children of crew members)','Other (describe in the details box)']},
- {type:'uniform',label:'Uniform or badge violation',hint:'Badges and uniforms are required in every client building.',items:['Crew member out of uniform','No City Wide badge worn','No photo ID matching the badge','Other (describe in the details box)']},
+ {type:'uniform',label:'Uniform or badge violation',hint:'Identification on sight. Every person in a client building must be visibly identifiable as City Wide crew.',items:['Crew member out of uniform','No City Wide badge worn','No photo ID matching the badge','Other (describe in the details box)']},
  {type:'scope',label:'Scope of work not executed',hint:'Measured against the Exhibit A scope.',items:['Area not cleaned','Contracted task not performed','Building not finaled','Missed service entirely','Other (describe in the details box)']},
  {type:'meeting',label:'Missed meeting or scheduled inspection',hint:'Communication Guidelines: 15-minute grace, then $55.38 per hour or portion thereof.',items:['Failed to meet the Night Manager at the scheduled time','Failed to meet the Facility Solutions Manager at the scheduled time','Failed to appear for a scheduled corrective action meeting with the FSM','Work not complete when the Night Manager arrived for a scheduled inspection','Other (describe in the details box)']},
  {type:'availability',label:'Availability or communication failure',hint:'Start-of-shift availability and the one-hour callback are in the signed Communication Guidelines.',items:['Not reachable at the start of the service period to speak with the Night Manager','Night Manager call or message not returned within one hour','No reachable supervisor with decision-making authority while crew was on site','Other (describe in the details box)']},
@@ -430,8 +430,8 @@ function preview(){
       req=P('Every person working a City Wide account must have a City Wide approved background check on file before a badge is issued. This protects the client and their assets and is a condition of your agreement.');
       cure=P('<b>Required correction:</b> Submit a background check request for this person before your next scheduled service (Background Check and Name Badge request under Paperwork on the Vendor Resource Center). The person may continue working pending results only after the request is submitted. A person without a submitted request does not return to the account.');
     }else if(f.type==='uniform'){
-      req=P('Badges are issued when compliance paperwork is on file and must be worn visibly at all times on site, with matching photo ID. Uniforms are required in every client building. Your signed compliance packet provides that repeated badge violations within any 90-day period may result in suspension or termination of service assignments. Orders go through the vendor store on the Resource Center.');
-      cure=P('<b>Required correction:</b> Fix this before your next scheduled service.');
+      req=P('Every person inside a client building, every night, must be identifiable on sight as authorized City Wide crew. That is what the uniform and the badge are for. Building security, after-hours staff and the client all need to know at a glance that the person they see belongs there.')+P('Badges are issued when your compliance paperwork is on file, and your Orientation Booklet acknowledgment provides that the badge signifies the person is authorized to be present. A uniform with a clearly visible City Wide logo is required in every client building, and the badge must be worn visibly with matching photo ID.');
+      cure=P('<b>Required correction:</b> Have every person on this account in a City Wide logo uniform with a visible badge at your next scheduled service. Uniforms and badges are ordered through the vendor store on the Resource Center.');
     }else if(f.type==='meeting'){
       req=P('The Communication Guidelines signed with your Independent Contractor Agreement require on-time arrival for scheduled meetings and inspections, with a 15-minute grace period. Time beyond the grace period is chargeable at $55.38 per hour, or portion thereof, for the additional City Wide time required. The same guidelines credit you at the same rate when City Wide is late; that remains your right.');
       cure=P('<b>Required correction:</b> The chargeable time incurred here will be reflected against your monthly payment as provided in the Communication Guidelines. Confirm the rescheduled time with your Facility Solutions Manager and keep every scheduled commitment going forward.');
@@ -495,7 +495,7 @@ function send(){
     el('sendBtn').textContent='Submit for Director approval';
     if(!r.ok){eb.textContent=r.error||'Send failed';eb.style.display='block';return;}
     var ok=el('okBox');
-    ok.innerHTML='<b>Notice '+r.notice_id+' staged for approval.</b> '+(r.test?'TEST mode: the approval request went to lvservicecall@gocitywide.com.':'Sent to '+(r.approver||'the Director of Operations')+' for review. Nothing reaches the vendor until it is approved.')+' Logged on the CW Violation Notices sheet as Pending approval.'+(r.relay_missing?'<br><b>Heads up:</b> the Reno relay is not configured, so this went out from the Las Vegas account.':'')+
+    ok.innerHTML='<b>Notice '+r.notice_id+' staged for approval.</b> '+(r.test?'TEST mode: the approval request went to tjroberts@gocitywide.com.':'Sent to '+(r.approver||'the Director of Operations')+' for review. Nothing reaches the vendor until it is approved.')+' Logged on the CW Violation Notices sheet as Pending approval.'+(r.relay_missing?'<br><b>Heads up:</b> the Reno relay is not configured, so this went out from the Las Vegas account.':'')+
       '<br><br><button class="btn dark" onclick="another()">Issue another notice</button>';
     ok.style.display='block';
     PHOTOS=[];drawThumbs();

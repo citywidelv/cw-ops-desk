@@ -4,7 +4,7 @@
 // Routing: doPost wrapper routes any kind starting 'vio_' to vioDispatch(data).
 // Kinds: vio_setup, vio_seed, vio_roster, vio_submit  (all POST, passcode-gated)
 // Safety: while Config live != TRUE, every send is forced to TEST mode:
-//   recipient becomes lvservicecall@gocitywide.com and subject is prefixed TEST.
+//   recipient becomes tjroberts@gocitywide.com and subject is prefixed TEST.
 // Sender: LV -> MailApp from this account, display name "No Reply at City Wide".
 //   NNV -> relay POST to the Reno account's web app (VIO_RENO_URL + VIO_SECRET).
 //   If the Reno relay is not configured, NNV sends fall back to LV sending and
@@ -62,7 +62,7 @@ var VIO_DD_SEED = [
   ['minor', 'Person under 18 on site', 'Labor law. Zero tolerance; suggested level starts at 2.', 'Person under the age of 18 performing work at the account'],
   ['minor', '', '', 'Person under the age of 18 present during service (including children of crew members)'],
   ['minor', '', '', 'Other (describe in the details box)'],
-  ['uniform', 'Uniform or badge violation', 'Badges and uniforms are required in every client building.', 'Crew member out of uniform'],
+  ['uniform', 'Uniform or badge violation', 'Identification on sight. Every person in a client building must be visibly identifiable as City Wide crew.', 'Crew member out of uniform'],
   ['uniform', '', '', 'No City Wide badge worn'],
   ['uniform', '', '', 'No photo ID matching the badge'],
   ['uniform', '', '', 'Other (describe in the details box)'],
@@ -107,7 +107,7 @@ var VIO_REGION_SERVICE = {
   'Las Vegas': 'lvservicecall@gocitywide.com',
   'Northern Nevada': 'rnservicecall@gocitywide.com'
 };
-var VIO_TEST_TO = 'lvservicecall@gocitywide.com';
+var VIO_TEST_TO = 'tjroberts@gocitywide.com';
 var VIO_SENDER_NAME = 'No Reply at City Wide';
 var VIO_LOGO = 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
 var VIO_BG_LINK = 'https://form.asana.com/?k=FRCnQmbTGjAVPieFt4bnWQ&d=13140959242873';
@@ -655,12 +655,17 @@ function vioFindingBlock_(n, f, cfg) {
       'The person may continue working pending results only after the request is submitted. A person ' +
       'without a submitted request does not return to the account.');
   } else if (f.type === 'uniform') {
-    req = vioP_('Badges are issued when compliance paperwork is on file and must be worn visibly at all ' +
-      'times on site, with matching photo ID. Uniforms are required in every client building. Your signed ' +
-      'compliance packet provides that repeated badge violations within any 90-day period may result in ' +
-      'suspension or termination of service assignments. Orders go through the vendor store on the ' +
-      'Resource Center.');
-    cure = vioP_('<b>Required correction:</b> Fix this before your next scheduled service.');
+    req = vioP_('Every person inside a client building, every night, must be identifiable on sight ' +
+      'as authorized City Wide crew. That is what the uniform and the badge are for. Building security, ' +
+      'after-hours staff and the client all need to know at a glance that the person they see belongs ' +
+      'there.') +
+      vioP_('Badges are issued when your compliance paperwork is on file, and your Orientation Booklet ' +
+      'acknowledgment provides that the badge signifies the person is authorized to be present. A ' +
+      'uniform with a clearly visible City Wide logo is required in every client building, and the ' +
+      'badge must be worn visibly with matching photo ID.');
+    cure = vioP_('<b>Required correction:</b> Have every person on this account in a City Wide logo ' +
+      'uniform with a visible badge at your next scheduled service. Uniforms and badges are ordered ' +
+      'through the vendor store on the Resource Center.');
   } else if (f.type === 'meeting') {
     req = vioP_('The Communication Guidelines signed with your Independent Contractor Agreement require ' +
       'on-time arrival for scheduled meetings and inspections, with a 15-minute grace period. Time beyond ' +
