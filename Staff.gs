@@ -28,7 +28,7 @@ var STAFF_SEED = [
   ['Jake Schmidt', 'Facility Solutions Manager', 'Las Vegas', '(702) 529-2292', 'jschmidt@gocitywide.com', 'TRUE', 'Southwest'],
   ['Sam Morse', 'Facility Solutions Manager', 'Northern Nevada', '(775) 842-5591', 'smorse@gocitywide.com', 'TRUE', ''],
   ['Jeremy Walker', 'General Manager', 'Northern Nevada', '(775) 217-7280', '', 'TRUE', ''],
-  ['Robert Krause', 'Director of Operations', 'Las Vegas', '(702) 544-0492', 'rkraus@gocitywide.com', 'TRUE', 'Citywide'],
+  ['Robert Krause', 'Director of Operations', 'Las Vegas', '(702) 544-0492', 'RKrause@gocitywide.com', 'TRUE', 'Citywide'],
   ['Joshua Smith', 'Business Operations Manager', 'Both', '(702) 524-3076', 'joshuasmith@gocitywide.com', 'TRUE', ''],
   ['TJ Roberts', 'Chief Operating Officer', 'Both', '(806) 206-6192', 'tjroberts@gocitywide.com', 'TRUE', '']
 ];

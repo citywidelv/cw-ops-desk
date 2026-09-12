@@ -20,7 +20,7 @@ var VIO_ISSUER_SEED = [
   ['Jake Schmidt', 'jschmidt@gocitywide.com', 'TRUE'],
   ['Alex Manon', 'alejandro.manon@gocitywide.com', 'TRUE'],
   ['Brett Stephens', 'brett.stephens@gocitywide.com', 'TRUE'],
-  ['Robert Krause', 'rkraus@gocitywide.com', 'TRUE'],
+  ['Robert Krause', 'RKrause@gocitywide.com', 'TRUE'],
   ['Sam Morse', 'smorse@gocitywide.com', 'TRUE'],
   ['Jeremy Walker', '', 'TRUE'],
   ['Joshua Smith', 'joshuasmith@gocitywide.com', 'TRUE']
@@ -54,10 +54,10 @@ var VIO_DD_SEED = [
   ['unauthorized', '', '', 'Person on site refused or was unable to identify themselves'],
   ['unauthorized', '', '', 'Person remained on site after being denied access or asked to leave'],
   ['unauthorized', '', '', 'Other (describe in the details box)'],
-  ['ineligible', 'Person not cleared to work City Wide accounts', 'Screening based. The finding is clearance, never the person\'s history. Do not name records in the details.', 'Person working after background screening returned disqualifying results'],
+  ['ineligible', 'Person not cleared for access to City Wide accounts', 'Access based. The finding is clearance only. Never state the reason, the screening result, or anything about the person\'s history.', 'Person on site who is not cleared for access to City Wide accounts'],
   ['ineligible', '', '', 'Person previously denied a badge found working a City Wide account'],
   ['ineligible', '', '', 'Person removed from an account found back on a City Wide site'],
-  ['ineligible', '', '', 'Person appears to have been screened under a different name or identity'],
+  ['ineligible', '', '', 'Identity of a person on site does not match the person cleared for this account'],
   ['ineligible', '', '', 'Other (describe in the details box)'],
   ['minor', 'Person under 18 on site', 'Labor law. Zero tolerance; suggested level starts at 2.', 'Person under the age of 18 performing work at the account'],
   ['minor', '', '', 'Person under the age of 18 present during service (including children of crew members)'],
@@ -702,8 +702,8 @@ function vioFindingBlock_(n, f, cfg) {
   } else if (f.type === 'ineligible') {
     req = vioP_('The City Wide approved background check described in your Orientation Booklet ' +
       'exists to protect the client and their assets and is a condition of your agreement. A person ' +
-      'whose screening returned disqualifying results, or who has been denied a badge, is not ' +
-      'cleared to work any City Wide account.') +
+      'who is not cleared, or who has been denied a badge, is not authorized for access to any ' +
+      'City Wide account.') +
       vioP_('Whether and how your company employs any person remains your decision as the employer. ' +
       'Access to City Wide client facilities is separate, is conditioned on clearance, and is not ' +
       'negotiable. Placing a person who is not cleared on a client site is treated as a serious ' +
@@ -764,16 +764,15 @@ function vioEmail_(nid, d, cfg, level, test) {
   var rate = cfg.chargeback_rate || '25';
   var minH = cfg.chargeback_min_hours || '2';
   if (level === 1) {
-    ladder = vioP_('<b>This is a first notice.</b> A further finding within 12 months results in a ' +
-      'Compliance Chargeback against your monthly payment at the acknowledged standard of $' + rate +
-      ' per hour, ' + minH + '-hour minimum, for City Wide\'s time and expense to re-inspect and ' +
-      'verify correction.');
+    ladder = vioP_('<b>This is a first notice.</b> If a further finding is documented within 12 ' +
+      'months, a Re-Inspection Fee applies at the acknowledged standard of $' + rate + ' per hour, ' +
+      minH + '-hour minimum, for the return visit required to verify correction.');
   } else if (level === 2) {
     var amt = Number(d.chargeback_amount) || (Number(rate) * Number(minH));
-    ladder = vioP_('<b>This is a second notice within 12 months.</b> A Compliance Chargeback of $' +
-      amt + ' will appear on your monthly payment per your Independent Contractor Agreement and ' +
-      'Orientation Booklet acknowledgment, covering City Wide\'s time and expense to re-inspect and ' +
-      'verify correction. A further finding results in reassignment of the account.');
+    ladder = vioP_('<b>This is a second notice within 12 months.</b> A Re-Inspection Fee of $' +
+      amt + ' applies, itemized on your next monthly payment, as provided in your Independent ' +
+      'Contractor Agreement and Orientation Booklet acknowledgment. The fee covers the return visit ' +
+      'required to verify correction. A further finding results in reassignment of the account.');
   } else {
     ladder = vioP_('<b>This is a final notice.</b> City Wide is reassigning ' + _esc(d.account) +
       (d.effective_date ? ' effective ' + _esc(d.effective_date) : '') +
