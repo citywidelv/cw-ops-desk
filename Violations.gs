@@ -62,7 +62,7 @@ var VIO_DD_SEED = [
   ['minor', 'Person under 18 on site', 'Labor law. Zero tolerance; suggested level starts at 2.', 'Person under the age of 18 performing work at the account'],
   ['minor', '', '', 'Person under the age of 18 present during service (including children of crew members)'],
   ['minor', '', '', 'Other (describe in the details box)'],
-  ['uniform', 'Crew not identifiable as City Wide', 'Building security. On camera the logo is the only thing that tells the client your crew belongs there. Vest, smock or shirt all count.', 'Crew member on site with no visible City Wide logo'],
+  ['uniform', 'Not identifiable as an approved City Wide contractor', 'Building security. Customers call us when they see an unmarked person in their building. Vest, smock or shirt all count.', 'Person on site with no City Wide identification'],
   ['uniform', '', '', 'Part of the crew marked and part of the crew not'],
   ['uniform', '', '', 'Logo covered by a jacket or other layer'],
   ['uniform', '', '', 'Other (describe in the details box)'],
@@ -122,7 +122,8 @@ var VIO_SENDER = {
 function vioSender_(market) { return VIO_SENDER[market] || VIO_SENDER['Las Vegas']; }
 var VIO_LOGO = 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
 var VIO_BG_LINK = 'https://form.asana.com/?k=FRCnQmbTGjAVPieFt4bnWQ&d=13140959242873';
-var VIO_HUB_PAPERWORK = 'https://citywidelv.github.io/cw-vendor-shop/new-vendors.html';
+var VIO_HUB_PAPERWORK = 'https://citywidelv.github.io/cw-vendor-hub/new-vendors.html';
+var VIO_SHOP_URL = 'https://citywidelv.github.io/cw-vendor-hub/shop/';
 var VIO_APPROVE_URL = 'https://citywidelv.github.io/cw-ops-desk/violation-approve.html';
 var VIO_DEFAULT_APPROVERS = [
   ['approver_lv', 'rkrause@gocitywide.com'],
@@ -707,23 +708,22 @@ function vioFindingBlock_(n, f, cfg) {
       'The person may continue working pending results only after the request is submitted. A person ' +
       'without a submitted request does not return to the account.');
   } else if (f.type === 'uniform') {
-    req = vioP_('Clients review their camera footage, and they usually do it at night or after ' +
-      'something has gone missing. When they see a person moving through the building, the only thing ' +
-      'that tells them that person belongs there is what they are wearing. A City Wide logo answers ' +
-      'it in a second. With no logo, the client has no way to tell one of your crew from someone who ' +
-      'walked in off the street.') +
-      vioP_('That is the call none of us want. It comes in as a possible intruder, it puts the ' +
-      'client\'s attention on the account, and it leaves your crew member standing in a building ' +
-      'having to explain who they are. A visible logo prevents all of it, which is why the client ' +
-      'expects it and why your Orientation Booklet acknowledgment requires City Wide identification ' +
-      'on every person working a client building.') +
-      vioP_('This is not about one particular garment. A vest, a smock, or a T-shirt all work. What ' +
-      'matters is that every person on site, every night, is carrying the City Wide logo where a ' +
-      'camera can see it.');
-    cure = vioP_('<b>Required correction:</b> Have every person working this account showing a ' +
-      'visible City Wide logo at your next scheduled service. Shirts and smocks are ordered through ' +
-      'the vendor store on the Resource Center, and vests and aprons can be picked up at the office ' +
-      'while supplies last.');
+    req = vioP_('We get numerous calls from customers when this happens, and it has to stop. A ' +
+      'client sees a person in their building and their first thought is that someone has broken in. ' +
+      'Whether or not City Wide knows who the person is does not help the client in that moment, ' +
+      'because looking at the person tells them nothing.') +
+      vioP_('Anyone working in a client building has to be identifiable on sight as a contractor, or ' +
+      'an employee of a contractor, approved by City Wide to be in that building. A client checking a ' +
+      'camera or walking in after hours needs to see that in a second without calling anyone. Your ' +
+      'Orientation Booklet acknowledgment requires City Wide identification on every person working a ' +
+      'client building.') +
+      vioP_('You and everyone on your crew must wear something that identifies you as a contractor ' +
+      'approved by City Wide. A vest, a smock, or a T-shirt all work. It is not about one particular ' +
+      'garment, it is about being identifiable.');
+    cure = vioP_('<b>Required correction:</b> Have every person working this account wearing City ' +
+      'Wide identification at your next scheduled service. Order shirts, smocks and vests from the ' +
+      '<a href="' + VIO_SHOP_URL + '" style="color:#D22730;">vendor shop</a>. Vests and aprons can ' +
+      'also be picked up at the office while supplies last.');
   } else if (f.type === 'meeting') {
     req = vioP_('The Communication Guidelines signed with your Independent Contractor Agreement require ' +
       'on-time arrival for scheduled meetings and inspections, with a 15-minute grace period. Time beyond ' +
