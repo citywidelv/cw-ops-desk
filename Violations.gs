@@ -62,9 +62,9 @@ var VIO_DD_SEED = [
   ['minor', 'Person under 18 on site', 'Labor law. Zero tolerance; suggested level starts at 2.', 'Person under the age of 18 performing work at the account'],
   ['minor', '', '', 'Person under the age of 18 present during service (including children of crew members)'],
   ['minor', '', '', 'Other (describe in the details box)'],
-  ['uniform', 'Uniform or badge violation', 'Identification on sight. Every person in a client building must be visibly identifiable as City Wide crew.', 'Crew member out of uniform'],
-  ['uniform', '', '', 'No City Wide badge worn'],
-  ['uniform', '', '', 'No photo ID matching the badge'],
+  ['uniform', 'Crew not identifiable as City Wide', 'Building security. On camera the logo is the only thing that tells the client your crew belongs there. Vest, smock or shirt all count.', 'Crew member on site with no visible City Wide logo'],
+  ['uniform', '', '', 'Part of the crew marked and part of the crew not'],
+  ['uniform', '', '', 'Logo covered by a jacket or other layer'],
   ['uniform', '', '', 'Other (describe in the details box)'],
   ['scope', 'Scope of work not executed', 'Measured against the Exhibit A scope.', 'Area not cleaned'],
   ['scope', '', '', 'Contracted task not performed'],
@@ -707,17 +707,23 @@ function vioFindingBlock_(n, f, cfg) {
       'The person may continue working pending results only after the request is submitted. A person ' +
       'without a submitted request does not return to the account.');
   } else if (f.type === 'uniform') {
-    req = vioP_('Every person inside a client building, every night, must be identifiable on sight ' +
-      'as authorized City Wide crew. That is what the uniform and the badge are for. Building security, ' +
-      'after-hours staff and the client all need to know at a glance that the person they see belongs ' +
-      'there.') +
-      vioP_('Badges are issued when your compliance paperwork is on file, and your Orientation Booklet ' +
-      'acknowledgment provides that the badge signifies the person is authorized to be present. A ' +
-      'uniform with a clearly visible City Wide logo is required in every client building, and the ' +
-      'badge must be worn visibly with matching photo ID.');
-    cure = vioP_('<b>Required correction:</b> Have every person on this account in a City Wide logo ' +
-      'uniform with a visible badge at your next scheduled service. Uniforms and badges are ordered ' +
-      'through the vendor store on the Resource Center.');
+    req = vioP_('Clients review their camera footage, and they usually do it at night or after ' +
+      'something has gone missing. When they see a person moving through the building, the only thing ' +
+      'that tells them that person belongs there is what they are wearing. A City Wide logo answers ' +
+      'it in a second. With no logo, the client has no way to tell one of your crew from someone who ' +
+      'walked in off the street.') +
+      vioP_('That is the call none of us want. It comes in as a possible intruder, it puts the ' +
+      'client\'s attention on the account, and it leaves your crew member standing in a building ' +
+      'having to explain who they are. A visible logo prevents all of it, which is why the client ' +
+      'expects it and why your Orientation Booklet acknowledgment requires City Wide identification ' +
+      'on every person working a client building.') +
+      vioP_('This is not about one particular garment. A vest, a smock, or a T-shirt all work. What ' +
+      'matters is that every person on site, every night, is carrying the City Wide logo where a ' +
+      'camera can see it.');
+    cure = vioP_('<b>Required correction:</b> Have every person working this account showing a ' +
+      'visible City Wide logo at your next scheduled service. Shirts and smocks are ordered through ' +
+      'the vendor store on the Resource Center, and vests and aprons can be picked up at the office ' +
+      'while supplies last.');
   } else if (f.type === 'meeting') {
     req = vioP_('The Communication Guidelines signed with your Independent Contractor Agreement require ' +
       'on-time arrival for scheduled meetings and inspections, with a 15-minute grace period. Time beyond ' +
