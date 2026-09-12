@@ -102,7 +102,7 @@ function boot(){
     el('mEmail').textContent=n.ic_email||'';
     el('mAccount').textContent=n.account||'';
     el('mMarket').textContent=n.market||'';
-    el('mLevel').textContent='Level '+n.level+(n.level===3?' (final, account reassignment)':n.level===2?' (Compliance Chargeback)':' (formal warning)');
+    el('mLevel').textContent='Level '+n.level+(n.level===3?' (final, account reassignment)':n.level===2?' (Re-Inspection Fee)':' (formal warning)');
     el('mIssuer').textContent=n.issuer_name||'';
     el('mIssued').textContent=n.issued||'';
     if(n.test)el('testWarn').style.display='block';
