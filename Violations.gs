@@ -62,7 +62,7 @@ var VIO_DD_SEED = [
   ['minor', 'Person under 18 on site', 'Labor law. Zero tolerance; suggested level starts at 2.', 'Person under the age of 18 performing work at the account'],
   ['minor', '', '', 'Person under the age of 18 present during service (including children of crew members)'],
   ['minor', '', '', 'Other (describe in the details box)'],
-  ['uniform', 'Approved City Wide apparel not worn', 'Building security. Cameras get reviewed, sometimes by a third-party security company. No visible logo and the person gets flagged. Vest, smock, shirt or polo all qualify.', 'Person in the building with no approved City Wide apparel'],
+  ['uniform', 'Apparel required by your client directive not worn', 'Building security. Cameras get reviewed, sometimes by a third-party security company. No visible logo and the person gets flagged. Vest, smock, shirt or polo all qualify.', 'Person in the building with no visible City Wide vendor logo'],
   ['uniform', '', '', 'Part of the crew in approved apparel and part not'],
   ['uniform', '', '', 'Logo covered by a jacket or other layer'],
   ['uniform', '', '', 'Other (describe in the details box)'],
