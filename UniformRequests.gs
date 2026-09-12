@@ -239,8 +239,15 @@ function crawlBennett_() {
     // Sep 12 2026: only read the category's own product list (the first <ol ... product-items>).
     // Every listing page also carries a "featured" strip of ~9 unrelated products below it;
     // reading those tagged polos as Blankets & Towels, Aprons & Safety Vests, etc.
-    var mainM = html.match(/<ol class="[^"]*product-items[^"]*">([\s\S]*?)<\/ol>/);
-    var scope = mainM ? mainM[1] : html;
+    var olRe = /<ol[^>]*class=["'][^"']*product-items[^"']*["'][^>]*>([\s\S]*?)<\/ol>/g, om, scope = '';
+    while ((om = olRe.exec(html)) !== null) {
+      if (!/widget/i.test(om[0].slice(0, 300))) { scope = om[1]; break; }
+    }
+    if (!scope) {
+      scope = html;
+      var olTags = (html.match(/<ol[^>]*>/g) || []).slice(0, 5).join(' | ');
+      Logger.log('No main product list found on ' + listUrls[i] + ' (ol tags: ' + olTags + ')');
+    }
     var m;
     linkRe.lastIndex = 0;
     while ((m = linkRe.exec(scope)) !== null) {
