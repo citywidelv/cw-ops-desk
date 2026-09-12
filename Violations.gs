@@ -103,12 +103,23 @@ var VIO_SRC_SEED = [
   ['source', '', '', 'Other']
 ];
 
+// The market service desks. Kept for reference; violation replies now go to the
+// market compliance inbox, see VIO_SENDER below.
 var VIO_REGION_SERVICE = {
   'Las Vegas': 'lvservicecall@gocitywide.com',
   'Northern Nevada': 'rnservicecall@gocitywide.com'
 };
 var VIO_TEST_TO = 'tjroberts@gocitywide.com';
-var VIO_SENDER_NAME = 'No Reply at City Wide';
+
+// Sep 12 2026: a violation notice is compliance mail, so it carries the market's
+// compliance identity. The Google account that physically sends is still the Las
+// Vegas one until the Reno relay exists; the display name and the reply-to are
+// what the vendor actually sees, and those are per market.
+var VIO_SENDER = {
+  'Las Vegas':       { name: 'City Wide Las Vegas Compliance',       replyTo: 'LVcompliance@gocitywide.com' },
+  'Northern Nevada': { name: 'City Wide Northern Nevada Compliance', replyTo: 'rncompliance@gocitywide.com' }
+};
+function vioSender_(market) { return VIO_SENDER[market] || VIO_SENDER['Las Vegas']; }
 var VIO_LOGO = 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
 var VIO_BG_LINK = 'https://form.asana.com/?k=FRCnQmbTGjAVPieFt4bnWQ&d=13140959242873';
 var VIO_HUB_PAPERWORK = 'https://citywidelv.github.io/cw-vendor-shop/new-vendors.html';
@@ -134,6 +145,7 @@ function vioDispatch(data) {
   if (kind === 'vio_seed') return vioSeed_(data);
   if (kind === 'vio_ddsync') return vioDdSync_(data);
   if (kind === 'vio_roster') return vioRoster_(data);
+  if (kind === 'vio_syncroster') return vioSyncRoster_(data);
   if (kind === 'vio_submit') return vioSubmit_(data);
   if (kind === 'vio_photo') return vioPhoto_(data);
   return _json({ ok: false, error: 'Unknown vio kind' });
@@ -285,16 +297,9 @@ function vioKey_(dba, vendorNo) {
 
 function vioRoster_(data) {
   var ss = vioSS_();
-  var rv = ss.getSheetByName(VIO_TABS.ROSTER).getDataRange().getValues();
-  var roster = [];
-  for (var i = 1; i < rv.length; i++) {
-    if (String(rv[i][8]).toUpperCase() === 'TRUE') continue; // hide
-    if (!rv[i][1]) continue;
-    roster.push({
-      market: rv[i][0], dba: rv[i][1], owner: rv[i][2], email: rv[i][3],
-      vendor_no: rv[i][5], ic_type: rv[i][6], status: rv[i][7]
-    });
-  }
+  // Sep 12 2026: read live from the Vendor Directory so the picker can no longer
+  // drift from CRM. The Roster tab is now only a mirror, rewritten by vio_syncroster.
+  var roster = vioDirectoryRoster_();
   var iv = ss.getSheetByName(VIO_TABS.ISSUERS).getDataRange().getValues();
   var issuers = [];
   for (var j = 1; j < iv.length; j++) {
@@ -346,6 +351,52 @@ function vioRoster_(data) {
   } });
 }
 
+// --------------------------------------------------- vendor directory -----
+
+// Live vendor list from the Vendor Directory (VendorDirectory.gs, same project).
+// Only statuses City Wide can dispatch today, never Prospect or Do Not Contact.
+// market is 'LV' / 'NNV' because that is what the page filters on. A vendor whose
+// region is Both is emitted once per market so either FSM can find them. Hiding a
+// vendor from this picker is the Vendor Directory hide column, one control surface.
+function vioDirectoryRoster_() {
+  var out = [];
+  vdAllRows_(vdSS_()).forEach(function (r) {
+    if (vdTrue_(r.hide)) return;
+    var dba = vdStr_(r.dba_name);
+    if (!dba) return;
+    if (VD_LIVE_STATUS.indexOf(vdStr_(r.status)) === -1) return;
+    var region = vdRegion_(r.region);
+    var keys = region === 'Both' ? ['LV', 'NNV'] : (region === 'Northern Nevada' ? ['NNV'] : ['LV']);
+    keys.forEach(function (k) {
+      out.push({
+        market: k, dba: dba, owner: vdStr_(r.contact_name), email: vdStr_(r.email),
+        legal_name: vdStr_(r.legal_name), vendor_no: vdStr_(r.bc_vendor_no),
+        ic_type: vdStr_(r.ic_type), status: vdStr_(r.status)
+      });
+    });
+  });
+  out.sort(function (a, b) {
+    var x = a.dba.toLowerCase(), y = b.dba.toLowerCase();
+    return x < y ? -1 : x > y ? 1 : 0;
+  });
+  return out;
+}
+
+// Rewrites the Roster tab from the Vendor Directory. Nothing reads the tab any
+// more, so this exists so the tab never shows something different from the picker.
+function vioSyncRoster_(data) {
+  var sh = vioSS_().getSheetByName(VIO_TABS.ROSTER);
+  var list = vioDirectoryRoster_();
+  var rows = list.map(function (r) {
+    return [r.market, r.dba, r.owner, r.email, r.legal_name, r.vendor_no, r.ic_type, r.status, ''];
+  });
+  if (sh.getLastRow() > 1) {
+    sh.getRange(2, 1, sh.getLastRow() - 1, VIO_ROSTER_HEADERS.length).clearContent();
+  }
+  if (rows.length) sh.getRange(2, 1, rows.length, VIO_ROSTER_HEADERS.length).setValues(rows);
+  return _json({ ok: true, rows: rows.length });
+}
+
 // ------------------------------------------------------------ submit -----
 function vioSubmit_(d) {
   var ss = vioSS_();
@@ -388,7 +439,7 @@ function vioSubmit_(d) {
   try {
     MailApp.sendEmail({ to: apprTo, subject: apprSubject,
       htmlBody: vioApprovalEmail_(nid, d, level, test, approveLink, html, approver),
-      name: VIO_SENDER_NAME,
+      name: vioSender_(d.market).name,
       body: 'Notice ' + nid + ' is awaiting approval. Review at ' + approveLink });
     emailStatus = test ? 'TEST approval request sent to ' + VIO_TEST_TO :
       'awaiting approval by ' + approver;
@@ -451,6 +502,7 @@ function vioSubmit_(d) {
 function vioSendVendor_(market, test, to, cc, replyTo, subject, html, nid) {
   var emailStatus = '';
   var relayMissing = false;
+  var snd = vioSender_(market);
   if (market === 'Northern Nevada' && !test) {
     var relayUrl = PropertiesService.getScriptProperties().getProperty('VIO_RENO_URL');
     var relaySecret = PropertiesService.getScriptProperties().getProperty('VIO_SECRET');
@@ -458,7 +510,7 @@ function vioSendVendor_(market, test, to, cc, replyTo, subject, html, nid) {
       var resp = UrlFetchApp.fetch(relayUrl, {
         method: 'post', contentType: 'text/plain',
         payload: JSON.stringify({ secret: relaySecret, to: to, cc: cc, replyTo: replyTo,
-          subject: subject, htmlBody: html, name: VIO_SENDER_NAME }),
+          subject: subject, htmlBody: html, name: snd.name }),
         muteHttpExceptions: true, followRedirects: true
       });
       var rj = {}; try { rj = JSON.parse(resp.getContentText()); } catch (pe) {}
@@ -467,14 +519,14 @@ function vioSendVendor_(market, test, to, cc, replyTo, subject, html, nid) {
     } else { relayMissing = true; }
     if (relayMissing) {
       MailApp.sendEmail({ to: to, cc: cc, replyTo: replyTo, subject: subject,
-        htmlBody: html, name: VIO_SENDER_NAME,
+        htmlBody: html, name: snd.name,
         body: 'Notice ' + nid + '. Open in an HTML mail client.' });
       emailStatus = emailStatus === 'RELAY FAILED, sent from LV' ? emailStatus :
         'sent from LV (no Reno relay configured)';
     }
   } else {
     MailApp.sendEmail({ to: to, cc: cc, replyTo: replyTo, subject: subject,
-      htmlBody: html, name: VIO_SENDER_NAME,
+      htmlBody: html, name: snd.name,
       body: 'Notice ' + nid + '. Open in an HTML mail client.' });
     emailStatus = test ? 'TEST sent to ' + VIO_TEST_TO : 'sent';
   }
@@ -553,7 +605,7 @@ function vioApprove_(data) {
   var subject = (test ? 'TEST | ' : '') + subjBase;
   var to = test ? VIO_TEST_TO : notify;
   var cc = String(H('issuer_email') || '');
-  var replyTo = VIO_REGION_SERVICE[H('market')] || VIO_REGION_SERVICE['Las Vegas'];
+  var replyTo = vioSender_(String(H('market'))).replyTo;
   var sent;
   try {
     sent = vioSendVendor_(String(H('market')), test, to, cc, replyTo, subject, html, nid);
@@ -826,7 +878,7 @@ function vioEmail_(nid, d, cfg, level, test) {
     sourceLine + natureLine + blocks + photoBlock + ladder + contact +
     '<p style="margin:18px 0 0;font-family:Verdana,Arial,sans-serif;font-size:11px;color:#999999;">' +
     'City Wide Facility Solutions &middot; GoCityWide.com &middot; Issued through the City Wide ' +
-    'compliance program. Please do not reply to this address; replies route to the service desk.</p>' +
+    'compliance program. Replies to this notice go to your market compliance desk.</p>' +
     '</td></tr></table></td></tr></table>';
 }
 
@@ -836,4 +888,8 @@ function vioSetupRun() {
 
 function vioDdSyncRun() {
   Logger.log(vioDdSync_({}).getContent());
+}
+
+function vioSyncRosterRun() {
+  Logger.log(vioSyncRoster_({}).getContent());
 }

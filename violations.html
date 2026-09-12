@@ -473,7 +473,7 @@ function preview(){
     '<p style="margin:0 0 4px;font-size:13px;color:#636466;">'+esc(d.ic.dba)+(d.ic.owner?', attn '+esc(d.ic.owner):'')+'</p>'+
     '<p style="margin:0 0 16px;font-size:12px;color:#636466;">Account: '+esc(d.account)+' &middot; Inspection date: '+esc(d.inspection_date)+' &middot; Notice VN-PREVIEW</p>'+
     P('This notice documents a compliance finding at '+esc(d.account)+'.')+sourceLine+nature+blocks+photoBlock+ladder+contact+
-    '<p style="margin:18px 0 0;font-size:11px;color:#999;">City Wide Facility Solutions &middot; GoCityWide.com &middot; Issued through the City Wide compliance program. Please do not reply to this address; replies route to the service desk.</p>'+
+    '<p style="margin:18px 0 0;font-size:11px;color:#999;">City Wide Facility Solutions &middot; GoCityWide.com &middot; Issued through the City Wide compliance program. Replies to this notice go to your market compliance desk.</p>'+
     '</td></tr></table></td></tr></table>';
   var pf=el('preview'); pf.style.display='block';
   pf.srcdoc=html;
