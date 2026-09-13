@@ -617,6 +617,8 @@ search box to jump straight to what you need.</p>
 </div></footer>
 </div>
 
+<script src="nav.js"></script>
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-nav.js"></script>
 <script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
@@ -846,6 +848,9 @@ var MENU = [
 ]}
 ]}
 ];
+/* Site Admin (2026-09-13): nav.js publishes window.CW_NAV; the MENU above stays as the fallback. */
+if(window.CWNav){ var __m = CWNav.menuFor("ops"); if(__m) MENU = __m; }
+
 function renderMainNav(){
 function items(list, depth){
 var out = "";
@@ -934,6 +939,8 @@ var QUICK = [
 { label:"Margin Calculator", href:"https://citywidelv.github.io/margincalculator/", icon:"margin" },
 { label:"Vendor Resources", href:"https://citywidelv.github.io/cw-vendor-hub/", icon:"home" }
 ];
+if(window.CWNav){ var __q = CWNav.quickFor("ops"); if(__q) QUICK = __q; }
+
 function renderQuick(){
 var html = "";
 QUICK.forEach(function(q){
