@@ -89,9 +89,9 @@ function saSurfaces_() {
     { key: 'staff_options', group: 'Team', label: 'Exhibit A options', ss: staffSS_, tab: 'Exhibit A Options', mode: 'table',
       help: 'Extra line items offered in each section of the Exhibit A builder.',
       types: { active: 'bool' }, options: { section: ['Service Specifications', 'Supplies and Equipment', 'Conduct on Site', 'Required Training'] } },
-    { key: 'send_config', group: 'Email', label: 'Send and digest modes', ss: saSolSS_, tab: 'SendConfig', mode: 'kv',
+    { key: 'send_config', group: 'Email', label: 'Send and digest modes', ss: saSolSS_, tab: 'SendConfig', mode: 'kv', kcol: 'tag', vcol: 'mode',
       help: 'Per message tag: send now, queue for the 8am and 4pm digest, weekly rollup, or skip. Anything with an attachment always sends now.',
-      options: { value: ['send', 'digest', 'weekly', 'skip'] } },
+      options: { mode: ['send', 'digest', 'weekly', 'skip'] } },
     { key: 'envirox', group: 'Supplies', label: 'EnvirOx catalog', ss: supSS_, tab: 'EnvirOx Catalog', mode: 'table',
       help: 'Products, pack sizes and price tiers on the EnvirOx order page. tiers is the price ladder the page reads as written.',
       types: { lbs: 'number', star: 'number', active: 'bool', note: 'long', tiers: 'long' }, keyCol: 'sku' },
@@ -103,6 +103,9 @@ function saSurfaces_() {
       options: { kind: ['account', 'vendor'] } }
   ];
 }
+// kv tabs: which column is the key and which the value (SendConfig uses tag / mode).
+function saKcol_(surf) { return surf.kcol || 'key'; }
+function saVcol_(surf) { return surf.vcol || 'value'; }
 function saSurface_(key) {
   var list = saSurfaces_();
   for (var i = 0; i < list.length; i++) if (list[i].key === key) return list[i];
@@ -200,7 +203,7 @@ function saDispatch(d) {
 function saSurfacesList_(d) {
   var out = saSurfaces_().map(function (s) {
     return { key: s.key, group: s.group, label: s.label, tab: s.tab, mode: s.mode, help: s.help || '',
-      locked: s.locked || [], positional: !!s.positional, options: s.options || {}, keyCol: s.keyCol || '' };
+      locked: s.locked || [], positional: !!s.positional, options: s.options || {}, keyCol: s.keyCol || '', kcol: s.mode === 'kv' ? saKcol_(s) : '', vcol: s.mode === 'kv' ? saVcol_(s) : '' };
   });
   return saOut_({ ok: true, surfaces: out, confirm: SA_CONFIRM });
 }
@@ -220,7 +223,7 @@ function saRows_(d) {
   var cols = head.filter(Boolean).map(function (h, c) {
     var sample = vals.slice(0, 40).map(function (r) { return r[head.indexOf(h)]; });
     return { name: h, type: saTypeOf_(surf, h, sample), options: surf.options && surf.options[h] ? surf.options[h] : null,
-      locked: surf.mode === 'kv' ? h === 'key' : false };
+      locked: surf.mode === 'kv' ? h === saKcol_(surf) : false };
   });
   var typeOf = {}; cols.forEach(function (c) { typeOf[c.name] = c.type; });
   var rows = [];
@@ -229,7 +232,7 @@ function saRows_(d) {
     head.forEach(function (h, c) { if (!h) return; if (saStr_(r[c]) !== '') any = true; rec[h] = saNorm_(r[c], typeOf[h]); });
     if (any) rows.push(rec);
   });
-  return saOut_({ ok: true, surface: surf.key, tab: surf.tab, mode: surf.mode, cols: cols, rows: rows,
+  return saOut_({ ok: true, surface: surf.key, tab: surf.tab, mode: surf.mode, cols: cols, rows: rows, kcol: surf.mode === 'kv' ? saKcol_(surf) : '', vcol: surf.mode === 'kv' ? saVcol_(surf) : '',
     locked: surf.locked || [], url: o.ss.getUrl() + '#gid=' + sh.getSheetId(), last_row: last });
 }
 // Optimistic concurrency: each change carries the value the editor saw. If the
@@ -244,11 +247,10 @@ function saSave_(d) {
   var head = saHeaders_(sh);
   var cur = sh.getRange(row, 1, 1, head.length).getValues()[0];
   var who = saWho_(d);
-  var keyIdx = head.indexOf('key');
   if (surf.mode === 'kv') {
-    var k = saStr_(cur[keyIdx]);
+    var k = saStr_(cur[head.indexOf(saKcol_(surf))]);
     if ((surf.locked || []).indexOf(k) >= 0) return saOut_({ ok: false, error: '"' + k + '" is a safety switch. Use the Safety Switches tab.' });
-    if (changes.key !== undefined) return saOut_({ ok: false, error: 'Keys cannot be renamed; code reads them by name.' });
+    if (changes[saKcol_(surf)] !== undefined) return saOut_({ ok: false, error: 'Keys cannot be renamed; code reads them by name.' });
   }
   var written = [], stale = [], ids = [];
   Object.keys(changes).forEach(function (col) {
@@ -276,10 +278,11 @@ function saAdd_(d) {
   var values = d.values || {};
   var who = saWho_(d);
   if (surf.mode === 'kv') {
-    var k = saStr_(values.key).trim();
-    if (!k) return saOut_({ ok: false, error: 'A key is required.' });
+    var k = saStr_(values[saKcol_(surf)]).trim();
+    if (!k) return saOut_({ ok: false, error: 'A ' + saKcol_(surf) + ' is required.' });
     if ((surf.locked || []).indexOf(k) >= 0) return saOut_({ ok: false, error: 'That key is a safety switch.' });
-    var have = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues() : [];
+    var kci = head.indexOf(saKcol_(surf)) + 1;
+    var have = sh.getLastRow() > 1 ? sh.getRange(2, kci, sh.getLastRow() - 1, 1).getValues() : [];
     for (var i = 0; i < have.length; i++) if (saStr_(have[i][0]).trim() === k) return saOut_({ ok: false, error: 'Key "' + k + '" already exists.' });
   }
   if (surf.keyCol) {
@@ -310,7 +313,7 @@ function saClear_(d) {
   var o = saOpen_(surf), sh = o.sh;
   var head = saHeaders_(sh);
   var cur = sh.getRange(row, 1, 1, head.length).getValues()[0].map(saStr_);
-  if (surf.mode === 'kv' && (surf.locked || []).indexOf(cur[head.indexOf('key')]) >= 0) return saOut_({ ok: false, error: 'That row is a safety switch.' });
+  if (surf.mode === 'kv' && (surf.locked || []).indexOf(cur[head.indexOf(saKcol_(surf))]) >= 0) return saOut_({ ok: false, error: 'That row is a safety switch.' });
   sh.getRange(row, 1, 1, head.length).clearContent();
   var id = saLog_(saWho_(d), 'clear', surf.key, surf.tab, row, '', JSON.stringify(cur), '');
   return saOut_({ ok: true, log_id: id });
@@ -422,7 +425,7 @@ function saUndo_(d) {
   if (action === 'add') {
     var cur2 = sh.getRange(row, 1, 1, head.length).getValues()[0].map(saStr_);
     var was = JSON.parse(saStr_(e['new'])).map(saStr_);
-    if (cur2.join('') !== was.join('')) return saOut_({ ok: false, error: 'That row has been edited since it was added. Clear it directly instead.' });
+    if (cur2.join('\x1f') !== was.join('\x1f')) return saOut_({ ok: false, error: 'That row has been edited since it was added. Clear it directly instead.' });
     sh.getRange(row, 1, 1, head.length).clearContent();
     var aid = saLog_(who, 'undo', surf.key, surf.tab, row, '', saStr_(e['new']), '');
     markUndone(aid); return saOut_({ ok: true, log_id: aid });
