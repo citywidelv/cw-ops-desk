@@ -58,11 +58,26 @@ var REGION_EMAIL = {
   'Las Vegas': 'lvservicecall@gocitywide.com',
   'Northern Nevada': 'rnservicecall@gocitywide.com'
 };
+// Sep 13 2026: a response to a posting that ASKED for a quote goes to the market quote inbox.
+// An interest-only response (already priced) goes to the market service inbox.
+var QUOTE_EMAILS = 'cwlvquotes@gocitywide.com,CWRNQuotes@gocitywide.com';
+var QUOTE_EMAIL = {
+  'Las Vegas': 'cwlvquotes@gocitywide.com',
+  'Northern Nevada': 'CWRNQuotes@gocitywide.com'
+};
+function respInbox_(mode, region) {
+  var r = String(region || '').trim();
+  if (String(mode || '') === 'quote') return QUOTE_EMAIL[r] || QUOTE_EMAILS;
+  return REGION_EMAIL[r] || RESP_EMAILS;
+}
 
 // -------- invoices + building supply orders (v6) --------
 var INV_TAB = 'Invoices';
 var SUP_TAB = 'Supply Orders';
-var INV_EMAILS = 'cwlvinvoices@gocitywide.com,cwrninvoices@gocitywide.com';
+var INV_EMAILS = 'cwlvinvoices@gocitywide.com,cwrninvoices@gocitywide.com'; // legacy, no longer a send target
+// Sep 13 2026: invoices go to ONE market AP inbox, chosen by the region the vendor picked.
+var INV_EMAIL = { 'Las Vegas': 'CWLVInvoices@gocitywide.com', 'Northern Nevada': 'CWRNInvoices@gocitywide.com' };
+function invInbox_(region) { return INV_EMAIL[String(region || '').trim()] || ''; }
 var INV_HEADERS = [
   'invoice_id', 'received', 'region', 'company', 'contact_name', 'email', 'phone',
   'company_address', 'service_month', 'line_count', 'total', 'lines', 'comments'
@@ -274,7 +289,7 @@ function handleResponse(data) {
 
   try {
     cwMail_('response', {
-      to: RESP_EMAILS,
+      to: respInbox_(String(posting.pay_type || '') === 'quote' ? 'quote' : 'interest', posting.region),
       cc: String(posting.contact_email || ''),
       digest: { title: (data.mode === 'quote' ? 'Quote: ' : 'Interest: ') + String(data.company || '') + ' for ' + String(posting.account_name || posting.title || data.posting_id),
         id: rid, region: String(posting.region || ''), fields: [
@@ -366,6 +381,7 @@ function handleInvoice(data) {
       !data.lines || !data.lines.length) {
     out.error = 'Missing required fields'; return _json(out);
   }
+  if (!invInbox_(data.region)) { out.error = 'Pick your region: Las Vegas or Northern Nevada.'; return _json(out); }
   var lines = [];
   var total = 0;
   for (var i = 0; i < data.lines.length && i < 60; i++) {
@@ -406,7 +422,7 @@ function handleInvoice(data) {
   var totalStr = _money(total);
   try {
     cwMail_('invoice_int', {
-      to: INV_EMAILS,
+      to: invInbox_(data.region),
       replyTo: String(data.email),
       subject: (pdf ? 'Vendor Invoice: ' : 'Vendor Invoice (PDF ATTACHMENT FAILED - see Sheet): ') + data.company + ' | ' + data.service_month +
         ' | ' + totalStr + ' [' + id + ']',
@@ -419,7 +435,7 @@ function handleInvoice(data) {
   try {
     cwMail_('invoice_conf', {
       to: String(data.email),
-      replyTo: INV_EMAILS,
+      replyTo: invInbox_(data.region),
       subject: 'We received your invoice: ' + data.service_month + ' | ' + totalStr +
         ' [' + id + ']',
       htmlBody: _invoiceEmail(id, data, lines, total, true),
@@ -1050,6 +1066,7 @@ function handleInvoiceUpload(data) {
       !data.file_data || !data.file_name) {
     out.error = 'Missing required fields'; return _json(out);
   }
+  if (!invInbox_(data.region)) { out.error = 'Pick your region: Las Vegas or Northern Nevada.'; return _json(out); }
   var total = Number(String(data.total || '').replace(/[$,\s]/g, ''));
   if (isNaN(total)) total = 0;
 
@@ -1098,7 +1115,7 @@ function handleInvoiceUpload(data) {
   var totalStr = _money(total);
   try {
     cwMail_('invup_int', {
-      to: INV_EMAILS,
+      to: invInbox_(data.region),
       replyTo: String(data.email),
       subject: 'Vendor Invoice (uploaded): ' + data.company + ' | ' + data.service_month +
         ' | ' + totalStr + ' [' + id + ']',
@@ -1111,7 +1128,7 @@ function handleInvoiceUpload(data) {
   try {
     cwMail_('invup_conf', {
       to: String(data.email),
-      replyTo: INV_EMAILS,
+      replyTo: invInbox_(data.region),
       subject: 'We received your invoice: ' + data.service_month + ' | ' + totalStr + ' [' + id + ']',
       htmlBody: _uploadInvoiceEmail(id, data, totalStr, true),
       body: 'City Wide Facility Solutions received your uploaded invoice (' + id + '). ' +
