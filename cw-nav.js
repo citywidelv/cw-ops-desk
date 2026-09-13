@@ -12,6 +12,7 @@
    - Manifest shape, one for every hub:
        { hub, label, menu:[ TOP ], quick:[ LEAF ] }
        TOP  = { label, href?, icon?, page?, note?, style?, hidden?, items:[ ITEM ] }
+       (Portal: style "dbis" colours a sidecard, style "strip" renders a long narrow box above the grid)
        ITEM = LEAF | { ghead:"Heading" } | { sub:"Cascade label", items:[ ITEM ] }
        LEAF = { label, href, tag?, primary?, cta?, hidden? }
      hidden:true on anything leaves it out of the render without deleting it.
@@ -94,8 +95,13 @@
     var n = manifest("portal");
     asideEl = asideEl || document.querySelector("aside");
     if(!n || !asideEl) return false;
-    var html = "";
+    var html = "", strip = "";
     shown(n.menu).forEach(function(card){
+      if(card.style === "strip"){
+        /* a long narrow box spanning the team grid, e.g. the Site Admin link */
+        if(card.href) strip += '<a class="strip" href="' + esc(card.href) + '"' + tgt(card.href) + '><b>' + esc(card.label) + '</b>' + (card.note ? '<span>' + esc(card.note) + '</span>' : '') + '<span class="go">Open &rarr;</span></a>';
+        return;
+      }
       html += '<div class="sidecard' + (card.style ? ' ' + esc(card.style) : '') + '"><h3>' + esc(card.label) + '</h3>';
       if(card.note) html += '<div class="sub">' + esc(card.note) + '</div>';
       shown(card.items).forEach(function(it){
@@ -106,6 +112,8 @@
       html += '</div>';
     });
     asideEl.innerHTML = html;
+    var host = document.getElementById("adminstrip");
+    if(host) host.innerHTML = strip;
     return true;
   }
 
