@@ -189,10 +189,7 @@ var INV_OPENING_ID = 'INV-LV-260831-ACT';
 var INV_OPENING_DATE = '2026-08-31';
 function invSeedOpening_() {
   var cs = invSheet_(INV_COUNT_TAB, INV_COUNT_HEADERS, '#D22730');
-  if (cs.getLastRow() > 1) {
-    var ids = cs.getRange(2, 1, cs.getLastRow() - 1, 1).getValues();
-    for (var i = 0; i < ids.length; i++) if (String(ids[i][0]) === INV_OPENING_ID) return 'already seeded';
-  }
+  if (cs.getLastRow() > 1) return 'a count already exists';
   var when = new Date(INV_OPENING_DATE + 'T12:00:00-07:00');
   var items = invItems_();
   var lines = [];
@@ -392,6 +389,7 @@ function handleInvCatalog(data) {
   var items = invItems_();
   if (!items.length) { setupInventory(); items = invItems_(); }
   if (!items.length) return invJson_({ ok: false, error: 'no_items' });
+  invSeedOpening_();
   var rows = items.map(function (it) {
     return [it.sku, it.name, it.grp, it.unit, it.cost, it.par, it.image,
       it.sizes.join('|'), it.colors.join('|'), it.act, it.note, it.spars];
@@ -405,6 +403,7 @@ function handleInvCatalog(data) {
 function handleInvOnHand(data) {
   if ((data.passcode || '') !== PASSCODE) return invJson_({ ok: false, error: 'bad_passcode' });
   if (!invItems_().length) setupInventory();
+  invSeedOpening_();
   var snap = invSnapshot_(data.region);
   var items = {};
   invItems_().forEach(function (it) { items[it.sku] = it; });
