@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>CW Ops Desk | Inventory On Hand</title>
+<!-- build 2026-09-14a: live stock, what to order, and the exception report.
+     Reads kind:inv_onhand and kind:inv_moves from the CW Inventory Sheet.
+     On hand = counted at the last count, plus every movement dated after it. -->
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--green:#1E7B34;--green-bg:#EDF7EF;--red-bg:#FBEAEB;
+  --amber:#8a6d1a;--amber-bg:#FDF6E3;--amber-br:#EAD9A0;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
+.head .bar{max-width:1120px;margin:0 auto;padding:0 20px;height:64px;display:flex;
+  align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--grey);border-left:2px solid var(--border);padding-left:14px}
+.head .badge{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--black);color:#fff;border-left:3px solid var(--gold);padding:4px 10px;
+  white-space:nowrap}
+.head .backbtn{margin-left:auto;font-size:12px;font-weight:700;color:var(--black);
+  text-decoration:none;border:2px solid var(--border);border-radius:8px;padding:8px 14px;
+  white-space:nowrap;margin-right:12px}
+.head .backbtn:hover{border-color:var(--red);color:var(--red)}
+@media(max-width:700px){.head .t{display:none}.head .bar{gap:10px;padding:0 14px}}
+@media(max-width:560px){.head .badge{display:none}.head .backbtn{margin-right:0;padding:7px 10px;font-size:11px}}
+.wrap{max-width:1120px;margin:0 auto;padding:24px 20px 90px}
+@media(max-width:640px){.wrap{padding:18px 14px 90px}}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);
+  border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 6px;max-width:74ch}
+.src{font-size:11.5px;color:var(--grey);background:#fff;border:1px dashed var(--border);
+  border-radius:8px;padding:8px 12px;margin:14px 0 8px;display:inline-block}
+.src.live{border-color:#BFE3C6;background:var(--green-bg);color:var(--green)}
+.src.snap{border-color:#F0C8CB;background:var(--red-bg);color:var(--red-dark)}
+
+.statusbar{background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow);padding:12px 18px;margin:18px 0 22px}
+.statusbar .row{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center}
+.statusbar .cell{font-size:12px;color:var(--grey)}
+.statusbar .cell b{display:block;font-size:16px;color:var(--black)}
+.statusbar .cell b.bad{color:var(--red)}
+.statusbar .cell b.ok{color:var(--green)}
+.statusbar .go{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:640px){.statusbar .go{margin-left:0;width:100%}}
+
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+  padding:22px;margin-bottom:18px}
+@media(max-width:640px){.card{padding:16px 14px}}
+.card h2{font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px}
+.card h2 .n{width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;
+  font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.card .sub{font-size:12.5px;color:var(--grey);margin-bottom:14px;max-width:80ch}
+label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--grey);margin-bottom:5px}
+input[type=text],select{width:100%;font-family:inherit;font-size:14px;color:var(--black);
+  border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;background:#fff}
+input:focus,select:focus{outline:none;border-color:var(--red)}
+.regtog{display:flex;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;background:#fff}
+.regtog button{flex:1;font-family:inherit;font-size:13px;font-weight:700;color:var(--grey);
+  background:#fff;border:none;padding:12px 10px;cursor:pointer;line-height:1.3}
+.regtog button small{display:block;font-weight:400;font-size:10.5px;letter-spacing:.02em}
+.regtog button.on{background:var(--red);color:#fff}
+.regtog button:not(.on):hover{background:var(--light)}
+.filters{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:700px){.filters{grid-template-columns:1fr}}
+
+.tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.t{width:100%;border-collapse:collapse;font-size:12.5px}
+table.t th{text-align:left;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--grey);border-bottom:2px solid var(--black);padding:7px 8px;white-space:nowrap}
+table.t td{border-bottom:1px solid var(--border);padding:7px 8px;vertical-align:top}
+table.t td.r{text-align:right;white-space:nowrap}
+table.t tr.low td{background:var(--amber-bg)}
+table.t tr.zero td{background:var(--red-bg)}
+table.t .nm b{display:block}
+table.t .nm span{color:var(--grey);font-size:11px}
+table.t .mv{color:var(--grey);font-size:11px;white-space:nowrap}
+.pill{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;border-radius:4px;padding:1px 6px;margin-left:5px}
+.pill.order{background:var(--red);color:#fff}
+.pill.ok{background:var(--green-bg);color:var(--green);border:1px solid #BFE3C6}
+.pill.unsized{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-br)}
+.empty{color:var(--grey);font-size:13px;padding:14px 0}
+.empty.good{color:var(--green);font-weight:700}
+
+.btn{display:inline-block;font-family:inherit;font-size:13px;font-weight:700;color:#fff;
+  background:var(--red);border:none;border-radius:8px;padding:11px 20px;cursor:pointer;
+  text-decoration:none;line-height:1.2}
+.btn:hover{background:var(--red-dark)}
+.btn.sec{background:#fff;color:var(--black);border:2px solid var(--border);padding:9px 18px}
+.btn.sec:hover{border-color:var(--red);color:var(--red)}
+#gate{max-width:520px;margin:80px auto;background:#fff;border:1px solid var(--border);
+  border-radius:12px;box-shadow:var(--shadow);padding:34px;text-align:center}
+#gate h1{font-size:18px}#gate h1:after{margin:12px auto 0}
+#gate p{color:var(--grey);font-size:13px;margin:14px 0 18px}
+.hidden{display:none!important}
+.foot{border-top:1px solid var(--border);background:#fff;margin-top:40px}
+.foot .fin{max-width:1120px;margin:0 auto;padding:18px 20px;font-size:11.5px;color:var(--grey)}
+@media print{.head,.foot,.btn,.filters,.regtog,.statusbar .go{display:none!important}
+  body{background:#fff;font-size:11px}.card{box-shadow:none;border:1px solid #ccc}}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+
+<header class="head"><div class="bar">
+  <a href="index.html"><img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"></a>
+  <span class="t">Ops Desk &middot; Inventory On Hand</span>
+  <a class="backbtn" href="index.html">&larr; Ops Hub</a>
+  <span class="badge">Internal</span>
+</div></header>
+
+<div id="gate" class="hidden">
+  <h1>Team access required</h1>
+  <p>Sign in through the Ops Hub first and come back here from the Team and Admin menu.</p>
+  <a class="btn" href="index.html">&larr; Ops Hub</a>
+</div>
+
+<div class="wrap hidden" id="app">
+  <h1>Inventory On Hand</h1>
+  <p class="lede">What is on the shelf right now, what needs ordering, and anywhere the book and
+  the shelf disagree. On hand is the last physical count plus everything received, sold, comped
+  or issued since that date.</p>
+  <span class="src" id="srcbadge">Loading&hellip;</span>
+
+  <div class="statusbar">
+    <div class="row">
+      <div class="cell">Last count<b id="slast">none</b></div>
+      <div class="cell">Lines below level<b id="slow">0</b></div>
+      <div class="cell">Units to order<b id="sorder">0</b></div>
+      <div class="cell">Open exceptions<b id="sexc">0</b></div>
+      <div class="cell">Value on the shelf<b id="sval">$0.00</b></div>
+      <div class="go">
+        <button class="btn sec" id="copyord">Copy the order list</button>
+        <a class="btn" href="inventory.html" id="countlink">Count the inventory</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">1</span> Office</h2>
+    <div class="sub">Each office keeps its own shelf and its own count history.</div>
+    <div class="regtog" id="regtog">
+      <button type="button" data-r="LV" class="on">Las Vegas<small>Low Drag LLC</small></button>
+      <button type="button" data-r="NNV">Northern Nevada<small>Dash Two LLC</small></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">2</span> On the shelf</h2>
+    <div class="sub">Received, sold, comped and issued are the movements logged since the last
+    count. Rows in amber are below the level we keep. Rows in red are at zero.</div>
+    <div class="filters">
+      <div><label>Search</label><input type="text" id="q" placeholder="Item, size or sku"></div>
+      <div><label>Show</label><select id="filter">
+        <option value="all">Everything</option>
+        <option value="order">Only what needs ordering</option>
+        <option value="moved">Only what has moved since the count</option>
+        <option value="stock">Only what is in stock</option>
+      </select></div>
+      <div><label>Group</label><select id="grp">
+        <option value="">All groups</option>
+        <option value="chem">Chemicals</option>
+        <option value="bottle">Bottles and parts</option>
+        <option value="disp">Dispensers and kits</option>
+        <option value="paper">Charts, literature, SDS</option>
+        <option value="apparel">Apparel</option>
+      </select></div>
+    </div>
+    <div class="tblwrap"><table class="t" id="handtbl"></table></div>
+  </div>
+
+  <div class="card" id="exccard">
+    <h2><span class="n">3</span> Exception report</h2>
+    <div class="sub">Every line where a count came in different from what the book expected, with
+    the movements logged in that window. A comp that never got entered shows up here as missing
+    stock, which is the point.</div>
+    <div class="tblwrap"><table class="t" id="exctbl"></table></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">4</span> Recent movement</h2>
+    <div class="sub">The last fifty entries for this office.</div>
+    <div class="tblwrap"><table class="t" id="movetbl"></table></div>
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+      <a class="btn sec" href="inventory-move.html#receive" id="lrec">Receive new inventory</a>
+      <a class="btn sec" href="inventory-move.html#sale" id="lsale">Enter sales</a>
+      <a class="btn sec" href="inventory-move.html#issue" id="liss">Comp or issue inventory</a>
+      <a class="btn sec" href="#" id="booklink" target="_blank" rel="noopener">Open the Sheet</a>
+    </div>
+  </div>
+</div>
+
+<footer class="foot"><div class="fin">
+  <b>City Wide Facility Solutions</b> &middot; Ops Desk &middot; Internal use only &middot;
+  Everything here is built from the CW Inventory Sheet &middot; Something off? Tell TJ.
+</div></footer>
+
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var ENTITIES = {
+  LV:  { code:"LV", region:"Las Vegas" },
+  NNV: { code:"NNV", region:"Northern Nevada" }
+};
+var GROUPS = {chem:"Chemicals", bottle:"Bottles and parts", disp:"Dispensers and kits",
+  paper:"Charts, literature, SDS", apparel:"Apparel"};
+var REGION = "LV", PASS = "", ROWS = [], EXC = [], MOVES = [], LAST = null, BOOK = "";
+
+function el(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+  .replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+function money(n){ return "$"+(Math.round(num(n)*100)/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,","); }
+function curEnt(){ return ENTITIES[REGION] || ENTITIES.LV; }
+
+function filtered(){
+  var q = el("q").value.trim().toLowerCase();
+  var f = el("filter").value, g = el("grp").value;
+  return ROWS.filter(function(r){
+    if(g && r.grp !== g) return false;
+    if(f === "order" && r.to_order <= 0) return false;
+    if(f === "stock" && r.on_hand <= 0) return false;
+    if(f === "moved" && !(r.received || r.sold || r.comped || r.issued || r.other)) return false;
+    if(q){
+      var hay = (r.name + " " + r.size + " " + r.color + " " + r.sku).toLowerCase();
+      if(hay.indexOf(q) < 0) return false;
+    }
+    return true;
+  });
+}
+function renderHand(){
+  var rows = filtered();
+  var h = '<tr><th>Item</th><th>On hand</th><th>Keep</th><th>Order</th>' +
+    '<th>Received</th><th>Sold</th><th>Comped</th><th>Issued</th><th>Value</th></tr>';
+  if(!rows.length){
+    h += '<tr><td colspan="9" class="empty">Nothing matches that filter.</td></tr>';
+  } else {
+    rows.forEach(function(r){
+      var cls = r.on_hand <= 0 ? "zero" : (r.to_order > 0 ? "low" : "");
+      h += '<tr class="' + cls + '"><td class="nm"><b>' + esc(r.name) +
+        (r.size ? ' <span>' + esc((r.color ? r.color + " " : "") + r.size) + '</span>' : '') +
+        (r.unsized ? '<span class="pill unsized">no size on the opening count</span>' : '') +
+        '</b><span>' + esc(r.sku) + ' &middot; ' + esc(r.unit) + '</span></td>' +
+        '<td class="r"><b>' + r.on_hand + '</b></td>' +
+        '<td class="r">' + (r.par ? r.par : "-") + '</td>' +
+        '<td class="r">' + (r.to_order > 0 ? '<span class="pill order">' + r.to_order + '</span>' : '-') + '</td>' +
+        '<td class="r mv">' + (r.received || "-") + '</td>' +
+        '<td class="r mv">' + (r.sold || "-") + '</td>' +
+        '<td class="r mv">' + (r.comped || "-") + '</td>' +
+        '<td class="r mv">' + (r.issued + r.other || "-") + '</td>' +
+        '<td class="r">' + (r.cost ? money(r.value) : "-") + '</td></tr>';
+    });
+  }
+  el("handtbl").innerHTML = h;
+}
+function renderExc(){
+  var h = '<tr><th>Counted on</th><th>Item</th><th>Expected</th><th>Counted</th><th>Variance</th>' +
+    '<th>What moved in that window</th></tr>';
+  if(!EXC.length){
+    h += '<tr><td colspan="6" class="empty good">No exceptions on file. Every count has matched ' +
+      'the book so far.</td></tr>';
+  } else {
+    EXC.forEach(function(x){
+      h += '<tr><td>' + esc(x.date) + '</td>' +
+        '<td class="nm"><b>' + esc(x.name) + (x.size ? ' ' + esc(x.size) : '') + '</b>' +
+        '<span>' + esc(x.sku) + '</span></td>' +
+        '<td class="r">' + x.expected + '</td><td class="r">' + x.counted + '</td>' +
+        '<td class="r" style="font-weight:700;color:var(--red-dark)">' +
+          (x.variance > 0 ? "+" : "") + x.variance + '</td>' +
+        '<td class="mv" style="white-space:normal">' + esc(x.movements) + '</td></tr>';
+    });
+  }
+  el("exctbl").innerHTML = h;
+}
+function renderMoves(){
+  var h = '<tr><th>Date</th><th>What</th><th>Item</th><th>Qty</th><th>Who</th><th>Entered by</th></tr>';
+  if(!MOVES.length){
+    h += '<tr><td colspan="6" class="empty">Nothing logged yet for this office.</td></tr>';
+  } else {
+    MOVES.forEach(function(m){
+      if(m.type === "count") return;
+      h += '<tr><td>' + esc(m.date) + '</td><td>' + esc(m.reason || m.type) + '</td>' +
+        '<td class="nm"><b>' + esc(m.name) +
+          (m.size ? ' <span>' + esc((m.color ? m.color + " " : "") + m.size) + '</span>' : '') + '</b></td>' +
+        '<td class="r">' + m.qty + '</td><td>' + esc(m.party || "") + '</td>' +
+        '<td>' + esc(m.by) + '</td></tr>';
+    });
+  }
+  el("movetbl").innerHTML = h;
+}
+function renderStatus(){
+  var low = 0, order = 0, val = 0;
+  ROWS.forEach(function(r){
+    if(r.to_order > 0){ low++; order += r.to_order; }
+    val += num(r.value);
+  });
+  el("slast").textContent = LAST ? LAST.date : "none yet";
+  var lowEl = el("slow"); lowEl.textContent = low; lowEl.className = low ? "bad" : "ok";
+  var oEl = el("sorder"); oEl.textContent = order; oEl.className = order ? "bad" : "ok";
+  var eEl = el("sexc");
+  var open = EXC.filter(function(x){ return String(x.status || "Open") !== "Closed"; }).length;
+  eEl.textContent = open; eEl.className = open ? "bad" : "ok";
+  el("sval").textContent = money(val);
+}
+function orderText(){
+  var rows = ROWS.filter(function(r){ return r.to_order > 0; });
+  if(!rows.length) return "Nothing to order.";
+  var lines = ["Order for the " + curEnt().region + " office"];
+  rows.forEach(function(r){
+    lines.push(r.to_order + " x " + r.name + (r.size ? " " + r.size : "") +
+      " (have " + r.on_hand + ", keep " + r.par + ")");
+  });
+  return lines.join("\n");
+}
+function legacyCopy(t, done){
+  var ta = document.createElement("textarea");
+  ta.value = t; ta.style.position = "fixed"; ta.style.left = "-9999px";
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); done(); }catch(e){}
+  document.body.removeChild(ta);
+}
+
+function setRegion(r){
+  if(REGION === r) return;
+  REGION = r;
+  [].forEach.call(el("regtog").querySelectorAll("button"), function(b){
+    b.className = b.getAttribute("data-r") === r ? "on" : "";
+  });
+  var sfx = REGION === "NNV" ? "?region=nnv" : "";
+  el("countlink").href = "inventory.html" + sfx;
+  el("lrec").href = "inventory-move.html" + sfx + "#receive";
+  el("lsale").href = "inventory-move.html" + sfx + "#sale";
+  el("liss").href = "inventory-move.html" + sfx + "#issue";
+  load();
+}
+function load(){
+  el("srcbadge").textContent = "Loading " + curEnt().region + "…";
+  el("srcbadge").className = "src";
+  fetch(WEBHOOK, {method:"POST", headers:{"Content-Type":"text/plain"},
+    body: JSON.stringify({kind:"inv_onhand", passcode:PASS, region: curEnt().region})})
+  .then(function(r){ return r.json(); })
+  .then(function(r){
+    if(!r || !r.ok){
+      if(r && r.error === "bad_passcode") return CWAuth.locked("ops", "Wrong passcode.");
+      el("srcbadge").textContent = "Could not load. Reload the page.";
+      el("srcbadge").className = "src snap";
+      return;
+    }
+    ROWS = Array.isArray(r.rows) ? r.rows : []; EXC = Array.isArray(r.exceptions) ? r.exceptions : []; LAST = r.last || null; BOOK = r.book || "";
+    el("booklink").href = BOOK || "#";
+    el("srcbadge").textContent = LAST
+      ? "Live from the CW Inventory Sheet. Last count " + LAST.date +
+        (LAST.period ? " for " + LAST.period : "")
+      : "Live from the CW Inventory Sheet. No count on file for this office yet, so on hand is " +
+        "whatever has been received since";
+    el("srcbadge").className = "src live";
+    renderHand(); renderExc(); renderStatus();
+    return fetch(WEBHOOK, {method:"POST", headers:{"Content-Type":"text/plain"},
+      body: JSON.stringify({kind:"inv_moves", passcode:PASS, region: curEnt().region, limit:50})})
+      .then(function(x){ return x.json(); })
+      .then(function(x){ MOVES = (x && x.ok) ? (x.rows || []) : []; renderMoves(); });
+  })
+  .catch(function(){
+    el("srcbadge").textContent = "Could not reach the script. Reload the page.";
+    el("srcbadge").className = "src snap";
+  });
+}
+
+(function boot(){
+  var pass = CWAuth.require({hub:"ops"});
+  if(!pass) return;
+  PASS = pass;
+  el("app").classList.remove("hidden");
+  var q = (location.search || "").toLowerCase();
+  if(q.indexOf("nnv") >= 0){
+    REGION = "NNV";
+    [].forEach.call(el("regtog").querySelectorAll("button"), function(b){
+      b.className = b.getAttribute("data-r") === "NNV" ? "on" : "";
+    });
+  }
+  el("regtog").addEventListener("click", function(ev){
+    var b = ev.target.closest ? ev.target.closest("button[data-r]") : null;
+    if(b) setRegion(b.getAttribute("data-r"));
+  });
+  el("q").addEventListener("input", renderHand);
+  el("filter").addEventListener("change", renderHand);
+  el("grp").addEventListener("change", renderHand);
+  el("copyord").addEventListener("click", function(){
+    var t = orderText(), btn = el("copyord");
+    function done(){ btn.textContent = "Copied"; setTimeout(function(){ btn.textContent = "Copy the order list"; }, 2000); }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(done, function(){ legacyCopy(t, done); });
+    } else legacyCopy(t, done);
+  });
+  if((location.hash || "").indexOf("exception") > -1){
+    setTimeout(function(){
+      var c = el("exccard");
+      window.scrollTo({top: c.getBoundingClientRect().top + window.pageYOffset - 80, behavior:"smooth"});
+    }, 600);
+  }
+  load();
+})();
+</script>
+</body>
+</html>

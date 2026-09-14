@@ -674,15 +674,43 @@ window.CW_NAV = {
      ]
     },
     {
-     "sub": "Supplier Ordering",
+     "sub": "Office Inventory",
      "items": [
       {
-       "ghead": "Our Stock"
+       "label": "Inventory on hand",
+       "href": "inventory-onhand.html"
       },
       {
-       "label": "Count Office Inventory",
+       "label": "Count the inventory",
        "href": "inventory.html"
       },
+      {
+       "ghead": "Movement"
+      },
+      {
+       "label": "Receive new inventory",
+       "href": "inventory-move.html#receive"
+      },
+      {
+       "label": "Comp or issue inventory",
+       "href": "inventory-move.html#issue"
+      },
+      {
+       "label": "Enter sales",
+       "href": "inventory-move.html#sale"
+      },
+      {
+       "ghead": "Tracking"
+      },
+      {
+       "label": "Exception report",
+       "href": "inventory-onhand.html#exceptions"
+      }
+     ]
+    },
+    {
+     "sub": "Supplier Ordering",
+     "items": [
       {
        "label": "Order More EnvirOx",
        "href": "envirox.html"
