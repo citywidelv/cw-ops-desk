@@ -433,7 +433,7 @@ function handleInvMoves(data) {
   var reg = invRegion_(data.region).name;
   var limit = Math.min(200, Math.max(1, invNum_(data.limit) || 50));
   var all = invRows_(INV_MOVE_TAB, INV_MOVE_HEADERS).filter(function (r) {
-    return String(r[2]) === reg;
+    return String(r[2]) === reg && String(r[3]) !== 'count';
   });
   var rows = all.slice(-limit).reverse().map(function (r) {
     return { id: String(r[0]), type: String(r[3]), date: invDay_(r[5]), sku: String(r[6]),
@@ -548,7 +548,7 @@ function handleInvSave(data) {
   var moveDetail = invMovementDetail_(reg.name, windowFrom, countDate);
 
   var flagged = 0, total = 0, units = 0;
-  var lineRows = [], excRows = [], countMoves = [];
+  var lineRows = [], excRows = [];
   lines.forEach(function (l) {
     var v = invNum_(l.variance);
     if (v !== 0) flagged++;
@@ -566,10 +566,6 @@ function handleInvSave(data) {
         Math.round(v * invNum_(l.cost) * 100) / 100, windowFrom, countDate,
         moveDetail[k] || 'No movement logged in this window', 'Open', '']);
     }
-    countMoves.push([id + '-C' + countMoves.length, now, reg.name, 'count', 0, countDate,
-      String(l.sku || ''), String(l.name || ''), String(l.size || ''), String(l.color || ''),
-      invNum_(l.counted), 'Physical count', id, '', String(data.counted_by), String(data.email),
-      String(l.notes || ''), id]);
   });
 
   var ls = invSheet_(INV_LINE_TAB, INV_LINE_HEADERS, '#636466');
@@ -584,9 +580,6 @@ function handleInvSave(data) {
     var es = invSheet_(INV_EXC_TAB, INV_EXC_HEADERS, '#B01F27');
     es.getRange(es.getLastRow() + 1, 1, excRows.length, INV_EXC_HEADERS.length).setValues(excRows);
   }
-  var ms = invSheet_(INV_MOVE_TAB, INV_MOVE_HEADERS, '#636466');
-  ms.getRange(ms.getLastRow() + 1, 1, countMoves.length, INV_MOVE_HEADERS.length).setValues(countMoves);
-
   invRebuildOnHand_();
 
   var reorder = data.reorder || [];
