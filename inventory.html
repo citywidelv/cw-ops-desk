@@ -92,6 +92,11 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   background:#fff}
 .item.flag{background:var(--red-bg);border-color:#F0C8CB}
 .item.low{background:var(--amber-bg);border-color:var(--amber-br)}
+.item.need{border-color:var(--red);border-width:2px;padding:11px}
+.item.need .needlbl{display:inline-block}
+.needlbl{display:none;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  background:var(--red);color:#fff;border-radius:4px;padding:1px 6px;margin-right:5px}
+.fields .f input.miss,.sizes .sz .f input.miss{border-color:var(--red);background:var(--red-bg)}
 .ihead{display:flex;gap:12px;align-items:flex-start}
 .ihead .ph{width:62px;height:62px;flex:none;border:1px solid var(--border);border-radius:8px;
   background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -205,15 +210,17 @@ table.sum tr.tot td{font-weight:700;border-top:2px solid var(--black);border-bot
 <div class="wrap hidden" id="app">
   <h1>Office Inventory Count</h1>
   <p class="lede">Count what is on the shelf, record what moved, and this builds the Office
-  Inventory block for the ACT. Vests and smocks are counted by size. Dispensers are counted
-  two ways, what is in the office and what is already installed at accounts, so ordering
-  decisions are made on real numbers.</p>
+  Inventory block for the ACT. Every item needs a number before you can submit. If there are
+  none on the shelf, put a 0, because a blank box means nobody looked. Vests and smocks are
+  counted by size. Dispensers are counted two ways, what is in the office and what is already
+  installed at accounts, so ordering decisions are made on real numbers.</p>
   <span class="src" id="srcbadge">Loading items&hellip;</span>
 
   <div class="statusbar">
     <div class="row">
       <div class="cell">Items counted<b id="scount">0 of 0</b></div>
       <div class="cell">Total inventory value<b id="svalue">$0.00</b></div>
+      <div class="cell">Still blank<b id="smiss" class="bad">0</b></div>
       <div class="cell">Variances to explain<b id="sflags" class="ok">0</b></div>
       <div class="cell">Below par<b id="spar">0</b></div>
       <div class="go">
@@ -368,6 +375,7 @@ var ST = {};         /* sku -> {last,sold,comp,recv,cnt,dep,inst,notes,sz:{}} */
 var REGION = "LV";
 var PASS = "";
 var LIVE = false;
+var SHOWMISS = false;  /* red outlines only after the first submit attempt */
 
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
   .replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
@@ -409,14 +417,25 @@ function expected(it){
   return num(s.last) + num(s.recv) - num(s.sold) - num(s.comp);
 }
 function variance(it){ return counted(it) - expected(it); }
+/* Every item has to be answered. A blank is not zero, it is "did not count". */
+function requiredKeys(it){
+  if(it.grp === "apparel" && it.sizes.length) return varKeys(it).map(function(v){ return "sz:"+v.key; });
+  if(it.grp === "disp") return ["cnt","dep"];
+  return ["cnt"];
+}
+function blanks(it){
+  var s = stFor(it.sku), out = [];
+  requiredKeys(it).forEach(function(k){
+    if(k.indexOf("sz:") === 0){
+      var kk = k.slice(3);
+      if(String(s.sz[kk] == null ? "" : s.sz[kk]) === "") out.push(k);
+    } else if(String(s[k]) === "") out.push(k);
+  });
+  return out;
+}
 function touched(it){
   var s = stFor(it.sku);
-  if(it.grp === "apparel" && it.sizes.length){
-    var any = false;
-    varKeys(it).forEach(function(v){ if(String(s.sz[v.key]||"") !== "") any = true; });
-    return any;
-  }
-  return String(s.cnt) !== "";
+  return blanks(it).length === 0;
 }
 
 /* ---------------- render ---------------- */
@@ -435,7 +454,8 @@ function itemHtml(it){
     ? '<img src="'+esc(it.img)+'" alt="'+esc(it.name)+'" loading="lazy" '+
       'onerror="this.parentNode.innerHTML=&quot;<span class=\\&quot;noimg\\&quot;>No photo</span>&quot;">'
     : '<span class="noimg">No photo</span>';
-  var tags = '<span class="tag">'+esc(it.sku)+'</span><span class="tag">'+esc(it.unit)+'</span>';
+  var tags = '<span class="needlbl">Needs a count</span>'+
+    '<span class="tag">'+esc(it.sku)+'</span><span class="tag">'+esc(it.unit)+'</span>';
   if(it.cost > 0) tags += '<span class="tag">'+money(it.cost)+' cost</span>';
   else tags += '<span class="tag">No charge</span>';
   if(it.par > 0) tags += '<span class="tag par">Par '+it.par+'</span>';
@@ -474,7 +494,7 @@ function itemHtml(it){
   }
 
   if(it.grp === "apparel" && it.sizes.length){
-    h += '<div class="sizes"><div class="sl">Count every size</div>';
+    h += '<div class="sizes"><div class="sl">Count every size. Put a 0 where you have none</div>';
     var cols = it.colors.length ? it.colors : [""];
     cols.forEach(function(c){
       h += '<div class="srow">'+(cols.length>1 ? '<span class="cl">'+esc(c)+'</span>' : '')+'<div class="sz">';
@@ -504,7 +524,7 @@ function renderAll(){
   recalc();
 }
 function recalc(){
-  var total = 0, flags = 0, low = 0, done = 0;
+  var total = 0, flags = 0, low = 0, done = 0, missing = 0;
   ITEMS.forEach(function(it){
     var id = it.sku.replace(/[^A-Za-z0-9]/g,"_");
     var s = stFor(it.sku), c = counted(it), e = expected(it), d = c - e;
@@ -529,9 +549,22 @@ function recalc(){
     var val = c * it.cost;
     total += val;
     if(vEl) vEl.textContent = money(val);
+    var need = blanks(it);
+    [].forEach.call(row.querySelectorAll("input.miss"), function(i){ i.className = ""; });
+    if(SHOWMISS){
+      need.forEach(function(k){
+        var sel = k.indexOf("sz:") === 0
+          ? 'input[data-k="' + k.slice(3) + '"]'
+          : 'input[data-f="' + k + '"]';
+        var i = row.querySelector(sel);
+        if(i) i.className = "miss";
+      });
+    }
     var isFlag = t && d !== 0;
     var isLow = it.par > 0 && t && c < it.par;
-    row.className = "item" + (isFlag ? " flag" : (isLow ? " low" : ""));
+    row.className = "item" + (SHOWMISS && need.length ? " need" : "") +
+      (isFlag ? " flag" : (isLow ? " low" : ""));
+    if(need.length) missing++;
     if(isFlag) flags++;
     if(isLow) low++;
     if(t) done++;
@@ -541,6 +574,9 @@ function recalc(){
   var f = el("sflags");
   f.textContent = flags; f.className = flags ? "bad" : "ok";
   el("spar").textContent = low;
+  var mEl = el("smiss");
+  mEl.textContent = missing;
+  mEl.className = missing ? "bad" : "ok";
   renderSummary();
 }
 
@@ -555,7 +591,6 @@ function actRows(){
   });
   var out = [], tb = 0, tr = 0, te = 0;
   list.forEach(function(it){
-    if(!touched(it) && !it.act) return;
     var s = stFor(it.sku), c = counted(it), e = expected(it);
     var note = s.notes;
     if(it.grp === "apparel" && it.sizes.length){
@@ -649,8 +684,20 @@ function validate(){
   if(!el("cby").value.trim()) miss.push("your name");
   if(!el("cemail").value.trim()) miss.push("your email");
   if(!el("cper").value.trim()) miss.push("the month this count is for");
-  var any = ITEMS.some(function(it){ return touched(it); });
-  if(!any) miss.push("at least one counted item");
+  var open = ITEMS.filter(function(it){ return blanks(it).length; });
+  if(open.length){
+    SHOWMISS = true;
+    recalc();
+    var names = open.slice(0,4).map(function(it){ return it.name; }).join(", ");
+    e.innerHTML = "<b>" + open.length + (open.length === 1 ? " item has" : " items have") +
+      " no count.</b> Every item needs a number. If there are none on the shelf, put a 0. " +
+      "Outlined in red: " + esc(names) + (open.length > 4 ? " and " + (open.length - 4) + " more." : ".");
+    e.className = "err show";
+    var first = el("it-" + open[0].sku.replace(/[^A-Za-z0-9]/g,"_"));
+    if(first) window.scrollTo({top: first.getBoundingClientRect().top + window.pageYOffset - 150,
+      behavior:"smooth"});
+    return false;
+  }
   if(miss.length){
     e.textContent = "Still needed: " + miss.join(", ") + ".";
     e.className = "err show";
@@ -664,7 +711,6 @@ function submitCount(){
   if(!validate()) return;
   var ent = curEnt(), lines = [], total = 0;
   ITEMS.forEach(function(it){
-    if(!touched(it)) return;
     var s = stFor(it.sku), c = counted(it), e = expected(it);
     var sizes = [];
     if(it.grp === "apparel" && it.sizes.length){
