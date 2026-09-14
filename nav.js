@@ -677,6 +677,13 @@ window.CW_NAV = {
      "sub": "Supplier Ordering",
      "items": [
       {
+       "ghead": "Our Stock"
+      },
+      {
+       "label": "Count Office Inventory",
+       "href": "inventory.html"
+      },
+      {
        "label": "Order More EnvirOx",
        "href": "envirox.html"
       },

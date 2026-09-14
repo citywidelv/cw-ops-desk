@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>CW Ops Desk | Office Inventory Count</title>
+<!-- build 2026-09-14a: office inventory count sheet. Items live in the "Inventory Items" tab of
+     the CW Supply and Inventory Sheet, served by the Apps Script (kind:inv_catalog, passcode
+     gated). EMBEDDED_ITEMS below is a snapshot fallback only - edit items, costs and par levels
+     in the Sheet, not here. Counts post as kind:inv_save and land on Inventory Counts +
+     Inventory Lines, and email the region service inbox. -->
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--green:#1E7B34;--green-bg:#EDF7EF;--red-bg:#FBEAEB;
+  --amber:#8a6d1a;--amber-bg:#FDF6E3;--amber-br:#EAD9A0;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
+.head .bar{max-width:1040px;margin:0 auto;padding:0 20px;height:64px;display:flex;
+  align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--grey);border-left:2px solid var(--border);padding-left:14px}
+.head .badge{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--black);color:#fff;border-left:3px solid var(--gold);padding:4px 10px;
+  white-space:nowrap}
+.head .backbtn{margin-left:auto;font-size:12px;font-weight:700;color:var(--black);
+  text-decoration:none;border:2px solid var(--border);border-radius:8px;padding:8px 14px;
+  white-space:nowrap;margin-right:12px}
+.head .backbtn:hover{border-color:var(--red);color:var(--red)}
+@media(max-width:700px){.head .t{display:none}.head .bar{gap:10px;padding:0 14px}}
+@media(max-width:560px){.head .badge{display:none}.head .backbtn{margin-right:0;padding:7px 10px;font-size:11px}}
+.wrap{max-width:1040px;margin:0 auto;padding:24px 20px 90px}
+@media(max-width:640px){.wrap{padding:18px 14px 90px}}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);
+  border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 6px;max-width:74ch}
+.src{font-size:11.5px;color:var(--grey);background:#fff;border:1px dashed var(--border);
+  border-radius:8px;padding:8px 12px;margin:14px 0 8px;display:inline-block}
+.src.live{border-color:#BFE3C6;background:var(--green-bg);color:var(--green)}
+.src.snap{border-color:#F0C8CB;background:var(--red-bg);color:var(--red-dark)}
+
+.statusbar{position:sticky;top:64px;z-index:15;background:#fff;border:1px solid var(--border);
+  border-radius:12px;box-shadow:var(--shadow);padding:12px 18px;margin:18px 0 22px}
+.statusbar .row{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center}
+.statusbar .cell{font-size:12px;color:var(--grey)}
+.statusbar .cell b{display:block;font-size:16px;color:var(--black)}
+.statusbar .cell b.bad{color:var(--red)}
+.statusbar .cell b.ok{color:var(--green)}
+.statusbar .go{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:640px){.statusbar{position:static;padding:12px}.statusbar .go{margin-left:0;width:100%}}
+
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+  padding:22px;margin-bottom:18px}
+@media(max-width:640px){.card{padding:16px 14px}}
+.card h2{font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px}
+.card h2 .n{width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;
+  font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.card .sub{font-size:12.5px;color:var(--grey);margin-bottom:14px;max-width:78ch}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid .full{grid-column:1/-1}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--grey);margin-bottom:5px}
+label .req{color:var(--red)}
+input[type=text],input[type=email],input[type=number],input[type=date],select,textarea{width:100%;
+  font-family:inherit;font-size:14px;color:var(--black);border:1.5px solid var(--border);
+  border-radius:8px;padding:10px 12px;background:#fff}
+textarea{min-height:64px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0}
+.entinfo{font-size:11.5px;color:var(--grey);margin-top:6px;line-height:1.5}
+.entinfo b{color:var(--black)}
+
+/* region toggle */
+.regtog{display:flex;gap:0;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;
+  background:#fff}
+.regtog button{flex:1;font-family:inherit;font-size:13px;font-weight:700;color:var(--grey);
+  background:#fff;border:none;padding:12px 10px;cursor:pointer;line-height:1.3}
+.regtog button small{display:block;font-weight:400;font-size:10.5px;letter-spacing:.02em}
+.regtog button.on{background:var(--red);color:#fff}
+.regtog button:not(.on):hover{background:var(--light)}
+
+/* item rows */
+.item{border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;
+  background:#fff}
+.item.flag{background:var(--red-bg);border-color:#F0C8CB}
+.item.low{background:var(--amber-bg);border-color:var(--amber-br)}
+.ihead{display:flex;gap:12px;align-items:flex-start}
+.ihead .ph{width:62px;height:62px;flex:none;border:1px solid var(--border);border-radius:8px;
+  background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ihead .ph img{max-width:100%;max-height:100%;width:auto;height:auto;display:block}
+.ihead .ph .noimg{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--grey);text-align:center;padding:4px;line-height:1.3}
+.ihead .nm{flex:1;min-width:0}
+.ihead .nm b{font-size:13.5px;line-height:1.35;display:block}
+.ihead .nm .meta{font-size:11px;color:var(--grey);margin-top:2px}
+.ihead .nm .tag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;background:var(--light);border:1px solid var(--border);
+  border-radius:4px;padding:1px 6px;margin-right:5px;color:var(--grey)}
+.ihead .nm .tag.warn{background:var(--red-bg);border-color:#F0C8CB;color:var(--red-dark)}
+.ihead .nm .tag.par{background:var(--amber-bg);border-color:var(--amber-br);color:var(--amber)}
+.ihead .val{text-align:right;font-size:11px;color:var(--grey);white-space:nowrap}
+.ihead .val b{display:block;font-size:14px;color:var(--black)}
+@media(max-width:560px){.ihead .val{display:none}}
+
+.fields{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:10px}
+.fields.disp{grid-template-columns:repeat(5,1fr)}
+.fields .f{min-width:0}
+.fields .f label{font-size:9.5px;letter-spacing:.04em;margin-bottom:3px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.fields .f input{padding:8px 6px;text-align:center;font-size:14px;font-weight:700}
+.fields .f input::placeholder,.sizes .sz .f input::placeholder{font-weight:400;color:#CCC}
+.fields .f .calc{border:1.5px dashed var(--border);border-radius:8px;padding:8px 6px;
+  text-align:center;font-size:14px;font-weight:700;background:var(--light);color:var(--grey)}
+.fields .f .calc.bad{color:var(--red-dark);border-color:#F0C8CB;background:var(--red-bg)}
+.fields .f .calc.ok{color:var(--green);border-color:#BFE3C6;background:var(--green-bg)}
+@media(max-width:860px){.fields,.fields.disp{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:480px){.fields,.fields.disp{grid-template-columns:repeat(3,1fr);gap:6px}}
+.inote{margin-top:8px}
+.inote input{font-size:12.5px;padding:8px 10px}
+
+/* size grid */
+.sizes{margin-top:10px;border-top:1px dashed var(--border);padding-top:10px}
+.sizes .sl{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--red-dark);margin-bottom:6px}
+.sizes .srow{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.sizes .srow .cl{font-size:11px;font-weight:700;color:var(--grey);width:58px;flex:none;
+  text-transform:uppercase;letter-spacing:.04em}
+.sizes .sz{display:grid;grid-template-columns:repeat(auto-fit,minmax(62px,1fr));gap:6px;flex:1;
+  min-width:0}
+.sizes .sz .f label{font-size:9.5px;text-align:center}
+.sizes .sz .f input{padding:8px 4px;text-align:center;font-weight:700}
+.sizes .tot{font-size:11.5px;color:var(--grey);margin-top:2px}
+.sizes .tot b{color:var(--black)}
+
+.ghead{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--grey);border-bottom:2px solid var(--black);padding:14px 0 6px;margin-bottom:10px}
+
+.btn{display:inline-block;font-family:inherit;font-size:13px;font-weight:700;color:#fff;
+  background:var(--red);border:none;border-radius:8px;padding:11px 20px;cursor:pointer;
+  text-decoration:none;line-height:1.2}
+.btn:hover{background:var(--red-dark)}
+.btn.sec{background:#fff;color:var(--black);border:2px solid var(--border);padding:9px 18px}
+.btn.sec:hover{border-color:var(--red);color:var(--red)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+table.sum{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+table.sum th{text-align:left;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--grey);border-bottom:2px solid var(--black);padding:6px 8px;white-space:nowrap}
+table.sum td{border-bottom:1px solid var(--border);padding:6px 8px;vertical-align:top}
+table.sum td.r{text-align:right;white-space:nowrap}
+table.sum tr.tot td{font-weight:700;border-top:2px solid var(--black);border-bottom:none}
+.tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+.sendbox{background:var(--light);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;font-size:12.5px;color:var(--grey);margin-top:14px;line-height:1.6}
+.sendbox b.h{display:block;color:var(--black);font-size:12px;letter-spacing:.06em;
+  text-transform:uppercase;margin-bottom:6px}
+.err{display:none;margin-top:12px;font-size:12.5px;font-weight:700;color:var(--red-dark);
+  background:var(--red-bg);border:1px solid #F0C8CB;border-radius:8px;padding:10px 14px}
+.err.show{display:block}
+.okmsg{display:none;margin-top:12px;font-size:12.5px;font-weight:700;color:var(--green);
+  background:var(--green-bg);border:1px solid #BFE3C6;border-radius:8px;padding:10px 14px}
+.okmsg.show{display:block}
+#gate{max-width:520px;margin:80px auto;background:#fff;border:1px solid var(--border);
+  border-radius:12px;box-shadow:var(--shadow);padding:34px;text-align:center}
+#gate h1{font-size:18px}#gate h1:after{margin:12px auto 0}
+#gate p{color:var(--grey);font-size:13px;margin:14px 0 18px}
+.hidden{display:none!important}
+.foot{border-top:1px solid var(--border);background:#fff;margin-top:40px}
+.foot .fin{max-width:1040px;margin:0 auto;padding:18px 20px;font-size:11.5px;color:var(--grey)}
+@media print{
+  .head,.foot,.statusbar,.btn,.sendbox,.src,#pastebox{display:none!important}
+  body{background:#fff;font-size:11px}
+  .card{box-shadow:none;border:1px solid #ccc;page-break-inside:avoid;padding:12px}
+  .item{page-break-inside:avoid}
+  .wrap{padding:0;max-width:none}
+}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+
+<header class="head"><div class="bar">
+  <a href="index.html"><img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"></a>
+  <span class="t">Ops Desk &middot; Office Inventory Count</span>
+  <a class="backbtn" href="index.html">&larr; Ops Hub</a>
+  <span class="badge">Internal</span>
+</div></header>
+
+<div id="gate" class="hidden">
+  <h1>Team access required</h1>
+  <p>This count sheet holds our item costs. Sign in through the Ops Hub first and come back here
+  from the Team and Admin menu.</p>
+  <a class="btn" href="index.html">&larr; Ops Hub</a>
+</div>
+
+<div class="wrap hidden" id="app">
+  <h1>Office Inventory Count</h1>
+  <p class="lede">Count what is on the shelf, record what moved, and this builds the Office
+  Inventory block for the ACT. Vests and smocks are counted by size. Dispensers are counted
+  two ways, what is in the office and what is already installed at accounts, so ordering
+  decisions are made on real numbers.</p>
+  <span class="src" id="srcbadge">Loading items&hellip;</span>
+
+  <div class="statusbar">
+    <div class="row">
+      <div class="cell">Items counted<b id="scount">0 of 0</b></div>
+      <div class="cell">Total inventory value<b id="svalue">$0.00</b></div>
+      <div class="cell">Variances to explain<b id="sflags" class="ok">0</b></div>
+      <div class="cell">Below par<b id="spar">0</b></div>
+      <div class="go">
+        <button class="btn sec" id="printbtn">Print count sheet</button>
+        <button class="btn" id="submit1">Submit this count</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">1</span> Which office are you counting</h2>
+    <div class="sub">The count, the summary email and the ACT block all follow this pick.</div>
+    <div class="grid">
+      <div class="full">
+        <label>Office <span class="req">*</span></label>
+        <div class="regtog" id="regtog">
+          <button type="button" data-r="LV" class="on">Las Vegas<small>Low Drag LLC</small></button>
+          <button type="button" data-r="NNV">Northern Nevada<small>Dash Two LLC</small></button>
+        </div>
+        <div class="entinfo" id="entinfo"></div>
+      </div>
+      <div><label>Counted by <span class="req">*</span></label><input type="text" id="cby" autocomplete="name"></div>
+      <div><label>Your email <span class="req">*</span></label><input type="email" id="cemail" autocomplete="email"></div>
+      <div><label>Month this count is for <span class="req">*</span></label><input type="text" id="cper" placeholder="e.g. September 2026"></div>
+      <div><label>Date counted</label><input type="date" id="cdate"></div>
+      <div class="full"><label>Notes on this count</label><textarea id="cnotes" placeholder="Anything that explains a variance, a delivery that landed after the count, items moved to another office."></textarea></div>
+    </div>
+    <div class="sendbox" style="margin-top:14px">
+      <b class="h">Counting after the first of the month</b>
+      Anything sold between the 1st and today has to be added back so the count reflects the
+      month end position. Put the units sold for the calendar month in the Sold column from
+      Business Central item movement for this company.
+    </div>
+    <input type="text" id="website" style="display:none" tabindex="-1" autocomplete="off">
+  </div>
+
+  <div class="card">
+    <h2><span class="n">2</span> Chemicals</h2>
+    <div class="sub">Stock we sell on. Last month carries over from the last count you submitted
+    for this office. Expected is last month plus received minus sold and comped. Variance is
+    your count against expected.</div>
+    <div id="g-chem"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">3</span> Spray bottles, labels and small parts</h2>
+    <div class="sub">The silk screened bottles and the parts that go out with them.</div>
+    <div id="g-bottle"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">4</span> Dispensers and install kits</h2>
+    <div class="sub">EnvirOx gives us these at no charge, so the number that matters is where they
+    are, not what they cost. In office is what is on the shelf right now. Installed at accounts
+    is the running total hanging on walls. Put the building name in the note when one goes out.</div>
+    <div id="g-disp"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">5</span> Wall charts, literature and SDS</h2>
+    <div class="sub">The paper packet that hangs next to every dispenser. All no charge from
+    EnvirOx, counted so we know when to ask for more.</div>
+    <div id="g-paper"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">6</span> Apparel</h2>
+    <div class="sub">Count every size. The size boxes add up to the count for the item, so the ACT
+    still gets one number per item and we still know which sizes to reorder.</div>
+    <div id="g-apparel"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">7</span> Review and submit</h2>
+    <div class="sub">This is the Office Inventory block in ACT column order. Copy it straight into
+    the bottom of the month sheet.</div>
+    <div class="tblwrap"><table class="sum" id="sumtbl"></table></div>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" id="submit2">Submit this count</button>
+      <button class="btn sec" id="copybtn">Copy the ACT block</button>
+      <button class="btn sec" id="printbtn2">Print count sheet</button>
+      <button class="btn sec" id="reset">Start over</button>
+    </div>
+    <div class="sendbox" id="pastebox">
+      <b class="h">Where this goes</b>
+      <span id="sendline"></span><br>
+      Rows land on the Inventory Counts and Inventory Lines tabs of the CW Supply and Inventory
+      Sheet. Next month this page prefills Last Month from what you submit today.
+    </div>
+    <div class="err" id="err"></div>
+    <div class="okmsg" id="okmsg">Count submitted. The summary is on its way by email and the
+    rows are on the Sheet.</div>
+  </div>
+</div>
+
+<footer class="foot"><div class="fin">
+  <b>City Wide Facility Solutions</b> &middot; Ops Desk &middot; Internal use only &middot;
+  Items, costs and par levels live in the Inventory Items tab of the CW Supply and Inventory
+  Sheet &middot; Something off? Tell TJ.
+</div></footer>
+
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var SNAPSHOT_DATE = "September 2026";
+
+/* Snapshot fallback. The live list is the Inventory Items tab.
+   [sku, name, group, unit, cost, par, image, sizes, colors, act_order, note]
+   group: chem | bottle | disp | paper | apparel
+   sizes/colors are pipe separated. act_order 0 = not on the ACT block. */
+var EMBEDDED_ITEMS = [
+["A-112-02H","EnvirOx H2Orange2 H-C 112 2x1 Half Gal (case of 2)","chem","Case of 2",88.79,0,"https://s3.amazonaws.com/cart2order/uploads/65/products/2367/1701707851227.png","","",3,"Product #1, our standard."],
+["117-06SQ-EA","H2Orange2 117 - Simple Measures 6pk (EPA) (each)","chem","Each",15.70,0,"","","",4,"Bought by the 6 pack, counted as singles."],
+["122-06Q-EA","OxiGenesis 32oz RTU (each)","chem","Each",4.65,0,"https://s3.amazonaws.com/cart2order/uploads/65/products/2371/1701710272232.png","","",5,"Ready to use, no dispenser needed."],
+["138-12Q-EA","Mineral Shock 32oz RTU (each)","chem","Each",7.05,0,"https://s3.amazonaws.com/cart2order/uploads/65/products/2396/1701968613978.png","","",6,"Hard water and scum remover."],
+["A8-112L","112 Absolute Bottle & Spray Head - Light Duty Green","bottle","Each",2.60,0,"https://d3gygecnvdjq5h.cloudfront.net/userfiles/products/images/websites/b2bseller/customer/braind/images/items/8-550.jpg","","",1,"Green is light duty, glass and everyday surfaces."],
+["A8-112H","112 Absolute Bottle & Spray Head - Heavy Duty Red","bottle","Each",2.60,0,"https://d3gygecnvdjq5h.cloudfront.net/userfiles/products/images/websites/b2bseller/customer/braind/images/items/288-552.jpg","","",2,"Red is heavy duty."],
+["A9-112L","Secondary Label - Light Duty Green 112","bottle","Each",0.27,0,"","","",0,"Spare labels for relabeling bottles."],
+["A9-112H","Secondary Label - Heavy Duty Red 112","bottle","Each",0.27,0,"","","",0,"Spare labels for relabeling bottles."],
+["AS-112","Bottle Sticker - H2Orange2 H-C 112","bottle","Each",0,0,"","","",0,"One per spray bottle in service. No charge."],
+["7-644-N","Trigger Spray Head (fits 28mm)","bottle","Each",1.18,0,"","","",0,""],
+["4-252-KEY","Wall Mount Dispenser Key","bottle","Each",2.48,0,"","","",0,""],
+["A-252-MDD-YGR","Absolute TRIO Dispenser (YGR)","disp","Each",0,0,"","","",0,"No charge. One per new building running 112."],
+["AP-252-112","Absolute Portable Dispenser for H2Orange2 112","disp","Each",0,0,"","","",0,"No charge. Needs water hose 6-221."],
+["A-252-MDD-YGBR","Absolute Multi Dispenser for OxiGenesis (YGBR)","disp","Each",0,0,"","","",0,"Billed at cost unless EnvirOx credits it."],
+["A-IN-112-YGR-KIT","Trio Installation Kit - H2Orange2 112","disp","Each",0,0,"","","",0,"One per TRIO going on a wall."],
+["A-IN-145-YGBR-KIT","Installation Kit - OxiGenesis","disp","Each",0,0,"","","",0,"One per dispenser running OxiGenesis."],
+["ACW-112-YGR-1","Wall Chart - H2Orange2 112 YGR TRIO","paper","Each",0,0,"","","",0,"Hangs next to each TRIO."],
+["ACP-112-YGR-PCK","Pocket Chart - 112 YGR TRIO with lanyard","paper","Each",0,0,"","","",0,""],
+["ACW-145-YGBR-1","Wall Chart - OxiGenesis General","paper","Each",0,0,"","","",0,""],
+["ACP-145-YGBR-PCK","Pocket Chart - OxiGenesis YGBR with lanyard","paper","Each",0,0,"","","",0,""],
+["A9-855-112","Product Literature - H2Orange2 H-C 112","paper","Pack of 25",0,0,"","","",0,""],
+["SDS-112","SDS Sheets - H2Orange2 H-C 112","paper","Each",0,0,"","","",0,"No charge, EnvirOx bills it as MISCNOCHARGE."],
+["SDS-145","SDS Sheets - OxiGenesis","paper","Each",0,0,"","","",0,"No charge, EnvirOx bills it as MISCNOCHARGE."],
+["UNI-VEST","Unisex Vest","apparel","Each",17.00,0,"https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cwmv-model.jpg","S|M|L|XL|2XL","Red",8,"Red with the Independent Contractor monogram."],
+["UNI-APRON","Unisex Cobbler Apron","apparel","Each",14.00,0,"https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cwf12ic10.png","OSFM|XL","Red|Black",7,"The smock. Count each color."],
+["UNI-HIVIS","Class 2 High-Visibility Vest","apparel","Each",9.99,0,"https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cws362-back.jpg","M|L|XL|2XL|3XL|4XL|5XL","Safety Yellow",0,"Special order item. Count only what is actually on the shelf."]
+];
+
+var ENTITIES = {
+  LV:  { code:"LV", region:"Las Vegas", entity:"Low Drag LLC",
+         addr:"3215 W Charleston Blvd, Suite 130, Las Vegas, NV 89102",
+         phone:"702-529-2292", inbox:"lvservicecall@gocitywide.com" },
+  NNV: { code:"NNV", region:"Northern Nevada", entity:"Dash Two LLC",
+         addr:"1000 Bible Way, Suite 2, Reno, NV 89502",
+         phone:"775-217-7280", inbox:"rnservicecall@gocitywide.com" }
+};
+var GROUPS = {chem:"g-chem", bottle:"g-bottle", disp:"g-disp", paper:"g-paper", apparel:"g-apparel"};
+
+var ITEMS = [];      /* working list of objects */
+var ST = {};         /* sku -> {last,sold,comp,recv,cnt,dep,inst,notes,sz:{}} */
+var REGION = "LV";
+var PASS = "";
+var LIVE = false;
+
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+  .replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function money(n){return "$"+(Math.round(n*100)/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,",");}
+function num(v){var n=parseFloat(v);return isNaN(n)?0:n;}
+function el(id){return document.getElementById(id);}
+
+function rowsToItems(rows){
+  return rows.map(function(r){
+    return {sku:String(r[0]), name:String(r[1]), grp:String(r[2]||"chem"), unit:String(r[3]||"Each"),
+      cost:num(r[4]), par:num(r[5]), img:String(r[6]||""),
+      sizes:String(r[7]||"").split("|").filter(function(s){return s!=="";}),
+      colors:String(r[8]||"").split("|").filter(function(s){return s!=="";}),
+      act:num(r[9]), note:String(r[10]||"")};
+  });
+}
+function stFor(sku){
+  if(!ST[sku]) ST[sku] = {last:"",sold:"",comp:"",recv:"",cnt:"",dep:"",inst:"",notes:"",sz:{}};
+  return ST[sku];
+}
+function varKeys(it){
+  var out = [];
+  var cols = it.colors.length ? it.colors : [""];
+  cols.forEach(function(c){ it.sizes.forEach(function(s){ out.push({color:c, size:s, key:c+"|"+s}); }); });
+  return out;
+}
+function counted(it){
+  var s = stFor(it.sku);
+  if(it.grp === "apparel" && it.sizes.length){
+    var t = 0;
+    varKeys(it).forEach(function(v){ t += num(s.sz[v.key]); });
+    return t;
+  }
+  return num(s.cnt);
+}
+function expected(it){
+  var s = stFor(it.sku);
+  if(it.grp === "disp") return num(s.last) + num(s.recv) - num(s.inst);
+  return num(s.last) + num(s.recv) - num(s.sold) - num(s.comp);
+}
+function variance(it){ return counted(it) - expected(it); }
+function touched(it){
+  var s = stFor(it.sku);
+  if(it.grp === "apparel" && it.sizes.length){
+    var any = false;
+    varKeys(it).forEach(function(v){ if(String(s.sz[v.key]||"") !== "") any = true; });
+    return any;
+  }
+  return String(s.cnt) !== "";
+}
+
+/* ---------------- render ---------------- */
+function fieldHtml(sku, f, lbl, val){
+  return '<div class="f"><label>'+esc(lbl)+'</label>'+
+    '<input type="number" inputmode="numeric" step="1" data-sku="'+esc(sku)+'" data-f="'+f+'" '+
+    'value="'+(val===0||val?esc(val):"")+'" placeholder="0"></div>';
+}
+function calcHtml(lbl, id){
+  return '<div class="f"><label>'+esc(lbl)+'</label><div class="calc" id="'+id+'">0</div></div>';
+}
+function itemHtml(it){
+  var s = stFor(it.sku);
+  var id = it.sku.replace(/[^A-Za-z0-9]/g,"_");
+  var ph = it.img
+    ? '<img src="'+esc(it.img)+'" alt="'+esc(it.name)+'" loading="lazy" '+
+      'onerror="this.parentNode.innerHTML=&quot;<span class=\\&quot;noimg\\&quot;>No photo</span>&quot;">'
+    : '<span class="noimg">No photo</span>';
+  var tags = '<span class="tag">'+esc(it.sku)+'</span><span class="tag">'+esc(it.unit)+'</span>';
+  if(it.cost > 0) tags += '<span class="tag">'+money(it.cost)+' cost</span>';
+  else tags += '<span class="tag">No charge</span>';
+  if(it.par > 0) tags += '<span class="tag par">Par '+it.par+'</span>';
+
+  var h = '<div class="item" id="it-'+id+'"><div class="ihead">'+
+    '<div class="ph">'+ph+'</div>'+
+    '<div class="nm"><b>'+esc(it.name)+'</b><div class="meta">'+tags+'</div>'+
+    (it.note ? '<div class="meta">'+esc(it.note)+'</div>' : '')+'</div>'+
+    (it.cost > 0 ? '<div class="val">Value<b id="v-'+id+'">$0.00</b></div>' : '')+'</div>';
+
+  if(it.grp === "disp"){
+    h += '<div class="fields disp">'+
+      fieldHtml(it.sku,"last","Last month",s.last)+
+      fieldHtml(it.sku,"recv","Received",s.recv)+
+      fieldHtml(it.sku,"inst","Installed out",s.inst)+
+      fieldHtml(it.sku,"cnt","In office now",s.cnt)+
+      fieldHtml(it.sku,"dep","At accounts",s.dep)+
+      '</div>'+
+      '<div class="fields disp" style="margin-top:6px">'+
+      calcHtml("Expected in office","e-"+id)+
+      calcHtml("Variance","d-"+id)+
+      calcHtml("Total owned","t-"+id)+
+      '</div>';
+  } else {
+    h += '<div class="fields">'+
+      fieldHtml(it.sku,"last","Last month",s.last)+
+      fieldHtml(it.sku,"sold","Sold",s.sold)+
+      fieldHtml(it.sku,"comp","Comped",s.comp)+
+      fieldHtml(it.sku,"recv","Received",s.recv)+
+      calcHtml("Expected","e-"+id)+
+      (it.grp === "apparel" && it.sizes.length
+        ? calcHtml("Count","c-"+id)
+        : fieldHtml(it.sku,"cnt","Count now",s.cnt))+
+      calcHtml("Variance","d-"+id)+
+      '</div>';
+  }
+
+  if(it.grp === "apparel" && it.sizes.length){
+    h += '<div class="sizes"><div class="sl">Count every size</div>';
+    var cols = it.colors.length ? it.colors : [""];
+    cols.forEach(function(c){
+      h += '<div class="srow">'+(cols.length>1 ? '<span class="cl">'+esc(c)+'</span>' : '')+'<div class="sz">';
+      it.sizes.forEach(function(sz){
+        var k = c+"|"+sz;
+        h += '<div class="f"><label>'+esc(sz)+'</label>'+
+          '<input type="number" inputmode="numeric" step="1" data-sku="'+esc(it.sku)+'" '+
+          'data-f="sz" data-k="'+esc(k)+'" value="'+esc(s.sz[k]==null?"":s.sz[k])+'"></div>';
+      });
+      h += '</div></div>';
+    });
+    h += '<div class="tot">Counted total <b id="st-'+id+'">0</b></div></div>';
+  }
+
+  h += '<div class="inote"><input type="text" data-sku="'+esc(it.sku)+'" data-f="notes" '+
+    'placeholder="'+(it.grp==="disp" ? "Where it went, which building" : "Note for this line")+'" '+
+    'value="'+esc(s.notes)+'"></div>';
+  h += '</div>';
+  return h;
+}
+function renderAll(){
+  Object.keys(GROUPS).forEach(function(g){ el(GROUPS[g]).innerHTML = ""; });
+  ITEMS.forEach(function(it){
+    var host = el(GROUPS[it.grp] || "g-chem");
+    if(host) host.insertAdjacentHTML("beforeend", itemHtml(it));
+  });
+  recalc();
+}
+function recalc(){
+  var total = 0, flags = 0, low = 0, done = 0;
+  ITEMS.forEach(function(it){
+    var id = it.sku.replace(/[^A-Za-z0-9]/g,"_");
+    var s = stFor(it.sku), c = counted(it), e = expected(it), d = c - e;
+    var row = el("it-"+id);
+    if(!row) return;
+    var eEl = el("e-"+id), dEl = el("d-"+id), vEl = el("v-"+id);
+    var t = touched(it);
+    if(eEl) eEl.textContent = (t || String(s.last) !== "" || String(s.recv) !== "") ? e : "";
+    if(dEl){
+      dEl.textContent = t ? ((d > 0 ? "+" : "") + d) : "";
+      dEl.className = "calc" + (!t ? "" : (d === 0 ? " ok" : " bad"));
+    }
+    if(it.grp === "disp"){
+      var tEl = el("t-"+id);
+      if(tEl) tEl.textContent = c + num(s.dep);
+    }
+    if(it.grp === "apparel" && it.sizes.length){
+      var cEl = el("c-"+id), stEl = el("st-"+id);
+      if(cEl) cEl.textContent = c;
+      if(stEl) stEl.textContent = c;
+    }
+    var val = c * it.cost;
+    total += val;
+    if(vEl) vEl.textContent = money(val);
+    var isFlag = t && d !== 0;
+    var isLow = it.par > 0 && t && c < it.par;
+    row.className = "item" + (isFlag ? " flag" : (isLow ? " low" : ""));
+    if(isFlag) flags++;
+    if(isLow) low++;
+    if(t) done++;
+  });
+  el("scount").textContent = done + " of " + ITEMS.length;
+  el("svalue").textContent = money(total);
+  var f = el("sflags");
+  f.textContent = flags; f.className = flags ? "bad" : "ok";
+  el("spar").textContent = low;
+  renderSummary();
+}
+
+/* ---------------- ACT block ---------------- */
+var ACT_COLS = ["Item","Last Month Count","# Sold","# Comped/Gifted","# Received","# Expected",
+  "Count This Month","Variance","Notes","Cost per Unit","Beginning Value","Value Received","Ending Value"];
+function actRows(){
+  var list = ITEMS.slice().sort(function(a,b){
+    var aa = a.act || 99, bb = b.act || 99;
+    if(aa !== bb) return aa - bb;
+    return 0;
+  });
+  var out = [], tb = 0, tr = 0, te = 0;
+  list.forEach(function(it){
+    if(!touched(it) && !it.act) return;
+    var s = stFor(it.sku), c = counted(it), e = expected(it);
+    var note = s.notes;
+    if(it.grp === "apparel" && it.sizes.length){
+      var parts = [];
+      varKeys(it).forEach(function(v){
+        var q = num(s.sz[v.key]);
+        if(q) parts.push((v.color ? v.color+" " : "") + v.size + " " + q);
+      });
+      if(parts.length) note = (note ? note + ". " : "") + parts.join(", ");
+    }
+    if(it.grp === "disp"){
+      note = (note ? note + ". " : "") + num(s.dep) + " installed at accounts";
+    }
+    var bv = num(s.last) * it.cost, rv = num(s.recv) * it.cost, ev = c * it.cost;
+    tb += bv; tr += rv; te += ev;
+    out.push([it.name, num(s.last), num(s.sold), num(s.comp), num(s.recv), e, c, c - e, note,
+      it.cost, bv, rv, ev]);
+  });
+  out.push(["Total Inventory Value","","","","","","","","","",tb,tr,te]);
+  return out;
+}
+function renderSummary(){
+  var rows = actRows();
+  var h = "<tr>";
+  ACT_COLS.forEach(function(c){ h += "<th>"+esc(c)+"</th>"; });
+  h += "</tr>";
+  rows.forEach(function(r, i){
+    var last = (i === rows.length - 1);
+    h += '<tr'+(last ? ' class="tot"' : '')+'>';
+    r.forEach(function(v, ci){
+      var numeric = (ci >= 1 && ci !== 8);
+      var txt = v;
+      if(ci >= 9 && v !== "") txt = money(num(v));
+      h += '<td'+(numeric ? ' class="r"' : '')+'>'+esc(txt)+'</td>';
+    });
+    h += "</tr>";
+  });
+  el("sumtbl").innerHTML = h;
+}
+function actTsv(){
+  var rows = actRows();
+  var lines = [ACT_COLS.join("\t")];
+  rows.forEach(function(r){
+    lines.push(r.map(function(v, ci){
+      if(v === "") return "";
+      if(ci >= 9) return Number(num(v)).toFixed(2);
+      if(ci === 0 || ci === 8) return String(v).replace(/\t/g," ");
+      return String(v);
+    }).join("\t"));
+  });
+  return lines.join("\n");
+}
+
+/* ---------------- region ---------------- */
+function curEnt(){ return ENTITIES[REGION] || ENTITIES.LV; }
+function renderEntity(){
+  var e = curEnt();
+  el("entinfo").innerHTML = "Counting the <b>" + esc(e.region) + "</b> office. " + esc(e.addr) +
+    ". The summary email goes to <b>" + esc(e.inbox) + "</b>.";
+  el("sendline").innerHTML = "The summary email goes to <b>" + esc(e.inbox) + "</b> and a copy to you.";
+}
+function setRegion(r){
+  if(REGION === r) return;
+  saveDraft();
+  REGION = r;
+  ST = {};            /* counts are per office, never carried across */
+  var btns = el("regtog").querySelectorAll("button");
+  for(var i=0;i<btns.length;i++) btns[i].className = (btns[i].getAttribute("data-r") === r) ? "on" : "";
+  renderEntity();
+  loadCatalog();
+}
+
+/* ---------------- input wiring ---------------- */
+document.addEventListener("input", function(ev){
+  var t = ev.target;
+  if(!t || !t.getAttribute) return;
+  var sku = t.getAttribute("data-sku");
+  if(!sku) return;
+  var f = t.getAttribute("data-f");
+  var s = stFor(sku);
+  if(f === "sz"){ s.sz[t.getAttribute("data-k")] = t.value === "" ? "" : num(t.value); }
+  else if(f === "notes"){ s.notes = t.value; }
+  else { s[f] = t.value === "" ? "" : num(t.value); }
+  recalc();
+});
+
+/* ---------------- submit ---------------- */
+function validate(){
+  var e = el("err");
+  var miss = [];
+  if(!el("cby").value.trim()) miss.push("your name");
+  if(!el("cemail").value.trim()) miss.push("your email");
+  if(!el("cper").value.trim()) miss.push("the month this count is for");
+  var any = ITEMS.some(function(it){ return touched(it); });
+  if(!any) miss.push("at least one counted item");
+  if(miss.length){
+    e.textContent = "Still needed: " + miss.join(", ") + ".";
+    e.className = "err show";
+    window.scrollTo({top: e.getBoundingClientRect().top + window.pageYOffset - 120, behavior:"smooth"});
+    return false;
+  }
+  e.className = "err";
+  return true;
+}
+function submitCount(){
+  if(!validate()) return;
+  var ent = curEnt(), lines = [], total = 0;
+  ITEMS.forEach(function(it){
+    if(!touched(it)) return;
+    var s = stFor(it.sku), c = counted(it), e = expected(it);
+    var sizes = [];
+    if(it.grp === "apparel" && it.sizes.length){
+      varKeys(it).forEach(function(v){
+        var q = num(s.sz[v.key]);
+        if(q) sizes.push({color:v.color, size:v.size, qty:q});
+      });
+    }
+    total += c * it.cost;
+    lines.push({sku:it.sku, name:it.name, grp:it.grp, unit:it.unit, cost:it.cost, par:it.par,
+      last:num(s.last), sold:num(s.sold), comped:num(s.comp), received:num(s.recv),
+      installed:num(s.inst), deployed:num(s.dep), expected:e, counted:c, variance:c-e,
+      value:Math.round(c*it.cost*100)/100, notes:s.notes, sizes:sizes});
+  });
+  var data = {
+    kind:"inv_save", passcode:PASS,
+    website: el("website").value,
+    region: ent.region, region_code: ent.code, entity: ent.entity,
+    counted_by: el("cby").value.trim(), email: el("cemail").value.trim(),
+    period: el("cper").value.trim(), count_date: el("cdate").value,
+    notes: el("cnotes").value.trim(),
+    total_value: Math.round(total*100)/100,
+    act_block: actTsv(),
+    lines: lines
+  };
+  var btns = [el("submit1"), el("submit2")];
+  btns.forEach(function(b){ b.disabled = true; });
+  fetch(WEBHOOK, {method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(data)})
+  .then(function(r){ return r.json(); })
+  .then(function(r){
+    btns.forEach(function(b){ b.disabled = false; });
+    if(r && r.ok){
+      el("okmsg").className = "okmsg show";
+      el("err").className = "err";
+      try{ localStorage.setItem("cwInvDraft_"+REGION, ""); }catch(e2){}
+      window.scrollTo({top: el("okmsg").getBoundingClientRect().top + window.pageYOffset - 140,
+        behavior:"smooth"});
+    } else {
+      fail(r && r.error === "bad_passcode"
+        ? "The Ops Hub passcode was rejected. Open the Ops Hub and sign in again."
+        : "The Sheet did not take this count. Copy the ACT block so nothing is lost, then tell TJ.");
+    }
+  })
+  .catch(function(){
+    btns.forEach(function(b){ b.disabled = false; });
+    fail("Could not reach the script. Copy the ACT block so nothing is lost, then try again.");
+  });
+}
+function fail(msg){
+  var e = el("err");
+  e.textContent = msg; e.className = "err show";
+  window.scrollTo({top: e.getBoundingClientRect().top + window.pageYOffset - 140, behavior:"smooth"});
+}
+
+/* ---------------- draft, saved per office on this device ---------------- */
+function saveDraft(){
+  try{
+    localStorage.setItem("cwInvDraft_"+REGION, JSON.stringify({
+      st:ST, by:el("cby").value, em:el("cemail").value, per:el("cper").value,
+      dt:el("cdate").value, nt:el("cnotes").value
+    }));
+  }catch(e){}
+}
+function loadDraft(){
+  try{
+    var raw = localStorage.getItem("cwInvDraft_"+REGION);
+    if(!raw) return false;
+    var d = JSON.parse(raw);
+    if(!d || !d.st) return false;
+    ST = d.st;
+    if(d.by && !el("cby").value) el("cby").value = d.by;
+    if(d.em && !el("cemail").value) el("cemail").value = d.em;
+    if(d.per) el("cper").value = d.per;
+    if(d.dt) el("cdate").value = d.dt;
+    if(d.nt) el("cnotes").value = d.nt;
+    return true;
+  }catch(e){ return false; }
+}
+setInterval(saveDraft, 4000);
+
+/* ---------------- catalog ---------------- */
+function useItems(rows, live, lastCounts){
+  ITEMS = rowsToItems(rows);
+  LIVE = !!live;
+  var b = el("srcbadge");
+  if(live){
+    b.textContent = "Live item list from the Inventory Items tab" +
+      (lastCounts && lastCounts.period ? ". Last month carried over from " + lastCounts.period : "");
+    b.className = "src live";
+  } else {
+    b.textContent = "Sheet unreachable, using the " + SNAPSHOT_DATE +
+      " item snapshot. Last month has to be typed in.";
+    b.className = "src snap";
+  }
+  var hadDraft = loadDraft();
+  if(lastCounts && lastCounts.map && !hadDraft){
+    ITEMS.forEach(function(it){
+      var s = stFor(it.sku);
+      var p = lastCounts.map[it.sku];
+      if(p != null && String(s.last) === "") s.last = num(p);
+      var dp = lastCounts.dep ? lastCounts.dep[it.sku] : null;
+      if(it.grp === "disp" && dp != null && String(s.dep) === "") s.dep = num(dp);
+    });
+  }
+  renderAll();
+}
+function loadCatalog(){
+  fetch(WEBHOOK, {method:"POST", headers:{"Content-Type":"text/plain"},
+    body: JSON.stringify({kind:"inv_catalog", passcode:PASS, region: curEnt().region})})
+  .then(function(r){ return r.json(); })
+  .then(function(r){
+    if(r && r.ok && r.rows && r.rows.length) useItems(r.rows, true, r.last);
+    else if(r && r.error === "bad_passcode"){ CWAuth.locked("ops", "Wrong passcode."); }
+    else useItems(EMBEDDED_ITEMS, false, null);
+  })
+  .catch(function(){ useItems(EMBEDDED_ITEMS, false, null); });
+}
+
+/* ---------------- boot ---------------- */
+(function boot(){
+  var pass = CWAuth.require({hub:"ops"});
+  if(!pass) return;
+  PASS = pass;
+  el("app").classList.remove("hidden");
+
+  var q = (location.search || "").toLowerCase();
+  if(q.indexOf("nnv") >= 0 || (location.hash || "").toLowerCase().indexOf("nnv") >= 0){
+    REGION = "NNV";
+    var btns = el("regtog").querySelectorAll("button");
+    for(var i=0;i<btns.length;i++) btns[i].className = (btns[i].getAttribute("data-r") === "NNV") ? "on" : "";
+  }
+  renderEntity();
+  el("regtog").addEventListener("click", function(ev){
+    var b = ev.target.closest ? ev.target.closest("button[data-r]") : null;
+    if(b) setRegion(b.getAttribute("data-r"));
+  });
+
+  var now = new Date();
+  el("cdate").value = now.toISOString().slice(0,10);
+  var prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  var MN = ["January","February","March","April","May","June","July","August","September",
+    "October","November","December"];
+  el("cper").value = MN[prev.getMonth()] + " " + prev.getFullYear();
+
+  el("submit1").addEventListener("click", submitCount);
+  el("submit2").addEventListener("click", submitCount);
+  el("printbtn").addEventListener("click", function(){ window.print(); });
+  el("printbtn2").addEventListener("click", function(){ window.print(); });
+  el("copybtn").addEventListener("click", function(){
+    var t = actTsv();
+    var btn = el("copybtn");
+    function done(){ btn.textContent = "Copied"; setTimeout(function(){ btn.textContent = "Copy the ACT block"; }, 2000); }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(done, function(){ legacyCopy(t, done); });
+    } else legacyCopy(t, done);
+  });
+  el("reset").addEventListener("click", function(){
+    if(!confirm("Clear this count and start over?")) return;
+    ST = {};
+    try{ localStorage.removeItem("cwInvDraft_"+REGION); }catch(e){}
+    el("okmsg").className = "okmsg";
+    el("err").className = "err";
+    renderAll();
+  });
+  loadCatalog();
+})();
+function legacyCopy(t, done){
+  var ta = document.createElement("textarea");
+  ta.value = t; ta.style.position = "fixed"; ta.style.left = "-9999px";
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); done(); }catch(e){}
+  document.body.removeChild(ta);
+}
+</script>
+</body>
+</html>
