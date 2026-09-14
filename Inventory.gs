@@ -143,6 +143,12 @@ function invDay_(v) {
   if (isNaN(d.getTime())) return '';
   return Utilities.formatDate(d, 'America/Los_Angeles', 'yyyy-MM-dd');
 }
+var INV_MONTHS = ['January','February','March','April','May','June','July','August',
+  'September','October','November','December'];
+function invPeriod_(v) {
+  if (v instanceof Date) return INV_MONTHS[v.getMonth()] + ' ' + v.getFullYear();
+  return String(v == null ? '' : v);
+}
 function invToday_() {
   return Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd');
 }
@@ -172,9 +178,12 @@ function setupInventory() {
 /* The Las Vegas August 2026 ACT count, loaded once as the opening balance so
    the book starts where the paper record left off. Northern Nevada has no
    inventory history on its ACT, so it starts at its first count. */
+/* Apparel is deliberately absent. The ACT counted 7 aprons and 10 vests in August
+   2026 but never by size, and this book counts apparel by size, so the first count
+   by size sets the apparel baseline instead of a phantom unsized pile. */
 var INV_OPENING_LV = {
   'A8-112L': 15, 'A8-112H': 35, 'A-112-02H': 16, '117-06SQ-EA': 0,
-  '122-06Q-EA': 11, '138-12Q-EA': 22, 'UNI-APRON': 7, 'UNI-VEST': 10
+  '122-06Q-EA': 11, '138-12Q-EA': 22
 };
 var INV_OPENING_ID = 'INV-LV-260831-ACT';
 var INV_OPENING_DATE = '2026-08-31';
@@ -190,8 +199,6 @@ function invSeedOpening_() {
   items.forEach(function (it) {
     if (INV_OPENING_LV[it.sku] === undefined) return;
     var q = invNum_(INV_OPENING_LV[it.sku]);
-    // Apparel opening is not known by size, so it lands on a blank size and the
-    // first real count by size replaces it.
     lines.push([INV_OPENING_ID, when, 'Las Vegas', 'August 2026', INV_OPENING_DATE, it.sku, it.name,
       '', '', 0, 0, 0, 0, 0, 0, 0, q, 0, it.cost, Math.round(q * it.cost * 100) / 100, '',
       'Opening balance from the August 2026 ACT count']);
@@ -237,7 +244,7 @@ function invLastCounts_() {
     var reg = String(r[2]), day = invDay_(r[5]) || invDay_(r[1]);
     if (!reg || !day) return;
     if (!out[reg] || day >= out[reg].date) {
-      out[reg] = { id: String(r[0]), date: day, period: String(r[4]) };
+      out[reg] = { id: String(r[0]), date: day, period: invPeriod_(r[4]) };
     }
   });
   return out;
@@ -397,6 +404,7 @@ function handleInvCatalog(data) {
 /* ------------------------------------------------------- live on hand view */
 function handleInvOnHand(data) {
   if ((data.passcode || '') !== PASSCODE) return invJson_({ ok: false, error: 'bad_passcode' });
+  if (!invItems_().length) setupInventory();
   var snap = invSnapshot_(data.region);
   var items = {};
   invItems_().forEach(function (it) { items[it.sku] = it; });
@@ -422,6 +430,7 @@ function handleInvOnHand(data) {
 
 function handleInvMoves(data) {
   if ((data.passcode || '') !== PASSCODE) return invJson_({ ok: false, error: 'bad_passcode' });
+  if (!invItems_().length) setupInventory();
   var reg = invRegion_(data.region).name;
   var limit = Math.min(200, Math.max(1, invNum_(data.limit) || 50));
   var all = invRows_(INV_MOVE_TAB, INV_MOVE_HEADERS).filter(function (r) {
