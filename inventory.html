@@ -143,6 +143,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 .sizes .sz .f label{font-size:9.5px;text-align:center}
 .sizes .sz .f input{padding:8px 4px;text-align:center;font-weight:700}
 .sizes .tot{font-size:11.5px;color:var(--grey);margin-top:2px}
+.sizes .parhint{font-size:9.5px;color:var(--grey);text-align:center;margin-top:3px;
+  letter-spacing:.03em;white-space:nowrap}
+.sizes .parhint.short{color:var(--red-dark);font-weight:700}
 .sizes .tot b{color:var(--black)}
 
 .ghead{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
@@ -213,7 +216,8 @@ table.sum tr.tot td{font-weight:700;border-top:2px solid var(--black);border-bot
   Inventory block for the ACT. Every item needs a number before you can submit. If there are
   none on the shelf, put a 0, because a blank box means nobody looked. Vests and smocks are
   counted by size. Dispensers are counted two ways, what is in the office and what is already
-  installed at accounts, so ordering decisions are made on real numbers.</p>
+  installed at accounts, so ordering decisions are made on real numbers. The end of the page
+  turns the count into a list of what to order, by size.</p>
   <span class="src" id="srcbadge">Loading items&hellip;</span>
 
   <div class="statusbar">
@@ -222,7 +226,7 @@ table.sum tr.tot td{font-weight:700;border-top:2px solid var(--black);border-bot
       <div class="cell">Total inventory value<b id="svalue">$0.00</b></div>
       <div class="cell">Still blank<b id="smiss" class="bad">0</b></div>
       <div class="cell">Variances to explain<b id="sflags" class="ok">0</b></div>
-      <div class="cell">Below par<b id="spar">0</b></div>
+      <div class="cell">Units to order<b id="spar">0</b></div>
       <div class="go">
         <button class="btn sec" id="printbtn">Print count sheet</button>
         <button class="btn" id="submit1">Submit this count</button>
@@ -293,8 +297,17 @@ table.sum tr.tot td{font-weight:700;border-top:2px solid var(--black);border-bot
     <div id="g-apparel"></div>
   </div>
 
+  <div class="card" id="ordercard">
+    <h2><span class="n">7</span> What to order</h2>
+    <div class="sub">Built from the levels we keep on the shelf. Anything counted below its
+    level shows here with the number to order. Levels live in the Inventory Items tab, one per
+    size, so changing what we keep is a Sheet edit.</div>
+    <div class="tblwrap"><table class="sum" id="ordtbl"></table></div>
+    <div style="margin-top:12px"><button class="btn sec" id="copyord">Copy the order list</button></div>
+  </div>
+
   <div class="card">
-    <h2><span class="n">7</span> Review and submit</h2>
+    <h2><span class="n">8</span> Review and submit</h2>
     <div class="sub">This is the Office Inventory block in ACT column order. Copy it straight into
     the bottom of the month sheet.</div>
     <div class="tblwrap"><table class="sum" id="sumtbl"></table></div>
@@ -328,9 +341,10 @@ var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDF
 var SNAPSHOT_DATE = "September 2026";
 
 /* Snapshot fallback. The live list is the Inventory Items tab.
-   [sku, name, group, unit, cost, par, image, sizes, colors, act_order, note]
+   [sku, name, group, unit, cost, par, image, sizes, colors, act_order, note, size_pars]
    group: chem | bottle | disp | paper | apparel
-   sizes/colors are pipe separated. act_order 0 = not on the ACT block. */
+   sizes/colors are pipe separated. act_order 0 = not on the ACT block.
+   par is the whole item minimum. size_pars is "S:5;M:5;L:5" and wins for apparel. */
 var EMBEDDED_ITEMS = [
 ["A-112-02H","EnvirOx H2Orange2 H-C 112 2x1 Half Gal (case of 2)","chem","Case of 2",88.79,0,"https://s3.amazonaws.com/cart2order/uploads/65/products/2367/1701707851227.png","","",3,"Product #1, our standard."],
 ["117-06SQ-EA","H2Orange2 117 - Simple Measures 6pk (EPA) (each)","chem","Each",15.70,0,"","","",4,"Bought by the 6 pack, counted as singles."],
@@ -355,9 +369,9 @@ var EMBEDDED_ITEMS = [
 ["A9-855-112","Product Literature - H2Orange2 H-C 112","paper","Pack of 25",0,0,"","","",0,""],
 ["SDS-112","SDS Sheets - H2Orange2 H-C 112","paper","Each",0,0,"","","",0,"No charge, EnvirOx bills it as MISCNOCHARGE."],
 ["SDS-145","SDS Sheets - OxiGenesis","paper","Each",0,0,"","","",0,"No charge, EnvirOx bills it as MISCNOCHARGE."],
-["UNI-VEST","Unisex Vest","apparel","Each",17.00,0,"https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cwmv-model.jpg","S|M|L|XL|2XL","Red",8,"Red with the Independent Contractor monogram."],
-["UNI-APRON","Unisex Cobbler Apron","apparel","Each",14.00,0,"https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cwf12ic10.png","OSFM|XL","Red|Black",7,"The smock. Count each color."],
-["UNI-HIVIS","Class 2 High-Visibility Vest","apparel","Each",9.99,0,"https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cws362-back.jpg","M|L|XL|2XL|3XL|4XL|5XL","Safety Yellow",0,"Special order item. Count only what is actually on the shelf."]
+["UNI-VEST","Unisex Vest","apparel","Each",17.00,0,"https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cwmv-model.jpg","S|M|L|XL|2XL","Red",8,"Red with the Independent Contractor monogram.","S:5;M:5;L:5;XL:5;2XL:0"],
+["UNI-APRON","Unisex Cobbler Apron","apparel","Each",14.00,0,"https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cwf12ic10.png","OSFM|XL","Red|Black",7,"The smock. Count each color.","OSFM:10;XL:10"],
+["UNI-HIVIS","Class 2 High-Visibility Vest","apparel","Each",9.99,0,"https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cws362-back.jpg","M|L|XL|2XL|3XL|4XL|5XL","Safety Yellow",0,"Special order item. Count only what is on the shelf.",""]
 ];
 
 var ENTITIES = {
@@ -389,8 +403,49 @@ function rowsToItems(rows){
       cost:num(r[4]), par:num(r[5]), img:String(r[6]||""),
       sizes:String(r[7]||"").split("|").filter(function(s){return s!=="";}),
       colors:String(r[8]||"").split("|").filter(function(s){return s!=="";}),
-      act:num(r[9]), note:String(r[10]||"")};
+      act:num(r[9]), note:String(r[10]||""), spars:parsePars(r[11])};
   });
+}
+/* "S:5;M:5;L:5" -> {S:5,M:5,L:5} */
+function parsePars(txt){
+  var out = {};
+  String(txt||"").split(/[;,]/).forEach(function(p){
+    var kv = p.split(":");
+    if(kv.length === 2 && kv[0].trim() !== "") out[kv[0].trim()] = num(kv[1]);
+  });
+  return out;
+}
+function parFor(it, size){
+  if(size != null) return num(it.spars[size]);
+  return num(it.par);
+}
+/* On hand for one size, summed across colors. */
+function haveSize(it, size){
+  var s = stFor(it.sku), t = 0;
+  (it.colors.length ? it.colors : [""]).forEach(function(c){ t += num(s.sz[c+"|"+size]); });
+  return t;
+}
+/* What to order: one entry per size for apparel, one per item otherwise. */
+function needList(){
+  var out = [];
+  ITEMS.forEach(function(it){
+    if(it.grp === "apparel" && it.sizes.length){
+      it.sizes.forEach(function(sz){
+        var par = parFor(it, sz);
+        if(par <= 0) return;
+        var have = haveSize(it, sz);
+        out.push({sku:it.sku, name:it.name, size:sz, have:have, par:par,
+          order:Math.max(0, par - have)});
+      });
+      return;
+    }
+    var par = parFor(it, null);
+    if(par <= 0) return;
+    var have = counted(it);
+    out.push({sku:it.sku, name:it.name, size:"", have:have, par:par,
+      order:Math.max(0, par - have)});
+  });
+  return out;
 }
 function stFor(sku){
   if(!ST[sku]) ST[sku] = {last:"",sold:"",comp:"",recv:"",cnt:"",dep:"",inst:"",notes:"",sz:{}};
@@ -496,16 +551,22 @@ function itemHtml(it){
   if(it.grp === "apparel" && it.sizes.length){
     h += '<div class="sizes"><div class="sl">Count every size. Put a 0 where you have none</div>';
     var cols = it.colors.length ? it.colors : [""];
-    cols.forEach(function(c){
+    cols.forEach(function(c, ci){
       h += '<div class="srow">'+(cols.length>1 ? '<span class="cl">'+esc(c)+'</span>' : '')+'<div class="sz">';
       it.sizes.forEach(function(sz){
         var k = c+"|"+sz;
+        var par = parFor(it, sz);
         h += '<div class="f"><label>'+esc(sz)+'</label>'+
           '<input type="number" inputmode="numeric" step="1" data-sku="'+esc(it.sku)+'" '+
-          'data-f="sz" data-k="'+esc(k)+'" value="'+esc(s.sz[k]==null?"":s.sz[k])+'"></div>';
+          'data-f="sz" data-k="'+esc(k)+'" value="'+esc(s.sz[k]==null?"":s.sz[k])+'" placeholder="0">'+
+          ((par > 0 && ci === 0) ? '<div class="parhint" data-ph="'+esc(sz)+'">keep '+par+'</div>' : '')+
+          '</div>';
       });
       h += '</div></div>';
     });
+    if(cols.length > 1 && Object.keys(it.spars).length){
+      h += '<div class="tot">Levels are per size with both colors counted together.</div>';
+    }
     h += '<div class="tot">Counted total <b id="st-'+id+'">0</b></div></div>';
   }
 
@@ -545,6 +606,16 @@ function recalc(){
       var cEl = el("c-"+id), stEl = el("st-"+id);
       if(cEl) cEl.textContent = c;
       if(stEl) stEl.textContent = c;
+      it.sizes.forEach(function(sz){
+        var par = parFor(it, sz);
+        if(par <= 0) return;
+        var have = haveSize(it, sz), short = par - have;
+        [].forEach.call(row.querySelectorAll('.parhint[data-ph="' + sz.replace(/"/g,'') + '"]'),
+          function(hEl){
+            hEl.textContent = short > 0 ? "order " + short : "keep " + par;
+            hEl.className = "parhint" + (short > 0 ? " short" : "");
+          });
+      });
     }
     var val = c * it.cost;
     total += val;
@@ -561,7 +632,7 @@ function recalc(){
       });
     }
     var isFlag = t && d !== 0;
-    var isLow = it.par > 0 && t && c < it.par;
+    var isLow = t && parFor(it, null) > 0 && c < parFor(it, null);
     row.className = "item" + (SHOWMISS && need.length ? " need" : "") +
       (isFlag ? " flag" : (isLow ? " low" : ""));
     if(need.length) missing++;
@@ -573,7 +644,12 @@ function recalc(){
   el("svalue").textContent = money(total);
   var f = el("sflags");
   f.textContent = flags; f.className = flags ? "bad" : "ok";
-  el("spar").textContent = low;
+  var nd = needList(), units = 0;
+  nd.forEach(function(x){ units += x.order; });
+  var pEl = el("spar");
+  pEl.textContent = units;
+  pEl.className = units ? "bad" : "ok";
+  renderOrder(nd);
   var mEl = el("smiss");
   mEl.textContent = missing;
   mEl.className = missing ? "bad" : "ok";
@@ -611,6 +687,31 @@ function actRows(){
   });
   out.push(["Total Inventory Value","","","","","","","","","",tb,tr,te]);
   return out;
+}
+function renderOrder(nd){
+  var rows = nd.filter(function(x){ return x.order > 0; });
+  var h = '<tr><th>Item</th><th>Size</th><th>On hand</th><th>Keep</th><th>Order</th></tr>';
+  if(!rows.length){
+    h += '<tr><td colspan="5" style="color:var(--green)">Nothing to order. Every size is at ' +
+      'the level we keep.</td></tr>';
+  } else {
+    rows.forEach(function(x){
+      h += '<tr><td>' + esc(x.name) + '</td><td>' + esc(x.size || "-") + '</td>' +
+        '<td class="r">' + x.have + '</td><td class="r">' + x.par + '</td>' +
+        '<td class="r"><b>' + x.order + '</b></td></tr>';
+    });
+  }
+  el("ordtbl").innerHTML = h;
+}
+function orderText(){
+  var rows = needList().filter(function(x){ return x.order > 0; });
+  if(!rows.length) return "Nothing to order.";
+  var lines = ["Order for the " + curEnt().region + " office"];
+  rows.forEach(function(x){
+    lines.push(x.order + " x " + x.name + (x.size ? " " + x.size : "") +
+      " (have " + x.have + ", keep " + x.par + ")");
+  });
+  return lines.join("\n");
 }
 function renderSummary(){
   var rows = actRows();
@@ -720,7 +821,18 @@ function submitCount(){
       });
     }
     total += c * it.cost;
-    lines.push({sku:it.sku, name:it.name, grp:it.grp, unit:it.unit, cost:it.cost, par:it.par,
+    var need = [];
+    if(it.grp === "apparel" && it.sizes.length){
+      it.sizes.forEach(function(sz){
+        var par = parFor(it, sz);
+        if(par <= 0) return;
+        var short = par - haveSize(it, sz);
+        if(short > 0) need.push(sz + " " + short);
+      });
+    } else if(parFor(it, null) > 0 && c < parFor(it, null)){
+      need.push(String(parFor(it, null) - c));
+    }
+    lines.push({to_order:need.join(", "), sku:it.sku, name:it.name, grp:it.grp, unit:it.unit, cost:it.cost, par:it.par,
       last:num(s.last), sold:num(s.sold), comped:num(s.comp), received:num(s.recv),
       installed:num(s.inst), deployed:num(s.dep), expected:e, counted:c, variance:c-e,
       value:Math.round(c*it.cost*100)/100, notes:s.notes, sizes:sizes});
@@ -734,6 +846,7 @@ function submitCount(){
     notes: el("cnotes").value.trim(),
     total_value: Math.round(total*100)/100,
     act_block: actTsv(),
+    reorder: needList().filter(function(x){ return x.order > 0; }),
     lines: lines
   };
   var btns = [el("submit1"), el("submit2")];
@@ -863,6 +976,13 @@ function loadCatalog(){
     var t = actTsv();
     var btn = el("copybtn");
     function done(){ btn.textContent = "Copied"; setTimeout(function(){ btn.textContent = "Copy the ACT block"; }, 2000); }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t).then(done, function(){ legacyCopy(t, done); });
+    } else legacyCopy(t, done);
+  });
+  el("copyord").addEventListener("click", function(){
+    var t = orderText(), btn = el("copyord");
+    function done(){ btn.textContent = "Copied"; setTimeout(function(){ btn.textContent = "Copy the order list"; }, 2000); }
     if(navigator.clipboard && navigator.clipboard.writeText){
       navigator.clipboard.writeText(t).then(done, function(){ legacyCopy(t, done); });
     } else legacyCopy(t, done);

@@ -23,12 +23,12 @@ var INV_COUNT_TAB = 'Inventory Counts';
 var INV_LINE_TAB  = 'Inventory Lines';
 
 var INV_ITEM_HEADERS = ['sku','name','group','unit','cost','par','image','sizes','colors',
-  'act_order','note','active'];
+  'act_order','note','active','size_pars'];
 var INV_COUNT_HEADERS = ['count_id','submitted','region','entity','period','count_date',
-  'counted_by','email','items_counted','variance_lines','total_value','notes'];
+  'counted_by','email','items_counted','variance_lines','total_value','notes','units_to_order'];
 var INV_LINE_HEADERS = ['count_id','submitted','region','period','sku','item','group','unit',
   'last_month','sold','comped','received','installed_out','deployed_at_accounts','expected',
-  'counted','variance','cost','ending_value','sizes','notes'];
+  'counted','variance','cost','ending_value','sizes','notes','to_order'];
 
 var INV_SUPPLY_ID_FALLBACK = '1_T1hxLt7WLIRYqkVVESGwD94f-IpPYAHVPWVoddbS_0';
 var INV_LOGO = 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
@@ -112,7 +112,8 @@ function handleInvCatalog(data) {
     var act = String(v[11]);
     if (act === '0' || act.toLowerCase() === 'false') return;
     rows.push([String(v[0]), String(v[1]), String(v[2]), String(v[3]), invNum_(v[4]),
-      invNum_(v[5]), String(v[6]), String(v[7]), String(v[8]), invNum_(v[9]), String(v[10])]);
+      invNum_(v[5]), String(v[6]), String(v[7]), String(v[8]), invNum_(v[9]), String(v[10]),
+      String(v[12])]);
   });
   return invJson_({ ok: true, rows: rows, last: invLastCount_(data.region) });
 }
@@ -173,13 +174,17 @@ function handleInvSave(data) {
       String(l.grp || ''), String(l.unit || ''), invNum_(l.last), invNum_(l.sold), invNum_(l.comped),
       invNum_(l.received), invNum_(l.installed), invNum_(l.deployed), invNum_(l.expected),
       invNum_(l.counted), invNum_(l.variance), invNum_(l.cost), invNum_(l.value), sizes,
-      String(l.notes || '')];
+      String(l.notes || ''), String(l.to_order || '')];
   });
   ls.getRange(ls.getLastRow() + 1, 1, lineRows.length, INV_LINE_HEADERS.length).setValues(lineRows);
 
+  var reorder = data.reorder || [];
+  var units = 0;
+  reorder.forEach(function (r) { units += invNum_(r.order); });
+
   cs.appendRow([id, now, reg.name, reg.cfg.entity, String(data.period || ''),
     String(data.count_date || ''), String(data.counted_by), String(data.email),
-    lines.length, flagged, Math.round(total * 100) / 100, String(data.notes || '')]);
+    lines.length, flagged, Math.round(total * 100) / 100, String(data.notes || ''), units]);
 
   try {
     cwMail_('inventory', {
@@ -188,20 +193,20 @@ function handleInvSave(data) {
       name: reg.cfg.sender,
       replyTo: String(data.email),
       subject: 'Office inventory count ' + String(data.period || '') + ' - ' + reg.name +
-        ' [' + id + ']',
-      htmlBody: invEmail_(id, data, lines, reg, flagged, total),
+        (units ? ' - ' + units + ' to order' : ' - nothing to order') + ' [' + id + ']',
+      htmlBody: invEmail_(id, data, lines, reg, flagged, total, reorder, units),
       body: 'Office inventory count ' + id + ' for ' + reg.name + ' (' +
         String(data.period || '') + ') submitted by ' + String(data.counted_by) + '. ' +
-        lines.length + ' items, ' + flagged + ' with a variance, ' + invMoney_(total) +
-        ' on the shelf. Open the CW Supply and Inventory Sheet, Inventory Counts tab.'
+        lines.length + ' items, ' + flagged + ' with a variance, ' + units + ' units to order. ' +
+        'Open the CW Supply and Inventory Sheet, Inventory Counts tab.'
     });
   } catch (e) {}
 
   return invJson_({ ok: true, id: id, total_value: Math.round(total * 100) / 100,
-    variance_lines: flagged });
+    variance_lines: flagged, units_to_order: units });
 }
 
-function invEmail_(id, data, lines, reg, flagged, total) {
+function invEmail_(id, data, lines, reg, flagged, total, reorder, units) {
   var td = 'padding:5px 8px;border-bottom:1px solid #eee';
   var tdr = td + ';text-align:right';
   var rows = lines.map(function (l) {
@@ -223,6 +228,22 @@ function invEmail_(id, data, lines, reg, flagged, total) {
       '<td style="' + tdr + '">' + invMoney_(l.value) + '</td></tr>';
   }).join('');
 
+  var ordRows = (reorder || []).map(function (r) {
+    return '<tr><td style="' + td + '">' + invEsc_(r.name) + '</td>' +
+      '<td style="' + td + '">' + invEsc_(r.size || '') + '</td>' +
+      '<td style="' + tdr + '">' + invNum_(r.have) + '</td>' +
+      '<td style="' + tdr + '">' + invNum_(r.par) + '</td>' +
+      '<td style="' + tdr + ';font-weight:bold;color:#B01F27">' + invNum_(r.order) + '</td></tr>';
+  }).join('');
+  var orderBlock = (reorder && reorder.length)
+    ? '<h3 style="font-size:14px;margin:18px 0 6px">What to order</h3>' +
+      '<table style="border-collapse:collapse;width:100%;font-size:12px">' +
+      '<tr><th align="left" style="' + td + '">Item</th><th align="left" style="' + td + '">Size</th>' +
+      '<th align="right" style="' + td + '">On hand</th><th align="right" style="' + td + '">Keep</th>' +
+      '<th align="right" style="' + td + '">Order</th></tr>' + ordRows + '</table>'
+    : '<p style="margin:16px 0 0;color:#1E7B34"><b>Nothing to order.</b> Every size is at the ' +
+      'level we keep on the shelf.</p>';
+
   return '<div style="font-family:Verdana,Geneva,sans-serif;font-size:13px;color:#2D2A26;max-width:680px">' +
     '<img src="' + INV_LOGO + '" alt="City Wide Facility Solutions" height="38" style="height:38px;width:auto"><br><br>' +
     '<h2 style="font-size:17px;margin:0 0 4px">Office inventory count ' + invEsc_(String(data.period || '')) + '</h2>' +
@@ -235,7 +256,9 @@ function invEmail_(id, data, lines, reg, flagged, total) {
     '<tr><td style="' + td + '">Items counted</td><td style="' + tdr + '">' + lines.length + '</td></tr>' +
     '<tr><td style="' + td + '">Lines with a variance</td><td style="' + tdr +
       (flagged ? ';color:#B01F27;font-weight:bold' : '') + '">' + flagged + '</td></tr>' +
-    '</table>' +
+    '<tr><td style="' + td + '">Units to order</td><td style="' + tdr +
+      (units ? ';color:#B01F27;font-weight:bold' : '') + '">' + invNum_(units) + '</td></tr>' +
+    '</table>' + orderBlock +
     (data.notes ? '<p style="margin:14px 0 0"><b>Notes</b><br>' + invEsc_(String(data.notes)) + '</p>' : '') +
     '<h3 style="font-size:14px;margin:18px 0 6px">Count</h3>' +
     '<table style="border-collapse:collapse;width:100%;font-size:12px">' +
@@ -253,34 +276,35 @@ function invEmail_(id, data, lines, reg, flagged, total) {
 /* ------------------------------------------------------------------- seed --
    Seeded once into the Inventory Items tab. After that the tab is the source
    of truth. Costs came off the August 2026 ACT and the EnvirOx price sheet.
-   par is left at 0 on purpose: set a par level per item and the count sheet
-   starts flagging anything below it as a reorder.
+   par is the level for a whole item. size_pars is the level per size and wins for
+   apparel: "S:5;M:5;L:5;XL:5;2XL:0" means keep five of each of those sizes on the
+   shelf, counted across colors. Anything under its level lands on the order list.
    [sku, name, group, unit, cost, par, image, sizes, colors, act_order, note, active] */
 var INV_SEED = [
-['A-112-02H','EnvirOx H2Orange2 H-C 112 2x1 Half Gal (case of 2)','chem','Case of 2',88.79,0,'https://s3.amazonaws.com/cart2order/uploads/65/products/2367/1701707851227.png','','',3,'Product #1, our standard.',1],
-['117-06SQ-EA','H2Orange2 117 - Simple Measures 6pk (EPA) (each)','chem','Each',15.70,0,'','','',4,'Bought by the 6 pack, counted as singles.',1],
-['122-06Q-EA','OxiGenesis 32oz RTU (each)','chem','Each',4.65,0,'https://s3.amazonaws.com/cart2order/uploads/65/products/2371/1701710272232.png','','',5,'Ready to use, no dispenser needed.',1],
-['138-12Q-EA','Mineral Shock 32oz RTU (each)','chem','Each',7.05,0,'https://s3.amazonaws.com/cart2order/uploads/65/products/2396/1701968613978.png','','',6,'Hard water and scum remover.',1],
-['A8-112L','112 Absolute Bottle & Spray Head - Light Duty Green','bottle','Each',2.60,0,'https://d3gygecnvdjq5h.cloudfront.net/userfiles/products/images/websites/b2bseller/customer/braind/images/items/8-550.jpg','','',1,'Green is light duty, glass and everyday surfaces.',1],
-['A8-112H','112 Absolute Bottle & Spray Head - Heavy Duty Red','bottle','Each',2.60,0,'https://d3gygecnvdjq5h.cloudfront.net/userfiles/products/images/websites/b2bseller/customer/braind/images/items/288-552.jpg','','',2,'Red is heavy duty.',1],
-['A9-112L','Secondary Label - Light Duty Green 112','bottle','Each',0.27,0,'','','',0,'Spare labels for relabeling bottles.',1],
-['A9-112H','Secondary Label - Heavy Duty Red 112','bottle','Each',0.27,0,'','','',0,'Spare labels for relabeling bottles.',1],
-['AS-112','Bottle Sticker - H2Orange2 H-C 112','bottle','Each',0,0,'','','',0,'One per spray bottle in service. No charge.',1],
-['7-644-N','Trigger Spray Head (fits 28mm)','bottle','Each',1.18,0,'','','',0,'',1],
-['4-252-KEY','Wall Mount Dispenser Key','bottle','Each',2.48,0,'','','',0,'',1],
-['A-252-MDD-YGR','Absolute TRIO Dispenser (YGR)','disp','Each',0,0,'','','',0,'No charge. One per new building running 112.',1],
-['AP-252-112','Absolute Portable Dispenser for H2Orange2 112','disp','Each',0,0,'','','',0,'No charge. Needs water hose 6-221.',1],
-['A-252-MDD-YGBR','Absolute Multi Dispenser for OxiGenesis (YGBR)','disp','Each',0,0,'','','',0,'Billed at cost unless EnvirOx credits it.',1],
-['A-IN-112-YGR-KIT','Trio Installation Kit - H2Orange2 112','disp','Each',0,0,'','','',0,'One per TRIO going on a wall.',1],
-['A-IN-145-YGBR-KIT','Installation Kit - OxiGenesis','disp','Each',0,0,'','','',0,'One per dispenser running OxiGenesis.',1],
-['ACW-112-YGR-1','Wall Chart - H2Orange2 112 YGR TRIO','paper','Each',0,0,'','','',0,'Hangs next to each TRIO.',1],
-['ACP-112-YGR-PCK','Pocket Chart - 112 YGR TRIO with lanyard','paper','Each',0,0,'','','',0,'',1],
-['ACW-145-YGBR-1','Wall Chart - OxiGenesis General','paper','Each',0,0,'','','',0,'',1],
-['ACP-145-YGBR-PCK','Pocket Chart - OxiGenesis YGBR with lanyard','paper','Each',0,0,'','','',0,'',1],
-['A9-855-112','Product Literature - H2Orange2 H-C 112','paper','Pack of 25',0,0,'','','',0,'',1],
-['SDS-112','SDS Sheets - H2Orange2 H-C 112','paper','Each',0,0,'','','',0,'No charge, EnvirOx bills it as MISCNOCHARGE.',1],
-['SDS-145','SDS Sheets - OxiGenesis','paper','Each',0,0,'','','',0,'No charge, EnvirOx bills it as MISCNOCHARGE.',1],
-['UNI-VEST','Unisex Vest','apparel','Each',17.00,0,'https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cwmv-model.jpg','S|M|L|XL|2XL','Red',8,'Red with the Independent Contractor monogram.',1],
-['UNI-APRON','Unisex Cobbler Apron','apparel','Each',14.00,0,'https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cwf12ic10.png','OSFM|XL','Red|Black',7,'The smock. Count each color.',1],
-['UNI-HIVIS','Class 2 High-Visibility Vest','apparel','Each',9.99,0,'https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cws362-back.jpg','M|L|XL|2XL|3XL|4XL|5XL','Safety Yellow',0,'Special order item. Count only what is on the shelf.',1]
+['A-112-02H','EnvirOx H2Orange2 H-C 112 2x1 Half Gal (case of 2)','chem','Case of 2',88.79,0,'https://s3.amazonaws.com/cart2order/uploads/65/products/2367/1701707851227.png','','',3,'Product #1, our standard.',1,''],
+['117-06SQ-EA','H2Orange2 117 - Simple Measures 6pk (EPA) (each)','chem','Each',15.70,0,'','','',4,'Bought by the 6 pack, counted as singles.',1,''],
+['122-06Q-EA','OxiGenesis 32oz RTU (each)','chem','Each',4.65,0,'https://s3.amazonaws.com/cart2order/uploads/65/products/2371/1701710272232.png','','',5,'Ready to use, no dispenser needed.',1,''],
+['138-12Q-EA','Mineral Shock 32oz RTU (each)','chem','Each',7.05,0,'https://s3.amazonaws.com/cart2order/uploads/65/products/2396/1701968613978.png','','',6,'Hard water and scum remover.',1,''],
+['A8-112L','112 Absolute Bottle & Spray Head - Light Duty Green','bottle','Each',2.60,0,'https://d3gygecnvdjq5h.cloudfront.net/userfiles/products/images/websites/b2bseller/customer/braind/images/items/8-550.jpg','','',1,'Green is light duty, glass and everyday surfaces.',1,''],
+['A8-112H','112 Absolute Bottle & Spray Head - Heavy Duty Red','bottle','Each',2.60,0,'https://d3gygecnvdjq5h.cloudfront.net/userfiles/products/images/websites/b2bseller/customer/braind/images/items/288-552.jpg','','',2,'Red is heavy duty.',1,''],
+['A9-112L','Secondary Label - Light Duty Green 112','bottle','Each',0.27,0,'','','',0,'Spare labels for relabeling bottles.',1,''],
+['A9-112H','Secondary Label - Heavy Duty Red 112','bottle','Each',0.27,0,'','','',0,'Spare labels for relabeling bottles.',1,''],
+['AS-112','Bottle Sticker - H2Orange2 H-C 112','bottle','Each',0,0,'','','',0,'One per spray bottle in service. No charge.',1,''],
+['7-644-N','Trigger Spray Head (fits 28mm)','bottle','Each',1.18,0,'','','',0,'',1,''],
+['4-252-KEY','Wall Mount Dispenser Key','bottle','Each',2.48,0,'','','',0,'',1,''],
+['A-252-MDD-YGR','Absolute TRIO Dispenser (YGR)','disp','Each',0,0,'','','',0,'No charge. One per new building running 112.',1,''],
+['AP-252-112','Absolute Portable Dispenser for H2Orange2 112','disp','Each',0,0,'','','',0,'No charge. Needs water hose 6-221.',1,''],
+['A-252-MDD-YGBR','Absolute Multi Dispenser for OxiGenesis (YGBR)','disp','Each',0,0,'','','',0,'Billed at cost unless EnvirOx credits it.',1,''],
+['A-IN-112-YGR-KIT','Trio Installation Kit - H2Orange2 112','disp','Each',0,0,'','','',0,'One per TRIO going on a wall.',1,''],
+['A-IN-145-YGBR-KIT','Installation Kit - OxiGenesis','disp','Each',0,0,'','','',0,'One per dispenser running OxiGenesis.',1,''],
+['ACW-112-YGR-1','Wall Chart - H2Orange2 112 YGR TRIO','paper','Each',0,0,'','','',0,'Hangs next to each TRIO.',1,''],
+['ACP-112-YGR-PCK','Pocket Chart - 112 YGR TRIO with lanyard','paper','Each',0,0,'','','',0,'',1,''],
+['ACW-145-YGBR-1','Wall Chart - OxiGenesis General','paper','Each',0,0,'','','',0,'',1,''],
+['ACP-145-YGBR-PCK','Pocket Chart - OxiGenesis YGBR with lanyard','paper','Each',0,0,'','','',0,'',1,''],
+['A9-855-112','Product Literature - H2Orange2 H-C 112','paper','Pack of 25',0,0,'','','',0,'',1,''],
+['SDS-112','SDS Sheets - H2Orange2 H-C 112','paper','Each',0,0,'','','',0,'No charge, EnvirOx bills it as MISCNOCHARGE.',1,''],
+['SDS-145','SDS Sheets - OxiGenesis','paper','Each',0,0,'','','',0,'No charge, EnvirOx bills it as MISCNOCHARGE.',1,''],
+['UNI-VEST','Unisex Vest','apparel','Each',17.00,0,'https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cwmv-model.jpg','S|M|L|XL|2XL','Red',8,'Red with the Independent Contractor monogram.',1,'S:5;M:5;L:5;XL:5;2XL:0'],
+['UNI-APRON','Unisex Cobbler Apron','apparel','Each',14.00,0,'https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cwf12ic10.png','OSFM|XL','Red|Black',7,'The smock. Count each color.',1,'OSFM:10;XL:10'],
+['UNI-HIVIS','Class 2 High-Visibility Vest','apparel','Each',9.99,0,'https://citywide.bennettuniform.com/pub/media/catalog/product/cache/9323ec0560e662bc9841b2d71b3b8c4b/c/w/cws362-back.jpg','M|L|XL|2XL|3XL|4XL|5XL','Safety Yellow',0,'Special order item. Count only what is on the shelf.',1,'']
 ];
