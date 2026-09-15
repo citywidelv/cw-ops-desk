@@ -92,7 +92,7 @@ h1{font-size:20px;margin-bottom:4px}
 "use strict";
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var PASS = "", MKT = "lv", ROWS = [], FLAGS_ONLY = false;
-var FLAG = { low_score:["Low score","hot"], complaint:["Complaint","hot"], unresolved:["Unresolved","hot"], fsm_action:["FSM action","hot"], crew_unverified:["Crew not background checked","mid"], uniform:["Uniform","mid"], supplies:["Supplies",""], unmatched_vendor:["Company not in directory",""], unmatched_account:["Building not in directory",""] };
+var FLAG = { standards_failed:["Standard not met","hot"], low_score:["Low score","hot"], complaint:["Complaint","hot"], unresolved:["Unresolved","hot"], fsm_action:["FSM action","hot"], crew_unverified:["Crew not background checked","mid"], uniform:["Uniform","mid"], supplies:["Supplies",""], unmatched_vendor:["Company not in directory",""], unmatched_account:["Building not in directory",""] };
 function $(id){ return document.getElementById(id); }
 function esc(s){ var d=document.createElement("div"); d.textContent=String(s==null?"":s); return d.innerHTML; }
 function post(body){ body.passcode = PASS; return fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) }).then(function(r){ return r.json(); }); }
@@ -118,7 +118,7 @@ function render(){
   var rows = ROWS.filter(function(r){
     if (nm && r.nm_name !== nm) return false;
     if (fsm && r.fsm !== fsm) return false;
-    if (FLAGS_ONLY && !/low_score|complaint|unresolved|fsm_action|crew_unverified/.test(r.flags||"")) return false;
+    if (FLAGS_ONLY && !/low_score|complaint|unresolved|fsm_action|crew_unverified|standards_failed/.test(r.flags||"")) return false;
     if (q && (r.account_name + " " + r.vendor_name + " " + r.nm_name + " " + r.summary).toLowerCase().indexOf(q) < 0) return false;
     return true;
   });
@@ -149,8 +149,9 @@ function detail(r, photos){
     + tr("Everything fixed", r.issues_resolved + (r.issue_remaining ? "\nLeft: " + r.issue_remaining + (r.issue_owner ? " (" + r.issue_owner + (r.issue_due ? ", by " + r.issue_due : "") + ")" : "") : ""))
     + tr("Crew on site", r.crew_seen === "Yes" ? (r.crew_names || "Names not taken") + (r.crew_uniform ? "\nUniform: " + r.crew_uniform + (r.crew_uniform_note ? " (" + r.crew_uniform_note + ")" : "") : "") : (r.crew_seen === "No" ? "Did not see the crew" : ""))
     + tr("No background check on file", r.crew_unverified)
+    + tr("Standards met", r.standards_met)
+    + tr("Did not meet standard, what was done", r.standards_failed)
     + tr("Hot spots checked", r.hotspots_checked)
-    + tr("Quick checks", r.dispensers_ok ? "Soap and towels: " + r.dispensers_ok + ", trash: " + r.trash_ok + ", restrooms: " + r.restrooms_ok : "")
     + tr("Closet", r.closet_checked === "Yes" ? ["organized " + r.closet_organized, "SDS " + r.sds_present, "labelled " + r.chemicals_labelled, "on hand " + r.chemicals_on_hand, "equipment " + r.equipment_ok, "EnvirOx low " + r.envirox_low].join(", ") + (r.closet_notes ? "\n" + r.closet_notes : "") : "")
     + tr("Building needs", r.building_supplies) + tr("Crew needs", r.vendor_supplies)
     + tr("New building", r.newstart_night ? r.newstart_night + (r.initial_clean_paid ? ", initial clean paid: " + r.initial_clean_paid : "") : "")

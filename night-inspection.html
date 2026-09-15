@@ -99,6 +99,21 @@ input[type=range]{width:100%;accent-color:var(--red);height:40px}
 .policy{font-size:13px;color:var(--grey);background:var(--light);border-radius:10px;padding:10px 14px;white-space:pre-line}
 details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 .foot{text-align:center;font-size:11px;color:var(--grey);padding:22px}
+.std{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.si{border:1.5px solid var(--border);border-radius:12px;padding:10px;background:#fff;display:flex;flex-direction:column;gap:8px}
+.si .q{font-size:14px;line-height:1.3;font-weight:700;min-height:36px}
+.si .yn{display:flex;gap:6px}
+.si .yn button{flex:1;min-height:40px;border-radius:9px;border:1.5px solid var(--border);background:#fff;font-family:inherit;font-size:14px;font-weight:700;color:var(--black);cursor:pointer}
+.si .yn button.na{flex:0 0 44px;font-size:11px;color:var(--grey)}
+.si .yn button.on.y{background:#eef8f1;border-color:var(--ok);color:var(--ok)}
+.si .yn button.on.n{background:var(--red);border-color:var(--red);color:#fff}
+.si .yn button.on.na{background:var(--light);border-color:var(--grey)}
+.si.bad{border-color:var(--red);grid-column:1/-1}
+.si.bad .q{color:var(--red-dark)}
+.si .fix{font-size:13px;color:var(--grey)}
+.si textarea{min-height:70px;font-size:15px}
+.stdhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.stdhead .cnt{font-size:12px;color:var(--grey);white-space:nowrap}
 .howto{background:#fff8e6;border:1.5px solid #e5b423;border-radius:12px;padding:14px 16px;margin-bottom:12px;font-size:15px}
 .howto ul{margin:6px 0 0 20px}.howto li{margin:6px 0}
 .namerow{display:flex;gap:8px;margin-bottom:8px}.namerow input{flex:1}
@@ -229,10 +244,10 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <div class="hint" id="hsHint"></div>
 </div>
 <div class="card" id="fixedCard">
-<label class="f">Quick checks</label>
-<label class="tick"><input type="checkbox" id="dispensers_ok"><span>Soap and paper towels full</span></label>
-<label class="tick"><input type="checkbox" id="trash_ok"><span>Trash all out</span></label>
-<label class="tick"><input type="checkbox" id="restrooms_ok"><span>Restrooms done right</span></label>
+<div class="stdhead"><label class="f" style="margin:0">Does it meet the standard?</label><span class="cnt" id="stdCount"></span></div>
+<div class="sub">Look at each one. Yes means you checked it and it looks good. No means it did not meet the standard. N/A means the building does not have it.</div>
+<div class="std" id="stdGrid"></div>
+<div class="hint" id="stdHint"></div>
 </div>
 <div class="card" id="crewCard">
 <label class="f">Did you see the crew tonight?</label>
@@ -321,6 +336,8 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <div class="card">
 <label class="f">Summary</label>
 <div class="sub">Paste from the Night Manager AI Tool, or type it.</div>
+<div class="chips" style="margin-bottom:8px"><button class="chip" id="aiBtn" type="button">Write it with the AI tool</button></div>
+<div class="hint" id="aiHint">Copies your notes from this form, then opens the Night Manager AI Tool. Paste what it writes back here.</div>
 <textarea id="summary" class="big"></textarea>
 </div>
 <div class="card" id="supCard">
@@ -428,7 +445,7 @@ function fresh(){
     nm_name:"", nm_email:"", account_id:"", account_name:"", account_matched:false, vendor_id:"", vendor_name:"", vendor_owner:"", vendor_matched:false,
     fsm:"", arrival: nowHM(), departure:"", reason:"", complaint_flag:false, timing:"", why_early:"",
     newstart_night:"", initial_clean_paid:"", checklist_items:[], wo_what:"", wo_done:"", call_who:"", call_about:"", call_next:"",
-    hotspots_shown:"", hotspots_checked:[], dispensers_ok:false, trash_ok:false, restrooms_ok:false,
+    hotspots_shown:"", hotspots_checked:[], dispensers_ok:false, trash_ok:false, restrooms_ok:false, standards:{}, std_fix:{}, prior_complaints:"",
     crew_seen:"", crew_uniform:"", crew_uniform_note:"", crew_names:[],
     score:8, score_note:"",
     closet_checked:"", closet_organized:false, sds_present:false, chemicals_labelled:false, chemicals_on_hand:false, equipment_ok:false, envirox_low:false, closet_notes:"",
@@ -582,7 +599,7 @@ wirePicker("vendQ", "vendList", function(){ return VEN; },
   function(key){ var v = VEN.filter(function(x){ return (x.id||x.label)===key; })[0]; if (v) pickVendor(v); });
 
 function pickAccount(a){
-  if (!a){ S.account_id=""; S.account_name=""; S.account_matched=false; HS=[]; S.hotspots_shown=""; S.hotspots_checked=[]; show("acctPicked", false); show("acctPick", true); $("acctQ").value=""; $("acctHint").textContent=""; save(); return; }
+  if (!a){ S.account_id=""; S.account_name=""; S.account_matched=false; HS=[]; S.hotspots_shown=""; S.hotspots_checked=[]; S.prior_complaints=""; show("acctPicked", false); show("acctPick", true); $("acctQ").value=""; $("acctHint").textContent=""; save(); return; }
   S.account_id = a.id||""; S.account_name = a.name; S.account_matched = !!a.matched || !a.typed;
   $("acctName").innerHTML = esc(a.name) + (a.typed ? '<small>Typed by hand. The office will add it.</small>' : '<small>'+esc(a.address||'')+'</small>');
   show("acctPicked", true); show("acctPick", false);
@@ -592,6 +609,7 @@ function pickAccount(a){
     var lv = CTX.last_vendor[a.id] || CTX.last_vendor[a.name.toLowerCase()];
     if (lv){ var m = VEN.filter(function(v){ return (lv.id && v.id===lv.id) || v.dba===lv.dba; })[0]; pickVendor(m || {id:lv.id, dba:lv.dba, owner:lv.owner, label: lv.dba + (lv.owner?' - '+lv.owner:''), matched:false}); $("vendHint").textContent = "Same company as last time. Tap Change if that is wrong."; }
   }
+  S.prior_complaints = (CTX && CTX.prior_complaints && (CTX.prior_complaints[a.id] || CTX.prior_complaints[String(a.name).toLowerCase()])) || "";
   loadHotspots(a.name);
   save();
 }
@@ -645,7 +663,7 @@ function loadHotspots(name){
     HS = raw.split(/\r?\n|;|•|•|(?:^|\s)-\s|\d+[.)]\s/).map(function(s){ return s.replace(/^[\s\-\*•]+/, "").trim(); }).filter(function(s){ return s.length > 1; });
     if (HS.length > 12) HS = HS.slice(0, 12);
     S.hotspots_shown = HS.join("\n");
-    paintHotspots(); applyRules(); save(); renderPhotoRows();
+    paintHotspots(); paintStd(); applyRules(); save(); renderPhotoRows();
   }).catch(function(){ applyRules(); });
 }
 function paintHotspots(){
@@ -717,6 +735,7 @@ function photoPrompts(){
   var p = [];
   if (showsHotspots()) HS.forEach(function(h){ p.push({ label:"Hot spot: " + h, one:true }); });
   if (inBuilding() && S.closet_checked==="Yes") p.push({ label:"Janitor closet", one:true });
+  if (inBuilding()) stdFailed().forEach(function(it){ p.push({ label:"Did not meet standard: " + it.q.slice(0, 40), hot:true }); });
   if (showsScore() && Number(S.score) < LOW) p.push({ label:"What was wrong", hot:true });
   if (complaintOn() && S.complaint_resolved==="Yes") p.push({ label:"The fix", one:true });
   if (complaintOn() && S.complaint_resolved!=="Yes") p.push({ label:"The problem area" });
@@ -791,7 +810,7 @@ function paintProg(){
   $("back").disabled = idx <= 0;
   $("next").textContent = idx === vis.length-1 ? "Send report" : "Next";
   if (S.screen===5 && showsTimes() && !S.departure){ S.departure = nowHM(); $("departure").value = S.departure; save(); }
-  if (S.screen===3) { paintNs(); }
+  if (S.screen===3) { paintNs(); paintStd(); }
   if (S.screen===4) renderPhotoRows();
   if (S.screen===6) renderReview();
   window.scrollTo(0,0);
@@ -815,6 +834,8 @@ function validate(n){
     if (S.crew_seen==="Yes" && !S.crew_names.some(function(n){ return n.trim(); })) return e.textContent = "Add at least one crew member's name. Ask them.";
     if (S.crew_seen==="Yes" && !S.crew_uniform) return e.textContent = "Were they in the right uniform?";
     if (showsScore() && Number(S.score) < LOW && !S.score_note.trim()) return e.textContent = "A score under " + LOW + " needs a note on what was wrong.";
+    if (inBuilding()){ var open = stdItems().filter(function(it){ return !S.standards[it.k]; }); if (open.length) return e.textContent = "Answer every standard. " + open.length + " left: " + open[0].q; }
+    if (inBuilding()){ var nofix = stdFailed().filter(function(it){ return !(S.std_fix[it.k]||"").trim(); }); if (nofix.length) return e.textContent = "Say what you did about: " + nofix[0].q; }
     if (inBuilding() && !S.closet_checked) return e.textContent = "Did you check the janitor closet?";
     if (complaintOn() && !S.complaint_what.trim()) return e.textContent = "What did the client say?";
     if (complaintOn() && !S.complaint_resolved) return e.textContent = "Is the complaint resolved?";
@@ -858,7 +879,7 @@ function renderReview(){
   if (R()==="Phone only") add("Phone call", [S.call_who, S.call_about, S.call_next].filter(String).join("\n"), 2);
   if (showsScore()) add("Score", S.score + " out of 10" + (S.score_note?"\n"+S.score_note:""), 3);
   if (showsHotspots()) add("Hot spots checked", S.hotspots_checked.length + " of " + HS.length, 3);
-  if (inBuilding()) add("Quick checks", ["Soap and towels full: "+(S.dispensers_ok?"yes":"no"), "Trash out: "+(S.trash_ok?"yes":"no"), "Restrooms right: "+(S.restrooms_ok?"yes":"no")].join("\n"), 3);
+  if (inBuilding()){ var items = stdItems(); var fails = stdFailed(); add("Standards", (items.length - fails.length) + " of " + items.length + " met" + (fails.length ? "\nNot met: " + fails.map(function(it){ return it.q + " (" + (S.std_fix[it.k]||"") + ")"; }).join("\n") : ""), 3); }
   if (inBuilding()) add("Crew", S.crew_seen==="Yes" ? "Saw them. Uniform: " + S.crew_uniform + (S.crew_uniform_note?" ("+S.crew_uniform_note+")":"") + "\nNames: " + S.crew_names.filter(function(n){return n.trim();}).join(", ") : "Did not see the crew", 3);
   if (inBuilding()) add("Closet", S.closet_checked==="Yes" ? [S.closet_organized?"organized":"", S.sds_present?"SDS there":"", S.chemicals_labelled?"labelled":"", S.chemicals_on_hand?"chemicals on hand":"", S.equipment_ok?"equipment ok":"", S.envirox_low?"EnvirOx low":""].filter(String).join(", ") + (S.closet_notes?"\n"+S.closet_notes:"") : "Not checked", 3);
   if (complaintOn()) add("Complaint", [S.complaint_what, "Resolved: " + S.complaint_resolved, S.complaint_blocker].filter(String).join("\n"), 3);
@@ -880,7 +901,13 @@ function payload(){
   Object.keys(S).forEach(function(k){ if (k!=="photos" && k!=="screen" && k!=="started") b[k] = S[k]; });
   b.kind = "ni_submit"; b.report_date = todayISO(); b.source = "night-inspection.html"; b.device = navigator.userAgent.slice(0, 120);
   b.hotspots_checked = S.hotspots_checked.join("\n"); b.checklist_items = S.checklist_items.join("\n");
-  ["dispensers_ok","trash_ok","restrooms_ok","closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ b[k] = S[k] ? "Yes" : (inBuilding() ? "No" : ""); });
+  ["closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ b[k] = S[k] ? "Yes" : (inBuilding() ? "No" : ""); });
+  var items = inBuilding() ? stdItems() : [];
+  b.standards = items.map(function(it){ return it.q + " | " + (S.standards[it.k]||""); }).join("\n");
+  b.standards_failed = stdFailed().map(function(it){ return it.q + " | " + (S.std_fix[it.k]||"").trim(); }).join("\n");
+  b.standards_met = items.length ? (items.length - stdFailed().length) + "/" + items.length : "";
+  b.dispensers_ok = S.standards.dispensers || ""; b.trash_ok = S.standards.trash || ""; b.restrooms_ok = S.standards.restrooms || "";
+  ["standards","std_fix","prior_complaints"].forEach(function(k){ if (k!=="standards") delete b[k]; });
   var bl = S.bsup==="Yes" ? S.building_supplies.concat(S.bsup_other.trim()?[S.bsup_other.trim()]:[]) : [];
   var vl = S.vsup==="Yes" ? S.vendor_supplies.concat(S.vsup_other.trim()?[S.vsup_other.trim()]:[]) : [];
   b.building_supplies = bl.join("\n"); b.vendor_supplies = vl.join("\n");
@@ -890,7 +917,8 @@ function payload(){
   b.crew_names = S.crew_seen==="Yes" ? S.crew_names.map(function(n){ return n.trim(); }).filter(String).join("\n") : "";
   ["bsup","bsup_other","vsup","vsup_other","fsm_confirmed"].forEach(function(k){ delete b[k]; });
   if (S.fsm_action_needed==="Yes" && !S.fsm_confirmed){ b.fsm_action_needed = "No"; b.fsm_action_note = ""; }
-  if (!inBuilding()){ ["dispensers_ok","trash_ok","restrooms_ok"].forEach(function(k){ b[k]=""; }); }
+  if (!inBuilding()){ ["dispensers_ok","trash_ok","restrooms_ok","standards","standards_failed","standards_met"].forEach(function(k){ b[k]=""; }); }
+  b.prior_complaints = S.prior_complaints || "";
   if (S.closet_checked!=="Yes"){ ["closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ b[k]=""; }); b.closet_notes=""; }
   if (!showsScore()){ b.score = ""; b.score_note = ""; }
   if (!showsTimes()){ b.arrival = ""; b.departure = ""; }
@@ -946,7 +974,8 @@ function bindAll(){
   paintChips("compRes", "data-v", S.complaint_resolved); paintChips("compCrm", "data-v", S.crm_closed); paintChips("issRes", "data-v", S.issues_resolved); paintChips("fsmAct", "data-v", S.fsm_action_needed);
   ["wo_what","call_who","call_about","call_next","crew_uniform_note","score_note","closet_notes","complaint_what","complaint_areas","complaint_root_cause","complaint_agreed_fix","complaint_blocker","issue_resolution","issue_remaining","issue_owner","issue_due","summary","fsm_action_note"].forEach(function(k){ $(k).value = S[k] || ""; });
   $("bsupOther").value = S.bsup_other || ""; $("vsupOther").value = S.vsup_other || "";
-  ["dispensers_ok","trash_ok","restrooms_ok","closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ var el=$(k); el.checked=!!S[k]; el.closest(".tick").classList.toggle("on", el.checked); });
+  ["closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ var el=$(k); el.checked=!!S[k]; el.closest(".tick").classList.toggle("on", el.checked); });
+  paintStd();
   paintChips("bsup", "data-v", S.bsup); paintChips("vsup", "data-v", S.vsup); paintSup(); paintCrewNames(); $("howto").classList.add("hidden");
   paintScore(); paintHotspots(); applyRules(); renderPhotoRows();
   S.photos.forEach(function(p){ if (!p.file_id) p.status = p._data ? "pending" : "bad"; });
@@ -955,7 +984,7 @@ function bindAll(){
 ["wo_what","call_who","call_about","call_next","crew_uniform_note","score_note","closet_notes","complaint_what","complaint_areas","complaint_root_cause","complaint_agreed_fix","complaint_blocker","issue_resolution","issue_remaining","issue_owner","issue_due","summary","fsm_action_note"].forEach(function(k){ $(k).addEventListener("input", function(){ S[k] = this.value; save(); }); });
 $("bsupOther").addEventListener("input", function(){ S.bsup_other = this.value; save(); });
 $("vsupOther").addEventListener("input", function(){ S.vsup_other = this.value; save(); });
-["dispensers_ok","trash_ok","restrooms_ok","closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ var el=$(k); el.addEventListener("change", function(){ S[k]=el.checked; el.closest(".tick").classList.toggle("on", el.checked); applyRules(); save(); }); });
+["closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ var el=$(k); el.addEventListener("change", function(){ S[k]=el.checked; el.closest(".tick").classList.toggle("on", el.checked); applyRules(); save(); }); });
 $("arrival").addEventListener("change", function(){ S.arrival = this.value; save(); });
 $("departure").addEventListener("change", function(){ S.departure = this.value; save(); });
 $("why_early").addEventListener("change", function(){ S.why_early = this.value; save(); });
@@ -984,6 +1013,48 @@ function paintSup(){
 }
 Array.prototype.forEach.call(document.querySelectorAll("[data-bs]"), function(c){ c.addEventListener("change", function(){ var v=c.getAttribute("data-bs"); S.building_supplies = S.building_supplies.filter(function(x){ return x!==v; }); if (c.checked) S.building_supplies.push(v); c.closest(".tick").classList.toggle("on", c.checked); save(); }); });
 Array.prototype.forEach.call(document.querySelectorAll("[data-vs]"), function(c){ c.addEventListener("change", function(){ var v=c.getAttribute("data-vs"); S.vendor_supplies = S.vendor_supplies.filter(function(x){ return x!==v; }); if (c.checked) S.vendor_supplies.push(v); c.closest(".tick").classList.toggle("on", c.checked); save(); }); });
+/* ---------- standards checklist ---------- */
+var STD = [
+  { k:"hotspots", q:"Hot spots on the DBIS checked", dyn:"hs" },
+  { k:"prior", q:"Past complaint areas checked and fixed", dyn:"prior" },
+  { k:"contact", q:"Client contact's desk and what they see from it" },
+  { k:"lobby", q:"Lobby looks good. First impression" },
+  { k:"restrooms", q:"Restrooms clean" },
+  { k:"dispensers", q:"Soap, paper towels and toilet paper full" },
+  { k:"floors_mop", q:"Hard floors mopped right. No streaks or spots" },
+  { k:"carpet", q:"Carpet vacuumed. No debris on any floor" },
+  { k:"trash", q:"Trash emptied" },
+  { k:"liners", q:"Liners replaced right" },
+  { k:"break", q:"Break room and kitchen wiped down" },
+  { k:"glass", q:"Entry glass and doors clean" },
+  { k:"dust", q:"Dusting done. Desks, ledges, high touch spots" },
+  { k:"secure", q:"Lights off and doors locked where they should be" }
+];
+function stdItems(){
+  return STD.filter(function(it){
+    if (it.dyn==="hs") return HS.length > 0;
+    if (it.dyn==="prior") return !!S.prior_complaints;
+    return true;
+  }).map(function(it){ var o = Object.assign({}, it); if (it.dyn==="prior") o.q = "Past complaint areas checked and fixed: " + S.prior_complaints; return o; });
+}
+function paintStd(){
+  var items = stdItems();
+  var done = items.filter(function(it){ return S.standards[it.k]; }).length;
+  $("stdCount").textContent = done + " of " + items.length;
+  $("stdGrid").innerHTML = items.map(function(it){
+    var a = S.standards[it.k] || "";
+    return '<div class="si'+(a==="No"?' bad':'')+'" data-k="'+it.k+'"><div class="q">'+esc(it.q)+'</div>'+
+      '<div class="yn"><button type="button" class="y'+(a==="Yes"?' on':'')+'" data-a="Yes">Yes</button><button type="button" class="n'+(a==="No"?' on':'')+'" data-a="No">No</button><button type="button" class="na'+(a==="N/A"?' on':'')+'" data-a="N/A">N/A</button></div>'+
+      (a==="No" ? '<div class="fix">As the night manager, your job is to leave the building compliant. What did you do to get this to standard before you left?</div><textarea data-fix="'+it.k+'" placeholder="What you found and what you did">'+esc(S.std_fix[it.k]||"")+'</textarea><div class="fix">Take a photo of it on the photo screen.</div>' : '')+
+      '</div>';
+  }).join("");
+  Array.prototype.forEach.call($("stdGrid").querySelectorAll(".yn button"), function(b){
+    b.addEventListener("click", function(){ var k = b.closest(".si").getAttribute("data-k"); var a = b.getAttribute("data-a"); S.standards[k] = (S.standards[k]===a) ? "" : a; if (S.standards[k]!=="No") delete S.std_fix[k]; save(); paintStd(); });
+  });
+  Array.prototype.forEach.call($("stdGrid").querySelectorAll("textarea[data-fix]"), function(t){ t.addEventListener("input", function(){ S.std_fix[t.getAttribute("data-fix")] = t.value; save(); }); });
+}
+function stdFailed(){ return stdItems().filter(function(it){ return S.standards[it.k]==="No"; }); }
+
 /* ---------- crew names ---------- */
 function paintCrewNames(){
   if (!S.crew_names.length) S.crew_names = [""];
@@ -992,6 +1063,22 @@ function paintCrewNames(){
   Array.prototype.forEach.call($("crewNames").querySelectorAll("[data-cx]"), function(b){ b.addEventListener("click", function(){ S.crew_names.splice(Number(b.getAttribute("data-cx")), 1); paintCrewNames(); save(); }); });
 }
 $("crewAdd").addEventListener("click", function(){ S.crew_names.push(""); paintCrewNames(); save(); var inps=$("crewNames").querySelectorAll("input"); inps[inps.length-1].focus(); });
+$("aiBtn").addEventListener("click", function(){
+  var lines = ["Write my night manager recap for tonight from these notes.", "Building: " + S.account_name, "Cleaning company: " + (S.vendor_name||"unknown"), "Reason: " + S.reason + (S.timing ? " (" + S.timing + ")" : "")];
+  if (showsScore()) lines.push("Score: " + S.score + " out of 10" + (S.score_note ? ". " + S.score_note : ""));
+  if (inBuilding()){ var f = stdFailed(); lines.push(f.length ? "Did not meet standard: " + f.map(function(it){ return it.q + ". What I did: " + (S.std_fix[it.k]||""); }).join(" | ") : "All standards checked met."); }
+  if (S.crew_seen==="Yes") lines.push("Crew on site: " + S.crew_names.filter(function(n){return n.trim();}).join(", ") + ". Uniform: " + S.crew_uniform + (S.crew_uniform_note ? " (" + S.crew_uniform_note + ")" : ""));
+  if (S.crew_seen==="No") lines.push("Crew was not on site when I was there.");
+  if (complaintOn()) lines.push("Client complaint: " + S.complaint_what + ". Resolved: " + S.complaint_resolved + (S.complaint_blocker ? ". " + S.complaint_blocker : ""));
+  if (S.issues_resolved) lines.push("Everything fixed before I left: " + S.issues_resolved + (S.issue_remaining ? ". Left: " + S.issue_remaining : "") + (S.issue_resolution ? ". " + S.issue_resolution : ""));
+  if (S.bsup==="Yes") lines.push("Building needs: " + S.building_supplies.concat(S.bsup_other?[S.bsup_other]:[]).join(", "));
+  if (S.vsup==="Yes") lines.push("Crew needs: " + S.vendor_supplies.concat(S.vsup_other?[S.vsup_other]:[]).join(", "));
+  if (S.fsm_action_needed==="Yes" && S.fsm_confirmed) lines.push("FSM must handle tomorrow: " + S.fsm_action_note);
+  if (S.summary.trim()) lines.push("My own notes: " + S.summary.trim());
+  var text = lines.join("\n");
+  var done = function(ok){ $("aiHint").textContent = ok ? "Your notes are copied. The AI tool is opening. Paste them in there, then paste what it writes back into the box below." : "Could not copy. Type your notes in the AI tool, then paste what it writes here."; window.open("https://chatgpt.com/g/g-681233262c3c81918605de9bd3edf7be-city-wide-night-manager-tool", "_blank"); };
+  try { navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ done(false); }); } catch(e){ done(false); }
+});
 $("howtoBtn").addEventListener("click", function(){ show("howto", $("howto").classList.contains("hidden")); });
 
 /* ---------- context ---------- */
@@ -1022,7 +1109,7 @@ function useCtx(r){
   if (who){ S.nm_name = who.name || ""; S.nm_email = who.email || ""; }
   if (draft && draft.draft_id && (draft.reason || draft.account_name || (draft.summary||"").length > 20)){
     show("resume", true);
-    $("resumeYes").addEventListener("click", function(){ S = draft; S.photos = S.photos || []; S.hotspots_checked = S.hotspots_checked||[]; S.checklist_items = S.checklist_items||[]; S.crew_names = S.crew_names||[]; S.building_supplies = S.building_supplies||[]; S.vendor_supplies = S.vendor_supplies||[]; HS = (S.hotspots_shown||"").split("\n").filter(String); show("resume", false); bindAll(); loadCtx(false); paintProg(); });
+    $("resumeYes").addEventListener("click", function(){ S = draft; S.photos = S.photos || []; S.hotspots_checked = S.hotspots_checked||[]; S.checklist_items = S.checklist_items||[]; S.crew_names = S.crew_names||[]; S.building_supplies = S.building_supplies||[]; S.vendor_supplies = S.vendor_supplies||[]; S.standards = S.standards||{}; S.std_fix = S.std_fix||{}; HS = (S.hotspots_shown||"").split("\n").filter(String); show("resume", false); bindAll(); loadCtx(false); paintProg(); });
     $("resumeNo").addEventListener("click", function(){ ls(function(){ localStorage.removeItem(DRAFT_KEY); }); show("resume", false); save(); });
   }
   bindAll(); loadCtx(false); paintProg();

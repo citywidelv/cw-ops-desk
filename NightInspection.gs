@@ -68,7 +68,9 @@ var NI_HEADERS = [
   'why_early', 'wo_what', 'wo_done', 'call_who', 'call_about', 'call_next', 'draft_id',
   'crew_seen', 'crew_uniform', 'crew_uniform_note', 'photo_links',
   // appended Sep 15 2026 (crew roster + structured supplies)
-  'crew_names', 'crew_unverified', 'building_supplies', 'vendor_supplies'
+  'crew_names', 'crew_unverified', 'building_supplies', 'vendor_supplies',
+  // appended Sep 15 2026 (standards checklist)
+  'standards', 'standards_failed', 'standards_met', 'prior_complaints'
 ];
 var NI_REQ_HEADERS = ['when', 'market', 'type', 'name', 'owner', 'label', 'nm_name', 'sent_to', 'status'];
 
@@ -203,7 +205,7 @@ function niContext_(data) {
   var mkt = niMarket_(data.market);
   var region = NI_MARKETS[mkt];
   var out = { ok: true, market: mkt, region: region, today: Utilities.formatDate(new Date(), NI_TZ, 'yyyy-MM-dd'),
-    accounts: [], vendors: [], night_managers: [], fsms: [], last_vendor: {}, warnings: [] };
+    accounts: [], vendors: [], night_managers: [], fsms: [], last_vendor: {}, prior_complaints: {}, warnings: [] };
 
   try {
     actAccountRows_(actSS_()).forEach(function (r) {
@@ -251,10 +253,21 @@ function niContext_(data) {
       var start = Math.max(2, last - 1500);
       var vals = isheet.getRange(start, 1, last - start + 1, head.length).getValues();
       var cA = head.indexOf('account_id'), cAN = head.indexOf('account_name'), cV = head.indexOf('vendor_name'), cVI = head.indexOf('vendor_id'), cVO = head.indexOf('vendor_owner');
+      var cCF = head.indexOf('complaint_flag'), cCW = head.indexOf('complaint_what'), cCAr = head.indexOf('complaint_areas'), cSub = head.indexOf('submitted_at'), cSF = head.indexOf('standards_failed');
+      var cutoff = Date.now() - 90 * 86400000;
       for (var k = vals.length - 1; k >= 0; k--) {
         var key = niStr_(vals[k][cA]) || niStr_(vals[k][cAN]).toLowerCase();
-        if (!key || out.last_vendor[key] || !niStr_(vals[k][cV])) continue;
-        out.last_vendor[key] = { id: niStr_(vals[k][cVI]), dba: niStr_(vals[k][cV]), owner: niStr_(vals[k][cVO]) };
+        if (!key) continue;
+        if (!out.last_vendor[key] && niStr_(vals[k][cV])) out.last_vendor[key] = { id: niStr_(vals[k][cVI]), dba: niStr_(vals[k][cV]), owner: niStr_(vals[k][cVO]) };
+        // Past complaints and failed standards at this building in the last 90 days feed a checklist line.
+        var when = vals[k][cSub] instanceof Date ? vals[k][cSub].getTime() : Date.parse(niStr_(vals[k][cSub]));
+        if (when && when > cutoff) {
+          var bits = [];
+          if (niStr_(vals[k][cCF]) === 'TRUE') bits.push(niStr_(vals[k][cCAr]) || niStr_(vals[k][cCW]).slice(0, 60));
+          if (cSF >= 0 && niStr_(vals[k][cSF])) niStr_(vals[k][cSF]).split('\n').forEach(function (l) { var q = l.split('|')[0].trim(); if (q) bits.push(q); });
+          bits = bits.filter(String);
+          if (bits.length) { var cur = out.prior_complaints[key] || ''; bits.forEach(function (b) { if (cur.indexOf(b) < 0) cur = cur ? cur + '; ' + b : b; }); out.prior_complaints[key] = cur.slice(0, 240); }
+        }
       }
     }
   } catch (e) { out.warnings.push('last_vendor: ' + e.message); }
@@ -302,6 +315,7 @@ function niFlags_(r) {
   if (r.supplies_needed === 'Yes' || r.uniforms_needed === 'Yes' || r.envirox_low === 'Yes') f.push('supplies');
   if (r.crew_seen === 'Yes' && (r.crew_uniform === 'No' || r.crew_uniform === 'Some of them')) f.push('uniform');
   if (r.crew_unverified) f.push('crew_unverified');
+  if (r.standards_failed) f.push('standards_failed');
   return f.join(',');
 }
 function niBool_(v) { return (v === true || String(v).toUpperCase() === 'TRUE' || String(v) === 'Yes') ? 'TRUE' : 'FALSE'; }
@@ -516,7 +530,7 @@ function niPdf_(r, embeds, stem, mkt, reportDate) {
   function row(label, val) { return val === '' || val == null ? '' : '<tr><th>' + e(label) + '</th><td>' + e(val).replace(/\n/g, '<br>') + '</td></tr>'; }
   function sec(title, rows) { var body = rows.join(''); return body ? '<h2>' + e(title) + '</h2><table>' + body + '</table>' : ''; }
   var flags = r.flags || niFlags_(r);
-  var flagNames = { low_score: 'Low score', complaint: 'Complaint', unresolved: 'Unresolved', fsm_action: 'FSM action', unmatched_vendor: 'Company not in directory', unmatched_account: 'Building not in directory', supplies: 'Supplies', uniform: 'Uniform', crew_unverified: 'Crew not background checked' };
+  var flagNames = { low_score: 'Low score', complaint: 'Complaint', unresolved: 'Unresolved', fsm_action: 'FSM action', unmatched_vendor: 'Company not in directory', unmatched_account: 'Building not in directory', supplies: 'Supplies', uniform: 'Uniform', crew_unverified: 'Crew not background checked', standards_failed: 'Standard not met' };
   // Plain red text, not chips: the HTML-to-PDF converter drops inline-block backgrounds.
   var flagHtml = flags ? '<div class="flags">Flags: ' + flags.split(',').map(function (f) { return e(flagNames[f] || f); }).join(' &middot; ') + '</div>' : '';
   var scoreHtml = r.score !== '' ? '<div class="score' + (Number(r.score) < NI_LOW_SCORE ? ' low' : '') + '"><b>' + e(r.score) + '</b><span>/10</span></div>' : '';
@@ -544,6 +558,7 @@ function niPdf_(r, embeds, stem, mkt, reportDate) {
       row('Soap and paper towels full', r.dispensers_ok), row('Trash all out', r.trash_ok), row('Restrooms done right', r.restrooms_ok),
       row('Saw the crew', r.crew_seen), row('Right uniform', r.crew_uniform), row('What was off', r.crew_uniform_note),
       row('Crew on site', r.crew_names), row('No background check on file', r.crew_unverified)])
+    + sec('Standards' + (r.standards_met ? ' (' + r.standards_met + ' met)' : ''), [row('Checked', r.standards), row('Did not meet standard, what was done', r.standards_failed), row('Past complaint areas', r.prior_complaints)])
     + sec('Closet', [row('Closet checked', r.closet_checked), row('Organized', r.closet_organized), row('SDS present', r.sds_present), row('Chemicals labelled', r.chemicals_labelled),
       row('Chemicals on hand', r.chemicals_on_hand), row('Equipment', r.equipment_ok), row('EnvirOx running low', r.envirox_low), row('Closet notes', r.closet_notes)])
     + (r.complaint_flag === 'TRUE' ? sec('Client complaint', [row('What the client said', r.complaint_what), row('Which areas', r.complaint_areas), row('How it reached us', r.complaint_channel),
