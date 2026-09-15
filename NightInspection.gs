@@ -20,13 +20,20 @@
 //   ni_submit   moves the photos, builds the PDF, writes the row. Duplicate draft_id
 //               returns the first row instead of writing a second.
 //   ni_request  a building or cleaning company that is not in the directory
-//   ni_list     recent rows (viewer, Phase 2) - newest first, no summary
+//   ni_list     recent rows for night-inspections.html - newest first
 //
 // Maintenance: niSweepIncoming() trashes _Incoming photos older than 3 days
 // (drafts nobody sent). Give it a daily time trigger after launch.
 //
-// Reads (never writes) the Account Directory (ActLedger.gs), the Vendor
-// Directory (VendorDirectory.gs) and the Staff tab (Staff.gs).
+// Reads the Account Directory (ActLedger.gs), the Vendor Directory
+// (VendorDirectory.gs) and the Staff tab (Staff.gs). WRITES to the Account
+// Cleaner Tracker Events tab (acAppend_ in Code.gs) when a night manager
+// records a crew name that is not on that vendor's roster yet, source
+// 'night-inspection', status 'Needs Review'. Crew names are also checked
+// against the background checks on file (vdCleared_) and any name not found
+// lands in crew_unverified and the crew_unverified flag.
+// Alerts.gs reads this sheet (alNight_) so an FSM escalation shows on the Ops
+// Hub alerts card the next morning.
 // ============================================================
 
 var NI_PROP = 'NI_SHEET_ID';
@@ -59,7 +66,9 @@ var NI_HEADERS = [
   'flags', 'source', 'device',
   // appended Sep 15 2026
   'why_early', 'wo_what', 'wo_done', 'call_who', 'call_about', 'call_next', 'draft_id',
-  'crew_seen', 'crew_uniform', 'crew_uniform_note', 'photo_links'
+  'crew_seen', 'crew_uniform', 'crew_uniform_note', 'photo_links',
+  // appended Sep 15 2026 (crew roster + structured supplies)
+  'crew_names', 'crew_unverified', 'building_supplies', 'vendor_supplies'
 ];
 var NI_REQ_HEADERS = ['when', 'market', 'type', 'name', 'owner', 'label', 'nm_name', 'sent_to', 'status'];
 
@@ -292,6 +301,7 @@ function niFlags_(r) {
   if (r.account_matched === 'FALSE' && r.account_name) f.push('unmatched_account');
   if (r.supplies_needed === 'Yes' || r.uniforms_needed === 'Yes' || r.envirox_low === 'Yes') f.push('supplies');
   if (r.crew_seen === 'Yes' && (r.crew_uniform === 'No' || r.crew_uniform === 'Some of them')) f.push('uniform');
+  if (r.crew_unverified) f.push('crew_unverified');
   return f.join(',');
 }
 function niBool_(v) { return (v === true || String(v).toUpperCase() === 'TRUE' || String(v) === 'Yes') ? 'TRUE' : 'FALSE'; }
@@ -332,6 +342,11 @@ function niSubmit_(data) {
     // The uniform gate: never store a uniform answer for a crew nobody saw.
     if (r.crew_seen !== 'Yes') { r.crew_uniform = ''; r.crew_uniform_note = ''; }
     if (r.crew_uniform === 'Yes') r.crew_uniform_note = '';
+    if (r.crew_seen !== 'Yes') r.crew_names = '';
+    r.crew_unverified = '';
+    if (r.crew_names) {
+      try { var crew = niCrew_(r); r.crew_unverified = crew.unverified.join('\n'); } catch (ce) { r.crew_unverified = ''; }
+    }
 
     var stem = reportDate + ' - ' + (niSafe_(r.account_name) || 'Building') + ' - ' + (niSafe_(r.vendor_name) || 'No company') + ' - '
       + (niSafe_(niLastName_(r.nm_name)) || 'NM') + ' - ' + r.reason + (r.score !== '' ? ' - ' + r.score : '');
@@ -422,6 +437,76 @@ function niRequest_(data) {
   return niOut_({ ok: true, label: label, sent_to: to, status: status });
 }
 
+// ------------------------------------------------------------ crew --------
+
+// Crew names the night manager collected. Two jobs:
+//  1. Background checks: compare each name with the cleared list for that
+//     vendor (vdCleared_, Vendor Directory BC tabs). Names not found come back
+//     as unverified so the morning roll-up can ask the vendor for the check.
+//  2. Roster: a name not yet on the Account Cleaner Tracker roster for that
+//     vendor is appended to the Events tab as an 'add' with status Needs
+//     Review and source night-inspection. The BOM reviews it like any vendor
+//     submission. No email is sent from here.
+function niCrew_(r) {
+  var names = String(r.crew_names || '').split('\n').map(function (n) { return n.replace(/\s+/g, ' ').trim(); }).filter(function (n) { return n.length > 1; });
+  var out = { names: names, unverified: [], added: 0 };
+  if (!names.length) return out;
+  var norm = function (s) { return String(s || '').toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim(); };
+  var tokens = function (s) { return norm(s).split(' ').filter(String); };
+  var same = function (a, b) {
+    var ta = tokens(a), tb = tokens(b);
+    if (!ta.length || !tb.length) return false;
+    if (ta.join(' ') === tb.join(' ')) return true;
+    // first + last both present, in either order, or one name given and it matches first or last
+    var hitsA = ta.filter(function (t) { return tb.indexOf(t) >= 0; }).length;
+    return hitsA >= Math.min(2, ta.length) && hitsA >= 1;
+  };
+
+  // 1. background checks
+  var cleared = [];
+  try {
+    var vss = vdSS_();
+    var vendors = vdAllRows_(vss).filter(function (v) { return v.dba_name; });
+    var byId = vdCleared_(vss, vendors);
+    var vid = r.vendor_id;
+    if (!vid && r.vendor_name) { var m = vendors.filter(function (v) { return norm(v.dba_name) === norm(r.vendor_name); })[0]; if (m) vid = m.vendor_id; }
+    cleared = (vid && byId[vid]) ? byId[vid].map(function (c) { return c.name; }) : [];
+  } catch (e) {}
+  names.forEach(function (n) {
+    var ok = cleared.some(function (c) { return same(n, c); });
+    if (!ok) out.unverified.push(n);
+  });
+
+  // 2. roster (Account Cleaner Tracker)
+  try {
+    if (typeof acRows_ !== 'function' || typeof acAppend_ !== 'function' || typeof acTab_ !== 'function') return out;
+    var ros = acRows_(AC_ROS, AC_ROS_HEAD);
+    var vkey = norm(r.vendor_name);
+    var onRoster = ros.filter(function (x) { return norm(x.company_matched || x.company_raw) === vkey || (x.company_matched && vkey && norm(x.company_matched).indexOf(vkey) >= 0); })
+      .map(function (x) { return (String(x.cleaner_first || '') + ' ' + String(x.cleaner_last || '')).trim(); });
+    var evSh = null;
+    names.forEach(function (n) {
+      if (onRoster.some(function (x) { return same(n, x); })) return;
+      var parts = n.split(' ');
+      var first = parts.shift(), last = parts.join(' ');
+      if (!evSh) evSh = acTab_(AC_EV, AC_EV_HEAD);
+      acAppend_(evSh, AC_EV_HEAD, {
+        event_id: 'ACE-' + acRand_(6), received: acStamp_(), submission_id: r.inspection_id, action: 'add',
+        company_raw: r.vendor_name, company_matched: r.vendor_matched === 'TRUE' ? r.vendor_name : '', vendor_key: '',
+        submitter_name: r.nm_name, submitter_email: r.nm_email, submitter_phone: '',
+        cleaner_first: first, cleaner_last: last, cleaner_key: '',
+        account_raw: r.account_name, account_matched: r.account_matched === 'TRUE' ? r.account_name : '', match_confidence: r.account_matched === 'TRUE' ? 'high' : 'none',
+        background_check: out.unverified.indexOf(n) >= 0 ? 'Not on file' : 'Yes', role: 'Cleaner',
+        note_1: 'Met on site by the night manager. Recap ' + r.inspection_id + '.',
+        status: 'Needs Review', region: r.market, source: 'night-inspection'
+      });
+      out.added++;
+    });
+    if (out.added && typeof acRebuild_ === 'function') { try { acRebuild_(); } catch (rb) {} }
+  } catch (e2) {}
+  return out;
+}
+
 // ------------------------------------------------------------ PDF ---------
 
 function niPdf_(r, embeds, stem, mkt, reportDate) {
@@ -429,7 +514,7 @@ function niPdf_(r, embeds, stem, mkt, reportDate) {
   function row(label, val) { return val === '' || val == null ? '' : '<tr><th>' + e(label) + '</th><td>' + e(val).replace(/\n/g, '<br>') + '</td></tr>'; }
   function sec(title, rows) { var body = rows.join(''); return body ? '<h2>' + e(title) + '</h2><table>' + body + '</table>' : ''; }
   var flags = r.flags || niFlags_(r);
-  var flagNames = { low_score: 'Low score', complaint: 'Complaint', unresolved: 'Unresolved', fsm_action: 'FSM action', unmatched_vendor: 'Company not in directory', unmatched_account: 'Building not in directory', supplies: 'Supplies', uniform: 'Uniform' };
+  var flagNames = { low_score: 'Low score', complaint: 'Complaint', unresolved: 'Unresolved', fsm_action: 'FSM action', unmatched_vendor: 'Company not in directory', unmatched_account: 'Building not in directory', supplies: 'Supplies', uniform: 'Uniform', crew_unverified: 'Crew not background checked' };
   // Plain red text, not chips: the HTML-to-PDF converter drops inline-block backgrounds.
   var flagHtml = flags ? '<div class="flags">Flags: ' + flags.split(',').map(function (f) { return e(flagNames[f] || f); }).join(' &middot; ') + '</div>' : '';
   var scoreHtml = r.score !== '' ? '<div class="score' + (Number(r.score) < NI_LOW_SCORE ? ' low' : '') + '"><b>' + e(r.score) + '</b><span>/10</span></div>' : '';
@@ -455,7 +540,8 @@ function niPdf_(r, embeds, stem, mkt, reportDate) {
     + sec('What you found', [row('Score', r.score !== '' ? r.score + ' / 10' : ''), row('What was wrong', r.score_note),
       row('Hot spots on file', r.hotspots_shown), row('Hot spots checked', r.hotspots_checked),
       row('Soap and paper towels full', r.dispensers_ok), row('Trash all out', r.trash_ok), row('Restrooms done right', r.restrooms_ok),
-      row('Saw the crew', r.crew_seen), row('Right uniform', r.crew_uniform), row('What was off', r.crew_uniform_note)])
+      row('Saw the crew', r.crew_seen), row('Right uniform', r.crew_uniform), row('What was off', r.crew_uniform_note),
+      row('Crew on site', r.crew_names), row('No background check on file', r.crew_unverified)])
     + sec('Closet', [row('Closet checked', r.closet_checked), row('Organized', r.closet_organized), row('SDS present', r.sds_present), row('Chemicals labelled', r.chemicals_labelled),
       row('Chemicals on hand', r.chemicals_on_hand), row('Equipment', r.equipment_ok), row('EnvirOx running low', r.envirox_low), row('Closet notes', r.closet_notes)])
     + (r.complaint_flag === 'TRUE' ? sec('Client complaint', [row('What the client said', r.complaint_what), row('Which areas', r.complaint_areas), row('How it reached us', r.complaint_channel),
@@ -467,7 +553,7 @@ function niPdf_(r, embeds, stem, mkt, reportDate) {
     + sec('Before you go', [row('Issues found', r.issues_found), row('Everything fixed', r.issues_resolved), row('How it was fixed', r.issue_resolution),
       row('What is left', r.issue_remaining), row('Who is doing it', r.issue_owner), row('By when', r.issue_due),
       row('FSM needs to act tomorrow', r.fsm_action_needed), row('What the FSM needs to do', r.fsm_action_note),
-      row('Supplies needed', r.supplies_needed), row('Uniforms needed', r.uniforms_needed), row('Supplies note', r.supplies_note)])
+      row('Building needs', r.building_supplies), row('Crew needs', r.vendor_supplies), row('Supplies note', r.supplies_note)])
     + (r.summary ? '<h2>Summary</h2><div class="sum">' + e(r.summary) + '</div>' : '');
 
   if (embeds.length) {
@@ -498,7 +584,7 @@ function niList_(data) {
   var rows = [];
   for (var i = vals.length - 1; i >= 0; i--) {
     var o = {};
-    head.forEach(function (h, j) { if (h !== 'photo_links' && h !== 'summary') o[h] = niStr_(vals[i][j]); });
+    head.forEach(function (h, j) { o[h] = (h === 'device') ? '' : niStr_(vals[i][j]); });
     if (mkt && o.market !== mkt) continue;
     rows.push(o);
   }

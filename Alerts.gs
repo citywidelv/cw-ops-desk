@@ -12,6 +12,8 @@
 // POST {kind:'alerts_list', passcode}                       -> {ok, items, roster, statuses}
 // POST {kind:'alerts_set',  passcode, keys:[..], status, by} -> {ok, saved:[..]}
 //   status '' (or 'Open') reopens an item.
+// Sep 15 2026: night manager escalations (fsm_action_needed = Yes on the CW Night
+// Inspections sheet, NightInspection.gs) join the list as type 'night'.
 // ============================================================
 var AL_TAB = 'Alert Status';
 var AL_HEAD = ['alert_key', 'type', 'status', 'handled_by', 'handled_at', 'summary'];
@@ -23,7 +25,8 @@ var AL_STATUS = {
   response: ['Responded to', 'Not a fit'],
   supply: ['Ordered', 'Not needed'],
   shop: ['Processed', 'Picked up'],
-  posting: ['Mark filled']
+  posting: ['Mark filled'],
+  night: ['Handled']
 };
 
 function alDispatch(d) {
@@ -309,12 +312,45 @@ function alShop_(accounts) {
   return items;
 }
 
+// Night manager escalations. One item per recap where the night manager said
+// the FSM has to act in the morning. The row's fsm column names the FSM.
+function alNight_() {
+  var items = [];
+  if (typeof niSS_ !== 'function' || typeof niTab_ !== 'function') return items;
+  var sh;
+  try { sh = niTab_(niSS_()); } catch (e) { return items; }
+  alRows_(sh).forEach(function (r) {
+    var id = alStr_(r.inspection_id);
+    if (!id) return;
+    if (alStr_(r.fsm_action_needed) !== 'Yes') return;
+    var when = alDate_(r.submitted_at);
+    if (!alFresh_(when, AL_DAYS)) return;
+    var bits = [];
+    if (alStr_(r.fsm_action_note)) bits.push(alStr_(r.fsm_action_note));
+    if (alStr_(r.score)) bits.push('score ' + alStr_(r.score));
+    if (alStr_(r.flags)) bits.push(alStr_(r.flags).split(',').filter(function (f) { return f !== 'fsm_action'; }).join(', '));
+    items.push({
+      key: 'ni:' + id, type: 'night',
+      fsm: alFsmKey_(r.fsm),
+      region: alStr_(r.market),
+      when: alIso_(when), when_nice: alNice_(when),
+      from: alStr_(r.nm_name),
+      about: alStr_(r.account_name),
+      summary: bits.join(' - '),
+      email: alStr_(r.nm_email), phone: '',
+      link: alStr_(r.pdf_url) || 'night-inspections.html',
+      ref: id
+    });
+  });
+  return items;
+}
+
 // ------------------------------------------------------------ handlers -----
 function alList_(d) {
   var sh = alSheet_();
   var map = alStatusMap_(sh);
   var accounts = alAccounts_();
-  var items = alPostings_(map).concat(alResponses_(map)).concat(alSupply_(accounts)).concat(alShop_(accounts));
+  var items = alPostings_(map).concat(alResponses_(map)).concat(alSupply_(accounts)).concat(alShop_(accounts)).concat(alNight_());
   var out = [];
   items.forEach(function (it) {
     var st = map[it.key];
@@ -350,7 +386,7 @@ function alSet_(d) {
     keys.slice(0, 200).forEach(function (k) {
       k = alStr_(k);
       if (!k) return;
-      var type = k.indexOf('resp:') === 0 ? 'response' : k.indexOf('sup:') === 0 ? 'supply' : k.indexOf('shop:') === 0 ? 'shop' : k.indexOf('post:') === 0 ? 'posting' : '';
+      var type = k.indexOf('resp:') === 0 ? 'response' : k.indexOf('sup:') === 0 ? 'supply' : k.indexOf('shop:') === 0 ? 'shop' : k.indexOf('post:') === 0 ? 'posting' : k.indexOf('ni:') === 0 ? 'night' : '';
       if (!type) return;
       if (status && valid[status] !== type) return; // status must fit the item
       var row = map[k] ? map[k].row : alNextRow_(sh);

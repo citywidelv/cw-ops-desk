@@ -548,6 +548,10 @@ window.CW_NAV = {
        "tag": "New"
       },
       {
+       "label": "Night Inspection Recaps (FSM view)",
+       "href": "night-inspections.html"
+      },
+      {
        "label": "Night Inspection Jotform (old form)",
        "href": "https://form.jotform.com/233486327771060"
       }

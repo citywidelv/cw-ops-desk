@@ -197,6 +197,7 @@ white-space:nowrap;transition:all .15s}
 .atype.supply{background:var(--black)}
 .atype.shop{background:var(--grey)}
 .atype.posting{background:var(--gold);color:var(--black)}
+.atype.night{background:var(--red-dark)}
 .akidbtn{display:block;width:100%;text-align:left;background:#fdf8ea;border:none;border-top:1px solid var(--light);border-left:4px solid var(--gold);font-family:inherit;font-size:12px;font-weight:700;color:var(--black);padding:9px 20px;cursor:pointer;min-height:40px}
 .akidbtn:hover{color:var(--red)}
 .akidbtn .caret{display:inline-block;color:var(--grey);font-size:10px;margin-right:8px;transition:transform .15s}
@@ -800,6 +801,7 @@ var MENU = [
 { label:"Night Ops", icon:"clock", items:[
 {sub:"Night Manager Inspection", items:[
 {label:"Night Inspection (new page)", href:"night-inspection.html", tag:"New"},
+{label:"Night Inspection Recaps (FSM view)", href:"night-inspections.html"},
 {label:"Night Inspection Jotform (old form)", href:"https://form.jotform.com/233486327771060"}
 ]},
 {sub:"Nightly Route Outs", items:[
@@ -1180,7 +1182,7 @@ return order.map(function(k){ return posts[k]; }).concat(loose);
 }
 function alItem(it){
 var opts = AL.statuses[it.type] || ["Handled"];
-var label = { response:"Vendor reply", supply:"Supply order", shop:"Shop order", posting:"Open posting" }[it.type] || it.type;
+var label = { response:"Vendor reply", supply:"Supply order", shop:"Shop order", posting:"Open posting", night:"Night manager" }[it.type] || it.type;
 var meta = [];
 if(it.when_nice) meta.push(esc(it.when_nice));
 if(it.email) meta.push('<a href="mailto:' + esc(it.email) + '">' + esc(it.email) + '</a>');

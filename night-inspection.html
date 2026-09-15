@@ -99,6 +99,18 @@ input[type=range]{width:100%;accent-color:var(--red);height:40px}
 .policy{font-size:13px;color:var(--grey);background:var(--light);border-radius:10px;padding:10px 14px;white-space:pre-line}
 details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 .foot{text-align:center;font-size:11px;color:var(--grey);padding:22px}
+.howto{background:#fff8e6;border:1.5px solid #e5b423;border-radius:12px;padding:14px 16px;margin-bottom:12px;font-size:15px}
+.howto ul{margin:6px 0 0 20px}.howto li{margin:6px 0}
+.namerow{display:flex;gap:8px;margin-bottom:8px}.namerow input{flex:1}
+.namerow button{flex:none;width:48px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-size:20px;cursor:pointer}
+.rev{border-bottom:1px solid var(--border);padding:10px 0}.rev:last-child{border-bottom:0}
+.rev .k{font-size:12px;color:var(--grey);text-transform:uppercase;letter-spacing:.05em}
+.rev .v{font-size:15px;white-space:pre-wrap}.rev .v.empty{color:var(--grey)}
+.rev .edit{float:right}
+.timebox{border:2px solid var(--red);border-radius:12px;padding:14px;background:#fdf3f3}
+.timebox .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+.confirm{border:2px solid var(--red);border-radius:12px;padding:14px;background:#fdf3f3;margin-top:10px}
+.confirm p{font-size:15px;margin-bottom:10px}
 @media (max-width:420px){.tiles{grid-template-columns:1fr 1fr}.head .t{font-size:10px}}
 </style>
 <link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
@@ -119,7 +131,20 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 
 <!-- ===================== Screen 1: Tonight ===================== -->
 <section id="s1" class="scr">
-<div class="step">Step 1 of 5</div><h1>Tonight</h1>
+<div class="step">Step 1</div><h1>Tonight</h1>
+<button class="linkbtn" id="howtoBtn" type="button" style="padding-left:0">First time using this form?</button>
+<div id="howto" class="howto hidden">
+<b>How this works</b>
+<ul>
+<li>Do your inspection first. Walk the building before you start typing.</li>
+<li>Take all the photos you want to use before you start. Or take them from this form when it asks.</li>
+<li>Answer the questions. You only see the ones that fit your visit.</li>
+<li>Use the photo buttons to add your pictures. You can add more than one to each spot.</li>
+<li>Paste your summary from the Night Manager AI Tool, or type it.</li>
+<li>Check your arrival and leave times before you send. We track time in every building.</li>
+<li>Your report saves as you go. If your phone dies, open this page again and keep going.</li>
+</ul>
+</div>
 <div class="card">
 <label class="f">Who are you?</label>
 <div id="whoChip" class="who hidden"><span class="name" id="whoName"></span><button class="linkbtn" id="whoChange">Not you?</button></div>
@@ -156,7 +181,7 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 
 <!-- ===================== Screen 2: Why tonight ===================== -->
 <section id="s2" class="scr hidden">
-<div class="step">Step 2 of 5</div><h1>Why tonight?</h1>
+<div class="step">Step 2</div><h1>Why tonight?</h1>
 <div class="card">
 <div class="tiles" id="reasons">
 <button class="tile" data-r="Regular check" type="button"><b>Regular check</b><small>Normal inspection</small></button>
@@ -196,7 +221,7 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 
 <!-- ===================== Screen 3: What you found ===================== -->
 <section id="s3" class="scr hidden">
-<div class="step">Step 3 of 5</div><h1>What you found</h1>
+<div class="step">Step 3</div><h1>What you found</h1>
 <div class="card" id="hsCard">
 <label class="f">Hot spots for this building</label>
 <div class="sub">These are the areas the client watches. Tick each one you checked.</div>
@@ -217,6 +242,10 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <label class="f">Were they in the right uniform?</label>
 <div class="chips" id="crewUni"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="Some of them" type="button">Some of them</button><button class="chip" data-v="No" type="button">No</button></div>
 <div id="uniNoteW" class="hidden"><label class="f">What was off?</label><input type="text" id="crew_uniform_note" placeholder="Short. Who and what"></div>
+<div id="crewNamesW" class="hidden"><label class="f">Who was on the crew? Ask their names.</label>
+<div class="sub">First and last name. We match them to the roster and the background checks on file.</div>
+<div id="crewNames"></div>
+<button class="linkbtn" id="crewAdd" type="button">+ Add another name</button></div>
 </div>
 </div>
 <div class="card" id="scoreCard">
@@ -267,7 +296,7 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 
 <!-- ===================== Screen 4: Photos ===================== -->
 <section id="s4" class="scr hidden">
-<div class="step">Step 4 of 5</div><h1>Photos</h1>
+<div class="step">Step 4</div><h1>Photos</h1>
 <div class="card">
 <div class="sub" id="photoSub">Tap a button, take the shot. Each photo is saved as soon as you take it.</div>
 <div id="photoRows"></div>
@@ -278,7 +307,7 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 
 <!-- ===================== Screen 5: Before you go ===================== -->
 <section id="s5" class="scr hidden">
-<div class="step">Step 5 of 5</div><h1>Before you go</h1>
+<div class="step">Step 5</div><h1>Before you go</h1>
 <div class="card" id="issuesCard">
 <label class="f">Did everything get fixed tonight?</label>
 <div class="chips" id="issRes"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button><button class="chip" data-v="Nothing to fix" type="button">Nothing to fix</button></div>
@@ -294,21 +323,59 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <div class="sub">Paste from the Night Manager AI Tool, or type it.</div>
 <textarea id="summary" class="big"></textarea>
 </div>
-<div class="card">
-<label class="f">Does the FSM need to do something tomorrow?</label>
-<div class="chips" id="fsmAct"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
-<div id="fsmNoteW" class="hidden"><label class="f">What?</label><textarea id="fsm_action_note"></textarea></div>
-</div>
 <div class="card" id="supCard">
-<label class="f">Supplies or uniforms needed?</label>
-<label class="tick"><input type="checkbox" id="supplies_needed"><span>Supplies for the building or the crew</span></label>
-<label class="tick"><input type="checkbox" id="uniforms_needed"><span>Uniforms for the crew</span></label>
-<div id="supNoteW" class="hidden"><label class="f">What is needed?</label><input type="text" id="supplies_note"></div>
+<label class="f">Does the building need supplies?</label>
+<div class="sub">Toilet paper, soap, liners. This goes to the supply order, not to the FSM.</div>
+<div class="chips" id="bsup"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
+<div id="bsupW" class="hidden">
+<label class="tick"><input type="checkbox" data-bs="Toilet paper"><span>Toilet paper</span></label>
+<label class="tick"><input type="checkbox" data-bs="Paper towels"><span>Paper towels</span></label>
+<label class="tick"><input type="checkbox" data-bs="Hand soap"><span>Hand soap</span></label>
+<label class="tick"><input type="checkbox" data-bs="Trash liners"><span>Trash liners</span></label>
+<label class="tick"><input type="checkbox" data-bs="Urinal screens or air freshener"><span>Urinal screens or air freshener</span></label>
+<label class="f">Anything else for the building?</label><input type="text" id="bsupOther" placeholder="Say what and how many">
+</div>
+<label class="f">Does the crew need anything?</label>
+<div class="sub">Chemicals, shirts, equipment. This goes to the vendor order.</div>
+<div class="chips" id="vsup"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
+<div id="vsupW" class="hidden">
+<label class="tick"><input type="checkbox" data-vs="EnvirOx case"><span>EnvirOx, another case</span></label>
+<label class="tick"><input type="checkbox" data-vs="Stainless steel cleaner"><span>Stainless steel cleaner</span></label>
+<label class="tick"><input type="checkbox" data-vs="Glass cleaner"><span>Glass cleaner</span></label>
+<label class="tick"><input type="checkbox" data-vs="Toilet bowl cleaner"><span>Toilet bowl cleaner</span></label>
+<label class="tick"><input type="checkbox" data-vs="Mineral Shock"><span>Mineral Shock</span></label>
+<label class="tick"><input type="checkbox" data-vs="City Wide polos"><span>City Wide polos (say sizes below)</span></label>
+<label class="tick"><input type="checkbox" data-vs="Equipment"><span>Equipment (say what below)</span></label>
+<label class="f">Sizes, counts, anything else for the crew</label><input type="text" id="vsupOther" placeholder="Example: 2 polos, size L and XL">
+<div class="hint">Or order it yourself in the <a href="https://citywidelv.github.io/cw-vendor-hub/shop/" target="_blank" rel="noopener">vendor shop</a>.</div>
+</div>
+</div>
+<div class="card">
+<label class="f">Is there a problem the FSM must handle first thing tomorrow?</label>
+<div class="sub">The FSM reads every recap in the morning. Only say Yes for a real problem.</div>
+<div class="chips" id="fsmAct"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
+<div id="fsmConfirm" class="confirm hidden">
+<p><b>Are you sure?</b> The FSM will read your whole report anyway. Use this only when something must be handled before anything else tomorrow. Supplies, soap and chemicals go in the supplies section above, not here.</p>
+<div class="chips"><button class="chip" id="fsmYes" type="button">Yes, this is a real problem</button><button class="chip" id="fsmNo" type="button">No, take it back</button></div>
+</div>
+<div id="fsmNoteW" class="hidden"><label class="f">What does the FSM need to handle?</label><textarea id="fsm_action_note" placeholder="Say what happened and what they need to do"></textarea></div>
 </div>
 <div class="card" id="depCard">
 <label class="f">Left at</label><input type="time" id="departure">
 </div>
 <div class="err" id="err5"></div>
+</section>
+
+<!-- ===================== Screen 6: Check it ===================== -->
+<section id="s6" class="scr hidden">
+<div class="step">Last step</div><h1>Check it before you send</h1>
+<div class="card timebox" id="timeCard">
+<b>Double-check your time.</b>
+<div class="sub" style="margin-top:4px">Make sure your arrival time is right. Make sure your leave time is right. We track everybody's time inside buildings.</div>
+<div class="grid"><div><label class="f">Arrived</label><input type="time" id="arrival2"></div><div><label class="f">Left</label><input type="time" id="departure2"></div></div>
+</div>
+<div class="card" id="review"></div>
+<div class="err" id="err6"></div>
 </section>
 
 <!-- ===================== Done ===================== -->
@@ -362,12 +429,13 @@ function fresh(){
     fsm:"", arrival: nowHM(), departure:"", reason:"", complaint_flag:false, timing:"", why_early:"",
     newstart_night:"", initial_clean_paid:"", checklist_items:[], wo_what:"", wo_done:"", call_who:"", call_about:"", call_next:"",
     hotspots_shown:"", hotspots_checked:[], dispensers_ok:false, trash_ok:false, restrooms_ok:false,
-    crew_seen:"", crew_uniform:"", crew_uniform_note:"",
+    crew_seen:"", crew_uniform:"", crew_uniform_note:"", crew_names:[],
     score:8, score_note:"",
     closet_checked:"", closet_organized:false, sds_present:false, chemicals_labelled:false, chemicals_on_hand:false, equipment_ok:false, envirox_low:false, closet_notes:"",
     complaint_what:"", complaint_areas:"", complaint_channel:"", complaint_verified:"", complaint_root_cause:"", complaint_agreed_fix:"", complaint_resolved:"", complaint_blocker:"", crm_closed:"",
     issues_resolved:"", issue_resolution:"", issue_remaining:"", issue_owner:"", issue_due:"",
-    summary:"", fsm_action_needed:"", fsm_action_note:"", supplies_needed:false, uniforms_needed:false, supplies_note:"",
+    summary:"", fsm_action_needed:"", fsm_action_note:"", fsm_confirmed:false,
+    bsup:"", building_supplies:[], bsup_other:"", vsup:"", vendor_supplies:[], vsup_other:"",
     photos: [] };  // {id, label, file_id, preview, status}
 }
 var S = fresh();
@@ -418,9 +486,12 @@ function applyRules(){
   show("issuesCard", physical() || R()==="Photos from crew");
   show("issFixW", S.issues_resolved==="Yes");
   show("issOpenW", S.issues_resolved==="No");
-  show("fsmNoteW", S.fsm_action_needed==="Yes");
+  show("fsmConfirm", S.fsm_action_needed==="Yes" && !S.fsm_confirmed);
+  show("fsmNoteW", S.fsm_action_needed==="Yes" && S.fsm_confirmed);
   show("supCard", R()!=="Phone only");
-  show("supNoteW", S.supplies_needed || S.uniforms_needed);
+  show("bsupW", S.bsup==="Yes");
+  show("vsupW", S.vsup==="Yes");
+  show("crewNamesW", S.crew_seen==="Yes");
 }
 
 /* ---------- chips ---------- */
@@ -660,7 +731,7 @@ function renderPhotoRows(){
     return '<div class="photo'+(r.hot && !mine.length ? '" style="border-color:var(--red)':'"')+'"><div class="lbl">'+esc(r.label)+(r.hot && !mine.length?'<small>Please take this one.</small>':'')+
       '<div class="thumbs">'+mine.map(function(p){ return '<div class="thumb'+(p.status==="bad"?' bad':'')+'" data-id="'+p.id+'"><img src="'+p.preview+'" alt=""><button type="button" class="x" data-x="'+p.id+'">&times;</button>'+
         (p.status!=="ok"?'<div class="st">'+(p.status==="bad"?'Not saved. Retake.':p.status==="pending"?'Saving...':'')+'</div>':'')+'</div>'; }).join("")+'</div></div>'+
-      '<button type="button" class="cam" data-l="'+esc(r.label)+'">'+(mine.length && r.one ? 'Retake' : 'Photo')+'</button></div>';
+      '<button type="button" class="cam" data-l="'+esc(r.label)+'">'+(mine.length ? 'Add another' : 'Add photo')+'</button></div>';
   }).join("");
   Array.prototype.forEach.call($("photoRows").querySelectorAll(".cam"), function(b){
     b.addEventListener("click", function(){ pendingLabel = b.getAttribute("data-l"); $("fileIn").value = ""; $("fileIn").click(); });
@@ -673,7 +744,7 @@ $("fileIn").addEventListener("change", function(){
   var files = Array.prototype.slice.call(this.files || []);
   if (!files.length) return;
   var label = pendingLabel || "Anything else";
-  files.slice(0, 6).forEach(function(f){ addPhoto(f, label); });
+  files.slice(0, 10).forEach(function(f){ addPhoto(f, label); });
 });
 function addPhoto(file, label){
   var id = uid();
@@ -708,19 +779,21 @@ function resize(file, max, q, cb){
 }
 
 /* ---------- screens ---------- */
-var ORDER = [1,2,3,4,5];
+var ORDER = [1,2,3,4,5,6];
 function visibleScreens(){ return ORDER.filter(function(n){ if (n===3) return screen3Needed(); if (n===4) return showsPhotos(); return true; }); }
 function paintProg(){
   var vis = visibleScreens(), idx = vis.indexOf(S.screen);
   $("prog").innerHTML = vis.map(function(n, i){ return '<span class="'+(i<idx?'done':i===idx?'on':'')+'"></span>'; }).join("");
-  var isDone = S.screen === 6;
-  [1,2,3,4,5].forEach(function(n){ show("s"+n, S.screen===n); });
+  var isDone = S.screen === 7;
+  [1,2,3,4,5,6].forEach(function(n){ show("s"+n, S.screen===n); });
+  if (!isDone && idx>=0){ var st = $("s"+S.screen).querySelector(".step"); if (st) st.textContent = S.screen===6 ? "Last step" : (S.screen===1 ? "Step 1" : "Step " + (idx+1) + " of " + vis.length); }
   show("sdone", isDone); show("nav", !isDone);
   $("back").disabled = idx <= 0;
   $("next").textContent = idx === vis.length-1 ? "Send report" : "Next";
   if (S.screen===5 && showsTimes() && !S.departure){ S.departure = nowHM(); $("departure").value = S.departure; save(); }
   if (S.screen===3) { paintNs(); }
   if (S.screen===4) renderPhotoRows();
+  if (S.screen===6) renderReview();
   window.scrollTo(0,0);
 }
 function validate(n){
@@ -739,6 +812,7 @@ function validate(n){
   }
   if (n===3){
     if (inBuilding() && !S.crew_seen) return e.textContent = "Did you see the crew tonight?";
+    if (S.crew_seen==="Yes" && !S.crew_names.some(function(n){ return n.trim(); })) return e.textContent = "Add at least one crew member's name. Ask them.";
     if (S.crew_seen==="Yes" && !S.crew_uniform) return e.textContent = "Were they in the right uniform?";
     if (showsScore() && Number(S.score) < LOW && !S.score_note.trim()) return e.textContent = "A score under " + LOW + " needs a note on what was wrong.";
     if (inBuilding() && !S.closet_checked) return e.textContent = "Did you check the janitor closet?";
@@ -747,8 +821,15 @@ function validate(n){
   }
   if (n===5){
     if ((physical() || R()==="Photos from crew") && !S.issues_resolved) return e.textContent = "Did everything get fixed tonight?";
-    if (!S.fsm_action_needed) return e.textContent = "Does the FSM need to do something tomorrow?";
+    if (R()!=="Phone only" && !S.bsup) return e.textContent = "Does the building need supplies?";
+    if (R()!=="Phone only" && !S.vsup) return e.textContent = "Does the crew need anything?";
+    if (!S.fsm_action_needed) return e.textContent = "Is there a problem the FSM must handle tomorrow?";
+    if (S.fsm_action_needed==="Yes" && !S.fsm_confirmed) return e.textContent = "Confirm the FSM problem, or take it back.";
+    if (S.fsm_action_needed==="Yes" && !S.fsm_action_note.trim()) return e.textContent = "Say what the FSM needs to handle.";
     if (!S.summary.trim() && R()!=="Photos from crew") return e.textContent = "Add the summary. A paste from the AI tool is fine.";
+  }
+  if (n===6){
+    if (showsTimes() && (!S.arrival || !S.departure)) return e.textContent = "Fill in both times.";
   }
   return true;
 }
@@ -763,13 +844,52 @@ $("back").addEventListener("click", function(){
   if (idx > 0){ S.screen = vis[idx-1]; save(); paintProg(); }
 });
 
+/* ---------- review ---------- */
+function renderReview(){
+  show("timeCard", showsTimes());
+  $("arrival2").value = S.arrival || ""; $("departure2").value = S.departure || "";
+  var rows = [];
+  function add(k, v, scr){ rows.push({k:k, v:v, scr:scr}); }
+  add("Who", S.nm_name, 1); add("Building", S.account_name + (S.account_matched?"":" (typed)"), 1); add("Cleaning company", S.vendor_name ? S.vendor_name + (S.vendor_owner?" - "+S.vendor_owner:"") : "", 1); add("FSM", S.fsm, 1);
+  add("Reason", S.reason + (complaintOn() && R()!=="Client complained" ? " + client complained" : ""), 2);
+  if (inBuilding()) add("When you got there", S.timing + (S.why_early?" ("+S.why_early+")":""), 2);
+  if (R()==="New building") add("New building", [S.newstart_night, S.initial_clean_paid?"initial clean paid: "+S.initial_clean_paid:"", S.checklist_items.length+" checklist items ticked"].filter(String).join(", "), 2);
+  if (R()==="Work order") add("Work order", S.wo_what + (S.wo_done?" - done: "+S.wo_done:""), 2);
+  if (R()==="Phone only") add("Phone call", [S.call_who, S.call_about, S.call_next].filter(String).join("\n"), 2);
+  if (showsScore()) add("Score", S.score + " out of 10" + (S.score_note?"\n"+S.score_note:""), 3);
+  if (showsHotspots()) add("Hot spots checked", S.hotspots_checked.length + " of " + HS.length, 3);
+  if (inBuilding()) add("Quick checks", ["Soap and towels full: "+(S.dispensers_ok?"yes":"no"), "Trash out: "+(S.trash_ok?"yes":"no"), "Restrooms right: "+(S.restrooms_ok?"yes":"no")].join("\n"), 3);
+  if (inBuilding()) add("Crew", S.crew_seen==="Yes" ? "Saw them. Uniform: " + S.crew_uniform + (S.crew_uniform_note?" ("+S.crew_uniform_note+")":"") + "\nNames: " + S.crew_names.filter(function(n){return n.trim();}).join(", ") : "Did not see the crew", 3);
+  if (inBuilding()) add("Closet", S.closet_checked==="Yes" ? [S.closet_organized?"organized":"", S.sds_present?"SDS there":"", S.chemicals_labelled?"labelled":"", S.chemicals_on_hand?"chemicals on hand":"", S.equipment_ok?"equipment ok":"", S.envirox_low?"EnvirOx low":""].filter(String).join(", ") + (S.closet_notes?"\n"+S.closet_notes:"") : "Not checked", 3);
+  if (complaintOn()) add("Complaint", [S.complaint_what, "Resolved: " + S.complaint_resolved, S.complaint_blocker].filter(String).join("\n"), 3);
+  if (showsPhotos()) add("Photos", S.photos.filter(function(p){ return p.file_id || p._data; }).length + " attached", 4);
+  if (physical() || R()==="Photos from crew") add("Everything fixed", S.issues_resolved + (S.issue_remaining?"\nLeft: "+S.issue_remaining:"") + (S.issue_resolution?"\n"+S.issue_resolution:""), 5);
+  if (R()!=="Phone only") add("Building needs", S.bsup==="Yes" ? S.building_supplies.concat(S.bsup_other?[S.bsup_other]:[]).join(", ") || "Yes (nothing listed)" : "Nothing", 5);
+  if (R()!=="Phone only") add("Crew needs", S.vsup==="Yes" ? S.vendor_supplies.concat(S.vsup_other?[S.vsup_other]:[]).join(", ") || "Yes (nothing listed)" : "Nothing", 5);
+  add("FSM must handle tomorrow", S.fsm_action_needed==="Yes" ? S.fsm_action_note : "No", 5);
+  add("Summary", S.summary, 5);
+  $("review").innerHTML = rows.map(function(r){ return '<div class="rev"><button class="linkbtn edit" type="button" data-go="'+r.scr+'">Edit</button><div class="k">'+esc(r.k)+'</div><div class="v'+(r.v?'':' empty')+'">'+(r.v?esc(r.v):'Nothing entered')+'</div></div>'; }).join("");
+  Array.prototype.forEach.call($("review").querySelectorAll("[data-go]"), function(b){ b.addEventListener("click", function(){ S.screen = Number(b.getAttribute("data-go")); save(); paintProg(); }); });
+}
+$("arrival2").addEventListener("change", function(){ S.arrival = this.value; $("arrival").value = S.arrival; save(); });
+$("departure2").addEventListener("change", function(){ S.departure = this.value; $("departure").value = S.departure; save(); });
+
 /* ---------- submit ---------- */
 function payload(){
   var b = {};
   Object.keys(S).forEach(function(k){ if (k!=="photos" && k!=="screen" && k!=="started") b[k] = S[k]; });
   b.kind = "ni_submit"; b.report_date = todayISO(); b.source = "night-inspection.html"; b.device = navigator.userAgent.slice(0, 120);
   b.hotspots_checked = S.hotspots_checked.join("\n"); b.checklist_items = S.checklist_items.join("\n");
-  ["dispensers_ok","trash_ok","restrooms_ok","closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low","supplies_needed","uniforms_needed"].forEach(function(k){ b[k] = S[k] ? "Yes" : (inBuilding() || k==="supplies_needed" || k==="uniforms_needed" ? "No" : ""); });
+  ["dispensers_ok","trash_ok","restrooms_ok","closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ b[k] = S[k] ? "Yes" : (inBuilding() ? "No" : ""); });
+  var bl = S.bsup==="Yes" ? S.building_supplies.concat(S.bsup_other.trim()?[S.bsup_other.trim()]:[]) : [];
+  var vl = S.vsup==="Yes" ? S.vendor_supplies.concat(S.vsup_other.trim()?[S.vsup_other.trim()]:[]) : [];
+  b.building_supplies = bl.join("\n"); b.vendor_supplies = vl.join("\n");
+  b.supplies_needed = (bl.length || vl.length) ? "Yes" : (R()==="Phone only" ? "" : "No");
+  b.uniforms_needed = vl.some(function(x){ return /polo|uniform|shirt/i.test(x); }) ? "Yes" : (R()==="Phone only" ? "" : "No");
+  b.supplies_note = [bl.length?"Building: "+bl.join(", "):"", vl.length?"Crew: "+vl.join(", "):""].filter(String).join(" | ");
+  b.crew_names = S.crew_seen==="Yes" ? S.crew_names.map(function(n){ return n.trim(); }).filter(String).join("\n") : "";
+  ["bsup","bsup_other","vsup","vsup_other","fsm_confirmed"].forEach(function(k){ delete b[k]; });
+  if (S.fsm_action_needed==="Yes" && !S.fsm_confirmed){ b.fsm_action_needed = "No"; b.fsm_action_note = ""; }
   if (!inBuilding()){ ["dispensers_ok","trash_ok","restrooms_ok"].forEach(function(k){ b[k]=""; }); }
   if (S.closet_checked!=="Yes"){ ["closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ b[k]=""; }); b.closet_notes=""; }
   if (!showsScore()){ b.score = ""; b.score_note = ""; }
@@ -782,7 +902,7 @@ function payload(){
 }
 function submit(){
   if (sending) return;
-  var e = $("err5");
+  var e = $("err6");
   var lost = S.photos.filter(function(p){ return !p.file_id && !p._data; });
   if (lost.length){ S.photos = S.photos.filter(function(p){ return p.file_id || p._data; }); save(); }
   sending = true; $("next").disabled = true; $("next").textContent = "Sending..."; e.textContent = lost.length ? lost.length + " photo(s) were lost when the page reloaded and are left out." : "";
@@ -790,7 +910,7 @@ function submit(){
     sending = false;
     if (r && r.ok){
       clearDraft();
-      S.screen = 6;
+      S.screen = 7;
       $("doneTitle").textContent = r.duplicate ? "Already sent" : "Sent";
       $("doneMsg").textContent = (r.duplicate ? "This report was already received. " : "") + (r.inspection_id || "") + (r.photo_count ? " with " + r.photo_count + " photo" + (r.photo_count>1?"s":"") : "") + ".";
       $("donePdf").href = r.pdf_url || "#"; show("donePdf", !!r.pdf_url);
@@ -802,13 +922,13 @@ function submit(){
 }
 function fail(msg){
   sending = false; $("next").disabled = false; $("next").textContent = "Send again";
-  $("err5").textContent = msg + " Nothing is lost. It will try again on its own in 20 seconds, or tap Send again.";
-  clearTimeout(retryT); retryT = setTimeout(function(){ if (S.screen===5 && !done) submit(); }, 20000);
+  $("err6").textContent = msg + " Nothing is lost. It will try again on its own in 20 seconds, or tap Send again.";
+  clearTimeout(retryT); retryT = setTimeout(function(){ if (S.screen===6 && !done) submit(); }, 20000);
 }
 $("another").addEventListener("click", function(){
   var who = { name:S.nm_name, email:S.nm_email }, mkt = S.market;
   done = false; S = fresh(); S.nm_name = who.name; S.nm_email = who.email; S.market = mkt; SMALL = {}; HS = [];
-  $("next").disabled = false; $("err5").textContent = ""; bindAll(); save(); paintProg();
+  $("next").disabled = false; $("err6").textContent = ""; bindAll(); save(); paintProg();
 });
 
 /* ---------- bind everything to S ---------- */
@@ -824,14 +944,18 @@ function bindAll(){
   paintChips("woDone", "data-v", S.wo_done); paintChips("crewSeen", "data-v", S.crew_seen); paintChips("crewUni", "data-v", S.crew_uniform);
   paintChips("closetChk", "data-v", S.closet_checked); paintChips("compHow", "data-v", S.complaint_channel); paintChips("compVer", "data-v", S.complaint_verified);
   paintChips("compRes", "data-v", S.complaint_resolved); paintChips("compCrm", "data-v", S.crm_closed); paintChips("issRes", "data-v", S.issues_resolved); paintChips("fsmAct", "data-v", S.fsm_action_needed);
-  ["wo_what","call_who","call_about","call_next","crew_uniform_note","score_note","closet_notes","complaint_what","complaint_areas","complaint_root_cause","complaint_agreed_fix","complaint_blocker","issue_resolution","issue_remaining","issue_owner","issue_due","summary","fsm_action_note","supplies_note"].forEach(function(k){ $(k).value = S[k] || ""; });
-  ["dispensers_ok","trash_ok","restrooms_ok","closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low","supplies_needed","uniforms_needed"].forEach(function(k){ var el=$(k); el.checked=!!S[k]; el.closest(".tick").classList.toggle("on", el.checked); });
+  ["wo_what","call_who","call_about","call_next","crew_uniform_note","score_note","closet_notes","complaint_what","complaint_areas","complaint_root_cause","complaint_agreed_fix","complaint_blocker","issue_resolution","issue_remaining","issue_owner","issue_due","summary","fsm_action_note"].forEach(function(k){ $(k).value = S[k] || ""; });
+  $("bsupOther").value = S.bsup_other || ""; $("vsupOther").value = S.vsup_other || "";
+  ["dispensers_ok","trash_ok","restrooms_ok","closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ var el=$(k); el.checked=!!S[k]; el.closest(".tick").classList.toggle("on", el.checked); });
+  paintChips("bsup", "data-v", S.bsup); paintChips("vsup", "data-v", S.vsup); paintSup(); paintCrewNames(); $("howto").classList.add("hidden");
   paintScore(); paintHotspots(); applyRules(); renderPhotoRows();
   S.photos.forEach(function(p){ if (!p.file_id) p.status = p._data ? "pending" : "bad"; });
 }
 // one-time listeners
-["wo_what","call_who","call_about","call_next","crew_uniform_note","score_note","closet_notes","complaint_what","complaint_areas","complaint_root_cause","complaint_agreed_fix","complaint_blocker","issue_resolution","issue_remaining","issue_owner","issue_due","summary","fsm_action_note","supplies_note"].forEach(function(k){ $(k).addEventListener("input", function(){ S[k] = this.value; save(); }); });
-["dispensers_ok","trash_ok","restrooms_ok","closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low","supplies_needed","uniforms_needed"].forEach(function(k){ var el=$(k); el.addEventListener("change", function(){ S[k]=el.checked; el.closest(".tick").classList.toggle("on", el.checked); applyRules(); save(); }); });
+["wo_what","call_who","call_about","call_next","crew_uniform_note","score_note","closet_notes","complaint_what","complaint_areas","complaint_root_cause","complaint_agreed_fix","complaint_blocker","issue_resolution","issue_remaining","issue_owner","issue_due","summary","fsm_action_note"].forEach(function(k){ $(k).addEventListener("input", function(){ S[k] = this.value; save(); }); });
+$("bsupOther").addEventListener("input", function(){ S.bsup_other = this.value; save(); });
+$("vsupOther").addEventListener("input", function(){ S.vsup_other = this.value; save(); });
+["dispensers_ok","trash_ok","restrooms_ok","closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ var el=$(k); el.addEventListener("change", function(){ S[k]=el.checked; el.closest(".tick").classList.toggle("on", el.checked); applyRules(); save(); }); });
 $("arrival").addEventListener("change", function(){ S.arrival = this.value; save(); });
 $("departure").addEventListener("change", function(){ S.departure = this.value; save(); });
 $("why_early").addEventListener("change", function(){ S.why_early = this.value; save(); });
@@ -849,7 +973,26 @@ chipGroup("compVer", "data-v", function(){ return S.complaint_verified; }, funct
 chipGroup("compRes", "data-v", function(){ return S.complaint_resolved; }, function(v){ S.complaint_resolved = v; });
 chipGroup("compCrm", "data-v", function(){ return S.crm_closed; }, function(v){ S.crm_closed = v; });
 chipGroup("issRes", "data-v", function(){ return S.issues_resolved; }, function(v){ S.issues_resolved = v; });
-chipGroup("fsmAct", "data-v", function(){ return S.fsm_action_needed; }, function(v){ S.fsm_action_needed = v; });
+chipGroup("fsmAct", "data-v", function(){ return S.fsm_action_needed; }, function(v){ S.fsm_action_needed = v; if (v!=="Yes"){ S.fsm_confirmed = false; S.fsm_action_note = ""; $("fsm_action_note").value = ""; } });
+$("fsmYes").addEventListener("click", function(){ S.fsm_confirmed = true; applyRules(); save(); $("fsm_action_note").focus(); });
+$("fsmNo").addEventListener("click", function(){ S.fsm_action_needed = "No"; S.fsm_confirmed = false; paintChips("fsmAct", "data-v", "No"); applyRules(); save(); });
+chipGroup("bsup", "data-v", function(){ return S.bsup; }, function(v){ S.bsup = v; if (v!=="Yes"){ S.building_supplies = []; S.bsup_other = ""; $("bsupOther").value = ""; paintSup(); } });
+chipGroup("vsup", "data-v", function(){ return S.vsup; }, function(v){ S.vsup = v; if (v!=="Yes"){ S.vendor_supplies = []; S.vsup_other = ""; $("vsupOther").value = ""; paintSup(); } });
+function paintSup(){
+  Array.prototype.forEach.call(document.querySelectorAll("[data-bs]"), function(c){ c.checked = S.building_supplies.indexOf(c.getAttribute("data-bs"))>=0; c.closest(".tick").classList.toggle("on", c.checked); });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-vs]"), function(c){ c.checked = S.vendor_supplies.indexOf(c.getAttribute("data-vs"))>=0; c.closest(".tick").classList.toggle("on", c.checked); });
+}
+Array.prototype.forEach.call(document.querySelectorAll("[data-bs]"), function(c){ c.addEventListener("change", function(){ var v=c.getAttribute("data-bs"); S.building_supplies = S.building_supplies.filter(function(x){ return x!==v; }); if (c.checked) S.building_supplies.push(v); c.closest(".tick").classList.toggle("on", c.checked); save(); }); });
+Array.prototype.forEach.call(document.querySelectorAll("[data-vs]"), function(c){ c.addEventListener("change", function(){ var v=c.getAttribute("data-vs"); S.vendor_supplies = S.vendor_supplies.filter(function(x){ return x!==v; }); if (c.checked) S.vendor_supplies.push(v); c.closest(".tick").classList.toggle("on", c.checked); save(); }); });
+/* ---------- crew names ---------- */
+function paintCrewNames(){
+  if (!S.crew_names.length) S.crew_names = [""];
+  $("crewNames").innerHTML = S.crew_names.map(function(n, i){ return '<div class="namerow"><input type="text" data-cn="'+i+'" placeholder="First and last name" value="'+esc(n)+'" autocomplete="off">'+(S.crew_names.length>1?'<button type="button" data-cx="'+i+'" aria-label="Remove">&times;</button>':'')+'</div>'; }).join("");
+  Array.prototype.forEach.call($("crewNames").querySelectorAll("input"), function(inp){ inp.addEventListener("input", function(){ S.crew_names[Number(inp.getAttribute("data-cn"))] = inp.value; save(); }); });
+  Array.prototype.forEach.call($("crewNames").querySelectorAll("[data-cx]"), function(b){ b.addEventListener("click", function(){ S.crew_names.splice(Number(b.getAttribute("data-cx")), 1); paintCrewNames(); save(); }); });
+}
+$("crewAdd").addEventListener("click", function(){ S.crew_names.push(""); paintCrewNames(); save(); var inps=$("crewNames").querySelectorAll("input"); inps[inps.length-1].focus(); });
+$("howtoBtn").addEventListener("click", function(){ show("howto", $("howto").classList.contains("hidden")); });
 
 /* ---------- context ---------- */
 function loadCtx(force){
@@ -879,7 +1022,7 @@ function useCtx(r){
   if (who){ S.nm_name = who.name || ""; S.nm_email = who.email || ""; }
   if (draft && draft.draft_id && (draft.reason || draft.account_name || (draft.summary||"").length > 20)){
     show("resume", true);
-    $("resumeYes").addEventListener("click", function(){ S = draft; S.photos = S.photos || []; S.hotspots_checked = S.hotspots_checked||[]; S.checklist_items = S.checklist_items||[]; HS = (S.hotspots_shown||"").split("\n").filter(String); show("resume", false); bindAll(); loadCtx(false); paintProg(); });
+    $("resumeYes").addEventListener("click", function(){ S = draft; S.photos = S.photos || []; S.hotspots_checked = S.hotspots_checked||[]; S.checklist_items = S.checklist_items||[]; S.crew_names = S.crew_names||[]; S.building_supplies = S.building_supplies||[]; S.vendor_supplies = S.vendor_supplies||[]; HS = (S.hotspots_shown||"").split("\n").filter(String); show("resume", false); bindAll(); loadCtx(false); paintProg(); });
     $("resumeNo").addEventListener("click", function(){ ls(function(){ localStorage.removeItem(DRAFT_KEY); }); show("resume", false); save(); });
   }
   bindAll(); loadCtx(false); paintProg();
