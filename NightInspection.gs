@@ -485,6 +485,8 @@ function niCrew_(r) {
     var onRoster = ros.filter(function (x) { return norm(x.company_matched || x.company_raw) === vkey || (x.company_matched && vkey && norm(x.company_matched).indexOf(vkey) >= 0); })
       .map(function (x) { return (String(x.cleaner_first || '') + ' ' + String(x.cleaner_last || '')).trim(); });
     var evSh = null;
+    // Keys the way acEvent_ builds them, so acRebuild_ keeps one roster row per person.
+    var vendorKey = (r.vendor_matched === 'TRUE' ? '' : 'RAW:') + acKey_(r.vendor_name);
     names.forEach(function (n) {
       if (onRoster.some(function (x) { return same(n, x); })) return;
       var parts = n.split(' ');
@@ -492,9 +494,9 @@ function niCrew_(r) {
       if (!evSh) evSh = acTab_(AC_EV, AC_EV_HEAD);
       acAppend_(evSh, AC_EV_HEAD, {
         event_id: 'ACE-' + acRand_(6), received: acStamp_(), submission_id: r.inspection_id, action: 'add',
-        company_raw: r.vendor_name, company_matched: r.vendor_matched === 'TRUE' ? r.vendor_name : '', vendor_key: '',
+        company_raw: r.vendor_name, company_matched: r.vendor_matched === 'TRUE' ? r.vendor_name : '', vendor_key: vendorKey,
         submitter_name: r.nm_name, submitter_email: r.nm_email, submitter_phone: '',
-        cleaner_first: first, cleaner_last: last, cleaner_key: '',
+        cleaner_first: first, cleaner_last: last, cleaner_key: vendorKey + '::' + acKey_(n),
         account_raw: r.account_name, account_matched: r.account_matched === 'TRUE' ? r.account_name : '', match_confidence: r.account_matched === 'TRUE' ? 'high' : 'none',
         background_check: out.unverified.indexOf(n) >= 0 ? 'Not on file' : 'Yes', role: 'Cleaner',
         note_1: 'Met on site by the night manager. Recap ' + r.inspection_id + '.',

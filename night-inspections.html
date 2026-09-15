@@ -125,7 +125,8 @@ function render(){
   if (!rows.length){ $("list").innerHTML = '<div class="empty">Nothing here yet.</div>'; return; }
   var html = "", day = "";
   rows.forEach(function(r, i){
-    if (r.report_date !== day){ day = r.report_date; html += '<div class="day">' + esc(niceDay(day)) + '</div>'; }
+    var rd = String(r.report_date||'').slice(0,10);
+    if (rd !== day){ day = rd; html += '<div class="day">' + esc(niceDay(day)) + '</div>'; }
     var sc = r.score !== "" ? Number(r.score) : null;
     var flags = (r.flags||"").split(",").filter(String).map(function(f){ var d = FLAG[f] || [f,""]; return '<span class="flag ' + d[1] + '">' + esc(d[0]) + '</span>'; }).join("");
     var photos = (r.photo_links||"").split("\n").filter(String);
@@ -161,7 +162,7 @@ function detail(r, photos){
   if (photos.length) t += '<div class="thumbs">' + photos.map(function(u){ var id = driveId(u); return '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + (id ? '<img loading="lazy" src="https://drive.google.com/thumbnail?id=' + esc(id) + '&sz=w240" alt="">' : '') + '</a>'; }).join("") + '</div>';
   return t;
 }
-function niceDay(d){ if (!d) return ""; var p = d.split("-"); var dt = new Date(Number(p[0]), Number(p[1])-1, Number(p[2])); return dt.toLocaleDateString("en-US", { weekday:"long", month:"short", day:"numeric" }); }
+function niceDay(d){ if (!d) return ""; d = String(d).slice(0,10); var p = d.split("-"); var dt = new Date(Number(p[0]), Number(p[1])-1, Number(p[2])); return dt.toLocaleDateString("en-US", { weekday:"long", month:"short", day:"numeric" }); }
 
 Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(b){ b.addEventListener("click", function(){ MKT = b.getAttribute("data-m"); Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(x){ x.classList.toggle("on", x===b); }); load(); }); });
 $("flagsOnly").addEventListener("click", function(){ FLAGS_ONLY = !FLAGS_ONLY; this.classList.toggle("on", FLAGS_ONLY); render(); });
