@@ -229,8 +229,9 @@ function niContext_(data) {
       var p = { name: String(v[i][0]).replace(/\s+/g, ' ').trim(), email: String(v[i][4] || '').trim(), market: String(v[i][2] || '').trim(), role: String(v[i][1] || '').trim() };
       var inMkt = p.market === 'Both' || p.market === region;
       if (p.role === 'Night Manager') out.night_managers.push(p);
-      else if (inMkt && /Facility Solutions Manager|Director of Operations|General Manager/.test(p.role)) out.fsms.push(p);
+      else if (/Facility Solutions Manager|Director of Operations|General Manager/.test(p.role)) { p.in_market = inMkt; out.fsms.push(p); }
     }
+    out.fsms.sort(function (a, b) { if (a.in_market !== b.in_market) return a.in_market ? -1 : 1; return a.name < b.name ? -1 : 1; });
   } catch (e) { out.warnings.push('staff: ' + e.message); }
 
   try {
