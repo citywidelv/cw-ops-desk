@@ -488,7 +488,10 @@ function paintBar(){
 
 /* --------------------------------------------------------------- loading -- */
 function loadCtx(){
-  post({kind:"ni_context", market:S.market}).then(function(r){
+  var mkt=S.market;
+  CTX=null; CHECKS={};
+  post({kind:"ni_context", market:mkt}).then(function(r){
+    if(mkt!==S.market) return; // market changed while this was loading; the newer request paints
     if(!r||!r.ok){
       if(r&&CWAuth.isPassError(r.error)){ CWAuth.locked("ops",r.error); return; }
       $("acctHint").textContent=(r&&r.error)||"Could not load the building list. Reload the page.";
@@ -496,7 +499,7 @@ function loadCtx(){
     }
     CTX=r; CHECKS=r.account_checks||{};
     var opts='<option value="">Pick your name...</option>';
-    (r.fsms||[]).forEach(function(p){ opts+='<option value="'+esc(p.name)+'" data-em="'+esc(p.email||"")+'">'+esc(p.name)+'</option>'; });
+    (r.fsms||[]).forEach(function(p){ opts+='<option value="'+esc(p.name)+'" data-em="'+esc(p.email||"")+'" data-m="'+esc(p.market||"")+'">'+esc(p.name)+'</option>'; });
     $("fsm").innerHTML=opts;
     if(S.fsm) $("fsm").value=S.fsm;
     show("loading",false); show("main",true);
@@ -632,14 +635,23 @@ function copyLast(){
     var o=$("fsm").options[$("fsm").selectedIndex];
     S.fsm=$("fsm").value; S.fsm_email=o?(o.getAttribute("data-em")||""):"";
     ls(function(){ localStorage.setItem(WHO_KEY, JSON.stringify({name:S.fsm,email:S.fsm_email})); });
-    touch(); loadExisting();
+    touch();
+    // An FSM on the Staff tab for one market plans that market's buildings; follow them.
+    var pm=o?(o.getAttribute("data-m")||""):"";
+    var want=/^northern/i.test(pm)?"nnv":(/^las/i.test(pm)?"lv":"");
+    if(want&&want!==S.market){ setMarket(want); return; }
+    loadExisting();
   });
+  function setMarket(m){
+    S.market=m;
+    ls(function(){ localStorage.setItem(MKT_KEY,S.market); });
+    S.nm_name=""; S.nm_email="";
+    paintSetup(); touch(); loadCtx();
+  }
   Array.prototype.forEach.call($("mktChips").children,function(b){
     b.addEventListener("click",function(){
-      S.market=b.getAttribute("data-m");
-      ls(function(){ localStorage.setItem(MKT_KEY,S.market); });
-      S.nm_name=""; S.nm_email="";
-      paintSetup(); touch(); loadCtx();
+      if(b.getAttribute("data-m")===S.market) return;
+      setMarket(b.getAttribute("data-m"));
     });
   });
   Array.prototype.forEach.call($("dayChips").children,function(b){

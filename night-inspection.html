@@ -583,7 +583,7 @@ function paintWho(){
 }
 function fillWho(){
   var sel = $("whoSel");
-  var opts = (CTX && CTX.night_managers || []).map(function(p){ return '<option value="'+esc(p.name)+'" data-e="'+esc(p.email)+'">'+esc(p.name)+'</option>'; }).join("");
+  var opts = (CTX && CTX.night_managers || []).map(function(p){ return '<option value="'+esc(p.name)+'" data-e="'+esc(p.email)+'" data-m="'+esc(p.market||"")+'">'+esc(p.name)+'</option>'; }).join("");
   sel.innerHTML = '<option value="">Pick your name...</option>' + opts + '<option value="__other">Someone else</option>';
 }
 $("whoSel").addEventListener("change", function(){ setTimeout(paintRoute, 0);
@@ -593,6 +593,9 @@ $("whoSel").addEventListener("change", function(){ setTimeout(paintRoute, 0);
   S.nm_name = this.value; S.nm_email = o.getAttribute("data-e") || "";
   if (S.nm_name) ls(function(){ localStorage.setItem(WHO_KEY, JSON.stringify({name:S.nm_name, email:S.nm_email})); });
   paintWho(); sortAccounts(); save();
+  // A night manager on the Staff tab for one market gets that market's buildings without a second tap.
+  var want = nmMarket(S.nm_name);
+  if (want && want !== S.market) setMarket(want);
 });
 $("whoOther").addEventListener("change", function(){
   S.nm_name = this.value.trim(); S.nm_email = "";
@@ -604,9 +607,17 @@ $("whoChange").addEventListener("click", function(){ S.nm_name=""; S.nm_email=""
 /* ---------- market ---------- */
 chipGroup("mktChips", "data-m", function(){ return S.market; }, function(v){
   if (v===S.market) return;
-  S.market = v; ls(function(){ localStorage.setItem(MKT_KEY, v); });
-  pickAccount(null); pickVendor(null); loadCtx(true);
+  setMarket(v);
 });
+/* Switching market drops the old lists immediately, so Las Vegas buildings never
+   sit in the picker while the Northern Nevada list is still loading. */
+function setMarket(v){
+  S.market = v; ls(function(){ localStorage.setItem(MKT_KEY, v); });
+  paintChips("mktChips", "data-m", S.market);
+  if (CTX){ CTX = { ok:true, region:CTX.region, accounts:[], vendors:[], night_managers:CTX.night_managers||[], fsms:CTX.fsms||[], last_vendor:{}, prior_complaints:{}, roster:{}, account_checks:{} }; }
+  ACC = []; VEN = [];
+  pickAccount(null); pickVendor(null); loadCtx(true);
+}
 
 /* ---------- pickers ---------- */
 var ACC = [], VEN = [];
@@ -1258,12 +1269,15 @@ $("howtoBtn").addEventListener("click", function(){ show("howto", $("howto").cla
 
 /* ---------- context ---------- */
 function loadCtx(force){
-  var cached = ls(function(){ return JSON.parse(localStorage.getItem(CTX_KEY+"_"+S.market) || "null"); });
+  var mkt = S.market;
+  var cached = ls(function(){ return JSON.parse(localStorage.getItem(CTX_KEY+"_"+mkt) || "null"); });
+  if (cached && cached.market && cached.market !== mkt) cached = null;
   if (cached && !force && Date.now() - cached._at < 6*60*60*1000){ useCtx(cached); }
   $("acctHint").textContent = cached && !force ? "" : "Loading the building list...";
-  post(WEBHOOK, { kind:"ni_context", market:S.market }).then(function(r){
+  post(WEBHOOK, { kind:"ni_context", market:mkt }).then(function(r){
+    if (mkt !== S.market) return; // the user switched markets while this was in flight
     if (!r || !r.ok){ if (r && CWAuth.isPassError(r.error)) { CWAuth.locked("ops", r.error); return; } if (!cached) $("acctHint").textContent = (r && r.error) || "Could not load the lists. Type the names by hand."; return; }
-    r._at = Date.now(); ls(function(){ localStorage.setItem(CTX_KEY+"_"+S.market, JSON.stringify(r)); });
+    r._at = Date.now(); ls(function(){ localStorage.setItem(CTX_KEY+"_"+mkt, JSON.stringify(r)); });
     useCtx(r); if ($("acctHint").textContent.indexOf("Loading")===0) $("acctHint").textContent = "";
   }).catch(function(){ if (!cached) $("acctHint").textContent = "Could not load the lists. Check your signal. You can still type the names by hand with Can't find it."; });
 }
@@ -1272,6 +1286,14 @@ function useCtx(r){
   VEN = (r.vendors||[]).slice(); VEN.forEach(function(v){ v._s = (v.label||"").toLowerCase(); });
   sortAccounts(); fillWho(); paintFsm(); paintCrewNames(); paintRoute(); paintAsk();
   if (S.nm_name) { $("whoSel").value = S.nm_name; }
+  // Remembered name from a Northern Nevada night manager, page still on Las Vegas: follow the person.
+  var want = nmMarket(S.nm_name);
+  if (want && want !== S.market) setMarket(want);
+}
+function nmMarket(name){
+  var p = (CTX && CTX.night_managers || []).filter(function(x){ return x.name === name; })[0];
+  var m = p ? (p.market || "") : "";
+  return /^northern/i.test(m) ? "nnv" : (/^las/i.test(m) ? "lv" : "");
 }
 
 /* ---------- boot ---------- */
