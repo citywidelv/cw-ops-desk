@@ -257,8 +257,10 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <label class="f">Were they in the right uniform?</label>
 <div class="chips" id="crewUni"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="Some of them" type="button">Some of them</button><button class="chip" data-v="No" type="button">No</button></div>
 <div id="uniNoteW" class="hidden"><label class="f">What was off?</label><input type="text" id="crew_uniform_note" placeholder="Short. Who and what"></div>
-<div id="crewNamesW" class="hidden"><label class="f">Who was on the crew? Ask their names.</label>
-<div class="sub">First and last name. We match them to the roster and the background checks on file.</div>
+<div id="crewNamesW" class="hidden"><label class="f" id="crewTitle">Who was on the crew? Ask their names.</label>
+<div class="sub" id="crewSub">First and last name. We match them to the roster and the background checks on file.</div>
+<div id="crewKnown"></div>
+<label class="f" id="crewNewL" class="hidden">Anyone new? Add their name.</label>
 <div id="crewNames"></div>
 <button class="linkbtn" id="crewAdd" type="button">+ Add another name</button></div>
 </div>
@@ -446,7 +448,7 @@ function fresh(){
     fsm:"", arrival: nowHM(), departure:"", reason:"", complaint_flag:false, timing:"", why_early:"",
     newstart_night:"", initial_clean_paid:"", checklist_items:[], wo_what:"", wo_done:"", call_who:"", call_about:"", call_next:"",
     hotspots_shown:"", hotspots_checked:[], dispensers_ok:false, trash_ok:false, restrooms_ok:false, standards:{}, std_fix:{}, prior_complaints:"",
-    crew_seen:"", crew_uniform:"", crew_uniform_note:"", crew_names:[],
+    crew_seen:"", crew_uniform:"", crew_uniform_note:"", crew_names:[], crew_known:[],
     score:8, score_note:"",
     closet_checked:"", closet_organized:false, sds_present:false, chemicals_labelled:false, chemicals_on_hand:false, equipment_ok:false, envirox_low:false, closet_notes:"",
     complaint_what:"", complaint_areas:"", complaint_channel:"", complaint_verified:"", complaint_root_cause:"", complaint_agreed_fix:"", complaint_resolved:"", complaint_blocker:"", crm_closed:"",
@@ -609,6 +611,7 @@ function pickAccount(a){
     var lv = CTX.last_vendor[a.id] || CTX.last_vendor[a.name.toLowerCase()];
     if (lv){ var m = VEN.filter(function(v){ return (lv.id && v.id===lv.id) || v.dba===lv.dba; })[0]; pickVendor(m || {id:lv.id, dba:lv.dba, owner:lv.owner, label: lv.dba + (lv.owner?' - '+lv.owner:''), matched:false}); $("vendHint").textContent = "Same company as last time. Tap Change if that is wrong."; }
   }
+  S.crew_known = []; paintCrewNames();
   S.prior_complaints = (CTX && CTX.prior_complaints && (CTX.prior_complaints[a.id] || CTX.prior_complaints[String(a.name).toLowerCase()])) || "";
   loadHotspots(a.name);
   save();
@@ -831,7 +834,7 @@ function validate(n){
   }
   if (n===3){
     if (inBuilding() && !S.crew_seen) return e.textContent = "Did you see the crew tonight?";
-    if (S.crew_seen==="Yes" && !S.crew_names.some(function(n){ return n.trim(); })) return e.textContent = "Add at least one crew member's name. Ask them.";
+    if (S.crew_seen==="Yes" && !S.crew_known.length && !S.crew_names.some(function(n){ return n.trim(); })) return e.textContent = "Tick or add at least one crew member's name. Ask them.";
     if (S.crew_seen==="Yes" && !S.crew_uniform) return e.textContent = "Were they in the right uniform?";
     if (showsScore() && Number(S.score) < LOW && !S.score_note.trim()) return e.textContent = "A score under " + LOW + " needs a note on what was wrong.";
     if (inBuilding()){ var open = stdItems().filter(function(it){ return !S.standards[it.k]; }); if (open.length) return e.textContent = "Answer every standard. " + open.length + " left: " + open[0].q; }
@@ -880,7 +883,7 @@ function renderReview(){
   if (showsScore()) add("Score", S.score + " out of 10" + (S.score_note?"\n"+S.score_note:""), 3);
   if (showsHotspots()) add("Hot spots checked", S.hotspots_checked.length + " of " + HS.length, 3);
   if (inBuilding()){ var items = stdItems(); var fails = stdFailed(); add("Standards", (items.length - fails.length) + " of " + items.length + " met" + (fails.length ? "\nNot met: " + fails.map(function(it){ return it.q + " (" + (S.std_fix[it.k]||"") + ")"; }).join("\n") : ""), 3); }
-  if (inBuilding()) add("Crew", S.crew_seen==="Yes" ? "Saw them. Uniform: " + S.crew_uniform + (S.crew_uniform_note?" ("+S.crew_uniform_note+")":"") + "\nNames: " + S.crew_names.filter(function(n){return n.trim();}).join(", ") : "Did not see the crew", 3);
+  if (inBuilding()) add("Crew", S.crew_seen==="Yes" ? "Saw them. Uniform: " + S.crew_uniform + (S.crew_uniform_note?" ("+S.crew_uniform_note+")":"") + "\nNames: " + S.crew_known.concat(S.crew_names.filter(function(n){return n.trim();})).join(", ") : "Did not see the crew", 3);
   if (inBuilding()) add("Closet", S.closet_checked==="Yes" ? [S.closet_organized?"organized":"", S.sds_present?"SDS there":"", S.chemicals_labelled?"labelled":"", S.chemicals_on_hand?"chemicals on hand":"", S.equipment_ok?"equipment ok":"", S.envirox_low?"EnvirOx low":""].filter(String).join(", ") + (S.closet_notes?"\n"+S.closet_notes:"") : "Not checked", 3);
   if (complaintOn()) add("Complaint", [S.complaint_what, "Resolved: " + S.complaint_resolved, S.complaint_blocker].filter(String).join("\n"), 3);
   if (showsPhotos()) add("Photos", S.photos.filter(function(p){ return p.file_id || p._data; }).length + " attached", 4);
@@ -914,7 +917,8 @@ function payload(){
   b.supplies_needed = (bl.length || vl.length) ? "Yes" : (R()==="Phone only" ? "" : "No");
   b.uniforms_needed = vl.some(function(x){ return /polo|uniform|shirt/i.test(x); }) ? "Yes" : (R()==="Phone only" ? "" : "No");
   b.supplies_note = [bl.length?"Building: "+bl.join(", "):"", vl.length?"Crew: "+vl.join(", "):""].filter(String).join(" | ");
-  b.crew_names = S.crew_seen==="Yes" ? S.crew_names.map(function(n){ return n.trim(); }).filter(String).join("\n") : "";
+  b.crew_names = S.crew_seen==="Yes" ? S.crew_known.concat(S.crew_names.map(function(n){ return n.trim(); }).filter(String)).join("\n") : "";
+  delete b.crew_known;
   ["bsup","bsup_other","vsup","vsup_other","fsm_confirmed"].forEach(function(k){ delete b[k]; });
   if (S.fsm_action_needed==="Yes" && !S.fsm_confirmed){ b.fsm_action_needed = "No"; b.fsm_action_note = ""; }
   if (!inBuilding()){ ["dispensers_ok","trash_ok","restrooms_ok","standards","standards_failed","standards_met"].forEach(function(k){ b[k]=""; }); }
@@ -1056,8 +1060,25 @@ function paintStd(){
 function stdFailed(){ return stdItems().filter(function(it){ return S.standards[it.k]==="No"; }); }
 
 /* ---------- crew names ---------- */
+function siteRoster(){
+  if (!CTX || !CTX.roster) return [];
+  return CTX.roster[S.account_id] || CTX.roster[String(S.account_name||"").toLowerCase()] || [];
+}
 function paintCrewNames(){
-  if (!S.crew_names.length) S.crew_names = [""];
+  var known = siteRoster();
+  if (known.length){
+    $("crewTitle").textContent = "The names we have for cleaners at this site are below. Tick who you saw.";
+    $("crewSub").textContent = "Not on the list? Add them under it. Ask for first and last name.";
+    $("crewKnown").innerHTML = known.map(function(n){ var on = S.crew_known.indexOf(n)>=0; return '<label class="tick'+(on?' on':'')+'"><input type="checkbox" data-kn="'+esc(n)+'"'+(on?' checked':'')+'><span>'+esc(n)+'</span></label>'; }).join("");
+    Array.prototype.forEach.call($("crewKnown").querySelectorAll("input"), function(c){ c.addEventListener("change", function(){ var n=c.getAttribute("data-kn"); S.crew_known = S.crew_known.filter(function(x){ return x!==n; }); if (c.checked) S.crew_known.push(n); c.closest(".tick").classList.toggle("on", c.checked); save(); }); });
+    $("crewNewL").textContent = "Anyone new? Add their name."; show("crewNewL", true);
+    if (!S.crew_names.length) S.crew_names = [""];
+  } else {
+    $("crewTitle").textContent = "Who was on the crew? Ask their names.";
+    $("crewSub").textContent = "First inspection here. Add every name you can get. First and last name.";
+    $("crewKnown").innerHTML = ""; show("crewNewL", false);
+    if (!S.crew_names.length) S.crew_names = [""];
+  }
   $("crewNames").innerHTML = S.crew_names.map(function(n, i){ return '<div class="namerow"><input type="text" data-cn="'+i+'" placeholder="First and last name" value="'+esc(n)+'" autocomplete="off">'+(S.crew_names.length>1?'<button type="button" data-cx="'+i+'" aria-label="Remove">&times;</button>':'')+'</div>'; }).join("");
   Array.prototype.forEach.call($("crewNames").querySelectorAll("input"), function(inp){ inp.addEventListener("input", function(){ S.crew_names[Number(inp.getAttribute("data-cn"))] = inp.value; save(); }); });
   Array.prototype.forEach.call($("crewNames").querySelectorAll("[data-cx]"), function(b){ b.addEventListener("click", function(){ S.crew_names.splice(Number(b.getAttribute("data-cx")), 1); paintCrewNames(); save(); }); });
@@ -1067,7 +1088,7 @@ $("aiBtn").addEventListener("click", function(){
   var lines = ["Write my night manager recap for tonight from these notes.", "Building: " + S.account_name, "Cleaning company: " + (S.vendor_name||"unknown"), "Reason: " + S.reason + (S.timing ? " (" + S.timing + ")" : "")];
   if (showsScore()) lines.push("Score: " + S.score + " out of 10" + (S.score_note ? ". " + S.score_note : ""));
   if (inBuilding()){ var f = stdFailed(); lines.push(f.length ? "Did not meet standard: " + f.map(function(it){ return it.q + ". What I did: " + (S.std_fix[it.k]||""); }).join(" | ") : "All standards checked met."); }
-  if (S.crew_seen==="Yes") lines.push("Crew on site: " + S.crew_names.filter(function(n){return n.trim();}).join(", ") + ". Uniform: " + S.crew_uniform + (S.crew_uniform_note ? " (" + S.crew_uniform_note + ")" : ""));
+  if (S.crew_seen==="Yes") lines.push("Crew on site: " + S.crew_known.concat(S.crew_names.filter(function(n){return n.trim();})).join(", ") + ". Uniform: " + S.crew_uniform + (S.crew_uniform_note ? " (" + S.crew_uniform_note + ")" : ""));
   if (S.crew_seen==="No") lines.push("Crew was not on site when I was there.");
   if (complaintOn()) lines.push("Client complaint: " + S.complaint_what + ". Resolved: " + S.complaint_resolved + (S.complaint_blocker ? ". " + S.complaint_blocker : ""));
   if (S.issues_resolved) lines.push("Everything fixed before I left: " + S.issues_resolved + (S.issue_remaining ? ". Left: " + S.issue_remaining : "") + (S.issue_resolution ? ". " + S.issue_resolution : ""));
@@ -1095,7 +1116,7 @@ function loadCtx(force){
 function useCtx(r){
   CTX = r;
   VEN = (r.vendors||[]).slice(); VEN.forEach(function(v){ v._s = (v.label||"").toLowerCase(); });
-  sortAccounts(); fillWho(); paintFsm();
+  sortAccounts(); fillWho(); paintFsm(); paintCrewNames();
   if (S.nm_name) { $("whoSel").value = S.nm_name; }
 }
 
@@ -1109,7 +1130,7 @@ function useCtx(r){
   if (who){ S.nm_name = who.name || ""; S.nm_email = who.email || ""; }
   if (draft && draft.draft_id && (draft.reason || draft.account_name || (draft.summary||"").length > 20)){
     show("resume", true);
-    $("resumeYes").addEventListener("click", function(){ S = draft; S.photos = S.photos || []; S.hotspots_checked = S.hotspots_checked||[]; S.checklist_items = S.checklist_items||[]; S.crew_names = S.crew_names||[]; S.building_supplies = S.building_supplies||[]; S.vendor_supplies = S.vendor_supplies||[]; S.standards = S.standards||{}; S.std_fix = S.std_fix||{}; HS = (S.hotspots_shown||"").split("\n").filter(String); show("resume", false); bindAll(); loadCtx(false); paintProg(); });
+    $("resumeYes").addEventListener("click", function(){ S = draft; S.photos = S.photos || []; S.hotspots_checked = S.hotspots_checked||[]; S.checklist_items = S.checklist_items||[]; S.crew_names = S.crew_names||[]; S.building_supplies = S.building_supplies||[]; S.vendor_supplies = S.vendor_supplies||[]; S.standards = S.standards||{}; S.std_fix = S.std_fix||{}; S.crew_known = S.crew_known||[]; HS = (S.hotspots_shown||"").split("\n").filter(String); show("resume", false); bindAll(); loadCtx(false); paintProg(); });
     $("resumeNo").addEventListener("click", function(){ ls(function(){ localStorage.removeItem(DRAFT_KEY); }); show("resume", false); save(); });
   }
   bindAll(); loadCtx(false); paintProg();

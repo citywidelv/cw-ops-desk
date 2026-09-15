@@ -205,7 +205,7 @@ function niContext_(data) {
   var mkt = niMarket_(data.market);
   var region = NI_MARKETS[mkt];
   var out = { ok: true, market: mkt, region: region, today: Utilities.formatDate(new Date(), NI_TZ, 'yyyy-MM-dd'),
-    accounts: [], vendors: [], night_managers: [], fsms: [], last_vendor: {}, prior_complaints: {}, warnings: [] };
+    accounts: [], vendors: [], night_managers: [], fsms: [], last_vendor: {}, prior_complaints: {}, roster: {}, warnings: [] };
 
   try {
     actAccountRows_(actSS_()).forEach(function (r) {
@@ -253,12 +253,14 @@ function niContext_(data) {
       var start = Math.max(2, last - 1500);
       var vals = isheet.getRange(start, 1, last - start + 1, head.length).getValues();
       var cA = head.indexOf('account_id'), cAN = head.indexOf('account_name'), cV = head.indexOf('vendor_name'), cVI = head.indexOf('vendor_id'), cVO = head.indexOf('vendor_owner');
+      var cCN = head.indexOf('crew_names');
       var cCF = head.indexOf('complaint_flag'), cCW = head.indexOf('complaint_what'), cCAr = head.indexOf('complaint_areas'), cSub = head.indexOf('submitted_at'), cSF = head.indexOf('standards_failed');
       var cutoff = Date.now() - 90 * 86400000;
       for (var k = vals.length - 1; k >= 0; k--) {
         var key = niStr_(vals[k][cA]) || niStr_(vals[k][cAN]).toLowerCase();
         if (!key) continue;
         if (!out.last_vendor[key] && niStr_(vals[k][cV])) out.last_vendor[key] = { id: niStr_(vals[k][cVI]), dba: niStr_(vals[k][cV]), owner: niStr_(vals[k][cVO]) };
+        if (cCN >= 0 && niStr_(vals[k][cCN])) niStr_(vals[k][cCN]).split('\n').forEach(function (n) { niRosterAdd_(out.roster, key, n); if (cAN >= 0) niRosterAdd_(out.roster, niStr_(vals[k][cAN]).toLowerCase(), n); });
         // Past complaints and failed standards at this building in the last 90 days feed a checklist line.
         var when = vals[k][cSub] instanceof Date ? vals[k][cSub].getTime() : Date.parse(niStr_(vals[k][cSub]).replace(' ', 'T'));
         if (isNaN(when)) when = Date.now();   // unreadable stamp: treat as recent rather than drop it
@@ -273,7 +275,30 @@ function niContext_(data) {
     }
   } catch (e) { out.warnings.push('last_vendor: ' + e.message); }
 
+  // Crew names already on the Account Cleaner Tracker roster, keyed by building name.
+  // The page shows these first ("the names we have for cleaners at this site") so
+  // the night manager ticks who was there and only types a name that is new.
+  try {
+    if (typeof acRows_ === 'function') {
+      acRows_(AC_ROS, AC_ROS_HEAD).forEach(function (x) {
+        var st = String(x.status || '');
+        if (/removed/i.test(st)) return;
+        var n = (String(x.cleaner_first || '') + ' ' + String(x.cleaner_last || '')).trim();
+        var acct = String(x.account_matched || x.account_raw || '').toLowerCase().trim();
+        if (n && acct) niRosterAdd_(out.roster, acct, n);
+      });
+    }
+  } catch (e) { out.warnings.push('roster: ' + e.message); }
+
   return niOut_(out);
+}
+
+function niRosterAdd_(map, key, name) {
+  key = String(key || '').trim(); name = String(name || '').replace(/\s+/g, ' ').trim();
+  if (!key || name.length < 2) return;
+  var list = map[key] || (map[key] = []);
+  var low = name.toLowerCase();
+  if (!list.some(function (x) { return x.toLowerCase() === low; })) list.push(name);
 }
 
 // ------------------------------------------------------------ photo -------
