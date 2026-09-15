@@ -226,7 +226,7 @@ function niContext_(data) {
     var v = sh ? sh.getDataRange().getValues() : [];
     for (var i = 1; i < v.length; i++) {
       if (!v[i][0] || String(v[i][5]).toUpperCase() === 'FALSE') continue;
-      var p = { name: String(v[i][0]), email: String(v[i][4] || ''), market: String(v[i][2] || ''), role: String(v[i][1] || '') };
+      var p = { name: String(v[i][0]).replace(/\s+/g, ' ').trim(), email: String(v[i][4] || '').trim(), market: String(v[i][2] || '').trim(), role: String(v[i][1] || '').trim() };
       var inMkt = p.market === 'Both' || p.market === region;
       if (p.role === 'Night Manager') out.night_managers.push(p);
       else if (inMkt && /Facility Solutions Manager|Director of Operations|General Manager/.test(p.role)) out.fsms.push(p);
@@ -429,7 +429,8 @@ function niPdf_(r, embeds, stem, mkt, reportDate) {
   function sec(title, rows) { var body = rows.join(''); return body ? '<h2>' + e(title) + '</h2><table>' + body + '</table>' : ''; }
   var flags = r.flags || niFlags_(r);
   var flagNames = { low_score: 'Low score', complaint: 'Complaint', unresolved: 'Unresolved', fsm_action: 'FSM action', unmatched_vendor: 'Company not in directory', unmatched_account: 'Building not in directory', supplies: 'Supplies', uniform: 'Uniform' };
-  var flagHtml = flags ? '<div class="flags">' + flags.split(',').map(function (f) { return '<span>' + e(flagNames[f] || f) + '</span>'; }).join('') + '</div>' : '';
+  // Plain red text, not chips: the HTML-to-PDF converter drops inline-block backgrounds.
+  var flagHtml = flags ? '<div class="flags">Flags: ' + flags.split(',').map(function (f) { return e(flagNames[f] || f); }).join(' &middot; ') + '</div>' : '';
   var scoreHtml = r.score !== '' ? '<div class="score' + (Number(r.score) < NI_LOW_SCORE ? ' low' : '') + '"><b>' + e(r.score) + '</b><span>/10</span></div>' : '';
   var company = r.vendor_name ? r.vendor_name + (r.vendor_owner ? ' - ' + r.vendor_owner : '') + (r.vendor_matched === 'FALSE' ? ' (typed, not in directory)' : '') : '';
 
@@ -441,7 +442,7 @@ function niPdf_(r, embeds, stem, mkt, reportDate) {
     + 'td{padding:4px 6px;border-bottom:1px solid #ddd;vertical-align:top}'
     + '.head{display:table;width:100%}.head>div{display:table-cell;vertical-align:top}'
     + '.score{text-align:right;font-size:11px;color:#636466}.score b{font-size:30px;color:#2D2A26}.score.low b{color:#D22730}'
-    + '.flags span{display:inline-block;background:#D22730;color:#fff;font-size:10px;padding:2px 7px;margin:2px 4px 2px 0;border-radius:9px}'
+    + '.flags{color:#D22730;font-weight:bold;font-size:11px;margin:4px 0 6px}'
     + '.sum{white-space:pre-wrap;border:1px solid #ddd;padding:8px;background:#fafafa}'
     + '.ph{margin-top:8px}.ph .cap{font-size:10px;color:#636466;margin-top:6px}.ph img{max-width:100%;max-height:420px;display:block;margin:2px 0 10px;border:1px solid #ddd}'
     + '.foot{margin-top:18px;font-size:9px;color:#636466;text-align:center}'
