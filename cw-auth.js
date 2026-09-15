@@ -1,5 +1,12 @@
-/* CW Auth. Build 2026-09-05.
+/* CW Auth. Build 2026-09-15.
    One team unlock per device for every internal page under citywidelv.github.io.
+   Sep 15 2026: ONE password for the whole platform. The separate Admin Hub key is
+   retired (getAdmin returns "" and any stale cwAdminHubPass is deleted on load), and
+   the device unlock now expires after 90 days of no use. The 90 days are ROLLING:
+   every internal page load restarts the clock, so a person who uses the hubs never
+   retypes the passcode and a device left idle a full quarter forgets it. The gate is
+   silent by design: no "you have been here before" message, no "the passcode changed"
+   message. A wrong passcode and an unreachable server still say so.
 
    How it works
    - Every internal repo publishes under the same origin, so localStorage is shared.
@@ -22,7 +29,9 @@
   "use strict";
   var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
   var KEY = "cwOpsHubPass";
-  var ADMINKEY = "cwAdminHubPass";
+  var ADMINKEY = "cwAdminHubPass";      /* retired Sep 15 2026, deleted wherever it is found */
+  var STAMPKEY = "cwAuthSince";
+  var MAXAGE = 90 * 24 * 60 * 60 * 1000;  /* 90 days of no use, rolling */
   var LEGACY = ["cw_sales_auth", "cw_exa_auth", "cw_vio_auth", "cw_ins_auth"];
   var MSGKEY = "cwAuthMsg";
   var ORIGIN = "https://citywidelv.github.io/";
@@ -33,34 +42,56 @@
     portal: ORIGIN
   };
   var MSG = {
-    locked:  "Enter the team passcode once. This browser stays unlocked until the passcode changes.",
-    expired: "The team passcode changed. Enter the new one to continue.",
+    locked:  "",
+    expired: "",
     offline: "Could not reach the server. Check your connection and try again.",
     wrong:   "That passcode is not right. Ask TJ if you need it."
   };
 
   function ls(fn){ try { return fn(); } catch(e){ return null; } }
+  function dropOldKeys(){
+    LEGACY.forEach(function(k){ ls(function(){ localStorage.removeItem(k); }); });
+    ls(function(){ localStorage.removeItem(ADMINKEY); });
+  }
+  function touch(){ ls(function(){ localStorage.setItem(STAMPKEY, String(Date.now())); }); }
+
+  /* Rolling 90 day window. No stamp means this device unlocked before this build
+     shipped, so start its clock now rather than logging everybody out at once. */
+  function fresh(){
+    var t = Number(ls(function(){ return localStorage.getItem(STAMPKEY); }) || 0);
+    if(!t){ touch(); return true; }
+    if(Date.now() - t > MAXAGE) return false;
+    touch();
+    return true;
+  }
   function getTeam(){
     var v = ls(function(){ return localStorage.getItem(KEY); }) || "";
-    if(v){ LEGACY.forEach(function(k){ ls(function(){ localStorage.removeItem(k); }); }); return v; }
-    for(var i = 0; i < LEGACY.length; i++){
-      var k = LEGACY[i];
-      v = ls(function(){ return localStorage.getItem(k); }) || "";
-      if(v){ setTeam(v); return v; }
+    if(!v){
+      for(var i = 0; i < LEGACY.length; i++){
+        var k = LEGACY[i];
+        var old = ls(function(){ return localStorage.getItem(k); }) || "";
+        if(old){ setTeam(old); v = old; break; }
+      }
     }
-    return "";
+    if(!v) return "";
+    if(!fresh()){ clearTeam(); return ""; }
+    dropOldKeys();
+    return v;
   }
-  function getAdmin(){ return ls(function(){ return localStorage.getItem(ADMINKEY); }) || ""; }
+  /* One password for the whole platform. The Admin Hub keeps no key of its own. */
+  function getAdmin(){ return ""; }
   function setTeam(pass){
     ls(function(){ localStorage.setItem(KEY, pass); });
-    LEGACY.forEach(function(k){ ls(function(){ localStorage.removeItem(k); }); });
+    touch();
+    dropOldKeys();
   }
-  function setAdmin(pass){ ls(function(){ localStorage.setItem(ADMINKEY, pass); }); }
+  function setAdmin(pass){ setTeam(pass); }
   function clearTeam(){
     ls(function(){ localStorage.removeItem(KEY); });
-    LEGACY.forEach(function(k){ ls(function(){ localStorage.removeItem(k); }); });
+    ls(function(){ localStorage.removeItem(STAMPKEY); });
+    dropOldKeys();
   }
-  function clearAll(){ clearTeam(); ls(function(){ localStorage.removeItem(ADMINKEY); }); }
+  function clearAll(){ clearTeam(); }
 
   /* Server check. Resolves {ok:true, r} / {ok:false, r} / {ok:null} (unreachable). */
   function validate(pass, kind){
@@ -197,10 +228,7 @@
       }
       say("");
     }
-    function store(pass, r){
-      if(hub === "admin"){ if(r && r.who === "bom") setAdmin(pass); else setTeam(pass); }
-      else setTeam(pass);
-    }
+    function store(pass, r){ setTeam(pass); }
     function finish(pass, r){
       if(next){ location.replace(next); return; }
       if(unlocked) return;
@@ -233,7 +261,6 @@
     var cands = [];
     var team = getTeam();
     if(team) cands.push({ pass: team, admin: false });
-    if(hub === "admin"){ var bp = getAdmin(); if(bp) cands.push({ pass: bp, admin: true }); }
 
     if(!cands.length){
       var m = reason === "expired" ? MSG.expired : (reason === "locked" ? MSG.locked : "");
