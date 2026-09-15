@@ -70,7 +70,9 @@ var NI_HEADERS = [
   // appended Sep 15 2026 (crew roster + structured supplies)
   'crew_names', 'crew_unverified', 'building_supplies', 'vendor_supplies',
   // appended Sep 15 2026 (standards checklist)
-  'standards', 'standards_failed', 'standards_met', 'prior_complaints'
+  'standards', 'standards_failed', 'standards_met', 'prior_complaints',
+  // appended Sep 15 2026 (route out)
+  'route_stop_id', 'route_answers'
 ];
 var NI_REQ_HEADERS = ['when', 'market', 'type', 'name', 'owner', 'label', 'nm_name', 'sent_to', 'status'];
 
@@ -168,6 +170,7 @@ function niDispatch(data) {
   var kind = String(data.kind || '');
   if ((data.passcode || '') === '' || (data.passcode || '') !== niPass_()) return niOut_({ ok: false, error: 'Bad passcode' });
   try {
+    if (kind.indexOf('ni_route_') === 0) return nrDispatch_(data);
     if (kind === 'ni_setup') return niSetup_(data);
     if (kind === 'ni_context') return niContext_(data);
     if (kind === 'ni_photo') return niPhoto_(data);
@@ -290,6 +293,21 @@ function niContext_(data) {
     }
   } catch (e) { out.warnings.push('roster: ' + e.message); }
 
+  // Tonight's route from the FSMs, plus every standing per-building checklist.
+  // The page filters the stops once the night manager picks their name. A
+  // recap filed after midnight still answers the route written the afternoon
+  // before, which is what nrNightDate_ handles.
+  out.route_date = '';
+  out.route = [];
+  out.account_checks = {};
+  try {
+    if (typeof nrNightDate_ === 'function') {
+      out.route_date = nrNightDate_();
+      var rl = JSON.parse(nrList_({ market: mkt, report_date: out.route_date }).getContent());
+      if (rl && rl.ok) { out.route = rl.stops || []; out.account_checks = rl.checks || {}; }
+    }
+  } catch (e) { out.warnings.push('route: ' + e.message); }
+
   return niOut_(out);
 }
 
@@ -342,6 +360,7 @@ function niFlags_(r) {
   if (r.crew_seen === 'Yes' && (r.crew_uniform === 'No' || r.crew_uniform === 'Some of them')) f.push('uniform');
   if (r.crew_unverified) f.push('crew_unverified');
   if (r.standards_failed) f.push('standards_failed');
+  if (/\|\s*(No|Couldn't|Couldnt)\s*\|/i.test(String(r.route_answers || ''))) f.push('fsm_ask_missed');
   return f.join(',');
 }
 function niBool_(v) { return (v === true || String(v).toUpperCase() === 'TRUE' || String(v) === 'Yes') ? 'TRUE' : 'FALSE'; }
@@ -431,7 +450,11 @@ function niSubmit_(data) {
     var row = head.map(function (h) { return r[h] === undefined ? '' : r[h]; });
     sh.getRange(sh.getLastRow() + 1, 1, 1, row.length).setValues([row]);
 
-    return niOut_({ ok: true, inspection_id: id, pdf_url: pdf.url, photo_count: links.length, flags: r.flags });
+    // Close the loop back to the FSM who assigned this stop.
+    var answered = null;
+    try { if (typeof nrAnswer_ === 'function') answered = nrAnswer_(r); } catch (re) {}
+
+    return niOut_({ ok: true, inspection_id: id, pdf_url: pdf.url, photo_count: links.length, flags: r.flags, route: answered });
   } finally { lock.releaseLock(); }
 }
 
@@ -556,7 +579,7 @@ function niPdf_(r, embeds, stem, mkt, reportDate) {
   function row(label, val) { return val === '' || val == null ? '' : '<tr><th>' + e(label) + '</th><td>' + e(val).replace(/\n/g, '<br>') + '</td></tr>'; }
   function sec(title, rows) { var body = rows.join(''); return body ? '<h2>' + e(title) + '</h2><table>' + body + '</table>' : ''; }
   var flags = r.flags || niFlags_(r);
-  var flagNames = { low_score: 'Low score', complaint: 'Complaint', unresolved: 'Unresolved', fsm_action: 'FSM action', unmatched_vendor: 'Company not in directory', unmatched_account: 'Building not in directory', supplies: 'Supplies', uniform: 'Uniform', crew_unverified: 'Crew not background checked', standards_failed: 'Standard not met' };
+  var flagNames = { low_score: 'Low score', complaint: 'Complaint', unresolved: 'Unresolved', fsm_action: 'FSM action', unmatched_vendor: 'Company not in directory', unmatched_account: 'Building not in directory', supplies: 'Supplies', uniform: 'Uniform', crew_unverified: 'Crew not background checked', standards_failed: 'Standard not met', fsm_ask_missed: 'FSM ask not met' };
   // Plain red text, not chips: the HTML-to-PDF converter drops inline-block backgrounds.
   var flagHtml = flags ? '<div class="flags">Flags: ' + flags.split(',').map(function (f) { return e(flagNames[f] || f); }).join(' &middot; ') + '</div>' : '';
   var scoreHtml = r.score !== '' ? '<div class="score' + (Number(r.score) < NI_LOW_SCORE ? ' low' : '') + '"><b>' + e(r.score) + '</b><span>/10</span></div>' : '';
@@ -585,6 +608,7 @@ function niPdf_(r, embeds, stem, mkt, reportDate) {
       row('Saw the crew', r.crew_seen), row('Right uniform', r.crew_uniform), row('What was off', r.crew_uniform_note),
       row('Crew on site', r.crew_names), row('No background check on file', r.crew_unverified)])
     + sec('Standards' + (r.standards_met ? ' (' + r.standards_met + ' met)' : ''), [row('Checked', r.standards), row('Did not meet standard, what was done', r.standards_failed), row('Past complaint areas', r.prior_complaints)])
+    + sec('What the FSM asked for', [row('Answers', r.route_answers)])
     + sec('Closet', [row('Closet checked', r.closet_checked), row('Organized', r.closet_organized), row('SDS present', r.sds_present), row('Chemicals labelled', r.chemicals_labelled),
       row('Chemicals on hand', r.chemicals_on_hand), row('Equipment', r.equipment_ok), row('EnvirOx running low', r.envirox_low), row('Closet notes', r.closet_notes)])
     + (r.complaint_flag === 'TRUE' ? sec('Client complaint', [row('What the client said', r.complaint_what), row('Which areas', r.complaint_areas), row('How it reached us', r.complaint_channel),

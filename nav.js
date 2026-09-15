@@ -561,15 +561,24 @@ window.CW_NAV = {
      "sub": "Nightly Route Outs",
      "items": [
       {
-       "label": "Las Vegas Route Out",
+       "label": "Route Out (new page)",
+       "href": "night-route.html",
+       "tag": "New"
+      },
+      {
+       "label": "Route Out Tonight (FSM view)",
+       "href": "night-route.html#status"
+      },
+      {
+       "label": "Las Vegas Route Out (old form)",
        "href": "https://form.jotform.com/241440730763149"
       },
       {
-       "label": "Las Vegas Route Out Submissions",
+       "label": "Las Vegas Route Out Submissions (old form)",
        "href": "https://www.jotform.com/tables/241440730763149"
       },
       {
-       "label": "Northern Nevada Route Out",
+       "label": "Northern Nevada Route Out (old form)",
        "href": "https://form.jotform.com/team/253234894174059/nnv-night-manager-route-out"
       }
      ]

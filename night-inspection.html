@@ -126,6 +126,29 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 .timebox .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
 .confirm{border:2px solid var(--red);border-radius:12px;padding:14px;background:#fdf3f3;margin-top:10px}
 .confirm p{font-size:15px;margin-bottom:10px}
+/* --- route out from the FSM --- */
+.rt{border:1px solid var(--border);border-left:4px solid var(--red);border-radius:12px;background:#fff;box-shadow:var(--shadow);padding:0;margin-bottom:10px;overflow:hidden}
+.rt.soft{border-left-color:var(--border)}
+.rt.taken{border-left-color:var(--ok);opacity:.65}
+.rt button.pickr{display:block;width:100%;text-align:left;border:0;background:#fff;padding:14px 16px;font-family:inherit;color:var(--black);cursor:pointer}
+.rt button.pickr:active{background:var(--light)}
+.rt .an{font-size:17px;font-weight:700;line-height:1.3;display:block}
+.rt .rm{font-size:12px;color:var(--grey);display:block;margin-top:3px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.rt .ri{font-size:14px;color:var(--black);margin-top:8px;line-height:1.5;white-space:pre-wrap;display:block}
+.rt .rc{font-size:13px;color:var(--grey);margin-top:8px;display:block}
+.rtnone{border:1.5px dashed var(--border);border-radius:12px;padding:16px;text-align:center;color:var(--grey);font-size:14px;background:#fff}
+.askbox{border:2px solid var(--red);border-radius:12px;background:#fdf3f3;padding:14px;margin-bottom:12px}
+.askbox .from{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--red)}
+.askbox .inst{font-size:15px;white-space:pre-wrap;margin-top:6px;line-height:1.55}
+.ai{border:1px solid var(--border);border-radius:10px;background:#fff;padding:12px;margin-bottom:10px}
+.ai.bad{border-color:var(--red);border-width:2px}
+.ai .q{font-size:15px;font-weight:700;line-height:1.4;margin-bottom:8px}
+.ai .src{font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:4px}
+.ai .yn{display:flex;gap:6px}
+.ai .yn button{flex:1;min-height:46px;border:1.5px solid var(--border);background:#fff;border-radius:8px;font-size:14px;font-weight:700;color:var(--grey);font-family:inherit;cursor:pointer}
+.ai .yn button.on{background:var(--black);border-color:var(--black);color:#fff}
+.ai .yn button.n.on{background:var(--red);border-color:var(--red)}
+.ai textarea{min-height:64px;margin-top:8px}
 @media (max-width:420px){.tiles{grid-template-columns:1fr 1fr}.head .t{font-size:10px}}
 </style>
 <link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
@@ -167,6 +190,11 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <input type="text" id="whoOther" class="hidden" placeholder="Type your name" style="margin-top:8px"></div>
 <label class="f">Market</label>
 <div class="chips" id="mktChips"><button class="chip" data-m="lv" type="button">Las Vegas</button><button class="chip" data-m="nnv" type="button">Northern Nevada</button></div>
+</div>
+<div class="card hidden" id="rtCard">
+<label class="f">Tonight's route</label>
+<div class="sub" id="rtSub">Your FSM asked you to visit these. Tap one to start its recap. You can still inspect anything else.</div>
+<div id="rtList"></div>
 </div>
 <div class="card">
 <label class="f">Building <span class="req">*</span></label>
@@ -242,6 +270,13 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <div class="sub">These are the areas the client watches. Tick each one you checked.</div>
 <div id="hsList"></div>
 <div class="hint" id="hsHint"></div>
+</div>
+<div class="card hidden" id="askCard">
+<div class="stdhead"><label class="f" style="margin:0">What your FSM asked for</label><span class="cnt" id="askCount"></span></div>
+<div class="sub">Answer each one. Your answer goes straight back to the FSM who asked.</div>
+<div id="askInst"></div>
+<div id="askList"></div>
+<div class="hint" id="askHint"></div>
 </div>
 <div class="card" id="fixedCard">
 <div class="stdhead"><label class="f" style="margin:0">Does it meet the standard?</label><span class="cnt" id="stdCount"></span></div>
@@ -448,6 +483,7 @@ function fresh(){
     fsm:"", arrival: nowHM(), departure:"", reason:"", complaint_flag:false, timing:"", why_early:"",
     newstart_night:"", initial_clean_paid:"", checklist_items:[], wo_what:"", wo_done:"", call_who:"", call_about:"", call_next:"",
     hotspots_shown:"", hotspots_checked:[], dispensers_ok:false, trash_ok:false, restrooms_ok:false, standards:{}, std_fix:{}, prior_complaints:"",
+    route_stop_id:"", route_from:"", route_inst:"", route_items:[], ask:{}, ask_note:{},
     crew_seen:"", crew_uniform:"", crew_uniform_note:"", crew_names:[], crew_known:[],
     score:8, score_note:"",
     closet_checked:"", closet_organized:false, sds_present:false, chemicals_labelled:false, chemicals_on_hand:false, equipment_ok:false, envirox_low:false, closet_notes:"",
@@ -465,7 +501,14 @@ function save(){
   saveT = setTimeout(function(){ if (done) return; ls(function(){ localStorage.setItem(DRAFT_KEY, JSON.stringify(S)); }); }, 300);
 }
 function flush(){ if (done) return; clearTimeout(saveT); ls(function(){ localStorage.setItem(DRAFT_KEY, JSON.stringify(S)); }); }
-window.addEventListener("pagehide", flush); window.addEventListener("beforeunload", flush); document.addEventListener("visibilitychange", function(){ if (document.visibilityState==="hidden") flush(); });
+window.addEventListener("pagehide", flush); window.addEventListener("beforeunload", flush);
+/* Pick up a route the FSM wrote after this page was opened. FSMs write late, so
+   a page left open at 9pm would otherwise never see tonight's stops. */
+var lastCtx = 0;
+document.addEventListener("visibilitychange", function(){
+  if (document.visibilityState==="hidden"){ flush(); return; }
+  if (PASS && Date.now() - lastCtx > 120000){ lastCtx = Date.now(); try { loadCtx(true); } catch(e){} }
+});
 function clearDraft(){ done = true; clearTimeout(saveT); ls(function(){ localStorage.removeItem(DRAFT_KEY); }); }
 
 /* ---------- visibility rules ---------- */
@@ -543,7 +586,7 @@ function fillWho(){
   var opts = (CTX && CTX.night_managers || []).map(function(p){ return '<option value="'+esc(p.name)+'" data-e="'+esc(p.email)+'">'+esc(p.name)+'</option>'; }).join("");
   sel.innerHTML = '<option value="">Pick your name...</option>' + opts + '<option value="__other">Someone else</option>';
 }
-$("whoSel").addEventListener("change", function(){
+$("whoSel").addEventListener("change", function(){ setTimeout(paintRoute, 0);
   if (this.value==="__other"){ show("whoOther", true); $("whoOther").focus(); return; }
   show("whoOther", false);
   var o = this.options[this.selectedIndex];
@@ -601,7 +644,7 @@ wirePicker("vendQ", "vendList", function(){ return VEN; },
   function(key){ var v = VEN.filter(function(x){ return (x.id||x.label)===key; })[0]; if (v) pickVendor(v); });
 
 function pickAccount(a){
-  if (!a){ S.account_id=""; S.account_name=""; S.account_matched=false; HS=[]; S.hotspots_shown=""; S.hotspots_checked=[]; S.prior_complaints=""; show("acctPicked", false); show("acctPick", true); $("acctQ").value=""; $("acctHint").textContent=""; save(); return; }
+  if (!a){ S.account_id=""; S.account_name=""; S.account_matched=false; HS=[]; S.hotspots_shown=""; S.hotspots_checked=[]; S.prior_complaints=""; S.route_stop_id=""; S.route_from=""; S.route_inst=""; S.route_items=[]; S.ask={}; S.ask_note={}; setTimeout(function(){ paintAsk(); paintRoute(); },0); show("acctPicked", false); show("acctPick", true); $("acctQ").value=""; $("acctHint").textContent=""; save(); return; }
   S.account_id = a.id||""; S.account_name = a.name; S.account_matched = !!a.matched || !a.typed;
   $("acctName").innerHTML = esc(a.name) + (a.typed ? '<small>Typed by hand. The office will add it.</small>' : '<small>'+esc(a.address||'')+'</small>');
   show("acctPicked", true); show("acctPick", false);
@@ -613,6 +656,8 @@ function pickAccount(a){
   }
   S.crew_known = []; paintCrewNames();
   S.prior_complaints = (CTX && CTX.prior_complaints && (CTX.prior_complaints[a.id] || CTX.prior_complaints[String(a.name).toLowerCase()])) || "";
+  if (S.route_stop_id){ var still = myStops().filter(function(x){ return x.stop_id===S.route_stop_id && x.account_name===a.name; }).length; if (!still){ S.route_stop_id=""; S.route_from=""; S.route_inst=""; S.route_items=[]; S.ask={}; S.ask_note={}; } }
+  paintAsk();
   loadHotspots(a.name);
   save();
 }
@@ -813,7 +858,8 @@ function paintProg(){
   $("back").disabled = idx <= 0;
   $("next").textContent = idx === vis.length-1 ? "Send report" : "Next";
   if (S.screen===5 && showsTimes() && !S.departure){ S.departure = nowHM(); $("departure").value = S.departure; save(); }
-  if (S.screen===3) { paintNs(); paintStd(); }
+  if (S.screen===1) paintRoute();
+  if (S.screen===3) { paintNs(); paintStd(); paintAsk(); }
   if (S.screen===4) renderPhotoRows();
   if (S.screen===6) renderReview();
   window.scrollTo(0,0);
@@ -839,6 +885,8 @@ function validate(n){
     if (showsScore() && Number(S.score) < LOW && !S.score_note.trim()) return e.textContent = "A score under " + LOW + " needs a note on what was wrong.";
     if (inBuilding()){ var open = stdItems().filter(function(it){ return !S.standards[it.k]; }); if (open.length) return e.textContent = "Answer every standard. " + open.length + " left: " + open[0].q; }
     if (inBuilding()){ var nofix = stdFailed().filter(function(it){ return !(S.std_fix[it.k]||"").trim(); }); if (nofix.length) return e.textContent = "Say what you did about: " + nofix[0].q; }
+    var ao = askOpen(); if (ao.length) return e.textContent = "Your FSM asked about this. Answer it: " + ao[0].q;
+    var an = askNoNote(); if (an.length) return e.textContent = "Write one line back to your FSM about: " + an[0].q;
     if (inBuilding() && !S.closet_checked) return e.textContent = "Did you check the janitor closet?";
     if (complaintOn() && !S.complaint_what.trim()) return e.textContent = "What did the client say?";
     if (complaintOn() && !S.complaint_resolved) return e.textContent = "Is the complaint resolved?";
@@ -883,6 +931,7 @@ function renderReview(){
   if (showsScore()) add("Score", S.score + " out of 10" + (S.score_note?"\n"+S.score_note:""), 3);
   if (showsHotspots()) add("Hot spots checked", S.hotspots_checked.length + " of " + HS.length, 3);
   if (inBuilding()){ var items = stdItems(); var fails = stdFailed(); add("Standards", (items.length - fails.length) + " of " + items.length + " met" + (fails.length ? "\nNot met: " + fails.map(function(it){ return it.q + " (" + (S.std_fix[it.k]||"") + ")"; }).join("\n") : ""), 3); }
+  var aks = askItems(); if (aks.length || S.route_inst) add("What the FSM asked", (S.route_inst ? S.route_inst + "\n" : "") + aks.map(function(it){ return it.q + ": " + (S.ask[it.k]||"") + (S.ask_note[it.k] ? " - " + S.ask_note[it.k] : ""); }).join("\n"), 3);
   if (inBuilding()) add("Crew", S.crew_seen==="Yes" ? "Saw them. Uniform: " + S.crew_uniform + (S.crew_uniform_note?" ("+S.crew_uniform_note+")":"") + "\nNames: " + S.crew_known.concat(S.crew_names.filter(function(n){return n.trim();})).join(", ") : "Did not see the crew", 3);
   if (inBuilding()) add("Closet", S.closet_checked==="Yes" ? [S.closet_organized?"organized":"", S.sds_present?"SDS there":"", S.chemicals_labelled?"labelled":"", S.chemicals_on_hand?"chemicals on hand":"", S.equipment_ok?"equipment ok":"", S.envirox_low?"EnvirOx low":""].filter(String).join(", ") + (S.closet_notes?"\n"+S.closet_notes:"") : "Not checked", 3);
   if (complaintOn()) add("Complaint", [S.complaint_what, "Resolved: " + S.complaint_resolved, S.complaint_blocker].filter(String).join("\n"), 3);
@@ -923,6 +972,8 @@ function payload(){
   if (S.fsm_action_needed==="Yes" && !S.fsm_confirmed){ b.fsm_action_needed = "No"; b.fsm_action_note = ""; }
   if (!inBuilding()){ ["dispensers_ok","trash_ok","restrooms_ok","standards","standards_failed","standards_met"].forEach(function(k){ b[k]=""; }); }
   b.prior_complaints = S.prior_complaints || "";
+  b.route_answers = askAnswers();
+  ["route_items","ask","ask_note","route_from","route_inst"].forEach(function(k){ delete b[k]; });
   if (S.closet_checked!=="Yes"){ ["closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ b[k]=""; }); b.closet_notes=""; }
   if (!showsScore()){ b.score = ""; b.score_note = ""; }
   if (!showsTimes()){ b.arrival = ""; b.departure = ""; }
@@ -979,7 +1030,7 @@ function bindAll(){
   ["wo_what","call_who","call_about","call_next","crew_uniform_note","score_note","closet_notes","complaint_what","complaint_areas","complaint_root_cause","complaint_agreed_fix","complaint_blocker","issue_resolution","issue_remaining","issue_owner","issue_due","summary","fsm_action_note"].forEach(function(k){ $(k).value = S[k] || ""; });
   $("bsupOther").value = S.bsup_other || ""; $("vsupOther").value = S.vsup_other || "";
   ["closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ var el=$(k); el.checked=!!S[k]; el.closest(".tick").classList.toggle("on", el.checked); });
-  paintStd();
+  paintStd(); paintRoute(); paintAsk();
   paintChips("bsup", "data-v", S.bsup); paintChips("vsup", "data-v", S.vsup); paintSup(); paintCrewNames(); $("howto").classList.add("hidden");
   paintScore(); paintHotspots(); applyRules(); renderPhotoRows();
   S.photos.forEach(function(p){ if (!p.file_id) p.status = p._data ? "pending" : "bad"; });
@@ -1059,6 +1110,107 @@ function paintStd(){
 }
 function stdFailed(){ return stdItems().filter(function(it){ return S.standards[it.k]==="No"; }); }
 
+/* ---------- the route out from the FSM ----------
+   Two sources feed the same list of questions:
+     1. tonight's stop, written on night-route.html for this night manager
+     2. the standing checklist the FSM keeps on that building, which rides
+        every inspection there whether or not it is on tonight's route
+   Assignments are a shortcut, never a lock. Picking nothing still works. */
+function myStops(){
+  if (!CTX || !CTX.route || !S.nm_name) return [];
+  return CTX.route.filter(function(x){ return x.nm_name === S.nm_name; });
+}
+function paintRoute(){
+  var mine = myStops();
+  show("rtCard", mine.length > 0);
+  if (!mine.length) return;
+  var open = mine.filter(function(x){ return !x.inspection_id; });
+  $("rtSub").textContent = open.length
+    ? "Your FSM asked you to visit " + mine.length + " building" + (mine.length===1?"":"s") + " tonight. Tap one to start its recap. You can still inspect anything else."
+    : "Every stop on tonight's route is done. You can still inspect anything else.";
+  $("rtList").innerHTML = mine.map(function(x, i){
+    var taken = !!x.inspection_id || (S.route_stop_id && S.route_stop_id !== x.stop_id && S.account_name === x.account_name);
+    var cls = "rt" + (x.priority === "If you can" ? " soft" : "") + (x.inspection_id ? " taken" : "");
+    return '<div class="' + cls + '"><button class="pickr" type="button" data-sid="' + esc(x.stop_id) + '">' +
+      '<span class="an">' + esc(x.account_name) + '</span>' +
+      '<span class="rm">' + esc(x.reason) + ' &middot; ' + esc(x.priority) + (x.inspection_id ? ' &middot; done' : '') + '</span>' +
+      '<span class="ri">' + esc(x.instructions) + '</span>' +
+      (x.check_items && x.check_items.length ? '<span class="rc">' + x.check_items.length + ' thing' + (x.check_items.length===1?'':'s') + ' to check and answer</span>' : '') +
+      '</button></div>';
+  }).join("");
+  Array.prototype.forEach.call($("rtList").querySelectorAll("button.pickr"), function(b){
+    b.addEventListener("click", function(){ takeStop(b.getAttribute("data-sid")); });
+  });
+}
+function takeStop(sid){
+  var x = myStops().filter(function(y){ return y.stop_id === sid; })[0];
+  if (!x) return;
+  S.route_stop_id = x.stop_id; S.route_from = x.fsm; S.route_inst = x.instructions;
+  S.route_items = (x.check_items || []).slice();
+  S.ask = {}; S.ask_note = {};
+  var a = (CTX.accounts || []).filter(function(y){ return (x.account_id && y.id === x.account_id) || y.name === x.account_name; })[0];
+  pickAccount(a || { id: x.account_id, name: x.account_name, matched: true });
+  if (REASONS_OK(x.reason)) { S.reason = x.reason; paintReason(); }
+  if (x.fsm && !S.fsm) { S.fsm = x.fsm; paintFsm(); }
+  save(); paintRoute(); paintAsk();
+  $("acctHint").textContent = "Started from " + (x.fsm || "your FSM") + "'s route. Their instructions are on the next screens.";
+}
+function paintReason(){ paintChips("reasons", "data-r", S.reason); paintNs(); renderPhotoRows(); paintProg(); }
+function REASONS_OK(r){ return ["Regular check","New building","Client complained","Work order","Phone only","Photos from crew"].indexOf(r) >= 0; }
+
+/* Questions the FSM wants answered at this building. */
+function askItems(){
+  var out = [], seen = {};
+  (S.route_items || []).forEach(function(q){
+    q = String(q||"").trim(); if (!q || seen[q.toLowerCase()]) return;
+    seen[q.toLowerCase()] = 1; out.push({ k: "r" + out.length, q: q, src: "tonight" });
+  });
+  var std = CTX && CTX.account_checks
+    ? (CTX.account_checks[S.account_id] || CTX.account_checks[String(S.account_name||"").toLowerCase()])
+    : null;
+  if (std && std.items) std.items.forEach(function(q){
+    q = String(q||"").trim(); if (!q || seen[q.toLowerCase()]) return;
+    seen[q.toLowerCase()] = 1; out.push({ k: "r" + out.length, q: q, src: "standing" });
+  });
+  return out;
+}
+function paintAsk(){
+  var items = askItems();
+  show("askCard", items.length > 0 || !!S.route_inst);
+  if (!items.length && !S.route_inst) return;
+  $("askInst").innerHTML = S.route_inst
+    ? '<div class="askbox"><div class="from">' + esc(S.route_from || "Your FSM") + ' asked you to</div><div class="inst">' + esc(S.route_inst) + '</div></div>'
+    : '';
+  var done = items.filter(function(it){ return S.ask[it.k] && (S.ask_note[it.k]||"").trim(); }).length;
+  $("askCount").textContent = items.length ? done + " of " + items.length : "";
+  $("askList").innerHTML = items.map(function(it){
+    var a = S.ask[it.k] || "";
+    return '<div class="ai' + (a==="No"||a==="Couldn\'t" ? " bad" : "") + '" data-k="' + it.k + '">' +
+      (it.src === "standing" ? '<div class="src">Always checked here</div>' : '<div class="src">Asked tonight</div>') +
+      '<div class="q">' + esc(it.q) + '</div>' +
+      '<div class="yn"><button type="button" class="y' + (a==="Yes"?" on":"") + '" data-a="Yes">Yes</button>' +
+      '<button type="button" class="n' + (a==="No"?" on":"") + '" data-a="No">No</button>' +
+      '<button type="button" class="n' + (a==="Couldn\'t"?" on":"") + '" data-a="Couldn\'t">Could not</button></div>' +
+      (a ? '<textarea data-note="' + it.k + '" placeholder="' + (a==="Yes" ? "Tell your FSM what you saw" : "What you found and what you did about it") + '">' + esc(S.ask_note[it.k]||"") + '</textarea>' : '') +
+      '</div>';
+  }).join("");
+  Array.prototype.forEach.call($("askList").querySelectorAll(".yn button"), function(b){
+    b.addEventListener("click", function(){
+      var k = b.closest(".ai").getAttribute("data-k"), a = b.getAttribute("data-a");
+      S.ask[k] = (S.ask[k]===a) ? "" : a; if (!S.ask[k]) delete S.ask_note[k];
+      save(); paintAsk();
+    });
+  });
+  Array.prototype.forEach.call($("askList").querySelectorAll("textarea[data-note]"), function(t){
+    t.addEventListener("input", function(){ S.ask_note[t.getAttribute("data-note")] = t.value; save(); });
+  });
+}
+function askOpen(){ return askItems().filter(function(it){ return !S.ask[it.k]; }); }
+function askNoNote(){ return askItems().filter(function(it){ return S.ask[it.k] && !(S.ask_note[it.k]||"").trim(); }); }
+function askAnswers(){
+  return askItems().map(function(it){ return it.q + " | " + (S.ask[it.k]||"") + " | " + (S.ask_note[it.k]||"").trim(); }).join("\n");
+}
+
 /* ---------- crew names ---------- */
 function siteRoster(){
   if (!CTX || !CTX.roster) return [];
@@ -1087,6 +1239,8 @@ $("crewAdd").addEventListener("click", function(){ S.crew_names.push(""); paintC
 $("aiBtn").addEventListener("click", function(){
   var lines = ["Write my night manager recap for tonight from these notes.", "Building: " + S.account_name, "Cleaning company: " + (S.vendor_name||"unknown"), "Reason: " + S.reason + (S.timing ? " (" + S.timing + ")" : "")];
   if (showsScore()) lines.push("Score: " + S.score + " out of 10" + (S.score_note ? ". " + S.score_note : ""));
+  var ak = askItems(); if (ak.length) lines.push("FSM asked: " + ak.map(function(it){ return it.q + " = " + (S.ask[it.k]||"") + (S.ask_note[it.k] ? " (" + S.ask_note[it.k] + ")" : ""); }).join(" | "));
+  if (S.route_inst) lines.push("FSM instructions: " + S.route_inst);
   if (inBuilding()){ var f = stdFailed(); lines.push(f.length ? "Did not meet standard: " + f.map(function(it){ return it.q + ". What I did: " + (S.std_fix[it.k]||""); }).join(" | ") : "All standards checked met."); }
   if (S.crew_seen==="Yes") lines.push("Crew on site: " + S.crew_known.concat(S.crew_names.filter(function(n){return n.trim();})).join(", ") + ". Uniform: " + S.crew_uniform + (S.crew_uniform_note ? " (" + S.crew_uniform_note + ")" : ""));
   if (S.crew_seen==="No") lines.push("Crew was not on site when I was there.");
@@ -1116,7 +1270,7 @@ function loadCtx(force){
 function useCtx(r){
   CTX = r;
   VEN = (r.vendors||[]).slice(); VEN.forEach(function(v){ v._s = (v.label||"").toLowerCase(); });
-  sortAccounts(); fillWho(); paintFsm(); paintCrewNames();
+  sortAccounts(); fillWho(); paintFsm(); paintCrewNames(); paintRoute(); paintAsk();
   if (S.nm_name) { $("whoSel").value = S.nm_name; }
 }
 
@@ -1130,7 +1284,7 @@ function useCtx(r){
   if (who){ S.nm_name = who.name || ""; S.nm_email = who.email || ""; }
   if (draft && draft.draft_id && (draft.reason || draft.account_name || (draft.summary||"").length > 20)){
     show("resume", true);
-    $("resumeYes").addEventListener("click", function(){ S = draft; S.photos = S.photos || []; S.hotspots_checked = S.hotspots_checked||[]; S.checklist_items = S.checklist_items||[]; S.crew_names = S.crew_names||[]; S.building_supplies = S.building_supplies||[]; S.vendor_supplies = S.vendor_supplies||[]; S.standards = S.standards||{}; S.std_fix = S.std_fix||{}; S.crew_known = S.crew_known||[]; HS = (S.hotspots_shown||"").split("\n").filter(String); show("resume", false); bindAll(); loadCtx(false); paintProg(); });
+    $("resumeYes").addEventListener("click", function(){ S = draft; S.photos = S.photos || []; S.hotspots_checked = S.hotspots_checked||[]; S.checklist_items = S.checklist_items||[]; S.crew_names = S.crew_names||[]; S.building_supplies = S.building_supplies||[]; S.vendor_supplies = S.vendor_supplies||[]; S.standards = S.standards||{}; S.std_fix = S.std_fix||{}; S.crew_known = S.crew_known||[]; S.route_items = S.route_items||[]; S.ask = S.ask||{}; S.ask_note = S.ask_note||{}; HS = (S.hotspots_shown||"").split("\n").filter(String); show("resume", false); bindAll(); loadCtx(false); paintProg(); });
     $("resumeNo").addEventListener("click", function(){ ls(function(){ localStorage.removeItem(DRAFT_KEY); }); show("resume", false); save(); });
   }
   bindAll(); loadCtx(false); paintProg();

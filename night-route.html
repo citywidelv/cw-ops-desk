@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Night Route Out | City Wide Facility Solutions</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+:root{
+--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;--border:#E5E5E5;--ok:#1d8f4e;--wash:#FAFAFA;
+--fs-caption:12px;--fs-ui:13px;--fs-body:15px;--fs-lead:17px;--fs-h2:21px;--fs-h1:28px;
+--shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06);
+--lift:0 6px 22px rgba(45,42,38,.14);
+--ease:cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;color:var(--black);background:var(--light);font-size:var(--fs-body);line-height:1.6;padding-bottom:104px}
+
+.head{background:#fff;box-shadow:0 1px 8px rgba(45,42,38,.10);position:sticky;top:0;z-index:20}
+.head .bar{max-width:860px;margin:0 auto;padding:0 16px;height:56px;display:flex;align-items:center;gap:12px}
+.head img{height:30px;width:auto;flex:none}
+.head .t{font-size:var(--fs-caption);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);border-left:2px solid var(--border);padding-left:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.head a.back{margin-left:auto;font-size:var(--fs-caption);font-weight:700;color:var(--grey);text-decoration:none;border:1px solid var(--border);border-radius:18px;padding:8px 14px;background:var(--light);white-space:nowrap;min-height:36px;display:inline-flex;align-items:center}
+
+.wrap{max-width:860px;margin:0 auto;padding:16px}
+h1{font-size:var(--fs-h1);line-height:1.2;letter-spacing:-.01em}
+h2{font-size:var(--fs-h2);line-height:1.25}
+.lede{font-size:var(--fs-body);color:var(--grey);margin-top:6px;max-width:64ch}
+.eyebrow{font-size:var(--fs-caption);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey)}
+
+.card{background:#fff;border:1px solid var(--border);border-radius:11px;box-shadow:var(--shadow);padding:20px;margin-bottom:16px}
+.card.tight{padding:16px}
+label.f{display:block;font-size:var(--fs-ui);font-weight:700;margin:20px 0 8px;letter-spacing:.02em}
+label.f:first-child{margin-top:0}
+label.f .req{color:var(--red)}
+.sub{font-size:var(--fs-caption);color:var(--grey);margin:-4px 0 8px;max-width:64ch}
+
+input[type=text],input[type=search],input[type=date],select,textarea{width:100%;font-family:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:6px;padding:12px 14px;background:#fff;outline:none;color:var(--black);min-height:48px;transition:border-color 120ms var(--ease)}
+input:focus,select:focus,textarea:focus{border-color:var(--red)}
+textarea{min-height:104px;resize:vertical;line-height:1.6}
+:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radius:4px}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline-offset:0}
+
+button{font-family:inherit;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:12px 22px;border-radius:6px;border:1.5px solid var(--border);background:#fff;color:var(--black);font-size:var(--fs-body);font-weight:700;transition:transform 90ms var(--ease),background 120ms var(--ease),border-color 120ms var(--ease)}
+.btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+.btn.ghost{background:transparent}
+.btn:active{transform:scale(.97)}
+.btn[disabled]{opacity:.5;cursor:default;transform:none}
+@media(hover:hover){.btn:hover{border-color:var(--black)}.btn.primary:hover{background:var(--red-dark);border-color:var(--red-dark)}}
+.linkbtn{background:none;border:0;color:var(--red);font-size:var(--fs-ui);font-weight:700;padding:8px 4px;min-height:36px;text-decoration:underline;text-underline-offset:3px}
+.linkbtn.quiet{color:var(--grey)}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--border);background:#fff;border-radius:18px;padding:9px 15px;font-size:var(--fs-ui);font-weight:700;color:var(--black);min-height:40px;display:inline-flex;align-items:center;transition:transform 90ms var(--ease),background 120ms var(--ease),border-color 120ms var(--ease)}
+.chip:active{transform:scale(.96)}
+.chip.on{background:var(--black);border-color:var(--black);color:#fff}
+.chip.on.red{background:var(--red);border-color:var(--red)}
+.chip.add{border-style:dashed;color:var(--grey);font-weight:400}
+@media(hover:hover){.chip:hover{border-color:var(--black)}}
+
+.setup{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:640px){.setup{grid-template-columns:1fr;gap:0}}
+
+.picker{position:relative}
+.list{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1.5px solid var(--border);border-radius:6px;box-shadow:var(--lift);max-height:290px;overflow:auto;z-index:12}
+.list button{display:block;width:100%;text-align:left;border:0;background:#fff;padding:13px 15px;font-size:var(--fs-body);border-bottom:1px solid var(--border);min-height:48px}
+.list button:last-child{border-bottom:0}
+.list button b{display:block}
+.list button span{font-size:var(--fs-caption);color:var(--grey)}
+@media(hover:hover){.list button:hover{background:var(--light)}}
+.list button:active{background:var(--light)}
+
+/* ---- stop cards ---- */
+.stop{background:#fff;border:1px solid var(--border);border-left:4px solid var(--red);border-radius:11px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.stop.soft{border-left-color:var(--border)}
+.stop .sh{display:flex;align-items:flex-start;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--wash)}
+.stop .num{flex:none;width:30px;height:30px;border-radius:50%;background:var(--black);color:#fff;font-size:var(--fs-ui);font-weight:700;display:flex;align-items:center;justify-content:center}
+.stop .sh .who{flex:1;min-width:0}
+.stop .sh .who b{display:block;font-size:var(--fs-lead);line-height:1.3;word-break:break-word}
+.stop .sh .who span{font-size:var(--fs-caption);color:var(--grey)}
+.stop .tools{display:flex;gap:4px;flex:none}
+.stop .tools button{width:38px;height:38px;border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--grey);font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;transition:transform 90ms var(--ease)}
+.stop .tools button:active{transform:scale(.92)}
+@media(hover:hover){.stop .tools button:hover{border-color:var(--black);color:var(--black)}}
+.stop .sb{padding:20px}
+.seg{display:inline-flex;border:1.5px solid var(--border);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:#fff;padding:11px 18px;font-size:var(--fs-ui);font-weight:700;color:var(--grey);min-height:44px}
+.seg button.on{background:var(--black);color:#fff}
+.seg button.on.red{background:var(--red)}
+
+.items{list-style:none;margin:8px 0 0}
+.items li{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;background:var(--wash);font-size:var(--fs-body);line-height:1.5}
+.items li .tick{flex:none;color:var(--red);font-weight:700}
+.items li span{flex:1;word-break:break-word}
+.items li button{flex:none;border:0;background:none;color:var(--grey);font-size:18px;line-height:1;width:32px;height:32px;border-radius:4px}
+@media(hover:hover){.items li button:hover{color:var(--red)}}
+.addrow{display:flex;gap:8px;margin-top:8px}
+.addrow input{flex:1}
+.addrow .btn{flex:none;padding:12px 18px}
+
+.keep{display:flex;align-items:flex-start;gap:12px;margin-top:18px;padding:14px 16px;border:1.5px dashed var(--border);border-radius:6px;background:var(--wash)}
+.keep.on{border-style:solid;border-color:var(--red);background:#fdf3f3}
+.keep input{width:22px;height:22px;min-height:0;flex:none;margin-top:2px;accent-color:var(--red)}
+.keep .k1{font-size:var(--fs-ui);font-weight:700;display:block}
+.keep .k2{font-size:var(--fs-caption);color:var(--grey)}
+
+.peek{margin-top:16px;border-top:1px dashed var(--border);padding-top:14px}
+.peek .pv{background:var(--black);color:#fff;border-radius:8px;padding:16px;margin-top:10px}
+.peek .pv .eyebrow{color:#bdbdbd}
+.peek .pv b{font-size:var(--fs-lead);display:block;margin-top:4px}
+.peek .pv p{font-size:var(--fs-body);margin-top:10px;white-space:pre-wrap;line-height:1.55}
+.peek .pv ul{margin:8px 0 0 20px;font-size:var(--fs-body)}
+
+.banner{border:1px solid var(--border);border-left:4px solid var(--black);border-radius:8px;padding:14px 16px;background:#fff;margin-bottom:16px;font-size:var(--fs-body)}
+.banner.good{border-left-color:var(--ok)}
+.banner.warn{border-left-color:var(--red);background:#fdf3f3}
+.banner b{display:block;margin-bottom:2px}
+
+.empty{text-align:center;padding:40px 20px;border:1.5px dashed var(--border);border-radius:11px;background:#fff;margin-bottom:16px}
+.empty b{display:block;font-size:var(--fs-lead);margin-bottom:6px}
+.empty p{font-size:var(--fs-body);color:var(--grey);max-width:46ch;margin:0 auto 18px}
+
+.skel{background:linear-gradient(90deg,#EFEFEF 25%,#F7F7F7 37%,#EFEFEF 63%);background-size:400% 100%;animation:sk 1.4s ease infinite;border-radius:6px;height:14px;margin-bottom:10px}
+.skel.big{height:76px}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+@media(prefers-reduced-motion:reduce){.skel{animation:none;background:#EFEFEF}}
+
+.bar-fixed{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--border);box-shadow:0 -2px 18px rgba(45,42,38,.10);z-index:15;padding-bottom:env(safe-area-inset-bottom,0px)}
+.bar-fixed .in{max-width:860px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.bar-fixed .cnt{flex:1;min-width:0;font-size:var(--fs-ui);color:var(--grey);line-height:1.4}
+.bar-fixed .cnt b{color:var(--black);display:block;font-size:var(--fs-body)}
+
+table.log{width:100%;border-collapse:collapse;font-size:var(--fs-ui)}
+table.log th{text-align:left;font-size:var(--fs-caption);text-transform:uppercase;letter-spacing:.06em;color:var(--grey);padding:8px 10px;border-bottom:2px solid var(--border);white-space:nowrap}
+table.log td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
+.pill{display:inline-block;font-size:var(--fs-caption);font-weight:700;padding:4px 10px;border-radius:18px;background:var(--light);color:var(--grey);white-space:nowrap}
+.pill.done{background:#e7f5ed;color:var(--ok)}
+.pill.miss{background:#fdeaea;color:var(--red)}
+.scrollx{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+.err{font-size:var(--fs-ui);color:var(--red);font-weight:700;margin-top:10px;min-height:1.2em}
+.hint{font-size:var(--fs-caption);color:var(--grey);margin-top:6px}
+.hidden{display:none!important}
+.gatebox{background:#fff;border:1px solid var(--border);border-radius:11px;padding:24px;text-align:center}
+.sp{height:1px;background:var(--border);margin:24px 0}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="head"><div class="bar">
+<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+<span class="t">Night Route Out</span>
+<a class="back" href="index.html">&larr; Ops Hub</a>
+</div></header>
+
+<div class="wrap">
+<div id="gate" class="gatebox hidden"><b>Open this from the Ops Hub</b><p class="hint">This page uses the Ops Hub session on this device.</p><a href="index.html">&larr; Ops Hub</a></div>
+
+<div id="app" class="hidden">
+
+<div style="margin-bottom:20px">
+<h1>Tonight's route</h1>
+<p class="lede">Tell your night manager where to go, what to do there, and what to check for. They see it the moment they pick their name, and they answer each check back to you.</p>
+</div>
+
+<div id="loading">
+<div class="card"><div class="skel" style="width:40%"></div><div class="skel big"></div></div>
+<div class="card"><div class="skel" style="width:55%"></div><div class="skel big"></div></div>
+</div>
+
+<div id="main" class="hidden">
+
+<div class="card tight">
+<div class="setup">
+<div>
+<label class="f">Who are you? <span class="req">*</span></label>
+<select id="fsm"><option value="">Pick your name...</option></select>
+<label class="f">Market</label>
+<div class="chips" id="mktChips"><button class="chip" data-m="lv" type="button">Las Vegas</button><button class="chip" data-m="nnv" type="button">Northern Nevada</button></div>
+</div>
+<div>
+<label class="f">Night manager <span class="req">*</span></label>
+<div class="chips" id="nmChips"></div>
+<div class="hint" id="nmHint"></div>
+<label class="f">Which night</label>
+<div class="chips" id="dayChips"><button class="chip" data-d="prev" type="button">Last night</button><button class="chip" data-d="today" type="button">Tonight</button><button class="chip" data-d="next" type="button">Tomorrow night</button></div>
+<div class="hint" id="dayHint"></div>
+</div>
+</div>
+</div>
+
+<div id="loadedNote" class="banner hidden"></div>
+
+<div id="stops"></div>
+
+<div id="emptyStops" class="empty hidden">
+<b>No buildings on the route yet</b>
+<p>Add the first building below. Most routes run five or six stops.</p>
+<button class="btn" id="copyLast" type="button">Copy last night's route</button>
+</div>
+
+<div class="card">
+<label class="f">Add a building</label>
+<div class="sub">Pick it from the list so the night manager's page matches. Typing a name that is not on the list is what broke the old form.</div>
+<div class="picker">
+<input type="search" id="acctQ" placeholder="Start typing the building name" autocomplete="off">
+<div id="acctList" class="list hidden"></div>
+</div>
+<div class="hint" id="acctHint"></div>
+<div class="chips" style="margin-top:12px">
+<button class="btn ghost" id="copyLast2" type="button" style="min-height:44px;font-size:var(--fs-ui)">Copy last night's route</button>
+</div>
+</div>
+
+<div class="sp"></div>
+
+<div class="card" id="statusCard">
+<h2>How tonight went</h2>
+<p class="sub" style="margin-top:6px">Fills in as your night manager files each recap. Nothing here until they start.</p>
+<div id="statusBody" style="margin-top:14px"></div>
+</div>
+
+<div class="card">
+<h2>Send</h2>
+<p class="sub" style="margin-top:6px">The route goes out automatically at 4:00 PM to the night managers and the service desk. If you write it after that, send it yourself.</p>
+<div class="chips" style="margin-top:12px">
+<button class="btn" id="sendNow" type="button">Send this route now</button>
+</div>
+<div class="err" id="sendErr"></div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+</div><!-- /wrap -->
+
+<div class="bar-fixed hidden" id="actionBar"><div class="in">
+<div class="cnt"><b id="cntMain">No stops yet</b><span id="cntSub">Nothing saved</span></div>
+<button class="btn primary" id="saveBtn" type="button">Save route</button>
+</div></div>
+
+<script src="cw-auth.js"></script>
+<script src="cw-nav.js"></script>
+<script>
+(function(){
+"use strict";
+
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var DRAFT_KEY = "cwNightRouteDraft";
+var WHO_KEY = "cwNightRouteWho";
+var MKT_KEY = "cwNightInspMarket";
+
+var REASONS = ["Regular check","New building","Client complained","Work order","Phone only","Photos from crew"];
+var SUGGEST = ["Restrooms clean and stocked","Soap and paper towel dispensers full","All trash out and liners replaced","Hard floors mopped, no streaks","No debris in corners or behind doors","Lobby first impression","Client contact's work area","Break room wiped down","Entry glass clean","Dusting on high surfaces","Doors locked and lights off"];
+
+var PASS="", CTX=null, CHECKS={}, dirty=false, saving=false;
+var S = null;
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d=document.createElement("div"); d.textContent=String(s==null?"":s); return d.innerHTML; }
+function show(id,on){ var el=typeof id==="string"?$(id):id; if(el) el.classList.toggle("hidden",!on); }
+function ls(fn){ try{ return fn(); }catch(e){ return null; } }
+function uid(){ return Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,7); }
+function post(body){ body.passcode=PASS; return fetch(WEBHOOK,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(body)}).then(function(r){ return r.json(); }); }
+
+/* The night a route is for. An FSM plans forward, so Tonight is today's date
+   whatever time they write it. The recap page uses a different rule, rolling
+   back before noon, because a night manager filing at 2am is answering the
+   route written the afternoon before. */
+function nightISO(offset){
+  var d=new Date(); d.setDate(d.getDate()+(offset||0));
+  return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+}
+function pretty(iso){
+  var p=String(iso||"").split("-"); if(p.length<3) return iso||"";
+  var d=new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));
+  return d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+}
+
+function fresh(){
+  return { market: ls(function(){return localStorage.getItem(MKT_KEY);})||"lv",
+    fsm:"", fsm_email:"", nm_name:"", nm_email:"", day:"today", report_date:nightISO(0), route_id:"", stops:[] };
+}
+function newStop(a){
+  return { stop_id:"", account_id:(a&&a.id)||"", account_name:(a&&a.name)||"", reason:"Regular check",
+    priority:"Must do", instructions:"", check_items:[], keep_on_account:false, open:true,
+    status:"Assigned", inspection_id:"", check_answers:"", answered_at:"" };
+}
+function save(){ ls(function(){ localStorage.setItem(DRAFT_KEY, JSON.stringify(S)); }); }
+
+function touch(){ dirty=true; paintBar(); save(); }
+
+/* ---------------------------------------------------------------- setup -- */
+function paintSetup(){
+  Array.prototype.forEach.call($("mktChips").children,function(b){ b.classList.toggle("on", b.getAttribute("data-m")===S.market); });
+  Array.prototype.forEach.call($("dayChips").children,function(b){ b.classList.toggle("on", b.getAttribute("data-d")===S.day); });
+  $("dayHint").textContent = pretty(S.report_date);
+  if($("fsm").value!==S.fsm) $("fsm").value=S.fsm;
+  paintNm();
+}
+function paintNm(){
+  var list=(CTX&&CTX.night_managers)||[];
+  var region=(CTX&&CTX.region)||"";
+  var mine=list.filter(function(p){ return !p.market || p.market==="Both" || p.market===region; });
+  if(!mine.length){
+    $("nmChips").innerHTML="";
+    $("nmHint").textContent="No night manager on the Staff tab for this market yet. Add them in the Admin Hub.";
+    return;
+  }
+  $("nmHint").textContent="";
+  $("nmChips").innerHTML=mine.map(function(p){
+    return '<button class="chip'+(p.name===S.nm_name?" on red":"")+'" type="button" data-nm="'+esc(p.name)+'" data-em="'+esc(p.email||"")+'">'+esc(p.name)+'</button>';
+  }).join("");
+  Array.prototype.forEach.call($("nmChips").children,function(b){
+    b.addEventListener("click",function(){
+      S.nm_name=b.getAttribute("data-nm"); S.nm_email=b.getAttribute("data-em");
+      paintNm(); touch(); loadExisting();
+    });
+  });
+}
+
+/* ------------------------------------------------------------- building -- */
+function bindPicker(){
+  var q=$("acctQ"), list=$("acctList");
+  function close(){ list.classList.add("hidden"); }
+  q.addEventListener("input",function(){
+    var v=q.value.trim().toLowerCase();
+    if(v.length<2){ close(); return; }
+    var all=(CTX&&CTX.accounts)||[];
+    var hit=all.filter(function(a){ return a.name.toLowerCase().indexOf(v)>=0; }).slice(0,8);
+    if(!hit.length){ list.innerHTML='<button type="button" data-none="1"><b>No building matches that</b><span>Check the spelling, or ask the office to add it to the Account Directory</span></button>'; list.classList.remove("hidden"); return; }
+    list.innerHTML=hit.map(function(a){
+      var std=CHECKS[a.id]||CHECKS[a.name.toLowerCase()];
+      var meta=[a.fsm?"FSM "+a.fsm:"",a.night_manager?"NM "+a.night_manager:"",std?std.items.length+" standing check"+(std.items.length===1?"":"s"):""].filter(Boolean).join("  ·  ");
+      return '<button type="button" data-id="'+esc(a.id)+'" data-name="'+esc(a.name)+'"><b>'+esc(a.name)+'</b><span>'+esc(meta||a.address||"")+'</span></button>';
+    }).join("");
+    list.classList.remove("hidden");
+    Array.prototype.forEach.call(list.children,function(b){
+      if(b.getAttribute("data-none")) return;
+      b.addEventListener("click",function(){
+        addStop({id:b.getAttribute("data-id"),name:b.getAttribute("data-name")});
+        q.value=""; close(); q.focus();
+      });
+    });
+  });
+  q.addEventListener("blur",function(){ setTimeout(close,180); });
+}
+
+function addStop(a){
+  var dupe=S.stops.filter(function(s){ return s.account_name===a.name; }).length;
+  if(dupe){ $("acctHint").textContent=a.name+" is already on tonight's route."; return; }
+  var st=newStop(a);
+  var std=CHECKS[a.id]||CHECKS[a.name.toLowerCase()];
+  if(std&&std.items.length){ st.check_items=std.items.slice(); st.keep_on_account=true; }
+  S.stops.forEach(function(s){ s.open=false; });
+  S.stops.push(st);
+  $("acctHint").textContent = std&&std.items.length ? "Added "+a.name+" with the "+std.items.length+" check"+(std.items.length===1?"":"s")+" you already keep on that building." : "";
+  touch(); paintStops();
+}
+
+/* ----------------------------------------------------------------- stops -- */
+function paintStops(){
+  var wrap=$("stops");
+  show("emptyStops", S.stops.length===0);
+  if(!S.stops.length){ wrap.innerHTML=""; paintBar(); return; }
+  wrap.innerHTML=S.stops.map(function(s,i){ return stopHtml(s,i); }).join("");
+  bindStops();
+  paintBar();
+}
+
+function stopHtml(s,i){
+  var answered=!!s.inspection_id;
+  var h='<section class="stop'+(s.priority==="If you can"?" soft":"")+'" data-i="'+i+'">';
+  h+='<div class="sh"><div class="num">'+(i+1)+'</div><div class="who"><b>'+esc(s.account_name)+'</b><span>'+esc(s.reason)+'  ·  '+esc(s.priority)+(s.check_items.length?'  ·  '+s.check_items.length+' to check':'')+(answered?'  ·  answered':'')+'</span></div>';
+  h+='<div class="tools">'
+    +'<button type="button" data-act="up" title="Move up" aria-label="Move up">&uarr;</button>'
+    +'<button type="button" data-act="down" title="Move down" aria-label="Move down">&darr;</button>'
+    +'<button type="button" data-act="toggle" title="Open or close" aria-label="Open or close">'+(s.open?'&minus;':'+')+'</button>'
+    +'<button type="button" data-act="del" title="Take off the route" aria-label="Take off the route">&times;</button>'
+    +'</div></div>';
+  if(!s.open) return h+'</section>';
+
+  h+='<div class="sb">';
+  h+='<label class="f">Why they are going</label><div class="chips" data-role="reason">'
+    +REASONS.map(function(r){ return '<button class="chip'+(s.reason===r?" on":"")+'" type="button" data-r="'+esc(r)+'">'+esc(r)+'</button>'; }).join("")+'</div>';
+
+  h+='<label class="f">How important</label><div class="seg" data-role="prio">'
+    +'<button type="button" data-p="Must do" class="'+(s.priority==="Must do"?"on red":"")+'">Must do</button>'
+    +'<button type="button" data-p="If you can" class="'+(s.priority==="If you can"?"on":"")+'">If you can</button></div>';
+
+  h+='<label class="f">What to do there <span class="req">*</span></label>'
+    +'<div class="sub">Write it the way you would say it to them. They read this on a phone in the parking lot.</div>'
+    +'<textarea data-role="inst" placeholder="Example. Review today\'s complaint about the accounting office not being dusted. Walk it with the crew lead and get photos once it is fixed.">'+esc(s.instructions)+'</textarea>';
+
+  h+='<label class="f">What to check for</label>'
+    +'<div class="sub">One line each. Every line becomes a yes or no question on their recap, and they answer it straight back to you.</div>';
+  h+='<ul class="items">'+(s.check_items.length?s.check_items.map(function(it,k){
+      return '<li><span class="tick">'+(k+1)+'.</span><span>'+esc(it)+'</span><button type="button" data-act="rm" data-k="'+k+'" aria-label="Remove">&times;</button></li>';
+    }).join(""):'<li style="border-style:dashed;color:var(--grey);background:#fff">Nothing to check yet. Add a line or tap a suggestion.</li>')+'</ul>';
+  h+='<div class="addrow"><input type="text" data-role="newitem" placeholder="Add something to check" autocomplete="off"><button class="btn" type="button" data-act="add">Add</button></div>';
+  var left=SUGGEST.filter(function(x){ return s.check_items.indexOf(x)<0; }).slice(0,5);
+  if(left.length) h+='<div class="chips" style="margin-top:10px" data-role="sugg">'+left.map(function(x){ return '<button class="chip add" type="button" data-s="'+esc(x)+'">+ '+esc(x)+'</button>'; }).join("")+'</div>';
+
+  h+='<div class="keep'+(s.keep_on_account?" on":"")+'"><input type="checkbox" data-role="keep" id="keep'+i+'"'+(s.keep_on_account?" checked":"")+'>'
+    +'<label for="keep'+i+'"><span class="k1">Keep this checklist on '+esc(s.account_name)+'</span>'
+    +'<span class="k2">Every night manager who inspects this building gets these questions from now on, whether or not it is on a route.</span></label></div>';
+
+  h+='<div class="peek"><button class="linkbtn quiet" type="button" data-act="peek">What the night manager sees</button>'
+    +'<div class="pv'+(s.open===2?"":" hidden")+'" data-role="pv">'
+    +'<div class="eyebrow">From '+esc(S.fsm||"your FSM")+'</div><b>'+esc(s.account_name)+'</b>'
+    +'<p>'+(esc(s.instructions)||'<span style="color:#bdbdbd">Nothing written yet</span>')+'</p>'
+    +(s.check_items.length?'<div class="eyebrow" style="margin-top:14px">Check and answer</div><ul>'+s.check_items.map(function(x){ return '<li>'+esc(x)+'</li>'; }).join("")+'</ul>':'')
+    +'</div></div>';
+
+  if(answered){
+    h+='<div class="banner good" style="margin-top:18px"><b>Answered '+esc(s.answered_at||"")+'</b>'+esc(s.check_answers||"").replace(/\n/g,"<br>")+'</div>';
+  }
+  h+='</div></section>';
+  return h;
+}
+
+function bindStops(){
+  Array.prototype.forEach.call($("stops").children,function(sec){
+    var i=Number(sec.getAttribute("data-i")), s=S.stops[i];
+    if(!s) return;
+    sec.querySelectorAll(".tools button").forEach(function(b){
+      b.addEventListener("click",function(){
+        var a=b.getAttribute("data-act");
+        if(a==="del"){ S.stops.splice(i,1); }
+        else if(a==="up"&&i>0){ var t=S.stops[i-1]; S.stops[i-1]=s; S.stops[i]=t; }
+        else if(a==="down"&&i<S.stops.length-1){ var t2=S.stops[i+1]; S.stops[i+1]=s; S.stops[i]=t2; }
+        else if(a==="toggle"){ s.open=!s.open; }
+        touch(); paintStops();
+      });
+    });
+    var rz=sec.querySelector('[data-role="reason"]');
+    if(rz) rz.querySelectorAll("button").forEach(function(b){
+      b.addEventListener("click",function(){ s.reason=b.getAttribute("data-r"); touch(); paintStops(); });
+    });
+    var pz=sec.querySelector('[data-role="prio"]');
+    if(pz) pz.querySelectorAll("button").forEach(function(b){
+      b.addEventListener("click",function(){ s.priority=b.getAttribute("data-p"); touch(); paintStops(); });
+    });
+    var ta=sec.querySelector('[data-role="inst"]');
+    if(ta) ta.addEventListener("input",function(){ s.instructions=ta.value; dirty=true; save(); paintBar(); });
+    var ni=sec.querySelector('[data-role="newitem"]');
+    function addItem(){
+      var v=(ni.value||"").trim(); if(!v) return;
+      if(s.check_items.indexOf(v)<0) s.check_items.push(v);
+      ni.value=""; touch(); paintStops();
+      var again=$("stops").querySelector('section[data-i="'+i+'"] [data-role="newitem"]');
+      if(again) again.focus();
+    }
+    if(ni){
+      ni.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); addItem(); } });
+      var ab=sec.querySelector('[data-act="add"]'); if(ab) ab.addEventListener("click",addItem);
+    }
+    sec.querySelectorAll('[data-act="rm"]').forEach(function(b){
+      b.addEventListener("click",function(){ s.check_items.splice(Number(b.getAttribute("data-k")),1); touch(); paintStops(); });
+    });
+    var sg=sec.querySelector('[data-role="sugg"]');
+    if(sg) sg.querySelectorAll("button").forEach(function(b){
+      b.addEventListener("click",function(){ var v=b.getAttribute("data-s"); if(s.check_items.indexOf(v)<0) s.check_items.push(v); touch(); paintStops(); });
+    });
+    var kp=sec.querySelector('[data-role="keep"]');
+    if(kp) kp.addEventListener("change",function(){ s.keep_on_account=kp.checked; touch(); paintStops(); });
+    var pk=sec.querySelector('[data-act="peek"]');
+    if(pk) pk.addEventListener("click",function(){
+      var pv=sec.querySelector('[data-role="pv"]'); if(pv) pv.classList.toggle("hidden");
+    });
+  });
+}
+
+/* ------------------------------------------------------------------ bar -- */
+function paintBar(){
+  show("actionBar", true);
+  var n=S.stops.length;
+  var must=S.stops.filter(function(s){ return s.priority==="Must do"; }).length;
+  $("cntMain").textContent = n ? n+" stop"+(n===1?"":"s")+" for "+(S.nm_name||"nobody yet") : "No stops yet";
+  $("cntSub").textContent = n ? (must+" must do  ·  "+(dirty?"not saved":"saved")) : "Add a building to start";
+  $("saveBtn").disabled = saving || !n;
+  $("saveBtn").textContent = saving ? "Saving..." : (dirty ? "Save route" : "Saved");
+}
+
+/* --------------------------------------------------------------- loading -- */
+function loadCtx(){
+  post({kind:"ni_context", market:S.market}).then(function(r){
+    if(!r||!r.ok){
+      if(r&&CWAuth.isPassError(r.error)){ CWAuth.locked("ops",r.error); return; }
+      $("acctHint").textContent=(r&&r.error)||"Could not load the building list. Reload the page.";
+      show("loading",false); show("main",true); return;
+    }
+    CTX=r; CHECKS=r.account_checks||{};
+    var opts='<option value="">Pick your name...</option>';
+    (r.fsms||[]).forEach(function(p){ opts+='<option value="'+esc(p.name)+'" data-em="'+esc(p.email||"")+'">'+esc(p.name)+'</option>'; });
+    $("fsm").innerHTML=opts;
+    if(S.fsm) $("fsm").value=S.fsm;
+    show("loading",false); show("main",true);
+    paintSetup(); paintStops(); loadExisting();
+  }).catch(function(){
+    $("acctHint").textContent="Could not reach the server. Check your connection and reload.";
+    show("loading",false); show("main",true);
+  });
+}
+
+/* Pull anything already saved for this FSM, night manager and night, so a
+   second visit edits the route instead of writing a duplicate. */
+function loadExisting(){
+  if(!S.fsm||!S.nm_name) return;
+  post({kind:"ni_route_list", market:S.market, report_date:S.report_date, fsm:S.fsm, nm_name:S.nm_name}).then(function(r){
+    if(!r||!r.ok||!r.stops) return;
+    if(!r.stops.length){ show("loadedNote",false); paintStatus([]); return; }
+    var have={}, byName={};
+    S.stops.forEach(function(s){ if(s.stop_id) have[s.stop_id]=s; byName[s.account_name]=s; });
+    r.stops.forEach(function(x){
+      var s=have[x.stop_id] || (byName[x.account_name] && !byName[x.account_name].stop_id ? byName[x.account_name] : null);
+      if(s && !s.stop_id) s.stop_id=x.stop_id;
+      if(!s){
+        s=newStop({id:x.account_id,name:x.account_name});
+        s.stop_id=x.stop_id; s.open=false; S.stops.push(s);
+      }
+      if(!dirty){
+        s.reason=x.reason||s.reason; s.priority=x.priority||s.priority;
+        s.instructions=x.instructions||s.instructions; s.check_items=x.check_items||s.check_items;
+      }
+      s.route_id=x.route_id; s.status=x.status; s.inspection_id=x.inspection_id||"";
+      s.check_answers=x.check_answers||""; s.answered_at=x.answered_at||"";
+    });
+    S.route_id=r.stops[0].route_id||S.route_id;
+    $("loadedNote").className="banner";
+    $("loadedNote").innerHTML="<b>Picked up the route you already saved</b>"+r.stops.length+" stop"+(r.stops.length===1?"":"s")+" for "+esc(S.nm_name)+" on "+esc(pretty(S.report_date))+". Edit anything and save again.";
+    show("loadedNote",true);
+    if(!dirty) dirty=false;
+    save(); paintStops(); paintStatus(r.stops);
+  });
+}
+
+function paintStatus(stops){
+  var b=$("statusBody");
+  if(!stops||!stops.length){ b.innerHTML='<p class="hint">Nothing yet.</p>'; return; }
+  var done=stops.filter(function(s){ return s.inspection_id; });
+  var rows=stops.map(function(s){
+    var miss=/\|\s*(No|Couldn't|Couldnt)\s*\|/i.test(s.check_answers||"");
+    var pill=s.inspection_id?(miss?'<span class="pill miss">Not met</span>':'<span class="pill done">Done</span>'):'<span class="pill">Waiting</span>';
+    return '<tr><td><b>'+esc(s.account_name)+'</b><div class="hint">'+esc(s.reason)+'</div></td><td>'+pill+'</td><td>'+esc(s.check_answers||"").replace(/\n/g,"<br>")+'</td></tr>';
+  }).join("");
+  b.innerHTML='<div class="banner'+(done.length===stops.length?" good":"")+'"><b>'+done.length+' of '+stops.length+' answered</b>Each line below is what your night manager sent back.</div>'
+    +'<div class="scrollx"><table class="log"><tr><th>Building</th><th>Status</th><th>What came back</th></tr>'+rows+'</table></div>';
+}
+
+/* ------------------------------------------------------------------ save -- */
+function doSave(){
+  if(saving) return;
+  var e=$("sendErr"); e.textContent="";
+  if(!S.fsm){ e.textContent="Pick your name first."; return; }
+  if(!S.nm_name){ e.textContent="Pick the night manager first."; return; }
+  var blank=S.stops.filter(function(s){ return !(s.instructions||"").trim(); });
+  if(blank.length){
+    e.textContent="Say what to do at "+blank[0].account_name+" before you save.";
+    blank[0].open=true; paintStops();
+    return;
+  }
+  saving=true; paintBar();
+  post({kind:"ni_route_save", market:S.market, report_date:S.report_date, route_id:S.route_id,
+    fsm:S.fsm, fsm_email:S.fsm_email, nm_name:S.nm_name, nm_email:S.nm_email,
+    stops:S.stops.map(function(s){ return {stop_id:s.stop_id, account_id:s.account_id, account_name:s.account_name,
+      reason:s.reason, priority:s.priority, instructions:s.instructions, check_items:s.check_items, keep_on_account:s.keep_on_account}; })
+  }).then(function(r){
+    saving=false;
+    if(!r||!r.ok){ e.textContent=(r&&r.error)||"Could not save. Try again."; paintBar(); return; }
+    S.route_id=r.route_id; dirty=false;
+    $("loadedNote").className="banner good";
+    $("loadedNote").innerHTML="<b>Route saved</b>"+S.stops.length+" stop"+(S.stops.length===1?"":"s")+" waiting for "+esc(S.nm_name)+". It goes out at 4:00 PM, and it is on their page right now.";
+    show("loadedNote",true);
+    save(); loadExisting(); paintBar();
+    window.scrollTo({top:0,behavior:"smooth"});
+  }).catch(function(){
+    saving=false; e.textContent="Could not reach the server. Your route is still saved on this device."; paintBar();
+  });
+}
+
+function doSend(){
+  var e=$("sendErr"); e.textContent="";
+  var b=$("sendNow"); b.disabled=true; b.textContent="Sending...";
+  post({kind:"ni_route_send", market:S.market, report_date:S.report_date}).then(function(r){
+    b.disabled=false; b.textContent="Send this route now";
+    if(!r||!r.ok){ e.textContent=(r&&r.error)||"Could not send."; return; }
+    $("loadedNote").className="banner good";
+    $("loadedNote").innerHTML="<b>Sent</b>"+r.stops+" stop"+(r.stops===1?"":"s")+" went to "+esc((r.to||[]).join(", "))+".";
+    show("loadedNote",true);
+    window.scrollTo({top:0,behavior:"smooth"});
+  }).catch(function(){ b.disabled=false; b.textContent="Send this route now"; e.textContent="Could not reach the server."; });
+}
+
+function copyLast(){
+  var prev=new Date(S.report_date.replace(/-/g,"/")); prev.setDate(prev.getDate()-1);
+  var iso=prev.getFullYear()+"-"+("0"+(prev.getMonth()+1)).slice(-2)+"-"+("0"+prev.getDate()).slice(-2);
+  $("acctHint").textContent="Looking for "+pretty(iso)+"...";
+  post({kind:"ni_route_list", market:S.market, report_date:iso, fsm:S.fsm}).then(function(r){
+    if(!r||!r.ok||!r.stops||!r.stops.length){ $("acctHint").textContent="Nothing on file for "+pretty(iso)+"."; return; }
+    var added=0;
+    r.stops.forEach(function(x){
+      if(S.stops.filter(function(s){ return s.account_name===x.account_name; }).length) return;
+      var s=newStop({id:x.account_id,name:x.account_name});
+      s.reason=x.reason; s.priority=x.priority; s.instructions=x.instructions; s.check_items=(x.check_items||[]).slice();
+      s.open=false; S.stops.push(s); added++;
+    });
+    $("acctHint").textContent=added?("Brought over "+added+" building"+(added===1?"":"s")+" from "+pretty(iso)+". Update what you want them to do."):"Those buildings are already on tonight's route.";
+    touch(); paintStops();
+  });
+}
+
+/* ------------------------------------------------------------------ boot -- */
+(function(){
+  PASS = CWAuth.require({hub:"ops"});
+  if(!PASS){ show("gate",true); return; }
+  show("app",true);
+
+  var draft = ls(function(){ var raw=localStorage.getItem(DRAFT_KEY); return raw?JSON.parse(raw):null; });
+  S = fresh();
+  if(draft && draft.report_date===nightISO(0) && Array.isArray(draft.stops)){
+    S=draft; S.stops=S.stops||[]; S.report_date=S.report_date||nightISO(0); S.day=S.day||"today";
+  }
+  var who = ls(function(){ var raw=localStorage.getItem(WHO_KEY); return raw?JSON.parse(raw):null; });
+  if(who && !S.fsm){ S.fsm=who.name||""; S.fsm_email=who.email||""; }
+
+  $("fsm").addEventListener("change",function(){
+    var o=$("fsm").options[$("fsm").selectedIndex];
+    S.fsm=$("fsm").value; S.fsm_email=o?(o.getAttribute("data-em")||""):"";
+    ls(function(){ localStorage.setItem(WHO_KEY, JSON.stringify({name:S.fsm,email:S.fsm_email})); });
+    touch(); loadExisting();
+  });
+  Array.prototype.forEach.call($("mktChips").children,function(b){
+    b.addEventListener("click",function(){
+      S.market=b.getAttribute("data-m");
+      ls(function(){ localStorage.setItem(MKT_KEY,S.market); });
+      S.nm_name=""; S.nm_email="";
+      paintSetup(); touch(); loadCtx();
+    });
+  });
+  Array.prototype.forEach.call($("dayChips").children,function(b){
+    b.addEventListener("click",function(){
+      S.day=b.getAttribute("data-d");
+      S.report_date=nightISO(S.day==="next"?1:(S.day==="prev"?-1:0));
+      S.stops.forEach(function(s){ s.stop_id=""; s.inspection_id=""; s.check_answers=""; });
+      S.route_id=""; paintSetup(); touch(); loadExisting();
+    });
+  });
+  $("saveBtn").addEventListener("click",doSave);
+  $("sendNow").addEventListener("click",doSend);
+  $("copyLast").addEventListener("click",copyLast);
+  $("copyLast2").addEventListener("click",copyLast);
+  window.addEventListener("beforeunload",function(ev){ if(dirty&&S.stops.length){ ev.preventDefault(); ev.returnValue=""; } });
+
+  bindPicker();
+  loadCtx();
+  if((location.hash||"").toLowerCase()==="#status"){
+    setTimeout(function(){ var el=$("statusCard"); if(el) el.scrollIntoView({behavior:"smooth",block:"start"}); }, 900);
+  }
+})();
+})();
+</script>
+</body>
+</html>
