@@ -483,7 +483,7 @@ function paintBar(){
   $("cntMain").textContent = n ? n+" stop"+(n===1?"":"s")+" for "+(S.nm_name||"nobody yet") : "No stops yet";
   $("cntSub").textContent = n ? (must+" must do  ·  "+(dirty?"not saved":"saved")) : "Add a building to start";
   $("saveBtn").disabled = saving || !n;
-  $("saveBtn").textContent = saving ? "Saving..." : (dirty ? "Save route" : "Saved");
+  $("saveBtn").textContent = saving ? "Saving..." : ((!n || dirty) ? "Save route" : "Saved");
 }
 
 /* --------------------------------------------------------------- loading -- */

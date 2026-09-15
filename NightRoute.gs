@@ -96,6 +96,10 @@ function nrCfg_() {
 
 function nrTrue_(v) { return String(v).toUpperCase() === 'TRUE'; }
 function nrList2_(s) { return niStr_(s).split(/[\n,;]+/).map(function (x) { return x.trim(); }).filter(String); }
+/* Sheets turns a 'yyyy-MM-dd' string into a real Date on write, and niStr_
+   renders a Date as 'yyyy-MM-dd HH:mm'. Compare the day only, so a stored
+   date and a typed one always match. */
+function nrDate_(v) { return niStr_(v).slice(0, 10); }
 function nrId_(p) { return p + '-' + Utilities.formatDate(new Date(), NI_TZ, 'yyMMdd-HHmmss') + '-' + Math.random().toString(36).slice(2, 6); }
 
 /**
@@ -177,7 +181,7 @@ function nrList_(data) {
 
   try {
     nrRows_().rows.forEach(function (r) {
-      if (r.market !== region || r.report_date !== date) return;
+      if (r.market !== region || nrDate_(r.report_date) !== date) return;
       if (r.status === 'Removed') return;
       if (wantFsm && r.fsm !== wantFsm) return;
       if (wantNm && r.nm_name !== wantNm) return;
@@ -244,7 +248,7 @@ function nrSave_(data) {
     var stamp = Utilities.formatDate(now, NI_TZ, 'yyyy-MM-dd HH:mm');
     var mine = {}, order = [];
     rd.rows.forEach(function (r) {
-      if (r.market === region && r.report_date === date && r.fsm === fsm && r.nm_name === nm) mine[r.stop_id] = r;
+      if (r.market === region && nrDate_(r.report_date) === date && r.fsm === fsm && r.nm_name === nm) mine[r.stop_id] = r;
     });
 
     var routeId = niStr_(data.route_id) || nrId_('RT');
@@ -381,7 +385,7 @@ function nrSendMarket_(mkt, date, manual) {
   var region = NI_MARKETS[mkt];
   var sh = nrTab_(), rd = nrRows_(sh), head = rd.head;
   var stops = rd.rows.filter(function (r) {
-    return r.market === region && r.report_date === date && r.status !== 'Removed';
+    return r.market === region && nrDate_(r.report_date) === date && r.status !== 'Removed';
   });
 
   var to = nrRecipients_(mkt, cfg);
