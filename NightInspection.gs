@@ -260,10 +260,11 @@ function niContext_(data) {
         if (!key) continue;
         if (!out.last_vendor[key] && niStr_(vals[k][cV])) out.last_vendor[key] = { id: niStr_(vals[k][cVI]), dba: niStr_(vals[k][cV]), owner: niStr_(vals[k][cVO]) };
         // Past complaints and failed standards at this building in the last 90 days feed a checklist line.
-        var when = vals[k][cSub] instanceof Date ? vals[k][cSub].getTime() : Date.parse(niStr_(vals[k][cSub]));
+        var when = vals[k][cSub] instanceof Date ? vals[k][cSub].getTime() : Date.parse(niStr_(vals[k][cSub]).replace(' ', 'T'));
+        if (isNaN(when)) when = Date.now();   // unreadable stamp: treat as recent rather than drop it
         if (when && when > cutoff) {
           var bits = [];
-          if (niStr_(vals[k][cCF]) === 'TRUE') bits.push(niStr_(vals[k][cCAr]) || niStr_(vals[k][cCW]).slice(0, 60));
+          if (niStr_(vals[k][cCF]).toUpperCase() === 'TRUE') bits.push(niStr_(vals[k][cCAr]) || niStr_(vals[k][cCW]).slice(0, 60));
           if (cSF >= 0 && niStr_(vals[k][cSF])) niStr_(vals[k][cSF]).split('\n').forEach(function (l) { var q = l.split('|')[0].trim(); if (q) bits.push(q); });
           bits = bits.filter(String);
           if (bits.length) { var cur = out.prior_complaints[key] || ''; bits.forEach(function (b) { if (cur.indexOf(b) < 0) cur = cur ? cur + '; ' + b : b; }); out.prior_complaints[key] = cur.slice(0, 240); }

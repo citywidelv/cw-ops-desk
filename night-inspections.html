@@ -145,7 +145,7 @@ function detail(r, photos){
   var t = '<table>'
     + tr("FSM must handle tomorrow", r.fsm_action_needed === "Yes" ? r.fsm_action_note || "Yes" : "")
     + tr("What was wrong", r.score_note)
-    + tr("Complaint", r.complaint_flag === "TRUE" ? [r.complaint_what, "Resolved: " + r.complaint_resolved, r.complaint_blocker].filter(String).join("\n") : "")
+    + tr("Complaint", /^true$/i.test(r.complaint_flag) ? [r.complaint_what, "Resolved: " + r.complaint_resolved, r.complaint_blocker].filter(String).join("\n") : "")
     + tr("Everything fixed", r.issues_resolved + (r.issue_remaining ? "\nLeft: " + r.issue_remaining + (r.issue_owner ? " (" + r.issue_owner + (r.issue_due ? ", by " + r.issue_due : "") + ")" : "") : ""))
     + tr("Crew on site", r.crew_seen === "Yes" ? (r.crew_names || "Names not taken") + (r.crew_uniform ? "\nUniform: " + r.crew_uniform + (r.crew_uniform_note ? " (" + r.crew_uniform_note + ")" : "") : "") : (r.crew_seen === "No" ? "Did not see the crew" : ""))
     + tr("No background check on file", r.crew_unverified)
