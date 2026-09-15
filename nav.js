@@ -540,8 +540,18 @@ window.CW_NAV = {
    "icon": "clock",
    "items": [
     {
-     "label": "Night Manager Inspection",
-     "href": "https://form.jotform.com/233486327771060"
+     "sub": "Night Manager Inspection",
+     "items": [
+      {
+       "label": "Night Inspection (new page)",
+       "href": "night-inspection.html",
+       "tag": "New"
+      },
+      {
+       "label": "Night Inspection Jotform (old form)",
+       "href": "https://form.jotform.com/233486327771060"
+      }
+     ]
     },
     {
      "sub": "Nightly Route Outs",

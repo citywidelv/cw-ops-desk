@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Night Inspection | City Wide Facility Solutions</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;--border:#E5E5E5;--ok:#1d8f4e;
+--shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;color:var(--black);background:var(--light);font-size:16px;line-height:1.5;padding-bottom:90px}
+.head{background:#fff;box-shadow:0 1px 8px rgba(45,42,38,.10);position:sticky;top:0;z-index:5}
+.head .bar{max-width:720px;margin:0 auto;padding:0 14px;height:56px;display:flex;align-items:center;gap:12px}
+.head img{height:30px;width:auto;flex:none}
+.head .t{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);border-left:2px solid var(--border);padding-left:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.head a.back{margin-left:auto;font-size:11px;font-weight:700;color:var(--grey);text-decoration:none;border:1px solid var(--border);border-radius:14px;padding:7px 12px;background:var(--light);white-space:nowrap}
+.wrap{max-width:720px;margin:0 auto;padding:14px}
+.prog{display:flex;gap:6px;margin:4px 0 14px}
+.prog span{flex:1;height:5px;border-radius:3px;background:#ddd}
+.prog span.on{background:var(--red)}
+.prog span.done{background:var(--black)}
+.step{font-size:12px;color:var(--grey);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+h1{font-size:22px;line-height:1.25;margin-bottom:14px}
+.card{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:16px;margin-bottom:12px}
+.card h2{font-size:15px;margin-bottom:10px}
+label.f{display:block;font-size:14px;font-weight:700;margin:14px 0 6px}
+label.f:first-child{margin-top:0}
+label.f .req{color:var(--red)}
+.sub{font-size:13px;color:var(--grey);margin-top:-2px;margin-bottom:6px}
+input[type=text],input[type=time],input[type=search],select,textarea{width:100%;font-family:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;background:#fff;outline:none;color:var(--black);min-height:48px}
+input:focus,select:focus,textarea:focus{border-color:var(--red)}
+textarea{min-height:110px;resize:vertical}
+textarea.big{min-height:200px}
+.hint{font-size:12px;color:var(--grey);margin-top:5px}
+.err{font-size:13px;color:var(--red);font-weight:700;margin-top:8px;min-height:1em}
+.hidden{display:none!important}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;font-size:15px;font-weight:700;background:#fff;cursor:pointer;min-height:48px;flex:1 1 auto;text-align:center;color:var(--black);font-family:inherit}
+.chip.on{border-color:var(--red);background:#fdf3f3;color:var(--red-dark)}
+.chip.wide{flex-basis:100%}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{border:1.5px solid var(--border);border-radius:14px;padding:16px 12px;background:#fff;cursor:pointer;min-height:64px;text-align:left;font-family:inherit;color:var(--black)}
+.tile b{display:block;font-size:16px}
+.tile small{display:block;font-size:12px;color:var(--grey);margin-top:2px}
+.tile.on{border-color:var(--red);background:#fdf3f3;box-shadow:inset 0 0 0 1px var(--red)}
+.tick{display:flex;align-items:flex-start;gap:12px;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff;margin-bottom:8px;cursor:pointer;font-size:15px;line-height:1.4;font-weight:400}
+.tick input{width:24px;height:24px;flex:none;margin-top:1px;accent-color:var(--red)}
+.tick.on{border-color:var(--red);background:#fdf3f3}
+.who{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.who .name{font-size:18px;font-weight:700}
+.linkbtn{background:none;border:0;color:var(--red);font-weight:700;font-size:14px;text-decoration:underline;cursor:pointer;font-family:inherit;padding:10px 6px;min-height:44px}
+.picker{position:relative}
+.list{position:absolute;left:0;right:0;top:100%;background:#fff;border:1.5px solid var(--border);border-radius:0 0 12px 12px;box-shadow:var(--shadow);max-height:280px;overflow:auto;z-index:4}
+.list button{display:block;width:100%;text-align:left;background:#fff;border:0;border-bottom:1px solid var(--border);padding:12px 14px;font-size:15px;font-family:inherit;color:var(--black);cursor:pointer;min-height:48px}
+.list button small{display:block;font-size:12px;color:var(--grey)}
+.list button.mine{background:#fffaf0}
+.list .none{padding:12px 14px;font-size:13px;color:var(--grey)}
+.picked{display:flex;align-items:center;gap:10px;border:1.5px solid var(--red);border-radius:10px;padding:10px 14px;background:#fdf3f3;min-height:48px}
+.picked b{flex:1;font-size:16px}
+.picked small{display:block;font-size:12px;color:var(--grey);font-weight:400}
+.score{display:flex;align-items:center;gap:12px;margin:8px 0}
+.score button{width:56px;height:56px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:28px;font-family:inherit;color:var(--black);cursor:pointer}
+.score .n{flex:1;text-align:center;font-size:54px;font-weight:700;line-height:1}
+.score .n.low{color:var(--red)}
+.score .n small{display:block;font-size:12px;color:var(--grey);font-weight:400;margin-top:2px}
+input[type=range]{width:100%;accent-color:var(--red);height:40px}
+.note{font-size:14px;color:var(--grey);background:var(--light);border-radius:10px;padding:10px 14px}
+.note.ok{color:var(--ok);background:#eef8f1}
+.note.warn{color:var(--red-dark);background:#fdf3f3;font-weight:700}
+.photo{display:flex;align-items:center;gap:12px;border:1.5px dashed var(--border);border-radius:12px;padding:12px;background:#fff;margin-bottom:10px}
+.photo .lbl{flex:1;font-size:15px;font-weight:700}
+.photo .lbl small{display:block;font-weight:400;font-size:12px;color:var(--grey)}
+.cam{flex:none;background:var(--black);color:#fff;border:0;border-radius:10px;padding:12px 16px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;min-height:48px}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px}
+.thumb{position:relative;width:88px;height:88px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#eee}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .x{position:absolute;top:2px;right:2px;width:30px;height:30px;border-radius:50%;background:rgba(45,42,38,.85);color:#fff;border:0;font-size:16px;cursor:pointer}
+.thumb .st{position:absolute;left:0;right:0;bottom:0;background:rgba(45,42,38,.75);color:#fff;font-size:10px;text-align:center;padding:2px}
+.thumb.bad .st{background:var(--red)}
+.foot-nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--border);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));z-index:6}
+.foot-nav .in{max-width:720px;margin:0 auto;display:flex;gap:10px}
+.btn{flex:1;min-height:52px;border-radius:12px;border:0;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer}
+.btn.pri{background:var(--red);color:#fff}
+.btn.pri:disabled{background:#c9a3a5}
+.btn.sec{background:var(--light);color:var(--black);border:1.5px solid var(--border);flex:0 0 100px}
+.done{text-align:center;padding:30px 10px}
+.done .big{font-size:24px;font-weight:700;margin:10px 0}
+.done a.pdf{display:inline-block;background:var(--black);color:#fff;text-decoration:none;border-radius:12px;padding:14px 20px;font-weight:700;margin:12px 0}
+.gatebox{max-width:380px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.gatebox a{display:inline-block;margin-top:12px;color:var(--red);font-weight:700}
+.resume{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#fff8e6;border:1.5px solid #e5b423;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:14px}
+.resume button{min-height:44px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-family:inherit;font-weight:700;padding:0 14px;cursor:pointer}
+.req-panel{border:1.5px solid var(--border);border-radius:12px;padding:14px;background:var(--light);margin-top:12px}
+.policy{font-size:13px;color:var(--grey);background:var(--light);border-radius:10px;padding:10px 14px;white-space:pre-line}
+details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:22px}
+@media (max-width:420px){.tiles{grid-template-columns:1fr 1fr}.head .t{font-size:10px}}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="head"><div class="bar">
+<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+<span class="t">Night Inspection</span>
+<a class="back" href="index.html">&larr; Ops Hub</a>
+</div></header>
+
+<div class="wrap">
+<div id="gate" class="gatebox hidden"><b>Open this from the Ops Hub</b><p class="hint">This page uses the Ops Hub session on this device.</p><a href="index.html">&larr; Ops Hub</a></div>
+
+<div id="app" class="hidden">
+<div id="resume" class="resume hidden"><span>You have a report you did not send.</span><button id="resumeYes">Keep going</button><button id="resumeNo">Start fresh</button></div>
+<div class="prog" id="prog"></div>
+
+<!-- ===================== Screen 1: Tonight ===================== -->
+<section id="s1" class="scr">
+<div class="step">Step 1 of 5</div><h1>Tonight</h1>
+<div class="card">
+<label class="f">Who are you?</label>
+<div id="whoChip" class="who hidden"><span class="name" id="whoName"></span><button class="linkbtn" id="whoChange">Not you?</button></div>
+<div id="whoPick"><select id="whoSel"><option value="">Pick your name...</option></select>
+<input type="text" id="whoOther" class="hidden" placeholder="Type your name" style="margin-top:8px"></div>
+<label class="f">Market</label>
+<div class="chips" id="mktChips"><button class="chip" data-m="lv" type="button">Las Vegas</button><button class="chip" data-m="nnv" type="button">Northern Nevada</button></div>
+</div>
+<div class="card">
+<label class="f">Building <span class="req">*</span></label>
+<div id="acctPicked" class="picked hidden"><b id="acctName"></b><button class="linkbtn" id="acctChange">Change</button></div>
+<div id="acctPick" class="picker"><input type="search" id="acctQ" placeholder="Start typing the building name" autocomplete="off"><div id="acctList" class="list hidden"></div></div>
+<div class="hint" id="acctHint"></div>
+<label class="f">Cleaning company</label>
+<div id="vendPicked" class="picked hidden"><b id="vendName"></b><button class="linkbtn" id="vendChange">Change</button></div>
+<div id="vendPick" class="picker"><input type="search" id="vendQ" placeholder="Start typing the company or owner" autocomplete="off"><div id="vendList" class="list hidden"></div></div>
+<div class="hint" id="vendHint"></div>
+<button class="linkbtn" id="reqOpen" type="button">Can't find it?</button>
+<div id="reqPanel" class="req-panel hidden">
+<div class="chips"><button class="chip" data-rt="vendor" type="button">New cleaning company</button><button class="chip" data-rt="account" type="button">New building</button></div>
+<label class="f" id="reqNameL">Company name</label><input type="text" id="reqName">
+<div id="reqOwnerW"><label class="f">Owner's name</label><input type="text" id="reqOwner"></div>
+<div class="hint" id="reqPreview"></div>
+<div class="chips" style="margin-top:10px"><button class="chip" id="reqSend" type="button">Use this name and tell the office</button></div>
+<div class="err" id="reqErr"></div>
+</div>
+<div id="fsmW"><label class="f">FSM</label><select id="fsm"><option value="">Pick the FSM...</option></select></div>
+</div>
+<div class="card" id="arrCard">
+<label class="f">Arrived</label><input type="time" id="arrival">
+</div>
+<div class="err" id="err1"></div>
+</section>
+
+<!-- ===================== Screen 2: Why tonight ===================== -->
+<section id="s2" class="scr hidden">
+<div class="step">Step 2 of 5</div><h1>Why tonight?</h1>
+<div class="card">
+<div class="tiles" id="reasons">
+<button class="tile" data-r="Regular check" type="button"><b>Regular check</b><small>Normal inspection</small></button>
+<button class="tile" data-r="New building" type="button"><b>New building</b><small>New start, nights 1 to 5</small></button>
+<button class="tile" data-r="Client complained" type="button"><b>Client complained</b><small>You went because of a complaint</small></button>
+<button class="tile" data-r="Work order" type="button"><b>Work order</b><small>Field visit or a job</small></button>
+<button class="tile" data-r="Phone only" type="button"><b>Phone only</b><small>You did not go to the building</small></button>
+<button class="tile" data-r="Photos from crew" type="button"><b>Photos from crew</b><small>The crew sent you pictures</small></button>
+</div>
+<label class="tick" id="cflagRow" style="margin-top:14px"><input type="checkbox" id="cflag"><span>The client also complained tonight</span></label>
+</div>
+<div class="card" id="timingCard">
+<label class="f">When you got there</label>
+<div class="chips" id="timing"><button class="chip" data-t="Before the crew" type="button">Before the crew</button><button class="chip" data-t="During the clean" type="button">During the clean</button><button class="chip" data-t="After the crew" type="button">After the crew</button></div>
+<div id="earlyW" class="hidden"><label class="f">Why before the crew?</label>
+<select id="why_early"><option value="">Pick one...</option><option>Could not reach the crew</option><option>Crew did not show up as scheduled</option><option>Used the time between other visits</option><option>Did not know when the crew would arrive</option><option>Other (say in the summary)</option></select></div>
+</div>
+<div class="card" id="nsCard">
+<label class="f">Which night?</label>
+<div class="chips" id="nsNight"><button class="chip" data-n="Night 1" type="button">1</button><button class="chip" data-n="Night 2" type="button">2</button><button class="chip" data-n="Night 3" type="button">3</button><button class="chip" data-n="Night 4" type="button">4</button><button class="chip" data-n="Night 5" type="button">5</button></div>
+<div class="hint">Nights 4 and 5 are for large accounts only.</div>
+<div id="icW" class="hidden"><label class="f">Did the client pay for an initial clean?</label>
+<div class="chips" id="icPaid"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div></div>
+</div>
+<div class="card" id="woCard">
+<label class="f">What was the work order?</label><input type="text" id="wo_what" placeholder="Short. What was the job">
+<label class="f">Was it done?</label>
+<div class="chips" id="woDone"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="Partly" type="button">Partly</button><button class="chip" data-v="No" type="button">No</button></div>
+</div>
+<div class="card" id="phCard">
+<label class="f">Who did you talk to?</label><input type="text" id="call_who" placeholder="Name and who they are">
+<label class="f">What about?</label><textarea id="call_about"></textarea>
+<label class="f">What happens next?</label><input type="text" id="call_next">
+</div>
+<div class="err" id="err2"></div>
+</section>
+
+<!-- ===================== Screen 3: What you found ===================== -->
+<section id="s3" class="scr hidden">
+<div class="step">Step 3 of 5</div><h1>What you found</h1>
+<div class="card" id="hsCard">
+<label class="f">Hot spots for this building</label>
+<div class="sub">These are the areas the client watches. Tick each one you checked.</div>
+<div id="hsList"></div>
+<div class="hint" id="hsHint"></div>
+</div>
+<div class="card" id="fixedCard">
+<label class="f">Quick checks</label>
+<label class="tick"><input type="checkbox" id="dispensers_ok"><span>Soap and paper towels full</span></label>
+<label class="tick"><input type="checkbox" id="trash_ok"><span>Trash all out</span></label>
+<label class="tick"><input type="checkbox" id="restrooms_ok"><span>Restrooms done right</span></label>
+</div>
+<div class="card" id="crewCard">
+<label class="f">Did you see the crew tonight?</label>
+<div class="chips" id="crewSeen"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
+<div id="crewNo" class="note ok hidden" style="margin-top:10px">That is fine. Coming after the clean is normal.</div>
+<div id="uniW" class="hidden">
+<label class="f">Were they in the right uniform?</label>
+<div class="chips" id="crewUni"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="Some of them" type="button">Some of them</button><button class="chip" data-v="No" type="button">No</button></div>
+<div id="uniNoteW" class="hidden"><label class="f">What was off?</label><input type="text" id="crew_uniform_note" placeholder="Short. Who and what"></div>
+</div>
+</div>
+<div class="card" id="scoreCard">
+<label class="f">How good was the clean?</label>
+<div class="score"><button type="button" id="scoreDown">&minus;</button><div class="n" id="scoreN">8<small>out of 10</small></div><button type="button" id="scoreUp">+</button></div>
+<input type="range" id="score" min="1" max="10" step="1" value="8">
+<div id="lowW" class="hidden">
+<label class="f">What was wrong? <span class="req">*</span></label><textarea id="score_note" placeholder="Say exactly what you saw"></textarea>
+<div class="note warn" style="margin-top:8px">Take a photo of it on the next screen.</div>
+</div>
+</div>
+<div class="card" id="nsListCard">
+<label class="f" id="nsListTitle">Checklist</label>
+<div id="nsList"></div>
+<details id="nsPolicy"><summary>What we do on this night</summary><div class="policy" id="nsPolicyText"></div></details>
+</div>
+<div class="card" id="closetCard">
+<label class="f">Did you check the janitor closet?</label>
+<div class="chips" id="closetChk"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
+<div id="closetW" class="hidden">
+<label class="tick"><input type="checkbox" id="closet_organized"><span>Closet is organized</span></label>
+<label class="tick"><input type="checkbox" id="sds_present"><span>SDS sheets are there</span></label>
+<label class="tick"><input type="checkbox" id="chemicals_labelled"><span>Chemicals are labelled</span></label>
+<label class="tick"><input type="checkbox" id="chemicals_on_hand"><span>All chemicals on hand (stainless, glass, bowl, Mineral Shock)</span></label>
+<label class="tick"><input type="checkbox" id="equipment_ok"><span>Equipment is commercial grade and clean</span></label>
+<label class="tick"><input type="checkbox" id="envirox_low"><span>EnvirOx is running low, needs another case</span></label>
+<label class="f">Closet notes</label><textarea id="closet_notes"></textarea>
+</div>
+</div>
+<div class="card" id="compCard">
+<h2>The complaint</h2>
+<label class="f">What did the client say?</label><textarea id="complaint_what"></textarea>
+<label class="f">Which areas?</label><input type="text" id="complaint_areas" placeholder="Rooms or spots they named">
+<label class="f">How did it reach us?</label>
+<div class="chips" id="compHow"><button class="chip" data-v="Email" type="button">Email</button><button class="chip" data-v="Phone" type="button">Phone</button><button class="chip" data-v="In person" type="button">In person</button><button class="chip" data-v="FSM" type="button">From the FSM</button></div>
+<label class="f">Did you check those areas yourself?</label>
+<div class="chips" id="compVer"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
+<label class="f">Root cause</label><textarea id="complaint_root_cause" placeholder="Why it happened"></textarea>
+<label class="f">Agreed fix</label><textarea id="complaint_agreed_fix" placeholder="What the crew agreed to do so it does not happen again"></textarea>
+<label class="f">Is it resolved?</label>
+<div class="chips" id="compRes"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
+<div id="compBlockW" class="hidden"><label class="f">What stopped you? What do we tell the client and the company?</label><textarea id="complaint_blocker"></textarea></div>
+<label class="f">Did you close your part in CRM?</label>
+<div class="chips" id="compCrm"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
+</div>
+<div class="err" id="err3"></div>
+</section>
+
+<!-- ===================== Screen 4: Photos ===================== -->
+<section id="s4" class="scr hidden">
+<div class="step">Step 4 of 5</div><h1>Photos</h1>
+<div class="card">
+<div class="sub" id="photoSub">Tap a button, take the shot. Each photo is saved as soon as you take it.</div>
+<div id="photoRows"></div>
+<input type="file" id="fileIn" accept="image/*" capture="environment" class="hidden" multiple>
+</div>
+<div class="err" id="err4"></div>
+</section>
+
+<!-- ===================== Screen 5: Before you go ===================== -->
+<section id="s5" class="scr hidden">
+<div class="step">Step 5 of 5</div><h1>Before you go</h1>
+<div class="card" id="issuesCard">
+<label class="f">Did everything get fixed tonight?</label>
+<div class="chips" id="issRes"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button><button class="chip" data-v="Nothing to fix" type="button">Nothing to fix</button></div>
+<div id="issFixW" class="hidden"><label class="f">How was it fixed?</label><textarea id="issue_resolution"></textarea></div>
+<div id="issOpenW" class="hidden">
+<label class="f">What is left?</label><textarea id="issue_remaining"></textarea>
+<label class="f">Who is doing it?</label><input type="text" id="issue_owner">
+<label class="f">By when?</label><input type="text" id="issue_due" placeholder="Tomorrow night, Friday, etc">
+</div>
+</div>
+<div class="card">
+<label class="f">Summary</label>
+<div class="sub">Paste from the Night Manager AI Tool, or type it.</div>
+<textarea id="summary" class="big"></textarea>
+</div>
+<div class="card">
+<label class="f">Does the FSM need to do something tomorrow?</label>
+<div class="chips" id="fsmAct"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
+<div id="fsmNoteW" class="hidden"><label class="f">What?</label><textarea id="fsm_action_note"></textarea></div>
+</div>
+<div class="card" id="supCard">
+<label class="f">Supplies or uniforms needed?</label>
+<label class="tick"><input type="checkbox" id="supplies_needed"><span>Supplies for the building or the crew</span></label>
+<label class="tick"><input type="checkbox" id="uniforms_needed"><span>Uniforms for the crew</span></label>
+<div id="supNoteW" class="hidden"><label class="f">What is needed?</label><input type="text" id="supplies_note"></div>
+</div>
+<div class="card" id="depCard">
+<label class="f">Left at</label><input type="time" id="departure">
+</div>
+<div class="err" id="err5"></div>
+</section>
+
+<!-- ===================== Done ===================== -->
+<section id="sdone" class="scr hidden">
+<div class="card done">
+<div class="big" id="doneTitle">Sent</div>
+<p id="doneMsg"></p>
+<a class="pdf" id="donePdf" href="#" target="_blank" rel="noopener">Open the PDF</a>
+<div><button class="btn pri" id="another" type="button" style="max-width:320px;margin:10px auto">Start another report</button></div>
+</div>
+</section>
+
+<div class="foot-nav" id="nav"><div class="in">
+<button class="btn sec" id="back" type="button">Back</button>
+<button class="btn pri" id="next" type="button">Next</button>
+</div></div>
+</div><!-- app -->
+</div>
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
+
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script>
+(function(){
+"use strict";
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var DBIS = "https://script.google.com/macros/s/AKfycbwQKATsO_nRIKKaCJYqtjVDn3kPs5h71ChFdGudR8zYkxSeLOKufEvlRXWNNMxfG-oIKQ/exec";
+var DRAFT_KEY = "niDraft", WHO_KEY = "niWho", MKT_KEY = "niMarket", CTX_KEY = "niCtx";
+var LOW = 8;
+var PASS = "", CTX = null, HS = [];   // HS = hot spots for the picked building
+var SMALL = {};                        // photo id -> 900px data URI, memory only
+var saveT = null, sending = false, retryT = null, done = false;
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d=document.createElement("div"); d.textContent=String(s==null?"":s); return d.innerHTML; }
+function show(id, on){ var el = typeof id === "string" ? $(id) : id; if (el) el.classList.toggle("hidden", !on); }
+function nowHM(){ var d=new Date(); return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2); }
+function todayISO(){ var d=new Date(); return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2); }
+function uid(){ return Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8); }
+function post(url, body){
+  body.passcode = PASS;
+  return fetch(url, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) })
+    .then(function(r){ return r.json(); });
+}
+function ls(fn){ try { return fn(); } catch(e){ return null; } }
+
+/* ---------- state ---------- */
+function fresh(){
+  return { draft_id: uid(), screen: 1, started: Date.now(),
+    market: ls(function(){ return localStorage.getItem(MKT_KEY); }) || "lv",
+    nm_name:"", nm_email:"", account_id:"", account_name:"", account_matched:false, vendor_id:"", vendor_name:"", vendor_owner:"", vendor_matched:false,
+    fsm:"", arrival: nowHM(), departure:"", reason:"", complaint_flag:false, timing:"", why_early:"",
+    newstart_night:"", initial_clean_paid:"", checklist_items:[], wo_what:"", wo_done:"", call_who:"", call_about:"", call_next:"",
+    hotspots_shown:"", hotspots_checked:[], dispensers_ok:false, trash_ok:false, restrooms_ok:false,
+    crew_seen:"", crew_uniform:"", crew_uniform_note:"",
+    score:8, score_note:"",
+    closet_checked:"", closet_organized:false, sds_present:false, chemicals_labelled:false, chemicals_on_hand:false, equipment_ok:false, envirox_low:false, closet_notes:"",
+    complaint_what:"", complaint_areas:"", complaint_channel:"", complaint_verified:"", complaint_root_cause:"", complaint_agreed_fix:"", complaint_resolved:"", complaint_blocker:"", crm_closed:"",
+    issues_resolved:"", issue_resolution:"", issue_remaining:"", issue_owner:"", issue_due:"",
+    summary:"", fsm_action_needed:"", fsm_action_note:"", supplies_needed:false, uniforms_needed:false, supplies_note:"",
+    photos: [] };  // {id, label, file_id, preview, status}
+}
+var S = fresh();
+
+function save(){
+  if (done) return;
+  clearTimeout(saveT);
+  saveT = setTimeout(function(){ if (done) return; ls(function(){ localStorage.setItem(DRAFT_KEY, JSON.stringify(S)); }); }, 300);
+}
+function flush(){ if (done) return; clearTimeout(saveT); ls(function(){ localStorage.setItem(DRAFT_KEY, JSON.stringify(S)); }); }
+window.addEventListener("pagehide", flush); window.addEventListener("beforeunload", flush); document.addEventListener("visibilitychange", function(){ if (document.visibilityState==="hidden") flush(); });
+function clearDraft(){ done = true; clearTimeout(saveT); ls(function(){ localStorage.removeItem(DRAFT_KEY); }); }
+
+/* ---------- visibility rules ---------- */
+function R(){ return S.reason; }
+function physical(){ return R()==="Regular check"||R()==="New building"||R()==="Client complained"||R()==="Work order"; }
+function inBuilding(){ return R()==="Regular check"||R()==="New building"||R()==="Client complained"; }
+function complaintOn(){ return R()==="Client complained" || !!S.complaint_flag; }
+function showsHotspots(){ return (R()==="Regular check"||R()==="Client complained"|| (R()==="New building" && S.newstart_night && S.newstart_night!=="Night 1")) && HS.length>0; }
+function showsScore(){ return R() && R()!=="Phone only"; }
+function showsPhotos(){ return R() && R()!=="Phone only"; }
+function showsTimes(){ return R()!=="Phone only" && R()!=="Photos from crew"; }
+function screen3Needed(){ return R()!=="Phone only"; }
+
+function applyRules(){
+  show("cflagRow", R()!=="Client complained");
+  show("timingCard", inBuilding());
+  show("earlyW", inBuilding() && S.timing==="Before the crew");
+  show("nsCard", R()==="New building");
+  show("icW", R()==="New building" && S.newstart_night==="Night 1");
+  show("woCard", R()==="Work order");
+  show("phCard", R()==="Phone only");
+  show("arrCard", showsTimes());
+  show("depCard", showsTimes());
+  show("hsCard", showsHotspots());
+  show("fixedCard", inBuilding());
+  show("crewCard", inBuilding());
+  show("crewNo", S.crew_seen==="No");
+  show("uniW", S.crew_seen==="Yes");
+  show("uniNoteW", S.crew_seen==="Yes" && S.crew_uniform && S.crew_uniform!=="Yes");
+  show("scoreCard", showsScore());
+  show("lowW", showsScore() && Number(S.score) < LOW);
+  show("nsListCard", R()==="New building" && !!S.newstart_night);
+  show("closetCard", inBuilding());
+  show("closetW", inBuilding() && S.closet_checked==="Yes");
+  show("compCard", complaintOn());
+  show("compBlockW", complaintOn() && S.complaint_resolved==="No");
+  show("issuesCard", physical() || R()==="Photos from crew");
+  show("issFixW", S.issues_resolved==="Yes");
+  show("issOpenW", S.issues_resolved==="No");
+  show("fsmNoteW", S.fsm_action_needed==="Yes");
+  show("supCard", R()!=="Phone only");
+  show("supNoteW", S.supplies_needed || S.uniforms_needed);
+}
+
+/* ---------- chips ---------- */
+function chipGroup(id, attr, get, set){
+  var g = $(id);
+  Array.prototype.forEach.call(g.querySelectorAll(".chip,.tile"), function(b){
+    b.addEventListener("click", function(){ set(b.getAttribute(attr)); paintChips(id, attr, get()); applyRules(); save(); });
+  });
+  paintChips(id, attr, get());
+}
+function paintChips(id, attr, val){
+  Array.prototype.forEach.call($(id).querySelectorAll(".chip,.tile"), function(b){ b.classList.toggle("on", b.getAttribute(attr)===val); });
+}
+function bindText(id, key){
+  var el = $(id); el.value = S[key] || "";
+  el.addEventListener("input", function(){ S[key] = el.value; save(); });
+}
+function bindCheck(id, key){
+  var el = $(id); el.checked = !!S[key]; el.closest(".tick").classList.toggle("on", el.checked);
+  el.addEventListener("change", function(){ S[key] = el.checked; el.closest(".tick").classList.toggle("on", el.checked); applyRules(); save(); });
+}
+
+/* ---------- who ---------- */
+function paintWho(){
+  if (S.nm_name){ $("whoName").textContent = S.nm_name; show("whoChip", true); show("whoPick", false); }
+  else { show("whoChip", false); show("whoPick", true); }
+}
+function fillWho(){
+  var sel = $("whoSel");
+  var opts = (CTX && CTX.night_managers || []).map(function(p){ return '<option value="'+esc(p.name)+'" data-e="'+esc(p.email)+'">'+esc(p.name)+'</option>'; }).join("");
+  sel.innerHTML = '<option value="">Pick your name...</option>' + opts + '<option value="__other">Someone else</option>';
+}
+$("whoSel").addEventListener("change", function(){
+  if (this.value==="__other"){ show("whoOther", true); $("whoOther").focus(); return; }
+  show("whoOther", false);
+  var o = this.options[this.selectedIndex];
+  S.nm_name = this.value; S.nm_email = o.getAttribute("data-e") || "";
+  if (S.nm_name) ls(function(){ localStorage.setItem(WHO_KEY, JSON.stringify({name:S.nm_name, email:S.nm_email})); });
+  paintWho(); sortAccounts(); save();
+});
+$("whoOther").addEventListener("change", function(){
+  S.nm_name = this.value.trim(); S.nm_email = "";
+  if (S.nm_name) ls(function(){ localStorage.setItem(WHO_KEY, JSON.stringify({name:S.nm_name, email:""})); });
+  paintWho(); save();
+});
+$("whoChange").addEventListener("click", function(){ S.nm_name=""; S.nm_email=""; ls(function(){ localStorage.removeItem(WHO_KEY); }); paintWho(); save(); });
+
+/* ---------- market ---------- */
+chipGroup("mktChips", "data-m", function(){ return S.market; }, function(v){
+  if (v===S.market) return;
+  S.market = v; ls(function(){ localStorage.setItem(MKT_KEY, v); });
+  pickAccount(null); pickVendor(null); loadCtx(true);
+});
+
+/* ---------- pickers ---------- */
+var ACC = [], VEN = [];
+function sortAccounts(){
+  var me = (S.nm_name||"").toLowerCase().split(/\s+/).pop() || "";
+  ACC = (CTX && CTX.accounts || []).slice().sort(function(a,b){
+    var am = me && (a.night_manager||"").toLowerCase().indexOf(me)>=0 ? 0 : 1;
+    var bm = me && (b.night_manager||"").toLowerCase().indexOf(me)>=0 ? 0 : 1;
+    if (am!==bm) return am-bm;
+    return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1;
+  });
+  ACC.forEach(function(a){ a.mine = !!me && (a.night_manager||"").toLowerCase().indexOf(me)>=0; a._s = (a.name+" "+(a.address||"")+" "+(a.fsm||"")).toLowerCase(); });
+}
+function wirePicker(qId, listId, getItems, render, onPick){
+  var q = $(qId), list = $(listId);
+  function draw(){
+    var t = q.value.trim().toLowerCase();
+    var items = getItems().filter(function(x){ return !t || x._s.indexOf(t)>=0; });
+    if (!t && items.length > 12) items = items.filter(function(x){ return x.mine; }).concat(items.filter(function(x){ return !x.mine; })).slice(0, 12);
+    list.innerHTML = items.length ? items.slice(0, 40).map(render).join("")
+      : '<div class="none">' + (t ? 'Nothing matches "'+esc(q.value.trim())+'". Tap Can\'t find it below, or keep typing.' : 'Start typing.') + '</div>';
+    show(list, true);
+    Array.prototype.forEach.call(list.querySelectorAll("button"), function(b){ b.addEventListener("click", function(){ onPick(b.getAttribute("data-i")); show(list, false); }); });
+  }
+  q.addEventListener("input", draw);
+  q.addEventListener("focus", draw);
+  q.addEventListener("keydown", function(e){ if (e.key==="Enter"){ e.preventDefault(); var b = list.querySelector("button"); if (b) b.click(); } });
+  document.addEventListener("click", function(e){ if (!list.contains(e.target) && e.target!==q) show(list, false); });
+}
+wirePicker("acctQ", "acctList", function(){ return ACC; },
+  function(a){ return '<button type="button" data-i="'+esc(a.id||a.name)+'" class="'+(a.mine?'mine':'')+'">'+esc(a.name)+'<small>'+esc([a.address, a.fsm?'FSM '+a.fsm:''].filter(String).join(' · '))+'</small></button>'; },
+  function(key){ var a = ACC.filter(function(x){ return (x.id||x.name)===key; })[0]; if (a) pickAccount(a); });
+wirePicker("vendQ", "vendList", function(){ return VEN; },
+  function(v){ return '<button type="button" data-i="'+esc(v.id||v.label)+'">'+esc(v.label)+'</button>'; },
+  function(key){ var v = VEN.filter(function(x){ return (x.id||x.label)===key; })[0]; if (v) pickVendor(v); });
+
+function pickAccount(a){
+  if (!a){ S.account_id=""; S.account_name=""; S.account_matched=false; HS=[]; S.hotspots_shown=""; S.hotspots_checked=[]; show("acctPicked", false); show("acctPick", true); $("acctQ").value=""; $("acctHint").textContent=""; save(); return; }
+  S.account_id = a.id||""; S.account_name = a.name; S.account_matched = !!a.matched || !a.typed;
+  $("acctName").innerHTML = esc(a.name) + (a.typed ? '<small>Typed by hand. The office will add it.</small>' : '<small>'+esc(a.address||'')+'</small>');
+  show("acctPicked", true); show("acctPick", false);
+  if (a.fsm && !S.fsm){ S.fsm = a.fsm; paintFsm(); }
+  // prefill the cleaning company from the last recap at this building
+  if (!S.vendor_name && CTX && CTX.last_vendor){
+    var lv = CTX.last_vendor[a.id] || CTX.last_vendor[a.name.toLowerCase()];
+    if (lv){ var m = VEN.filter(function(v){ return (lv.id && v.id===lv.id) || v.dba===lv.dba; })[0]; pickVendor(m || {id:lv.id, dba:lv.dba, owner:lv.owner, label: lv.dba + (lv.owner?' - '+lv.owner:''), matched:false}); $("vendHint").textContent = "Same company as last time. Tap Change if that is wrong."; }
+  }
+  loadHotspots(a.name);
+  save();
+}
+function pickVendor(v){
+  if (!v){ S.vendor_id=""; S.vendor_name=""; S.vendor_owner=""; S.vendor_matched=false; show("vendPicked", false); show("vendPick", true); $("vendQ").value=""; $("vendHint").textContent=""; save(); return; }
+  S.vendor_id = v.id||""; S.vendor_name = v.dba; S.vendor_owner = v.owner||""; S.vendor_matched = v.matched!==undefined ? !!v.matched : true;
+  $("vendName").innerHTML = esc(v.label) + (S.vendor_matched ? '' : '<small>Typed by hand. The office will add it.</small>');
+  show("vendPicked", true); show("vendPick", false); save();
+}
+$("acctChange").addEventListener("click", function(){ pickAccount(null); setTimeout(function(){ $("acctQ").focus(); }, 50); });
+$("vendChange").addEventListener("click", function(){ pickVendor(null); setTimeout(function(){ $("vendQ").focus(); }, 50); });
+
+function paintFsm(){
+  var sel = $("fsm");
+  var list = (CTX && CTX.fsms || []).map(function(p){ return p.name; });
+  if (S.fsm && list.indexOf(S.fsm)<0) list.unshift(S.fsm);
+  sel.innerHTML = '<option value="">Pick the FSM...</option>' + list.map(function(n){ return '<option'+(n===S.fsm?' selected':'')+'>'+esc(n)+'</option>'; }).join("");
+}
+$("fsm").addEventListener("change", function(){ S.fsm = this.value; save(); });
+
+/* ---------- can't find it ---------- */
+var REQ = { type:"vendor" };
+$("reqOpen").addEventListener("click", function(){ show("reqPanel", $("reqPanel").classList.contains("hidden")); paintReq(); });
+Array.prototype.forEach.call(document.querySelectorAll("[data-rt]"), function(b){ b.addEventListener("click", function(){ REQ.type = b.getAttribute("data-rt"); paintReq(); }); });
+function paintReq(){
+  Array.prototype.forEach.call(document.querySelectorAll("[data-rt]"), function(b){ b.classList.toggle("on", b.getAttribute("data-rt")===REQ.type); });
+  $("reqNameL").textContent = REQ.type==="vendor" ? "Company name" : "Building name";
+  show("reqOwnerW", REQ.type==="vendor");
+  var n = $("reqName").value.trim(), o = $("reqOwner").value.trim();
+  $("reqPreview").textContent = n ? "Will be sent as: " + (REQ.type==="vendor" && o ? n + " - " + o : n) : "";
+}
+$("reqName").addEventListener("input", paintReq); $("reqOwner").addEventListener("input", paintReq);
+$("reqSend").addEventListener("click", function(){
+  var n = $("reqName").value.trim(), o = $("reqOwner").value.trim();
+  $("reqErr").textContent = "";
+  if (!n){ $("reqErr").textContent = "Type the name first."; return; }
+  if (REQ.type==="vendor") pickVendor({ id:"", dba:n, owner:o, label: o ? n+" - "+o : n, matched:false });
+  else pickAccount({ id:"", name:n, typed:true });
+  show("reqPanel", false); $("reqName").value=""; $("reqOwner").value="";
+  post(WEBHOOK, { kind:"ni_request", market:S.market, type:REQ.type, name:n, owner:o, nm_name:S.nm_name, draft_id:S.draft_id })
+    .then(function(r){ (REQ.type==="vendor" ? $("vendHint") : $("acctHint")).textContent = r && r.ok ? "The office has been told. Your report still sends." : "Could not tell the office. Your report still sends with this name."; })
+    .catch(function(){ (REQ.type==="vendor" ? $("vendHint") : $("acctHint")).textContent = "Could not tell the office. Your report still sends with this name."; });
+});
+
+/* ---------- hot spots (DBIS) ---------- */
+function loadHotspots(name){
+  HS = []; S.hotspots_shown = ""; $("hsList").innerHTML = ""; $("hsHint").textContent = "";
+  if (!name || !S.account_matched) { applyRules(); return; }
+  post(DBIS, { kind:"building_sheet_get", account:name }).then(function(r){
+    var raw = r && r.ok && r.sheet ? String(r.sheet.hot_spots||"") : "";
+    HS = raw.split(/\r?\n|;|•|•|(?:^|\s)-\s|\d+[.)]\s/).map(function(s){ return s.replace(/^[\s\-\*•]+/, "").trim(); }).filter(function(s){ return s.length > 1; });
+    if (HS.length > 12) HS = HS.slice(0, 12);
+    S.hotspots_shown = HS.join("\n");
+    paintHotspots(); applyRules(); save(); renderPhotoRows();
+  }).catch(function(){ applyRules(); });
+}
+function paintHotspots(){
+  $("hsList").innerHTML = HS.map(function(h, i){
+    var on = S.hotspots_checked.indexOf(h) >= 0;
+    return '<label class="tick'+(on?' on':'')+'"><input type="checkbox" data-h="'+i+'"'+(on?' checked':'')+'><span>'+esc(h)+'</span></label>';
+  }).join("");
+  Array.prototype.forEach.call($("hsList").querySelectorAll("input"), function(c){
+    c.addEventListener("change", function(){
+      var h = HS[Number(c.getAttribute("data-h"))];
+      S.hotspots_checked = S.hotspots_checked.filter(function(x){ return x!==h; });
+      if (c.checked) S.hotspots_checked.push(h);
+      c.closest(".tick").classList.toggle("on", c.checked); save();
+    });
+  });
+}
+
+/* ---------- new start checklists (lifted from the Jotform, verbatim) ---------- */
+var NS = {
+  "Night 1": { title:"Night 1 checklist (get the basics right)", items:[
+    "Workload building as you believe it should be done (The IC can clean the building however they would like. Your suggestions should be for the purpose of improving cleaning efficiencies)",
+    "Clean & Stock Restrooms", "Empty Trash", "Common Areas Clean", "Secure Building"],
+    policy:"We recommend you set the cleaning time for the crew. It is a best practice to clean the facility as soon as the business is closed so the crew doesn't feel rushed and so the FSM is not forced to be out too late.\nFSM and NM should be at building 15 minutes before IC arrival to verify where lights are for turning off, review alarm procedures, and make sure the janitor's closet is accessible and stocked. (It is good idea to use this time to organize the closet as needed).\nWhen the IC and crew arrive, walk them through the account and review the Scope of Work. Address any concerns or question they may have. Give them suggestions on how to clean the building if you were to clean it yourself. Remember we can suggest, not mandate.\nBased on the size and complexity of the account, the FSM should plan to spend the first 1-2 hours with the NM and crew. When the FSM is ready to leave, he or she should email the Client Contact stating what has been done up to that point and that the building is now being left to the NM and crew. Also remind the Contact that the FSM will be visiting the building in the morning.\nThe FSM reminds the NM to provide a recap of how the clean went, especially any issues that may arise.\nThe NM should be with the IC to \"Final\" the building each of the first three nights the crew is in the building, and even longer if there are problems needing addressed.\nOn the first night, you should lead the final walk with the IC, showing them what to check for. Pay attention to dispensers, hot spots, and details in the restroom. This will help your IC know what is expected from them in future new starts. Over the course of the new start, you will transition the lead of the final walk from you to them." },
+  "Night 2": { title:"Night 2 checklist", items:["Improve on workload timelines", "Complaint Policy (if required)", "Review remaining items on 100% checklist if no initial clean or items left to complete", "Final the building, let the IC lead with your help tonight."],
+    policy:"On the first night, you should lead the final walk with the IC, showing them what to check for. Pay attention to dispensers, hot spots, and details in the restroom. This will help your IC know what is expected from them in future new starts. Over the course of the new start, you will transition the lead of the final walk from you to them." },
+  "Night 3+": { title:"Night 3+ checklist", items:["Improve on workload timelines", "Complaint Policy (if required)", "Continue work on 100% checklist if not complete", "Final walk the building, IC leads the final walk"],
+    policy:"By night 3 the IC should start to have a good sense on the work load, we should be nearing completion of the 100% checklist, and it is time to start performing inspections of the work.\nFor large or key accounts, the night manager may need to spend 5 nights with the IC, completing the 100% checklist and ensuring thorough training." }
+};
+var INITIAL = ["Edge all carpets", "Move chairs and get behind all objects", "Edge and low dust chairs", "Spot wash doors and door frames", "Thorough dusting", "High and low dusting",
+  "Dust under objects and place back where picked up", "Steel wool baseboards, if there is wax buildup", "Steel wool outside of stools", "Steel wool thresholds and elevator tracks",
+  "Wash walls and partitions in restrooms and around trashcans", "Dust all woodwork", "Including walls and doorjambs", "Vertical dust shelves, furniture, doors and including desks",
+  "Insides of desks where the chair opening is", "Blinds, if required", "Spot carpet, if required"];
+function paintNs(){
+  var n = S.newstart_night; if (!n) return;
+  var def = NS[n] || NS["Night 3+"];
+  var items = def.items.slice();
+  var initial = n==="Night 1" && S.initial_clean_paid==="Yes";
+  $("nsListTitle").textContent = def.title + (initial ? " and the 100% initial clean" : "");
+  $("nsPolicyText").textContent = def.policy;
+  var html = items.map(function(t){ return tickHtml(t); }).join("");
+  if (initial) html += '<div class="sub" style="margin:12px 0 6px;font-weight:700;color:var(--black)">100% initial clean</div>' + INITIAL.map(function(t){ return tickHtml("Initial clean: " + t, t); }).join("");
+  $("nsList").innerHTML = html;
+  Array.prototype.forEach.call($("nsList").querySelectorAll("input"), function(c){
+    c.addEventListener("change", function(){
+      var v = c.getAttribute("data-v");
+      S.checklist_items = S.checklist_items.filter(function(x){ return x!==v; });
+      if (c.checked) S.checklist_items.push(v);
+      c.closest(".tick").classList.toggle("on", c.checked); save();
+    });
+  });
+}
+function tickHtml(val, label){
+  var on = S.checklist_items.indexOf(val) >= 0;
+  return '<label class="tick'+(on?' on':'')+'"><input type="checkbox" data-v="'+esc(val)+'"'+(on?' checked':'')+'><span>'+esc(label||val)+'</span></label>';
+}
+
+/* ---------- score ---------- */
+function paintScore(){
+  var n = Number(S.score)||8;
+  $("score").value = n; $("scoreN").innerHTML = n + '<small>out of 10</small>'; $("scoreN").classList.toggle("low", n < LOW);
+}
+$("score").addEventListener("input", function(){ S.score = Number(this.value); paintScore(); applyRules(); save(); });
+$("scoreDown").addEventListener("click", function(){ S.score = Math.max(1, Number(S.score)-1); paintScore(); applyRules(); save(); });
+$("scoreUp").addEventListener("click", function(){ S.score = Math.min(10, Number(S.score)+1); paintScore(); applyRules(); save(); });
+
+/* ---------- photos ---------- */
+var pendingLabel = "";
+function photoPrompts(){
+  var p = [];
+  if (showsHotspots()) HS.forEach(function(h){ p.push({ label:"Hot spot: " + h, one:true }); });
+  if (inBuilding() && S.closet_checked==="Yes") p.push({ label:"Janitor closet", one:true });
+  if (showsScore() && Number(S.score) < LOW) p.push({ label:"What was wrong", hot:true });
+  if (complaintOn() && S.complaint_resolved==="Yes") p.push({ label:"The fix", one:true });
+  if (complaintOn() && S.complaint_resolved!=="Yes") p.push({ label:"The problem area" });
+  p.push({ label:"Anything that needs fixing" });
+  p.push({ label:"Anything else" });
+  return p;
+}
+function renderPhotoRows(){
+  var rows = photoPrompts();
+  $("photoRows").innerHTML = rows.map(function(r){
+    var mine = S.photos.filter(function(p){ return p.label===r.label; });
+    return '<div class="photo'+(r.hot && !mine.length ? '" style="border-color:var(--red)':'"')+'"><div class="lbl">'+esc(r.label)+(r.hot && !mine.length?'<small>Please take this one.</small>':'')+
+      '<div class="thumbs">'+mine.map(function(p){ return '<div class="thumb'+(p.status==="bad"?' bad':'')+'" data-id="'+p.id+'"><img src="'+p.preview+'" alt=""><button type="button" class="x" data-x="'+p.id+'">&times;</button>'+
+        (p.status!=="ok"?'<div class="st">'+(p.status==="bad"?'Not saved. Retake.':p.status==="pending"?'Saving...':'')+'</div>':'')+'</div>'; }).join("")+'</div></div>'+
+      '<button type="button" class="cam" data-l="'+esc(r.label)+'">'+(mine.length && r.one ? 'Retake' : 'Photo')+'</button></div>';
+  }).join("");
+  Array.prototype.forEach.call($("photoRows").querySelectorAll(".cam"), function(b){
+    b.addEventListener("click", function(){ pendingLabel = b.getAttribute("data-l"); $("fileIn").value = ""; $("fileIn").click(); });
+  });
+  Array.prototype.forEach.call($("photoRows").querySelectorAll(".x"), function(b){
+    b.addEventListener("click", function(){ var id = b.getAttribute("data-x"); S.photos = S.photos.filter(function(p){ return p.id!==id; }); delete SMALL[id]; save(); renderPhotoRows(); });
+  });
+}
+$("fileIn").addEventListener("change", function(){
+  var files = Array.prototype.slice.call(this.files || []);
+  if (!files.length) return;
+  var label = pendingLabel || "Anything else";
+  files.slice(0, 6).forEach(function(f){ addPhoto(f, label); });
+});
+function addPhoto(file, label){
+  var id = uid();
+  var p = { id:id, label:label, file_id:"", preview:"", status:"pending" };
+  S.photos.push(p);
+  resize(file, 1600, 0.75, function(big){
+    resize(file, 900, 0.7, function(small){ SMALL[id] = small; });
+    resize(file, 160, 0.6, function(pre){ p.preview = pre; save(); renderPhotoRows(); });
+    p._data = big;   // memory only, never saved to the draft
+    uploadPhoto(p);
+  });
+}
+function uploadPhoto(p){
+  p.status = "pending"; renderPhotoRows();
+  post(WEBHOOK, { kind:"ni_photo", data:p._data, label:p.label, draft_id:S.draft_id }).then(function(r){
+    if (r && r.ok && r.file_id){ p.file_id = r.file_id; p.status = "ok"; delete p._data; }
+    else { p.status = "bad"; }
+    save(); renderPhotoRows();
+  }).catch(function(){ p.status = "bad"; save(); renderPhotoRows(); });
+}
+function resize(file, max, q, cb){
+  var img = new Image(), rd = new FileReader();
+  rd.onload = function(){ img.src = rd.result; };
+  img.onload = function(){
+    var w = img.width, h = img.height;
+    if (w > max || h > max){ var k = Math.min(max/w, max/h); w = Math.round(w*k); h = Math.round(h*k); }
+    var c = document.createElement("canvas"); c.width = w; c.height = h;
+    c.getContext("2d").drawImage(img, 0, 0, w, h);
+    cb(c.toDataURL("image/jpeg", q));
+  };
+  rd.readAsDataURL(file);
+}
+
+/* ---------- screens ---------- */
+var ORDER = [1,2,3,4,5];
+function visibleScreens(){ return ORDER.filter(function(n){ if (n===3) return screen3Needed(); if (n===4) return showsPhotos(); return true; }); }
+function paintProg(){
+  var vis = visibleScreens(), idx = vis.indexOf(S.screen);
+  $("prog").innerHTML = vis.map(function(n, i){ return '<span class="'+(i<idx?'done':i===idx?'on':'')+'"></span>'; }).join("");
+  var isDone = S.screen === 6;
+  [1,2,3,4,5].forEach(function(n){ show("s"+n, S.screen===n); });
+  show("sdone", isDone); show("nav", !isDone);
+  $("back").disabled = idx <= 0;
+  $("next").textContent = idx === vis.length-1 ? "Send report" : "Next";
+  if (S.screen===5 && showsTimes() && !S.departure){ S.departure = nowHM(); $("departure").value = S.departure; save(); }
+  if (S.screen===3) { paintNs(); }
+  if (S.screen===4) renderPhotoRows();
+  window.scrollTo(0,0);
+}
+function validate(n){
+  var e = $("err"+n); e.textContent = "";
+  if (n===1){
+    if (!S.nm_name) return e.textContent = "Pick your name.";
+    if (!S.account_name) return e.textContent = "Pick the building, or tap Can't find it.";
+  }
+  if (n===2){
+    if (!S.reason) return e.textContent = "Pick why you were there tonight.";
+    if (inBuilding() && !S.timing) return e.textContent = "Say when you got there.";
+    if (R()==="New building" && !S.newstart_night) return e.textContent = "Which night is it?";
+    if (R()==="New building" && S.newstart_night==="Night 1" && !S.initial_clean_paid) return e.textContent = "Did the client pay for an initial clean?";
+    if (R()==="Work order" && !S.wo_what) return e.textContent = "What was the work order?";
+    if (R()==="Phone only" && !S.call_who) return e.textContent = "Who did you talk to?";
+  }
+  if (n===3){
+    if (inBuilding() && !S.crew_seen) return e.textContent = "Did you see the crew tonight?";
+    if (S.crew_seen==="Yes" && !S.crew_uniform) return e.textContent = "Were they in the right uniform?";
+    if (showsScore() && Number(S.score) < LOW && !S.score_note.trim()) return e.textContent = "A score under " + LOW + " needs a note on what was wrong.";
+    if (inBuilding() && !S.closet_checked) return e.textContent = "Did you check the janitor closet?";
+    if (complaintOn() && !S.complaint_what.trim()) return e.textContent = "What did the client say?";
+    if (complaintOn() && !S.complaint_resolved) return e.textContent = "Is the complaint resolved?";
+  }
+  if (n===5){
+    if ((physical() || R()==="Photos from crew") && !S.issues_resolved) return e.textContent = "Did everything get fixed tonight?";
+    if (!S.fsm_action_needed) return e.textContent = "Does the FSM need to do something tomorrow?";
+    if (!S.summary.trim() && R()!=="Photos from crew") return e.textContent = "Add the summary. A paste from the AI tool is fine.";
+  }
+  return true;
+}
+$("next").addEventListener("click", function(){
+  if (validate(S.screen) !== true) return;
+  var vis = visibleScreens(), idx = vis.indexOf(S.screen);
+  if (idx === vis.length-1){ submit(); return; }
+  S.screen = vis[idx+1]; save(); paintProg();
+});
+$("back").addEventListener("click", function(){
+  var vis = visibleScreens(), idx = vis.indexOf(S.screen);
+  if (idx > 0){ S.screen = vis[idx-1]; save(); paintProg(); }
+});
+
+/* ---------- submit ---------- */
+function payload(){
+  var b = {};
+  Object.keys(S).forEach(function(k){ if (k!=="photos" && k!=="screen" && k!=="started") b[k] = S[k]; });
+  b.kind = "ni_submit"; b.report_date = todayISO(); b.source = "night-inspection.html"; b.device = navigator.userAgent.slice(0, 120);
+  b.hotspots_checked = S.hotspots_checked.join("\n"); b.checklist_items = S.checklist_items.join("\n");
+  ["dispensers_ok","trash_ok","restrooms_ok","closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low","supplies_needed","uniforms_needed"].forEach(function(k){ b[k] = S[k] ? "Yes" : (inBuilding() || k==="supplies_needed" || k==="uniforms_needed" ? "No" : ""); });
+  if (!inBuilding()){ ["dispensers_ok","trash_ok","restrooms_ok"].forEach(function(k){ b[k]=""; }); }
+  if (S.closet_checked!=="Yes"){ ["closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ b[k]=""; }); b.closet_notes=""; }
+  if (!showsScore()){ b.score = ""; b.score_note = ""; }
+  if (!showsTimes()){ b.arrival = ""; b.departure = ""; }
+  if (!inBuilding()){ b.timing=""; b.why_early=""; b.crew_seen=""; b.crew_uniform=""; b.crew_uniform_note=""; b.closet_checked=""; }
+  if (!complaintOn()){ ["complaint_what","complaint_areas","complaint_channel","complaint_verified","complaint_root_cause","complaint_agreed_fix","complaint_resolved","complaint_blocker","crm_closed"].forEach(function(k){ b[k]=""; }); }
+  b.issues_found = S.issues_resolved==="Nothing to fix" ? "No" : (S.issues_resolved ? "Yes" : "");
+  b.photos = S.photos.filter(function(p){ return p.file_id || p._data; }).map(function(p){ return { file_id:p.file_id, data:p.file_id ? "" : p._data, label:p.label, small: SMALL[p.id] || "" }; });
+  return b;
+}
+function submit(){
+  if (sending) return;
+  var e = $("err5");
+  var lost = S.photos.filter(function(p){ return !p.file_id && !p._data; });
+  if (lost.length){ S.photos = S.photos.filter(function(p){ return p.file_id || p._data; }); save(); }
+  sending = true; $("next").disabled = true; $("next").textContent = "Sending..."; e.textContent = lost.length ? lost.length + " photo(s) were lost when the page reloaded and are left out." : "";
+  post(WEBHOOK, payload()).then(function(r){
+    sending = false;
+    if (r && r.ok){
+      clearDraft();
+      S.screen = 6;
+      $("doneTitle").textContent = r.duplicate ? "Already sent" : "Sent";
+      $("doneMsg").textContent = (r.duplicate ? "This report was already received. " : "") + (r.inspection_id || "") + (r.photo_count ? " with " + r.photo_count + " photo" + (r.photo_count>1?"s":"") : "") + ".";
+      $("donePdf").href = r.pdf_url || "#"; show("donePdf", !!r.pdf_url);
+      paintProg();
+      return;
+    }
+    fail((r && r.error) || "The server said no.");
+  }).catch(function(){ fail("Could not reach the server."); });
+}
+function fail(msg){
+  sending = false; $("next").disabled = false; $("next").textContent = "Send again";
+  $("err5").textContent = msg + " Nothing is lost. It will try again on its own in 20 seconds, or tap Send again.";
+  clearTimeout(retryT); retryT = setTimeout(function(){ if (S.screen===5 && !done) submit(); }, 20000);
+}
+$("another").addEventListener("click", function(){
+  var who = { name:S.nm_name, email:S.nm_email }, mkt = S.market;
+  done = false; S = fresh(); S.nm_name = who.name; S.nm_email = who.email; S.market = mkt; SMALL = {}; HS = [];
+  $("next").disabled = false; $("err5").textContent = ""; bindAll(); save(); paintProg();
+});
+
+/* ---------- bind everything to S ---------- */
+function bindAll(){
+  paintWho(); paintChips("mktChips", "data-m", S.market);
+  if (S.account_name){ $("acctName").innerHTML = esc(S.account_name) + (S.account_matched ? '' : '<small>Typed by hand.</small>'); show("acctPicked", true); show("acctPick", false); } else { show("acctPicked", false); show("acctPick", true); }
+  if (S.vendor_name){ $("vendName").innerHTML = esc(S.vendor_name + (S.vendor_owner ? " - " + S.vendor_owner : "")); show("vendPicked", true); show("vendPick", false); } else { show("vendPicked", false); show("vendPick", true); }
+  paintFsm();
+  $("arrival").value = S.arrival || ""; $("departure").value = S.departure || "";
+  paintChips("reasons", "data-r", S.reason); $("cflag").checked = !!S.complaint_flag; $("cflagRow").classList.toggle("on", !!S.complaint_flag);
+  paintChips("timing", "data-t", S.timing); $("why_early").value = S.why_early || "";
+  paintChips("nsNight", "data-n", S.newstart_night); paintChips("icPaid", "data-v", S.initial_clean_paid);
+  paintChips("woDone", "data-v", S.wo_done); paintChips("crewSeen", "data-v", S.crew_seen); paintChips("crewUni", "data-v", S.crew_uniform);
+  paintChips("closetChk", "data-v", S.closet_checked); paintChips("compHow", "data-v", S.complaint_channel); paintChips("compVer", "data-v", S.complaint_verified);
+  paintChips("compRes", "data-v", S.complaint_resolved); paintChips("compCrm", "data-v", S.crm_closed); paintChips("issRes", "data-v", S.issues_resolved); paintChips("fsmAct", "data-v", S.fsm_action_needed);
+  ["wo_what","call_who","call_about","call_next","crew_uniform_note","score_note","closet_notes","complaint_what","complaint_areas","complaint_root_cause","complaint_agreed_fix","complaint_blocker","issue_resolution","issue_remaining","issue_owner","issue_due","summary","fsm_action_note","supplies_note"].forEach(function(k){ $(k).value = S[k] || ""; });
+  ["dispensers_ok","trash_ok","restrooms_ok","closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low","supplies_needed","uniforms_needed"].forEach(function(k){ var el=$(k); el.checked=!!S[k]; el.closest(".tick").classList.toggle("on", el.checked); });
+  paintScore(); paintHotspots(); applyRules(); renderPhotoRows();
+  S.photos.forEach(function(p){ if (!p.file_id) p.status = p._data ? "pending" : "bad"; });
+}
+// one-time listeners
+["wo_what","call_who","call_about","call_next","crew_uniform_note","score_note","closet_notes","complaint_what","complaint_areas","complaint_root_cause","complaint_agreed_fix","complaint_blocker","issue_resolution","issue_remaining","issue_owner","issue_due","summary","fsm_action_note","supplies_note"].forEach(function(k){ $(k).addEventListener("input", function(){ S[k] = this.value; save(); }); });
+["dispensers_ok","trash_ok","restrooms_ok","closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low","supplies_needed","uniforms_needed"].forEach(function(k){ var el=$(k); el.addEventListener("change", function(){ S[k]=el.checked; el.closest(".tick").classList.toggle("on", el.checked); applyRules(); save(); }); });
+$("arrival").addEventListener("change", function(){ S.arrival = this.value; save(); });
+$("departure").addEventListener("change", function(){ S.departure = this.value; save(); });
+$("why_early").addEventListener("change", function(){ S.why_early = this.value; save(); });
+$("cflag").addEventListener("change", function(){ S.complaint_flag = this.checked; $("cflagRow").classList.toggle("on", this.checked); applyRules(); save(); });
+chipGroup("reasons", "data-r", function(){ return S.reason; }, function(v){ S.reason = v; if (v==="Client complained") S.complaint_flag = true; paintNs(); renderPhotoRows(); paintProg(); });
+chipGroup("timing", "data-t", function(){ return S.timing; }, function(v){ S.timing = v; });
+chipGroup("nsNight", "data-n", function(){ return S.newstart_night; }, function(v){ S.newstart_night = v; paintNs(); });
+chipGroup("icPaid", "data-v", function(){ return S.initial_clean_paid; }, function(v){ S.initial_clean_paid = v; paintNs(); });
+chipGroup("woDone", "data-v", function(){ return S.wo_done; }, function(v){ S.wo_done = v; });
+chipGroup("crewSeen", "data-v", function(){ return S.crew_seen; }, function(v){ S.crew_seen = v; if (v!=="Yes"){ S.crew_uniform=""; S.crew_uniform_note=""; $("crew_uniform_note").value=""; paintChips("crewUni","data-v",""); } });
+chipGroup("crewUni", "data-v", function(){ return S.crew_uniform; }, function(v){ S.crew_uniform = v; if (v==="Yes"){ S.crew_uniform_note=""; $("crew_uniform_note").value=""; } });
+chipGroup("closetChk", "data-v", function(){ return S.closet_checked; }, function(v){ S.closet_checked = v; });
+chipGroup("compHow", "data-v", function(){ return S.complaint_channel; }, function(v){ S.complaint_channel = v; });
+chipGroup("compVer", "data-v", function(){ return S.complaint_verified; }, function(v){ S.complaint_verified = v; });
+chipGroup("compRes", "data-v", function(){ return S.complaint_resolved; }, function(v){ S.complaint_resolved = v; });
+chipGroup("compCrm", "data-v", function(){ return S.crm_closed; }, function(v){ S.crm_closed = v; });
+chipGroup("issRes", "data-v", function(){ return S.issues_resolved; }, function(v){ S.issues_resolved = v; });
+chipGroup("fsmAct", "data-v", function(){ return S.fsm_action_needed; }, function(v){ S.fsm_action_needed = v; });
+
+/* ---------- context ---------- */
+function loadCtx(force){
+  var cached = ls(function(){ return JSON.parse(localStorage.getItem(CTX_KEY+"_"+S.market) || "null"); });
+  if (cached && !force && Date.now() - cached._at < 6*60*60*1000){ useCtx(cached); }
+  $("acctHint").textContent = cached && !force ? "" : "Loading the building list...";
+  post(WEBHOOK, { kind:"ni_context", market:S.market }).then(function(r){
+    if (!r || !r.ok){ if (r && CWAuth.isPassError(r.error)) { CWAuth.locked("ops", r.error); return; } if (!cached) $("acctHint").textContent = (r && r.error) || "Could not load the lists. Type the names by hand."; return; }
+    r._at = Date.now(); ls(function(){ localStorage.setItem(CTX_KEY+"_"+S.market, JSON.stringify(r)); });
+    useCtx(r); if ($("acctHint").textContent.indexOf("Loading")===0) $("acctHint").textContent = "";
+  }).catch(function(){ if (!cached) $("acctHint").textContent = "Could not load the lists. Check your signal. You can still type the names by hand with Can't find it."; });
+}
+function useCtx(r){
+  CTX = r;
+  VEN = (r.vendors||[]).slice(); VEN.forEach(function(v){ v._s = (v.label||"").toLowerCase(); });
+  sortAccounts(); fillWho(); paintFsm();
+  if (S.nm_name) { $("whoSel").value = S.nm_name; }
+}
+
+/* ---------- boot ---------- */
+(function(){
+  PASS = CWAuth.require({hub:"ops"});
+  if (!PASS) return;
+  show("app", true);
+  var who = ls(function(){ return JSON.parse(localStorage.getItem(WHO_KEY) || "null"); });
+  var draft = ls(function(){ return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); });
+  if (who){ S.nm_name = who.name || ""; S.nm_email = who.email || ""; }
+  if (draft && draft.draft_id && (draft.reason || draft.account_name || (draft.summary||"").length > 20)){
+    show("resume", true);
+    $("resumeYes").addEventListener("click", function(){ S = draft; S.photos = S.photos || []; S.hotspots_checked = S.hotspots_checked||[]; S.checklist_items = S.checklist_items||[]; HS = (S.hotspots_shown||"").split("\n").filter(String); show("resume", false); bindAll(); loadCtx(false); paintProg(); });
+    $("resumeNo").addEventListener("click", function(){ ls(function(){ localStorage.removeItem(DRAFT_KEY); }); show("resume", false); save(); });
+  }
+  bindAll(); loadCtx(false); paintProg();
+})();
+})();
+</script>
+</body>
+</html>
