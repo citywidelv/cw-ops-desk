@@ -562,8 +562,7 @@ function buildSheetHTML(){
     if(!q) return;
     var p = priceFor(it, tw), ext = p*q; total += ext;
     rows += "<tr><td>"+esc(it.sku)+"</td><td>"+esc(it.name)+(it.note&&it.cat==="sds"?" (MISCNOCHARGE)":"")+"</td>"+
-      "<td>"+esc(it.uom)+"</td><td class='r'>"+q+"</td><td class='r'>"+(it.free?"0.00":p.toFixed(2))+"</td>"+
-      "<td class='r'>"+(it.free?"0.00":ext.toFixed(2))+"</td></tr>";
+      "<td>"+esc(it.uom)+"</td><td class='r'>"+q+"</td></tr>";
   });
   var d = new Date();
   var ds = (d.getMonth()+1)+"/"+d.getDate()+"/"+d.getFullYear();
@@ -602,15 +601,15 @@ function buildSheetHTML(){
     "<td colspan='2'><b>Ship to</b>"+esc(ent.name)+"<br>"+esc(ent.addr)+"<br>"+esc(ent.city)+"<br>Phone "+esc(ent.phone)+"</td>"+
     "<td colspan='2'><b>Bill to</b>City Wide Facility Solutions Las Vegas<br>2101 Gateway Centre Blvd, Ste 104<br>Morrisville, NC 27560</td>"+
     "</tr></table>"+
-    "<table class='items'><tr><th>Item #</th><th>Description</th><th>U of M</th><th class='r'>Qty</th><th class='r'>Unit $</th><th class='r'>Ext $</th></tr>"+
+    "<table class='items'><tr><th>Item #</th><th>Description</th><th>U of M</th><th class='r'>Qty</th></tr>"+
     rows+
-    "<tr class='tot'><td colspan='5'>Order total &middot; "+w+" lbs chemical &middot; "+tw+" lbs shipped</td><td class='r'>"+money(total)+"</td></tr></table>"+
+    "<tr class='tot'><td colspan='4'>"+w+" lbs chemical &middot; "+tw+" lbs shipped</td></tr></table>"+
     "<div class='flag'>"+(ok?"250 lb chemical minimum met &mdash; freight prepaid.":"UNDER the 250 lb chemical minimum &mdash; EnvirOx will add freight to the invoice. Consider adding cases.")+"</div>"+
     (notes?"<div style='margin-top:10px'><b>Order notes:</b> "+esc(notes)+"</div>":"")+
     "<div class='send'><b class='h'>How to place this order</b>"+
     "Email this sheet to <b>orders@enviroxclean.com</b> &middot; or call <b>1-800-281-9604</b> &middot; or fax <b>217-442-2568</b>.<br>"+
     "EnvirOx, LLC &middot; P.O. Box 2327, Danville, IL 61834-2327 &middot; ships via R&amp;L Carriers &middot; truck with liftgate &middot; deliveries M&ndash;F 11 AM&ndash;5 PM.</div>"+
-    "<div class='fine'>Dispensers &amp; ancillary items ship with chemical orders. TRIO dispensers are no-charge at 1 per 2 chemical cases (extras have been credited on past orders). Wall charts, pocket charts, literature and SDS sheets are no-charge. Orders modifiable until noon CST the day of shipment. Distributor pricing &mdash; internal use only.</div>"+
+    "<div class='fine'>Dispensers &amp; ancillary items ship with chemical orders. Orders modifiable until noon CST the day of shipment.</div>"+
     "</body></html>";
 }
 
