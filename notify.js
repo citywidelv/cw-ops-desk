@@ -1,4 +1,4 @@
-/* CW Ops Hub: Email Vendors panel (build 2026-09-17b: one click Schedule and Send through the CW Vendor Sender)
+/* CW Ops Hub: Email Vendors panel (build 2026-09-17c: one click Schedule and Send through the CW Vendor Sender)
    Shared by post.html (right after a posting goes live) and postings.html
    (any open posting). Pulls the live Vendor Directory (vd_list), matches
    vendors to the posting's region and trade, and sends a short branded HTML
@@ -217,6 +217,8 @@
       .then(function (r) { return r.json(); })
       .then(function (r) {
         if (!r || !r.ok) throw new Error((r && r.error) || "Could not load the Vendor Directory.");
+        // The main script now and then answers ok with no vendors in it. Never keep or draw that.
+        if (!r.vendors || !r.vendors.length) throw new Error("The vendor list came back empty. That happens now and then when the main script is busy.");
         cache = r; return r;
       });
   }
@@ -279,7 +281,9 @@
       draw(container, posting, pickVendors(rs[0], posting), passcode, rs[1]);
     }).catch(function (e) {
       container.innerHTML = '<h3>Email vendors about this posting</h3>' +
-        '<div class="sub">' + esc(e.message || "Could not load the Vendor Directory.") + '</div>';
+        '<div class="sub">' + esc(e.message || "Could not load the Vendor Directory.") + '</div>' +
+        '<button type="button" class="btn sm" data-act="retry">Try again</button>';
+      container.querySelector('[data-act="retry"]').addEventListener("click", function () { cache = null; render(container, posting, passcode); });
     });
   }
 
