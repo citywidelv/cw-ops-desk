@@ -71,7 +71,17 @@ function vmSend_(d) {
     if (seen[s]) return;
     seen[s] = 1; to.push(s);
   });
-  if (!to.length) return _json({ ok: false, error: 'No valid vendor email addresses in the batch.' });
+  // Sep 17 2026: the do not email list (DoNotEmail.gs) is enforced here, on the server,
+  // whatever the page sent. If the list cannot be read, nothing goes out.
+  var blocked = [];
+  try {
+    var cut = dneFilter_(to);
+    to = cut.ok; blocked = cut.blocked;
+  } catch (dneErr) {
+    return _json({ ok: false, error: 'Could not read the do not email list, so nothing was sent. ' + String(dneErr && dneErr.message || dneErr) });
+  }
+  if (!to.length) return _json({ ok: false, blocked: blocked, error: blocked.length ?
+    'Everyone in this batch is on the do not email list. Nothing was sent.' : 'No valid vendor email addresses in the batch.' });
   if (to.length > VM_BATCH_MAX) {
     return _json({ ok: false, error: 'Batch of ' + to.length + ' is over the Gmail limit of ' + VM_BATCH_MAX +
       '. Send it in smaller runs, or use Outlook for the whole list.' });
@@ -123,7 +133,7 @@ function vmSend_(d) {
   } catch (e) { errs.push('Log: ' + String(e && e.message || e)); }
 
   return _json({ ok: !errs.length || sent > 0, batch_id: batchId, test: test, sent: sent, chunks: chunks.length,
-    skipped: skipped, status: status, error: errs.join(' | '), quota_left: vmQuotaLeft_() });
+    skipped: skipped, blocked: blocked, status: status, error: errs.join(' | '), quota_left: vmQuotaLeft_() });
 }
 
 function vmEsc_(s) {
@@ -138,6 +148,7 @@ function vmFooterText_(sender) {
     else lines.push('City Wide Facility Solutions of ' + m);
   });
   lines.push('Replies go to ' + sender.reply + '.');
+  lines.push(DNE_FOOTER);
   return lines.join('\n');
 }
 

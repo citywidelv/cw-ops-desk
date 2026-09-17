@@ -584,6 +584,9 @@ function vdList_(data) {
     regionCounts[r.key] = { name: r.name, janitorial: 0, other: 0, prospects: 0, total: 0, types: {} };
   });
 
+  // Sep 17 2026: do not email list (DoNotEmail.gs). Tagged here so every picker sees it.
+  var dneSet = {};
+  try { if (typeof dneSet_ === 'function') dneSet = dneSet_(ss); } catch (dneErr) {}
   var allRows = vdAllRows_(ss);
   allRows.forEach(function (r) {
     if (!r.dba_name || vdTrue_(r.hide)) return;
@@ -597,6 +600,7 @@ function vdList_(data) {
     o.region = vdRegion_(r.region);
     o.regions = VD_REGIONS.filter(function (x) { return vdInRegion_(o.region, x.key); })
                           .map(function (x) { return x.key; });
+    o.dne = (typeof dneHas_ === 'function') ? dneHas_(dneSet, r.email) : false;
     vendors.push(o);
 
     o.slugs.forEach(function (s) { counts[s] = (counts[s] || 0) + 1; });
@@ -1438,6 +1442,10 @@ function vdInvite_(data) {
 
   if (!business) return vdOut_({ ok: false, error: 'Type the company name. It is how they go on the directory.' });
   if (!vdInvEmailOk_(email)) return vdOut_({ ok: false, error: 'That email address does not look right.' });
+  // Sep 17 2026: an invite is marketing type email, so the do not email list stops it.
+  if (typeof dneHas_ === 'function' && dneHas_(dneSet_(vdSS_()), email)) {
+    return vdOut_({ ok: false, error: 'That address is on the do not email list, so nothing was sent. If that is a mistake, lift it on the Do Not Email page first.' });
+  }
 
   var types = vdStr_(data.service_types);
   if (!types) types = VD_INV_UNSORTED;
@@ -1587,7 +1595,9 @@ function vdInvEmailHtml_(business, contact, note, mk, link, test) {
   '<b style="color:#2d2a26;">' + vdInvEsc_(mk.sender) + '</b><br>' +
   vdInvEsc_(mk.phone) + '<br>' +
   '<a href="mailto:' + mk.reply + '" style="color:#636466;">' + mk.reply + '</a><br>' +
-  '<a href="https://www.gocitywide.com" style="color:#636466;">GoCityWide.com</a></p></div>' +
+  '<a href="https://www.gocitywide.com" style="color:#636466;">GoCityWide.com</a></p>' +
+  '<p style="margin:12px 0 0;' + F + 'font-size:11px;line-height:1.6;color:#636466;">' +
+  vdInvEsc_(typeof dneFooterText_ === 'function' ? dneFooterText_([mk.region], true) : '').replace(/\n/g, '<br>') + '</p></div>' +
 
   '</td></tr></table></td></tr></table>';
 }
@@ -1602,7 +1612,8 @@ function vdInvEmailText_(business, contact, note, mk, link, test) {
     link + '\n\n' +
     'Step one is a short evaluation form that tells us what your crew does. When work opens ' +
     'that matches, you hear from us first.\n\n' +
-    mk.sender + '\n' + mk.phone + '\n' + mk.reply + '\nGoCityWide.com\n';
+    mk.sender + '\n' + mk.phone + '\n' + mk.reply + '\nGoCityWide.com\n' +
+    (typeof dneFooterText_ === 'function' ? '\n' + dneFooterText_([mk.region], true) + '\n' : '');
 }
 
 // ------------------------------------------------------------ run helpers --
