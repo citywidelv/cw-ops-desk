@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Do Not Email and Remove Vendors | CW Ops Hub</title>
+<!-- build 2026-09-17
+Do not email list and vendor removal, worked from the hub so nobody opens the
+Sheet. Kinds dne_list, dne_add, dne_remove, dne_hide (DoNotEmail.gs in the CW
+Solicitations project). The list lives on the Do Not Email tab of the CW Vendor
+Directory book. Removal uses the directory's existing hide column.
+The list blocks marketing type email only: vendor messages, opportunity emails
+and invites. Violation, COI and background check notices still send.
+Linked from the Ops Hub (Vendors) and the Admin Hub (Vendors).
+Gate: reuses the cached team passcode (cw-auth.js). The page shell paints at
+once and the vendor list loads behind it, so nothing waits on the server.
+-->
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
+  color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+a{color:var(--red)}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.head .bar{max-width:940px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  border-left:2px solid var(--border);padding-left:14px}
+.head .back{margin-left:auto;font-size:12px;font-weight:700;background:var(--red);color:#fff;
+  text-decoration:none;border-radius:6px;padding:8px 14px;white-space:nowrap}
+.head .back:hover{background:var(--red-dark);color:#fff}
+.wrap{max-width:940px;margin:0 auto;padding:26px 20px 60px}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 20px;max-width:74ch}
+.gatebox{max-width:360px;background:#fff;border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.gatebox b{display:block;font-size:16px;margin-bottom:10px}
+#gmsg{font-size:12.5px;color:var(--grey);line-height:1.55}
+.btn{font-family:inherit;font-size:13px;font-weight:700;background:var(--red);color:#fff;border:2px solid var(--red);
+  border-radius:8px;padding:8px 14px;cursor:pointer;text-decoration:none;display:inline-block;white-space:nowrap}
+.btn:hover{background:var(--red-dark);border-color:var(--red-dark);color:#fff}
+.btn.ghost{background:#fff;color:var(--black);border-color:var(--border)}
+.btn.ghost:hover{border-color:var(--black);background:#fff;color:var(--black)}
+.btn.big{font-size:14px;padding:12px 22px}
+.btn:disabled{opacity:.55;cursor:default}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+  padding:22px 24px;margin-bottom:16px}
+.card>h2{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
+  margin-bottom:4px;display:flex;align-items:center;gap:10px}
+.card>h2 .n{font-weight:400;letter-spacing:0;text-transform:none}
+.card>h2+.rule{width:34px;height:3px;background:var(--red);border-radius:2px;margin:8px 0 16px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.what{background:#fff;border:1px solid var(--border);border-left:5px solid var(--black);border-radius:10px;padding:14px 16px;font-size:12.5px;color:var(--grey)}
+.what.red{border-left-color:var(--red)}
+.what b{display:block;color:var(--black);font-size:13.5px;margin-bottom:4px}
+label.fld{display:block;margin-bottom:14px}
+label.fld>span{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--grey);margin-bottom:5px}
+label.fld>span i{color:var(--red);font-style:normal}
+input[type=text],input[type=email],input[type=search],textarea{
+  width:100%;font-family:inherit;font-size:16px;color:var(--black);background:#fff;
+  border:1.5px solid var(--border);border-radius:8px;padding:10px 12px}
+input:focus,textarea:focus{outline:none;border-color:var(--black)}
+.hint{font-size:11.5px;color:var(--grey);margin:6px 0 0}
+.inline{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.inline label.fld{flex:1;min-width:240px;margin-bottom:0}
+.res{margin-top:14px}
+.v{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;border-top:1px solid #F0F0F0}
+.v:first-child{border-top:none}
+.v .who{flex:1;min-width:220px}
+.v .who b{display:block;font-size:14px}
+.v .who>span{display:block;font-size:12px;color:var(--grey);word-break:break-all}
+.v .acts{display:flex;gap:8px;flex-wrap:wrap}
+.tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:4px;
+  padding:2px 7px;background:var(--light);border:1px solid var(--border);color:var(--grey);white-space:nowrap;margin-left:6px;vertical-align:middle}
+.tag.live{background:#E6F5EA;border-color:#1E7B34;color:#1E7B34}
+.tag.dne{background:#FDEEEF;border-color:var(--red);color:var(--red-dark)}
+.tag.gone{background:var(--black);border-color:var(--black);color:#fff}
+.empty{font-size:12.5px;color:var(--grey);padding:6px 0}
+.msg{border-radius:8px;padding:12px 14px;font-size:13px;margin-bottom:16px;display:none}
+.msg.show{display:block}
+.msg.err{background:#FDEEEF;border:1px solid var(--red)}
+.msg.ok{background:#E6F5EA;border:1px solid #1E7B34}
+.foottext{background:var(--light);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:12.5px;color:var(--black)}
+.dim{position:fixed;inset:0;background:rgba(45,42,38,.55);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:8vh 16px;overflow:auto}
+.dlg{background:#fff;border-radius:12px;max-width:520px;width:100%;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.dlg h3{font-size:17px;margin-bottom:6px}
+.dlg p{font-size:13px;color:var(--grey);margin-bottom:12px}
+.dlg .warn{background:#FFF8E5;border:1px solid var(--gold);border-left:5px solid var(--gold);border-radius:8px;padding:12px 14px;font-size:13px;color:var(--black);margin-bottom:14px}
+.dlg .warn b{display:block;margin-bottom:2px}
+.dlg .acts{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px}
+.hidden{display:none!important}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:24px}
+@media(max-width:640px){.head .t{display:none}.two{grid-template-columns:1fr}.v .acts{width:100%}.v .acts .btn{flex:1;text-align:center}}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t">Do Not Email</span>
+  <a class="back" id="backLink" href="index.html">&larr; Ops Hub</a>
+</div></header>
+
+<div class="wrap">
+<div id="gate" class="gatebox hidden"><b>Team passcode</b><p id="gmsg">Loading...</p></div>
+
+<div id="app" class="hidden">
+<h1>Do Not Email and Remove Vendors</h1>
+<p class="lede">When a vendor asks to stop hearing from us, or we decide to stop reaching out, do it here. It updates the vendor directory for you. Nobody needs to open the Sheet.</p>
+
+<div class="two">
+  <div class="what"><b>Do not email</b>Stops opportunity emails, vendor messages and invites to that address. The vendor drops out of those pick lists. They stay on the directory. Violation, COI and background check notices still send.</div>
+  <div class="what red"><b>Remove from all lists</b>Hides the vendor from every page on the hub, the directory and the violation picker included. Use it for a vendor we are done with. The row stays on the Sheet and you can put them back.</div>
+</div>
+
+<div class="msg" id="msg" role="status"></div>
+
+<div class="card">
+  <h2>Find a vendor <span class="n" id="loadNote">Loading the directory...</span></h2><div class="rule"></div>
+  <label class="fld"><span>Company, contact or email</span><input type="search" id="q" placeholder="Start typing a name" autocomplete="off"></label>
+  <div class="res" id="res"><div class="empty">Type at least two letters.</div></div>
+</div>
+
+<div class="card">
+  <h2>Block an address that is not on the directory</h2><div class="rule"></div>
+  <div class="inline">
+    <label class="fld"><span>Email address</span><input type="email" id="rawEmail" maxlength="160" placeholder="name@company.com" autocomplete="off"></label>
+    <button type="button" class="btn big" id="rawBtn">Do not email</button>
+  </div>
+  <p class="hint">If the address comes in later on an import or an evaluation form, it is still blocked.</p>
+</div>
+
+<div class="card">
+  <h2>On the do not email list <span class="n" id="blockedN"></span></h2><div class="rule"></div>
+  <div id="blocked"><div class="empty">Loading...</div></div>
+</div>
+
+<div class="card">
+  <h2>Removed from all lists <span class="n" id="goneN"></span></h2><div class="rule"></div>
+  <div id="gone"><div class="empty">Loading...</div></div>
+</div>
+
+<div class="card">
+  <h2>What vendors see at the bottom of our emails</h2><div class="rule"></div>
+  <div class="foottext" id="footText">To stop these emails, reply and ask to be taken off our lists. You will stop hearing about new work. Notices about buildings you hold will still come to this address. A vendor we cannot reach by email cannot stay active with City Wide.</div>
+  <p class="hint">Their reply lands in the office inbox. Whoever reads it comes here and puts them on the list. Do it within 10 business days of the reply.</p>
+</div>
+</div>
+</div>
+<div class="foot">City Wide Facility Solutions &middot; GoCityWide.com &middot; Internal use only</div>
+
+<div class="dim hidden" id="dim"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+  <h3 id="dTitle"></h3>
+  <p id="dText"></p>
+  <div class="warn hidden" id="dWarn"></div>
+  <label class="fld"><span>Your name <i>*</i></span><input type="text" id="by" maxlength="60" autocomplete="name"></label>
+  <label class="fld" id="dReasonWrap"><span>Reason</span><input type="text" id="reason" maxlength="200" placeholder="Asked to be removed, bounced, done working with them..."></label>
+  <div class="msg err" id="dErr"></div>
+  <div class="acts"><button type="button" class="btn ghost big" id="dCancel">Cancel</button><button type="button" class="btn big" id="dGo">Confirm</button></div>
+</div></div>
+
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script>
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var PASS = "", DATA = null, PENDING = null;
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function lsGet(k){ try{ return localStorage.getItem(k) || ""; }catch(e){ return ""; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function post(body, cb){
+  body.passcode = PASS;
+  fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) })
+    .then(function(r){ return r.json(); }).then(cb).catch(function(){ cb(null); });
+}
+function say(m, ok){
+  var e = $("msg"); e.textContent = m || ""; e.className = "msg" + (m ? " show " + (ok ? "ok" : "err") : "");
+  if(m) e.scrollIntoView({ block:"center", behavior:"smooth" });
+}
+function passFail(r){
+  var bad = r && r.error && (window.CWAuth && CWAuth.isPassError ? CWAuth.isPassError(r.error) : /passcode/i.test(r.error));
+  if(bad){ CWAuth.locked("ops", r.error); }
+  return !!bad;
+}
+
+// Came from the Admin Hub? Send the back button there.
+if(/[?&]from=admin/.test(location.search)){
+  $("backLink").href = "https://citywidelv.github.io/cw-admin-hub/"; $("backLink").innerHTML = "&larr; Admin Hub";
+}
+
+function load(after){
+  post({ kind:"dne_list" }, function(r){
+    if(!r){ $("loadNote").textContent = "Could not reach the server. Reload to try again."; return; }
+    if(!r.ok){
+      if(passFail(r)) return;
+      $("loadNote").textContent = /Unknown|kind/i.test(r.error || "") ? "The server side of this page is not switched on yet." : (r.error || "Could not load.");
+      return;
+    }
+    DATA = r;
+    $("loadNote").textContent = r.vendors.length + " vendors";
+    if(r.footer) $("footText").textContent = r.footer;
+    drawBlocked(); drawGone(); search();
+    if(after) after();
+  });
+}
+
+function tags(v){
+  return '<span class="tag' + (v.live ? " live" : "") + '">' + esc(v.status || "No status") + "</span>" +
+    (v.dne ? '<span class="tag dne">Do not email</span>' : "") + (v.hidden ? '<span class="tag gone">Removed</span>' : "");
+}
+function vendorRow(v){
+  var acts = "";
+  if(v.email) acts += v.dne
+    ? '<button type="button" class="btn ghost" data-act="allow" data-id="' + esc(v.id) + '">Allow email again</button>'
+    : '<button type="button" class="btn" data-act="block" data-id="' + esc(v.id) + '">Do not email</button>';
+  acts += v.hidden
+    ? '<button type="button" class="btn ghost" data-act="unhide" data-id="' + esc(v.id) + '">Put back on lists</button>'
+    : '<button type="button" class="btn ghost" data-act="hide" data-id="' + esc(v.id) + '">Remove from all lists</button>';
+  return '<div class="v"><div class="who"><b>' + esc(v.name) + tags(v) + "</b><span>" +
+    esc([v.contact, v.email || "no email on file", v.region].filter(String).join(" | ")) + '</span></div><div class="acts">' + acts + "</div></div>";
+}
+function search(){
+  if(!DATA) return;
+  var q = $("q").value.trim().toLowerCase();
+  if(q.length < 2){ $("res").innerHTML = '<div class="empty">Type at least two letters.</div>'; return; }
+  var hits = DATA.vendors.filter(function(v){
+    return [v.name, v.legal, v.contact, v.email, v.id].join(" ").toLowerCase().indexOf(q) >= 0;
+  });
+  if(!hits.length){ $("res").innerHTML = '<div class="empty">Nobody on the directory matches. If you have their address, block it in the box below.</div>'; return; }
+  $("res").innerHTML = hits.slice(0, 25).map(vendorRow).join("") +
+    (hits.length > 25 ? '<div class="empty">' + (hits.length - 25) + " more. Keep typing to narrow it down.</div>" : "");
+}
+function drawBlocked(){
+  var b = DATA.blocked || [];
+  $("blockedN").textContent = b.length ? b.length + " address" + (b.length === 1 ? "" : "es") : "";
+  $("blocked").innerHTML = b.length ? b.map(function(x){
+    return '<div class="v"><div class="who"><b>' + esc(x.vendor || x.email) +
+      (x.status ? '<span class="tag">' + esc(x.status) + " when added</span>" : "") + "</b><span>" +
+      esc([x.vendor ? x.email : "", x.reason, "by " + (x.added_by || "?") + " on " + x.added].filter(String).join(" | ")) +
+      '</span></div><div class="acts"><button type="button" class="btn ghost" data-act="allow-email" data-email="' + esc(x.email) + '">Allow email again</button></div></div>';
+  }).join("") : '<div class="empty">Nobody yet.</div>';
+}
+function drawGone(){
+  var g = DATA.vendors.filter(function(v){ return v.hidden; });
+  $("goneN").textContent = g.length ? g.length + " vendor" + (g.length === 1 ? "" : "s") : "";
+  $("gone").innerHTML = g.length ? g.map(vendorRow).join("") : '<div class="empty">Nobody.</div>';
+}
+function byId(id){ return DATA.vendors.filter(function(v){ return v.id === id; })[0]; }
+
+// ---- confirm dialog. Every write goes through it, so every write has a name on it.
+function ask(p){
+  PENDING = p; say("");
+  $("dTitle").textContent = p.title; $("dText").textContent = p.text;
+  $("dWarn").innerHTML = p.warn || ""; $("dWarn").classList.toggle("hidden", !p.warn);
+  $("dReasonWrap").classList.toggle("hidden", !p.reason);
+  $("reason").value = ""; $("dErr").className = "msg err"; $("dGo").textContent = p.go; $("dGo").disabled = false;
+  if(!$("by").value) $("by").value = lsGet("cwAlertsWho") || lsGet("cwVmBy") || lsGet("cwOpsName");
+  $("dim").classList.remove("hidden");
+  ($("by").value ? (p.reason ? $("reason") : $("dGo")) : $("by")).focus();
+}
+function closeDlg(){ $("dim").classList.add("hidden"); PENDING = null; }
+$("dCancel").addEventListener("click", closeDlg);
+$("dim").addEventListener("click", function(e){ if(e.target === $("dim")) closeDlg(); });
+document.addEventListener("keydown", function(e){ if(e.key === "Escape" && PENDING) closeDlg(); });
+$("dGo").addEventListener("click", function(){
+  if(!PENDING) return;
+  var by = $("by").value.trim();
+  if(!by){ $("dErr").textContent = "Type your name so the log shows who did this."; $("dErr").className = "msg err show"; return; }
+  lsSet("cwAlertsWho", by);
+  var p = PENDING, body = {}; for(var k in p.body) body[k] = p.body[k];
+  body.by = by; body.reason = $("reason").value.trim();
+  $("dGo").disabled = true; $("dGo").textContent = "Saving...";
+  post(body, function(r){
+    if(!r){ $("dErr").textContent = "Could not reach the server. Nothing was changed."; $("dErr").className = "msg err show"; $("dGo").disabled = false; $("dGo").textContent = p.go; return; }
+    if(!r.ok){ if(passFail(r)) return; $("dErr").textContent = r.error || "Could not save."; $("dErr").className = "msg err show"; $("dGo").disabled = false; $("dGo").textContent = p.go; return; }
+    closeDlg();
+    var done = p.done(r);
+    load(function(){ say(done, true); });
+  });
+});
+
+var LIVE_BLOCK = "<b>This vendor is working with us.</b>They will stop hearing about new work, and they drop out of the opportunity and message pick lists. Their accounts are not touched. Violation, COI and background check notices still send. The office inbox gets a note so someone calls them.";
+var LIVE_HIDE = "<b>This vendor is working with us.</b>Removing them hides them from the directory and from the violation picker. Move their accounts first. If you only want the emails to stop, use Do not email.";
+
+function onAct(e){
+  var b = e.target.closest("button[data-act]"); if(!b || !DATA) return;
+  var act = b.getAttribute("data-act"), v = b.getAttribute("data-id") ? byId(b.getAttribute("data-id")) : null;
+  if(act === "block" && v) ask({ title:"Do not email " + v.name, text:"Blocks " + v.email + " from opportunity emails, vendor messages and invites.",
+    warn: v.live && !v.hidden ? LIVE_BLOCK : "", reason:true, go:"Do not email",
+    body:{ kind:"dne_add", vendor_ids:[v.id] },
+    done:function(r){ return r.added.length ? v.name + " is on the do not email list." + (r.live.length ? " The office inbox was told." : "") : v.name + " was already on the list."; } });
+  if(act === "allow" && v) ask({ title:"Allow email to " + v.name + " again", text:"Takes " + v.email + " off the do not email list. They show in the pick lists again.",
+    reason:false, go:"Allow email again", body:{ kind:"dne_remove", email:v.email },
+    done:function(){ return v.name + " can be emailed again."; } });
+  if(act === "allow-email") { var em = b.getAttribute("data-email"); ask({ title:"Allow email to " + em + " again", text:"Takes this address off the do not email list.",
+    reason:false, go:"Allow email again", body:{ kind:"dne_remove", email:em }, done:function(){ return em + " can be emailed again."; } }); }
+  if(act === "hide" && v) ask({ title:"Remove " + v.name + " from all lists", text:"Hides them from every page on the hub. The row stays on the Sheet and you can put them back from this page.",
+    warn: v.live ? LIVE_HIDE : "", reason:true, go:"Remove from all lists",
+    body:{ kind:"dne_hide", vendor_id:v.id, hide:true }, done:function(){ return v.name + " is removed from all lists."; } });
+  if(act === "unhide" && v) ask({ title:"Put " + v.name + " back on the lists", text:"They show on the directory and in the pick lists again.",
+    reason:false, go:"Put back on lists", body:{ kind:"dne_hide", vendor_id:v.id, hide:false }, done:function(){ return v.name + " is back on the lists."; } });
+}
+["res","blocked","gone"].forEach(function(id){ $(id).addEventListener("click", onAct); });
+$("q").addEventListener("input", search);
+$("rawBtn").addEventListener("click", function(){
+  var em = $("rawEmail").value.trim().toLowerCase();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ say("That email address does not look right."); return; }
+  say("");
+  ask({ title:"Do not email " + em, text:"Blocks this address from opportunity emails, vendor messages and invites.", reason:true, go:"Do not email",
+    body:{ kind:"dne_add", emails:[em] },
+    done:function(r){ $("rawEmail").value = ""; return r.added.length ? em + " is on the do not email list." : em + " was already on the list."; } });
+});
+
+(function(){
+  var p = CWAuth.require({ hub:"ops" });
+  if(!p) return;
+  PASS = p;
+  $("gate").classList.add("hidden"); $("app").classList.remove("hidden");   // paint first, fetch behind it
+  var m = location.search.match(/[?&]q=([^&]*)/);
+  if(m){ try{ $("q").value = decodeURIComponent(m[1].replace(/\+/g, " ")); }catch(e){} }
+  load();
+})();
+</script>
+</body>
+</html>

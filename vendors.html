@@ -294,6 +294,7 @@ function clearedHtml(v){
 function detailHtml(v){
   var contact = field("Contact", v.contact_name)
     + link("Email", "mailto:" + v.email, v.email)
+    + link("Email list", "https://citywidelv.github.io/cw-ops-desk/vendor-dne.html?q=" + encodeURIComponent(v.dba_name || ""), v.dne ? "On the do not email list. Change it" : "Do not email or remove this vendor")
     + field("Mobile", v.phone) + field("Business phone", v.business_phone)
     + link("Website", v.website) + field("City", v.city_state)
     + field("Market", v.region) + wide("Preferred areas", v.metro_areas);

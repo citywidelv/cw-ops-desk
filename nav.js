@@ -96,6 +96,10 @@ window.CW_NAV = {
        "href": "vendor-add.html"
       },
       {
+       "label": "Do Not Email or Remove a Vendor",
+       "href": "vendor-dne.html"
+      },
+      {
        "label": "Vendor Directory (Sheet)",
        "href": "https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit#gid=1052522802"
       }

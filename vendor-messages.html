@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Message Vendors | CW Ops Hub</title>
 <!--
-  Message Vendors. Build 2026-09-11c.
+  Message Vendors. Build 2026-09-17a (do not email list honored, opt out footer).
 
   One screen to email vendors from the Ops Hub: pick a message (pre-written
   templates with hub links, or a custom note), pick the vendors from the
@@ -176,7 +176,7 @@ table.rt td{padding:6px 8px;border-bottom:1px solid #f0f0f0;}
 
   <div class="card">
     <h2><span class="n">2</span>Pick the vendors <span class="badge" id="selPill" style="background:#eee;color:var(--grey);">0 picked</span></h2>
-    <p class="sub">From the Vendor Directory. Do Not Contact vendors are never listed. Vendors without an email address show greyed out and cannot be picked. Every vendor you pick goes in BCC. They never see each other.</p>
+    <p class="sub">From the Vendor Directory. Do Not Contact vendors and anyone on the <a href="vendor-dne.html">do not email list</a> are never listed. Vendors without an email address show greyed out and cannot be picked. Every vendor you pick goes in BCC. They never see each other.</p>
     <div class="tools">
       <input type="text" id="search" placeholder="Search by company, contact, or email" autocomplete="off">
       <label class="chk"><input type="checkbox" id="showProspects"> Show prospects</label>
@@ -309,7 +309,7 @@ function boot(){
     }
     DATA = r;
     (r.types||[]).forEach(function(t){ TYPES[t.slug] = t.name; });
-    VENDORS = (r.vendors||[]).filter(function(v){ return v.status !== 'Do Not Contact'; });
+    VENDORS = (r.vendors||[]).filter(function(v){ return v.status !== 'Do Not Contact' && !v.dne; });
     VENDORS.forEach(function(v){ v._email = String(v.email||'').trim().toLowerCase(); v._ok = emailOk(v._email); });
     if(q && q.ok){ QUOTA = q.quota_left; }
     else if(q && q.error && /kind/i.test(q.error)){ el('gmailWarn').innerHTML = 'The Gmail sender is not switched on for this script yet, so only Outlook works right now.'; el('gmailWarn').style.display='block'; }
@@ -389,7 +389,7 @@ function preview(){
     '<div><b>BCC</b> <span class="bcc">' + n + ' vendor' + (n===1?'':'s') + '</span>' + (n ? ', each one hidden from the others' : '') + '</div>' +
     '<div><b>Subject</b> ' + (el('subj').value.trim() ? esc(el('subj').value).replace(/\{[a-z_]+\}/gi, function(x){ return '<span class="ph">' + x + '</span>'; }) : '<span style="color:#8c1a20;">(no subject yet)</span>') + '</div>';
   el('envBody').innerHTML = el('body').value.trim() ? renderBody(el('body').value) : '<p class="empty">Nothing written yet.</p>';
-  el('envFoot').innerHTML = esc(s.foot).replace(/\n/g,'<br>') + '<br>Replies go to ' + esc(currentReply());
+  el('envFoot').innerHTML = esc(s.foot).replace(/\n/g,'<br>') + '<br>Replies go to ' + esc(currentReply()) + '<br>' + esc(DNE_FOOTER);
   syncCounts();
 }
 
@@ -506,19 +506,21 @@ function sendGmail(){
     var d = el('gmailDone');
     d.innerHTML = test ? '<b>Test copy sent to ' + esc(el('testTo').value.trim()) + '.</b> The live send would go to ' + emails.length + ' vendors on BCC. Untick "Test first" when it looks right.'
       : '<b>Sent to ' + r.sent + ' vendor' + (r.sent===1?'':'s') + '</b> as ' + esc(SENDERS[el('sender').value].name) + (r.chunks>1 ? ', in ' + r.chunks + ' emails so no BCC list gets too long' : '') + '. Logged on the Vendor Messages tab as ' + esc(r.batch_id) + '.' +
-        (r.error ? '<br><span style="color:#8c1a20;">Some did not go: ' + esc(r.error) + '</span>' : '') + (r.skipped && r.skipped.length ? '<br>Skipped bad addresses: ' + esc(r.skipped.join(', ')) : '');
+        (r.error ? '<br><span style="color:#8c1a20;">Some did not go: ' + esc(r.error) + '</span>' : '') + (r.skipped && r.skipped.length ? '<br>Skipped bad addresses: ' + esc(r.skipped.join(', ')) : '') + (r.blocked && r.blocked.length ? '<br>Left out, on the do not email list: ' + esc(r.blocked.join(', ')) : '');
     d.style.display='block';
     if(!test){ SEL = {}; buildPicker(); }
     syncCounts();
   }).catch(function(){ btn.disabled = false; btn.textContent = 'Send through Gmail'; e.textContent = 'Could not reach the server. Nothing may have been sent. Check the Vendor Messages tab before trying again.'; e.style.display='block'; });
 }
+var DNE_FOOTER = 'To stop these emails, reply and ask to be taken off our lists. You will stop hearing about new work. Notices about buildings you hold will still come to this address. A vendor we cannot reach by email cannot stay active with City Wide.';
+var DNE_SHORT = 'To stop these emails, reply and ask to be taken off our lists.';
 function buildMailtos(){
   if(VIA!=='outlook') return;
   var emails = selectedEmails(), holder = el('mailtos'), warn = el('outlookWarn');
   holder.innerHTML = ''; warn.style.display = 'none';
   var why = checkReady();
   if(why){ holder.innerHTML = '<span class="hint">' + esc(why) + '</span>'; return; }
-  var body = el('body').value.replace(/\r?\n/g, '\r\n');
+  var body = (el('body').value + '\n\n' + DNE_SHORT).replace(/\r?\n/g, '\r\n');
   var base = 'mailto:?subject=' + encodeURIComponent(el('subj').value.trim()) + '&body=' + encodeURIComponent(body) + '&bcc=';
   var batches = [], cur = [];
   emails.forEach(function(em){ if(cur.length && (base + encodeURIComponent(cur.concat([em]).join(','))).length > MAILTO_MAX){ batches.push(cur); cur = []; } cur.push(em); });

@@ -1,4 +1,4 @@
-/* CW Ops Hub: Email Vendors panel (build 2026-09-04c)
+/* CW Ops Hub: Email Vendors panel (build 2026-09-17a: do not email list honored, opt out line in the email)
    Shared by post.html (right after a posting goes live) and postings.html
    (any open posting). Pulls the live Vendor Directory (vd_list), matches
    vendors to the posting's region and trade, and opens the poster's own mail
@@ -148,6 +148,8 @@
     lines.push("Thank you,");
     lines.push(str(p.contact_name) || "City Wide Operations");
     lines.push("City Wide Facility Solutions");
+    lines.push("");
+    lines.push("To stop these emails, reply and ask to be taken off our lists.");
     return { subject: subject, body: lines.join("\r\n") };
   }
 
@@ -166,7 +168,7 @@
   // no blank emails, one row per vendor per group, deduped by email at send time.
   function pickVendors(dir, posting) {
     var rk = regionKey(posting.region), slugs = slugsFor(posting.trade);
-    var mActive = [], mPotential = [], noEmail = [], byType = {}, vendors = [];
+    var mActive = [], mPotential = [], noEmail = [], dne = [], byType = {}, vendors = [];
     (dir.vendors || []).forEach(function (v) {
       if (!v.regions || v.regions.indexOf(rk) < 0) return;
       var st = str(v.status);
@@ -175,6 +177,7 @@
       var em = str(v.email).toLowerCase();
       var rec = { id: v.vendor_id, name: str(v.dba_name), email: em, status: st, live: !!v.live,
                   slugs: (v.slugs || []).slice() };
+      if (v.dne) { dne.push(rec); return; }   // Sep 17 2026: on the do not email list (vendor-dne.html)
       if (!validEmail(em)) { noEmail.push(rec); return; }
       vendors.push(rec);
       var matched = slugs.length && rec.slugs.some(function (s) { return slugs.indexOf(s) >= 0; });
@@ -199,7 +202,7 @@
       byType[s].sort(byName);
       typeGroups.push({ slug: s, label: names[s] || titleCase(s), rows: byType[s] });
     });
-    return { active: mActive, potential: mPotential, types: typeGroups, noEmail: noEmail, slugs: slugs, total: vendors.length };
+    return { active: mActive, potential: mPotential, types: typeGroups, noEmail: noEmail, dne: dne, slugs: slugs, total: vendors.length };
   }
 
   function ensureCss() {
@@ -259,6 +262,10 @@
       h += groupHtml("t-" + g.slug, g.label, g.rows, false, !isProject, "");
     });
     h += '</div>';
+    if (pick.dne && pick.dne.length) {
+      h += '<div class="msg" style="margin-top:10px">On the do not email list (left out): ' +
+        esc(pick.dne.map(function (v) { return v.name; }).join(", ")) + '. <a href="vendor-dne.html">Change the list</a></div>';
+    }
     if (pick.noEmail.length) {
       h += '<div class="msg" style="margin-top:10px">No email on file (cannot be included): ' +
         esc(pick.noEmail.map(function (v) { return v.name; }).join(", ")) + '</div>';
@@ -283,7 +290,7 @@
     });
     function syncCarets() {
       Array.prototype.forEach.call(box.querySelectorAll(".grp"), function (g) {
-        g.querySelector(".car").innerHTML = g.classList.contains("closed") ? "&#9654;" : "&#9660;";
+        var carEl = g.querySelector(".car"); if (carEl) carEl.innerHTML = g.classList.contains("closed") ? "&#9654;" : "&#9660;";
       });
       var o = box.querySelector(".others"), ob = box.querySelector('[data-act="others"]');
       if (o && ob) ob.textContent = o.classList.contains("closed") ? "Show every service type" : "Hide";
@@ -327,7 +334,7 @@
     }
     function update() {
       Array.prototype.forEach.call(box.querySelectorAll(".grp"), function (g) {
-        g.querySelector(".sel").textContent = g.querySelectorAll(".row input:checked").length;
+        var selEl = g.querySelector(".sel"); if (selEl) selEl.textContent = g.querySelectorAll(".row input:checked").length;   // the empty "No other vendors" box has no counter
       });
       Array.prototype.forEach.call(box.querySelectorAll(".row"), function (r) {
         r.classList.toggle("off", !r.querySelector("input").checked);
