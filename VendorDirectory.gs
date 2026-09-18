@@ -193,6 +193,7 @@ function vdDispatch(data) {
   if (kind === 'vd_save')  return vdSave_(data);
   if (kind === 'vd_patch') return vdPatch_(data);
   if (kind === 'vd_types') return vdTypes_(data);
+  if (kind === 'vd_inv_roster') return vdInvRoster_(data);
   if (kind === 'vd_invite') return vdInvite_(data);
   if (kind === 'vd_bc_seed') return vdBcSeed_(data);
   if (kind === 'vd_bc_list') return vdBcList_(data);
@@ -1370,11 +1371,10 @@ var VD_INV_LOGO = 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/
 // Reuse it rather than inventing a second one; two catch-alls on the picker is
 // exactly the confusion an invite is supposed to avoid.
 var VD_INV_UNSORTED = 'unclassified';
-var VD_INV_TEST_TO = 'lvservicecall@gocitywide.com';
 
 // Sep 18 2026: the whole email is editable on the Ops Hub, the same way an
-// opportunity email is. The page sends subject, headline, button label and a
-// plain text body. Everything else is fixed here.
+// opportunity email is. The page sends subject, headline, button label, the
+// FSM, and a plain text body. Everything else is fixed here.
 //
 // THE BUTTON URL IS NEVER TAKEN FROM THE PAGE. It is built below from
 // VD_INV_HUB plus the market, so no edit anyone makes on the hub can point a
@@ -1383,16 +1383,19 @@ var VD_INV_HEADLINE = 'BECOME A CITY WIDE VENDOR';
 var VD_INV_BTN = 'Start Here';
 var VD_INV_MAX = { subject: 200, headline: 90, button: 44, body: 6000 };
 
+// TJ, Sep 18 2026: the inbox name has to say which market it came from, since
+// every market physically sends from the same mailbox. Market first, so it
+// reads before the subject line does.
 var VD_INV_MARKETS = {
   lv: {
     key: 'lv', name: 'Las Vegas', region: 'Las Vegas',
-    sender: 'City Wide of Las Vegas', reply: 'lvservicecall@gocitywide.com',
-    phone: '(702) 483-1874'
+    sender: 'Las Vegas City Wide', reply: 'lvservicecall@gocitywide.com',
+    phone: '(702) 483-1874', test: 'lvservicecall@gocitywide.com'
   },
   nnv: {
     key: 'nnv', name: 'Northern Nevada', region: 'Northern Nevada',
-    sender: 'City Wide of Northern Nevada', reply: 'rnservicecall@gocitywide.com',
-    phone: '(775) 453-4718'
+    sender: 'Northern Nevada City Wide', reply: 'rnservicecall@gocitywide.com',
+    phone: '(775) 453-4718', test: 'rnservicecall@gocitywide.com'
   }
 };
 
@@ -1415,6 +1418,99 @@ function vdInvToday_() {
   return Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd');
 }
 
+// ------------------------------------------------------------- the team ---
+// Names, titles, phones and emails come from the CW Team Directory Sheet, so
+// ops keeps the roster current without a deployment. Headshots come from
+// FSM_ROSTER in Code.gs, matched on the name. Nothing here invents an address:
+// a person with no email on the Sheet gets a card with no email link, and the
+// fix is to fill that cell in, not to change code.
+function vdInvNameKey_(s) { return String(s == null ? '' : s).toLowerCase().replace(/[^a-z]/g, ''); }
+
+function vdInvPhoto_(name) {
+  if (typeof FSM_ROSTER === 'undefined') return '';
+  var want = vdInvNameKey_(name);
+  if (!want) return '';
+  for (var k in FSM_ROSTER) {
+    var got = vdInvNameKey_(FSM_ROSTER[k].name);
+    // "TJ Robert" on the roster vs "TJ Roberts" on the Sheet still matches.
+    if (got && (got === want || got.indexOf(want) === 0 || want.indexOf(got) === 0)) {
+      return vdStr_(FSM_ROSTER[k].photo);
+    }
+  }
+  return '';
+}
+
+// Everyone on the Staff tab who serves this market, with a headshot where we
+// have one. Market 'Both' shows on both lists.
+function vdInvRoster_(data) {
+  var mk = vdInvMarket_(data.market || data.region);
+  var people = [];
+  try {
+    var res = staffList_({});
+    var payload = JSON.parse(res.getContent());
+    if (payload && payload.ok) {
+      payload.staff.forEach(function (p) {
+        var m = vdStr_(p.market);
+        if (mk && m && m.toLowerCase().indexOf('both') < 0 && m !== mk.region) return;
+        people.push({
+          name: vdStr_(p.name), title: vdStr_(p.role), market: m,
+          phone: vdStr_(p.phone), email: vdStr_(p.email), photo: vdInvPhoto_(p.name)
+        });
+      });
+    }
+  } catch (e) {
+    return vdOut_({ ok: false, error: 'Could not read the team list: ' + String(e) });
+  }
+  return vdOut_({ ok: true, people: people });
+}
+
+// The person the page picked, re-read from the Sheet at send time so the card
+// is never built from whatever the browser had cached.
+function vdInvPerson_(name) {
+  var want = vdInvNameKey_(name);
+  if (!want) return null;
+  try {
+    var payload = JSON.parse(staffList_({}).getContent());
+    if (!payload || !payload.ok) return null;
+    for (var i = 0; i < payload.staff.length; i++) {
+      var p = payload.staff[i];
+      if (vdInvNameKey_(p.name) === want) {
+        return { name: vdStr_(p.name), title: vdStr_(p.role), phone: vdStr_(p.phone),
+                 email: vdStr_(p.email), photo: vdInvPhoto_(p.name) };
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+// Headshot, name, title, the market operations line, and their own email so a
+// vendor who wants a person instead of a web page has one.
+function vdInvCardHtml_(fsm, mk) {
+  if (!fsm) return '';
+  var F = 'font-family:Verdana,Arial,sans-serif;';
+  var pic = fsm.photo ?
+    '<td width="78" valign="top" style="width:78px;">' +
+    '<img src="' + fsm.photo + '" width="64" height="64" alt="' + vdInvEsc_(fsm.name) + '" ' +
+    'style="display:block;border:0;width:64px;height:64px;border-radius:32px;object-fit:cover;"></td>' : '';
+  return '<table border="0" cellpadding="0" cellspacing="0" style="margin:6px 0 20px;"><tr>' + pic +
+    '<td valign="top" style="' + F + 'font-size:13px;line-height:1.6;color:#2d2a26;">' +
+    '<b style="font-size:14px;">' + vdInvEsc_(fsm.name) + '</b><br>' +
+    (fsm.title ? vdInvEsc_(fsm.title) + '<br>' : '') +
+    '<span style="color:#636466;">City Wide ' + vdInvEsc_(mk.name) + '</span><br>' +
+    '<span style="color:#636466;">Operations line ' + vdInvEsc_(mk.phone) + '</span>' +
+    (fsm.email ? '<br><a href="mailto:' + vdInvEsc_(fsm.email) + '" style="color:#D22730;font-weight:bold;">' +
+      vdInvEsc_(fsm.email) + '</a>' : '') +
+    '</td></tr></table>';
+}
+
+function vdInvCardText_(fsm, mk) {
+  if (!fsm) return '';
+  return fsm.name + (fsm.title ? '\n' + fsm.title : '') +
+    '\nCity Wide ' + mk.name +
+    '\nOperations line ' + mk.phone +
+    (fsm.email ? '\n' + fsm.email : '');
+}
+
 // ---------------------------------------------------------- the template ---
 // Kept here as well as on the page so an old cached page, or a POST with no
 // body at all, still sends a complete email.
@@ -1425,34 +1521,36 @@ function vdInvDefaults_(mk) {
     button: VD_INV_BTN,
     body: [
       '{business}',
-      'City Wide Facility Solutions manages the cleaning and facility work for hundreds of ' +
-        'buildings across {market}. The work is done by independent crews like yours.',
-      'Everything it takes to start with us is on one page. Five steps, at your pace.',
+      'This is a system message sent at the request of {fsm_name}, {fsm_title}.',
+      'We found your information online and think your crew would be a good fit for our vendor ' +
+        'network. City Wide Facility Solutions manages the cleaning and facility work for hundreds ' +
+        'of buildings across {market}. The work is done by independent crews like yours.',
+      'Jump on our vendor hub and take a look around. Everything it takes to start with us is on ' +
+        'one page, five steps, at your pace.',
       '{button}',
-      'Step one is a short evaluation form that tells us what your crew does. When work opens ' +
-        'that matches, you hear from us first.'
+      'If you like what you see, get in touch and we will set up a time to meet and talk it through.',
+      '{fsm}'
     ].join('\n\n')
   };
 }
 
-// {business} {contact} {market} {sender} {phone} {by}. A line that held a token
-// and comes out empty is dropped, so a missing contact name leaves no stub.
+// {business} {contact} {market} {sender} {phone} {by} {fsm_name} {fsm_title}
+// {fsm_email}. A line that held a token and comes out empty is dropped, so a
+// missing contact name or no FSM picked leaves no stub behind.
 function vdInvFill_(text, ctx) {
   var out = String(text == null ? '' : text).replace(/\r/g, '').split('\n').map(function (line) {
     if (!/\{[a-z_]+\}/.test(line)) return line;
     var emptied = false;
     var filled = line.replace(/\{([a-z_]+)\}/g, function (whole, k) {
-      if (k === 'button') return whole;
+      if (k === 'button' || k === 'fsm') return whole;
       var v = ctx[k] == null ? '' : String(ctx[k]);
       if (!v) emptied = true;
       return v;
     });
-    var bare = filled.replace(/\battn\b/i, '').replace(/[\s,;:.\-]+/g, '');
-    if (bare === '') return null;
-    // "{business}, attn {contact}" with no contact leaves ", attn". Only tidy a
-    // line that actually lost something, so a written comma is left alone.
-    if (emptied) filled = filled.replace(/,\s*attn\s*$/i, '').replace(/[\s,]+$/, '');
-    return filled;
+    // One rule, so it is predictable and the preview always matches: a line
+    // holding a fill-in that comes out blank is left out whole. Without it, no
+    // FSM picked leaves "sent at the request of , ." in a vendor's inbox.
+    return emptied ? null : filled;
   }).filter(function (l) { return l !== null; }).join('\n');
   return out.replace(/\n{3,}/g, '\n\n').trim();
 }
@@ -1478,8 +1576,9 @@ function vdInvButtonHtml_(link, label) {
 
 // Plain text in, email HTML out. Blank line between paragraphs. A block of
 // lines that all start with "- " becomes a list. A line that is only {button}
-// becomes the red button. If nobody placed {button}, it goes after the body.
-function vdInvBodyHtml_(text, link, label) {
+// becomes the red button, and a line that is only {fsm} becomes the person's
+// card. If nobody placed {button}, it goes after the body.
+function vdInvBodyHtml_(text, link, label, fsm, mk) {
   var F = 'font-family:Verdana,Arial,sans-serif;';
   var placed = false;
   var html = String(text).replace(/\r/g, '').split(/\n{2,}/).map(function (p) {
@@ -1489,6 +1588,7 @@ function vdInvBodyHtml_(text, link, label) {
       placed = true;
       return vdInvButtonHtml_(link, label);
     }
+    if (lines.length === 1 && lines[0].trim() === '{fsm}') return vdInvCardHtml_(fsm, mk);
     if (lines.every(function (l) { return /^\s*-\s+/.test(l); })) {
       return '<ul style="margin:0 0 16px;padding-left:22px;' + F +
         'font-size:14px;line-height:1.6;color:#2d2a26;">' +
@@ -1503,13 +1603,14 @@ function vdInvBodyHtml_(text, link, label) {
   return html;
 }
 
-function vdInvBodyText_(text, link, label) {
+function vdInvBodyText_(text, link, label, fsm, mk) {
   var placed = false;
   var out = String(text).replace(/\r/g, '').split(/\n{2,}/).map(function (p) {
-    if (p.trim() === '{button}') { placed = true; return label + ': ' + link; }
+    if (p.trim() === '{button}') { placed = true; return label + ' ' + link; }
+    if (p.trim() === '{fsm}') return vdInvCardText_(fsm, mk);
     return p.trim();
   }).filter(function (p) { return p !== ''; }).join('\n\n');
-  if (!placed) out += '\n\n' + label + ': ' + link;
+  if (!placed) out += '\n\n' + label + ' ' + link;
   return out;
 }
 
@@ -1557,6 +1658,8 @@ function vdInvite_(data) {
     return vdOut_({ ok: false, error: 'That address is on the do not email list, so nothing was sent. If that is a mistake, lift it on the Do Not Email page first.' });
   }
 
+  var fsm = vdInvPerson_(data.fsm);
+
   // The editable email. Anything the page leaves out falls back to the default,
   // so an old cached page still sends the original template.
   var def = vdInvDefaults_(mk);
@@ -1591,7 +1694,8 @@ function vdInvite_(data) {
   if (!hit) hit = all.filter(function (r) { return r.dba_name.toLowerCase() === key; })[0];
 
   var today = vdInvToday_();
-  var stamp = 'Invited ' + today + ' by ' + by + ' (' + mk.name + ')';
+  var stamp = 'Invited ' + today + ' by ' + by + ' (' + mk.name +
+    (fsm ? ', for ' + fsm.name : '') + ')';
   var vid = '', action = '';
 
   if (hit) {
@@ -1626,24 +1730,25 @@ function vdInvite_(data) {
     sh.getRange(vdNextRow_(sh), 1, 1, VD_HEADERS.length).setValues([out]);
   }
 
-  var to = test ? VD_INV_TEST_TO : email;
+  var to = test ? mk.test : email;
   var link = VD_INV_HUB + '?region=' + mk.key;
-  var filled = vdInvFill_(em.body, {
+  var ctx = {
     business: business, contact: contact, market: mk.name,
-    sender: mk.sender, phone: mk.phone, by: by
-  });
-  var subject = (test ? 'TEST | ' : '') +
-    vdInvFill_(em.subject, { business: business, contact: contact, market: mk.name,
-                             sender: mk.sender, phone: mk.phone, by: by });
+    sender: mk.sender, phone: mk.phone, by: by,
+    fsm_name: fsm ? fsm.name : '', fsm_title: fsm ? fsm.title : '',
+    fsm_email: fsm ? fsm.email : ''
+  };
+  var filled = vdInvFill_(em.body, ctx);
+  var subject = (test ? 'TEST | ' : '') + vdInvFill_(em.subject, ctx);
   var sent = false, sendError = '';
   try {
     MailApp.sendEmail({
       to: to,
-      replyTo: mk.reply,
+      replyTo: fsm && fsm.email ? fsm.email : mk.reply,
       name: mk.sender,
       subject: subject,
-      htmlBody: vdInvEmailHtml_(em, filled, mk, link, test),
-      body: vdInvEmailText_(em, filled, mk, link, test)
+      htmlBody: vdInvEmailHtml_(em, filled, mk, link, test, fsm),
+      body: vdInvEmailText_(em, filled, mk, link, test, fsm)
     });
     sent = true;
   } catch (e) {
@@ -1657,7 +1762,8 @@ function vdInvite_(data) {
       'INVITE', business, contact, email, phone, mk.region, types, vid,
       (sent ? (test ? 'invite TEST sent to ' + to : 'invite sent') : 'INVITE EMAIL FAILED') +
         ', ' + action,
-      JSON.stringify({ by: by, subject: subject, body: filled, error: sendError }).slice(0, 45000)
+      JSON.stringify({ by: by, fsm: fsm ? fsm.name : '', subject: subject, body: filled,
+                       error: sendError }).slice(0, 45000)
     ]);
   }
 
@@ -1667,7 +1773,7 @@ function vdInvite_(data) {
              sendError + ' Send it again or reach out directly.' });
   }
   return vdOut_({ ok: true, vendor_id: vid, action: action, sent_to: to, test: test,
-                  market: mk.name, link: link });
+                  market: mk.name, link: link, fsm: fsm ? fsm.name : '' });
 }
 
 function vdInvSet_(sh, row, header, value) {
@@ -1679,11 +1785,11 @@ function vdInvSet_(sh, row, header, value) {
 // The shell. Logo, headline bar, the sender's message, then the fixed footer.
 // The footer carries the market identity and the do not email wording and is
 // not editable from the hub.
-function vdInvEmailHtml_(em, filledBody, mk, link, test) {
+function vdInvEmailHtml_(em, filledBody, mk, link, test, fsm) {
   var F = 'font-family:Verdana,Arial,sans-serif;';
   var banner = test ?
     '<tr><td style="background:#E5B423;padding:8px 30px;' + F + 'font-size:12px;font-weight:bold;' +
-    'color:#2d2a26;">TEST. Routed to the internal inbox. Not sent to a vendor.</td></tr>' : '';
+    'color:#2d2a26;">TEST. Routed to the ' + vdInvEsc_(mk.name) + ' office inbox. Not sent to a vendor.</td></tr>' : '';
 
   return '' +
   '<table bgcolor="#f4f4f4" border="0" cellpadding="0" cellspacing="0" width="100%">' +
@@ -1701,15 +1807,15 @@ function vdInvEmailHtml_(em, filledBody, mk, link, test) {
 
   '<tr><td style="padding:18px 30px 30px;">' +
 
-  vdInvBodyHtml_(filledBody, link, em.button) +
+  vdInvBodyHtml_(filledBody, link, em.button, fsm, mk) +
 
   '<p style="margin:0 0 22px;' + F + 'font-size:12px;line-height:1.5;color:#636466;' +
-  'word-break:break-all;">Or paste this into your browser:<br>' +
+  'word-break:break-all;">Or paste this into your browser<br>' +
   '<a href="' + link + '" style="color:#636466;">' + vdInvEsc_(link) + '</a></p>' +
 
   '<div style="border-top:1px solid #E5E5E5;padding-top:16px;">' +
   '<p style="margin:0;' + F + 'font-size:12px;line-height:1.7;color:#636466;">' +
-  '<b style="color:#2d2a26;">' + vdInvEsc_(mk.sender) + '</b><br>' +
+  '<b style="color:#2d2a26;">City Wide Facility Solutions of ' + vdInvEsc_(mk.name) + '</b><br>' +
   vdInvEsc_(mk.phone) + '<br>' +
   '<a href="mailto:' + mk.reply + '" style="color:#636466;">' + mk.reply + '</a><br>' +
   '<a href="https://www.gocitywide.com" style="color:#636466;">GoCityWide.com</a></p>' +
@@ -1719,14 +1825,13 @@ function vdInvEmailHtml_(em, filledBody, mk, link, test) {
   '</td></tr></table></td></tr></table>';
 }
 
-function vdInvEmailText_(em, filledBody, mk, link, test) {
-  return (test ? 'TEST. Routed to the internal inbox. Not sent to a vendor.\n\n' : '') +
+function vdInvEmailText_(em, filledBody, mk, link, test, fsm) {
+  return (test ? 'TEST. Routed to the ' + mk.name + ' office inbox. Not sent to a vendor.\n\n' : '') +
     (em.headline ? em.headline + '\n\n' : '') +
-    vdInvBodyText_(filledBody, link, em.button) + '\n\n' +
-    mk.sender + '\n' + mk.phone + '\n' + mk.reply + '\nGoCityWide.com\n' +
+    vdInvBodyText_(filledBody, link, em.button, fsm, mk) + '\n\n' +
+    'City Wide Facility Solutions of ' + mk.name + '\n' + mk.phone + '\n' + mk.reply + '\nGoCityWide.com\n' +
     (typeof dneFooterText_ === 'function' ? '\n' + dneFooterText_([mk.region], true) + '\n' : '');
 }
-
 
 // ------------------------------------------------------------ run helpers --
 

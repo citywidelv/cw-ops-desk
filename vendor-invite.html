@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Invite a New Vendor | CW Ops Hub</title>
-<!-- build 2026-09-18
+<!-- build 2026-09-18b
 Invite a new vendor for Las Vegas or Northern Nevada. Replaces the four Asana
 "request a vendor packet" forms. Posts kind vd_invite (VendorDirectory.gs): the
 vendor gets the New Vendor steps on the Vendor Hub, and the same call puts them
@@ -16,6 +16,13 @@ is on Active Postings. Subject, headline, button words and the message all come
 from this page. The button's LINK does not. VendorDirectory.gs builds it from
 VD_INV_HUB plus the market, so it always lands on the New Vendor steps
 (new-vendors.html), never the shop. Do not add a link field here.
+
+Sep 18 2026 (b): pick the FSM the invite is sent for and their headshot, name,
+title, the market operations line and their own email go in the email, so the
+vendor has a person to answer rather than only a web page. The roster comes from
+the CW Team Directory Sheet (kind vd_inv_roster), headshots from FSM_ROSTER in
+Code.gs. Nobody's email is invented here: a blank cell on the Sheet means no
+email link, and the fix is the Sheet.
 
 Service type is optional. Anyone invited without one lands on "Not Sorted Yet"
 and their own evaluation form fills the record in.
@@ -128,6 +135,11 @@ textarea{min-height:74px;resize:vertical;line-height:1.55}
 .mailpv .bd a.cta{display:inline-block;background:var(--red);color:#fff;text-decoration:none;
   font-size:17px;padding:18px 34px;border-radius:6px;margin:6px 0 18px}
 .mailpv .paste{padding:0 30px;font-size:12px;color:var(--grey);word-break:break-all;line-height:1.5}
+.mailpv .fsmcard{display:flex;gap:14px;align-items:flex-start;margin:6px 0 20px;font-size:13px;line-height:1.6}
+.mailpv .fsmcard img{width:64px;height:64px;border-radius:32px;object-fit:cover;flex:none;background:var(--light)}
+.mailpv .fsmcard b{font-size:14px}
+.mailpv .fsmcard .q{color:var(--grey)}
+.mailpv .fsmcard a{color:var(--red);font-weight:700}
 .mailpv .ft{margin:16px 30px 26px;border-top:1px solid var(--border);padding-top:16px;
   font-size:12px;color:var(--grey);line-height:1.7}
 .mailpv .ft b{color:var(--black)}
@@ -176,6 +188,14 @@ textarea{min-height:74px;resize:vertical;line-height:1.55}
 </div>
 
 <div class="card">
+<h2>Who it comes from</h2>
+<div class="row">
+<label class="full"><span>Send it for</span><select id="fsm"><option value="">Nobody, send it from the office</option></select></label>
+</div>
+<div id="fsmNote" class="hint">Their headshot, name, title, the operations line and their own email go in the email, and replies come back to them.</div>
+</div>
+
+<div class="card">
 <h2>The email. Edit it here<button type="button" class="lk" id="reset">Start over from the standard invite</button></h2>
 <div class="row">
 <label class="full"><span>Subject <i>*</i></span><input type="text" id="subject" maxlength="200" autocomplete="off"></label>
@@ -183,7 +203,7 @@ textarea{min-height:74px;resize:vertical;line-height:1.55}
 <label><span>Words on the button</span><input type="text" id="button" maxlength="44" autocomplete="off"></label>
 </div>
 <label class="full"><span>Message <i>*</i></span><textarea id="body" maxlength="6000" spellcheck="true"></textarea></label>
-<div class="hint">Blank line between paragraphs. Start lines with <code>-</code> for a list. Put <code>{button}</code> on its own line where you want the red button; leave it out and the button goes at the end. Fill-ins: <code>{business}</code> <code>{contact}</code> <code>{market}</code> <code>{sender}</code> <code>{phone}</code> <code>{by}</code>. A line that empties out, like <code>{business}, attn {contact}</code> with no contact name, is dropped.</div>
+<div class="hint">Blank line between paragraphs. Start lines with <code>-</code> for a list. Put <code>{button}</code> on its own line where you want the red button; leave it out and the button goes at the end. Put <code>{fsm}</code> on its own line where you want their photo card. Fill-ins: <code>{business}</code> <code>{contact}</code> <code>{market}</code> <code>{phone}</code> <code>{by}</code> <code>{fsm_name}</code> <code>{fsm_title}</code> <code>{fsm_email}</code>. A whole line is left out if a fill-in on it comes back blank, so nothing ever reads "at the request of , ". Keep optional fill-ins on their own line.</div>
 <div class="locked"><b>Locked:</b> the button always opens the New Vendor steps on the Vendor Hub for the market you picked. You can rename the button, not repoint it. The address block and the do not email line at the bottom are fixed too.</div>
 </div>
 
@@ -225,9 +245,10 @@ var PASS = "", MKT = "lv", TYPES = [];
    VD_INV_HUB plus the market. It is never posted from this page. */
 var LINK = "https://citywidelv.github.io/cw-vendor-hub/new-vendors.html";
 var MARKETS = {
-  lv:  { name:"Las Vegas", sender:"City Wide of Las Vegas", reply:"lvservicecall@gocitywide.com", phone:"(702) 483-1874" },
-  nnv: { name:"Northern Nevada", sender:"City Wide of Northern Nevada", reply:"rnservicecall@gocitywide.com", phone:"(775) 453-4718" }
+  lv:  { name:"Las Vegas", sender:"Las Vegas City Wide", reply:"lvservicecall@gocitywide.com", phone:"(702) 483-1874", test:"lvservicecall@gocitywide.com" },
+  nnv: { name:"Northern Nevada", sender:"Northern Nevada City Wide", reply:"rnservicecall@gocitywide.com", phone:"(775) 453-4718", test:"rnservicecall@gocitywide.com" }
 };
+var PEOPLE = [];
 var HEADLINE = "BECOME A CITY WIDE VENDOR", BTN = "Start Here";
 var DIRTY = {};   /* a field the sender has typed in is never rewritten under them */
 
@@ -250,12 +271,15 @@ function defaults(){
     button: BTN,
     body: [
       "{business}",
-      "City Wide Facility Solutions manages the cleaning and facility work for hundreds of " +
-        "buildings across {market}. The work is done by independent crews like yours.",
-      "Everything it takes to start with us is on one page. Five steps, at your pace.",
+      "This is a system message sent at the request of {fsm_name}, {fsm_title}.",
+      "We found your information online and think your crew would be a good fit for our vendor " +
+        "network. City Wide Facility Solutions manages the cleaning and facility work for hundreds " +
+        "of buildings across {market}. The work is done by independent crews like yours.",
+      "Jump on our vendor hub and take a look around. Everything it takes to start with us is on " +
+        "one page, five steps, at your pace.",
       "{button}",
-      "Step one is a short evaluation form that tells us what your crew does. When work opens " +
-        "that matches, you hear from us first."
+      "If you like what you see, get in touch and we will set up a time to meet and talk it through.",
+      "{fsm}"
     ].join("\n\n")
   };
 }
@@ -277,12 +301,13 @@ function setMkt(m){
     b.classList.toggle("on", b.getAttribute("data-m") === m);
   });
   applyDefaults(false);
+  if(PEOPLE.length) renderPeople();
   showSends();
 }
 $("pick").addEventListener("click", function(e){ var b = e.target.closest("button"); if(b) setMkt(b.getAttribute("data-m")); });
 
 function showSends(){
-  var to = $("test").checked ? "the office inbox, not the vendor" : ($("email").value.trim() || "the address above");
+  var to = $("test").checked ? (mk().test + ", not the vendor") : ($("email").value.trim() || "the address above");
   $("sends").innerHTML = "Sends as <b>" + esc(mk().sender) + "</b> to <b>" + esc(to) + "</b>, " +
     "with the button going to <b>" + esc(link()) + "</b>";
 }
@@ -290,22 +315,26 @@ function showSends(){
 /* --------------------------------------------------------- the preview --- */
 /* Same rules as vdInvFill_ / vdInvBodyHtml_ in VendorDirectory.gs, so what is
    shown here is what sends. Change one, change the other. */
+function person(){
+  var n = $("fsm").value;
+  if(!n) return null;
+  return PEOPLE.filter(function(p){ return p.name === n; })[0] || null;
+}
 function fill(text){
+  var f = person();
   var ctx = { business: $("business").value.trim() || "Their company", contact: $("contact").value.trim(),
-              market: mk().name, sender: mk().sender, phone: mk().phone, by: $("by").value.trim() };
+              market: mk().name, sender: mk().sender, phone: mk().phone, by: $("by").value.trim(),
+              fsm_name: f ? f.name : "", fsm_title: f ? f.title : "", fsm_email: f ? f.email : "" };
   return String(text == null ? "" : text).replace(/\r/g,"").split("\n").map(function(line){
     if(!/\{[a-z_]+\}/.test(line)) return line;
     var emptied = false;
-    var f = line.replace(/\{([a-z_]+)\}/g, function(whole, k){
-      if(k === "button") return whole;
+    var f2 = line.replace(/\{([a-z_]+)\}/g, function(whole, k){
+      if(k === "button" || k === "fsm") return whole;
       var v = ctx[k] == null ? "" : String(ctx[k]);
       if(!v) emptied = true;
       return v;
     });
-    var bare = f.replace(/\battn\b/i,"").replace(/[\s,;:.\-]+/g,"");
-    if(bare === "") return null;
-    if(emptied) f = f.replace(/,\s*attn\s*$/i,"").replace(/[\s,]+$/,"");
-    return f;
+    return emptied ? null : f2;
   }).filter(function(l){ return l !== null; }).join("\n").replace(/\n{3,}/g,"\n\n").trim();
 }
 function linkify(h){
@@ -318,12 +347,25 @@ function buttonHtml(){
   return '<p><a class="cta" href="' + esc(link()) + '" target="_blank" rel="noopener">' +
     (esc($("button").value.trim()) || BTN) + '</a></p>';
 }
+function cardHtml(){
+  var f = person();
+  if(!f) return "";
+  return '<div class="fsmcard">' +
+    (f.photo ? '<img src="' + esc(f.photo) + '" alt="' + esc(f.name) + '">' : "") +
+    '<div><b>' + esc(f.name) + '</b><br>' +
+    (f.title ? esc(f.title) + '<br>' : "") +
+    '<span class="q">City Wide ' + esc(mk().name) + '</span><br>' +
+    '<span class="q">Operations line ' + esc(mk().phone) + '</span>' +
+    (f.email ? '<br><a href="mailto:' + esc(f.email) + '">' + esc(f.email) + '</a>' : "") +
+    '</div></div>';
+}
 function renderBody(text){
   var placed = false;
   var html = String(text).replace(/\r/g,"").split(/\n{2,}/).map(function(p){
     var lines = p.split("\n").filter(function(l){ return l.trim() !== ""; });
     if(!lines.length) return "";
     if(lines.length === 1 && lines[0].trim() === "{button}"){ placed = true; return buttonHtml(); }
+    if(lines.length === 1 && lines[0].trim() === "{fsm}") return cardHtml();
     if(lines.every(function(l){ return /^\s*-\s+/.test(l); })){
       return "<ul>" + lines.map(function(l){ return "<li>" + linkify(esc(l.replace(/^\s*-\s+/,""))) + "</li>"; }).join("") + "</ul>";
     }
@@ -333,11 +375,11 @@ function renderBody(text){
   return html;
 }
 function preview(){
-  var m = mk();
-  var to = $("test").checked ? "the office inbox (test)" : ($("email").value.trim() || "the address above");
+  var m = mk(), f = person();
+  var to = $("test").checked ? (m.test + " (test)") : ($("email").value.trim() || "the address above");
   $("pvEnv").innerHTML = "<div><b>From</b> " + esc(m.sender) + "</div>" +
     "<div><b>To</b> " + esc(to) + "</div>" +
-    "<div><b>Replies go to</b> " + esc(m.reply) + "</div>" +
+    "<div><b>Replies go to</b> " + esc(f && f.email ? f.email : m.reply) + "</div>" +
     "<div><b>Subject</b> " + (esc(fill($("subject").value.trim())) || "(no subject yet)") + "</div>";
   var hd = $("headline").value.trim();
   $("pvHead").textContent = hd;
@@ -345,7 +387,7 @@ function preview(){
   var b = $("body").value.trim();
   $("pvBody").innerHTML = b ? renderBody(fill(b)) : '<p style="color:#636466">Nothing written yet. The button still goes out.</p>' + buttonHtml();
   $("pvPaste").innerHTML = "Or paste this into your browser:<br>" + esc(link());
-  $("pvFoot").innerHTML = "<b>" + esc(m.sender) + "</b><br>" + esc(m.phone) + "<br>" + esc(m.reply) +
+  $("pvFoot").innerHTML = "<b>City Wide Facility Solutions of " + esc(m.name) + "</b><br>" + esc(m.phone) + "<br>" + esc(m.reply) +
     "<br>GoCityWide.com<span class=\"fine\">The unsubscribe and address lines City Wide sends on every vendor email go here.</span>";
 }
 
@@ -357,6 +399,34 @@ function preview(){
   $(id).addEventListener("input", function(){ showSends(); preview(); });
   $(id).addEventListener("change", function(){ showSends(); preview(); });
 });
+
+/* ----------------------------------------------------------- the team ---- */
+/* Roster comes from the CW Team Directory Sheet. Loaded once, filtered here, so
+   switching markets costs nothing. */
+function renderPeople(){
+  var sel = $("fsm"), had = sel.value;
+  var mine = PEOPLE.filter(function(p){
+    var m = String(p.market || "");
+    return !m || /both/i.test(m) || m === mk().name;
+  });
+  sel.innerHTML = '<option value="">Nobody, send it from the office</option>' +
+    mine.map(function(p){
+      return '<option value="' + esc(p.name) + '">' + esc(p.name) + (p.title ? " - " + esc(p.title) : "") + '</option>';
+    }).join("");
+  if(had && mine.filter(function(p){ return p.name === had; }).length) sel.value = had;
+  fsmNote();
+}
+function fsmNote(){
+  var f = person();
+  if(!f){ $("fsmNote").textContent = "Their headshot, name, title, the operations line and their own email go in the email, and replies come back to them."; return; }
+  var missing = [];
+  if(!f.photo) missing.push("no headshot on file");
+  if(!f.email) missing.push("no email on the team list, so the vendor gets the operations line only");
+  $("fsmNote").textContent = missing.length
+    ? f.name + ": " + missing.join(", ") + ". Fix it on the CW Team Directory sheet and it shows up here."
+    : "Replies to this invite go to " + f.email + ".";
+}
+$("fsm").addEventListener("change", function(){ fsmNote(); preview(); });
 
 /* ---------------------------------------------------------- the types ---- */
 function renderTypes(){
@@ -390,7 +460,7 @@ $("frm").addEventListener("submit", function(e){
     kind:"vd_invite", market:MKT, business:business, contact:$("contact").value.trim(),
     email:email, phone:$("phone").value.trim(), service_types:pickedTypes(),
     subject:subject, headline:$("headline").value.trim(), button:$("button").value.trim(),
-    body:body, by:by, test:$("test").checked
+    body:body, fsm:$("fsm").value, by:by, test:$("test").checked
   }, function(r){
     btn.disabled = false; btn.textContent = "Send the invite";
     if(!r){ say("Could not reach the server. Nothing was sent. Check your connection and try again."); return; }
@@ -414,6 +484,10 @@ function load(pass){
   $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
   try{ $("by").value = (localStorage.getItem("cwOpsName") || localStorage.getItem("cwAlertsWho") || "").split(" ")[0]; }catch(x){}
   showSends(); preview();
+  post({ kind:"vd_inv_roster" }, function(r){
+    if(r && r.ok){ PEOPLE = r.people || []; renderPeople(); }
+    else { $("fsmNote").textContent = "Could not load the team list. You can still send the invite from the office."; }
+  });
   post({ kind:"vd_types" }, function(r){
     if(r && r.ok){
       TYPES = (r.types || []).filter(function(t){ return t.slug !== "unsorted"; });
