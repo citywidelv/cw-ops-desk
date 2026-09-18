@@ -353,7 +353,7 @@ window.CW_NAV = {
        "href": "https://citywidelv.github.io/cw-vendor-hub/kit-builder.html"
       },
       {
-       "label": "Building Supplies",
+       "label": "Report Supplies Needed",
        "href": "https://citywidelv.github.io/cw-vendor-hub/building-supplies.html"
       },
       {

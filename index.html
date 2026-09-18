@@ -543,7 +543,7 @@ search box to jump straight to what you need.</p>
 <div class="astatus" id="alstatus"></div>
 <div class="anew">
 <h3>What's new</h3>
-<p>Vendor replies to your postings, building supply orders, and shop orders used to land in the service inbox and get lost. They now show up here, under the name of the FSM they belong to. Your open postings show here too. Mark one filled and it comes off the vendor board, and its replies clear with it.</p>
+<p>Vendor replies to your postings, building supply reports, and shop orders used to land in the service inbox and get lost. They now show up here, under the name of the FSM they belong to. Your open postings show here too. Mark one filled and it comes off the vendor board, and its replies clear with it.</p>
 <p>Pick your name once. This computer remembers it and opens your list first. Everyone else's list sits below yours, closed, with a count. Replies to a posting sit under that posting. Open them to answer one at a time, or just mark the posting filled when the building is covered and they all clear.</p>
 <p>When you have answered the vendor, placed the order, processed the shop order, or filled the posting, click the button on that line. It clears for the whole team at the same time, so nobody works the same item twice. Clicked the wrong one? Use Undo.</p>
 <p>Nothing is deleted. The emails still go out and the details stay in the sheets. An item nobody clears drops off after 45 days. A supply or shop order we could not tie to an account shows under "No FSM matched", and anyone can clear those.</p>
@@ -745,7 +745,7 @@ var MENU = [
 {ghead:"Ordering"},
 {label:"Vendor Shop", href:VS+"shop/"},
 {label:"Starter Kit Builder", href:VS+"kit-builder.html"},
-{label:"Building Supplies", href:VS+"building-supplies.html"},
+{label:"Report Supplies Needed", href:VS+"building-supplies.html"},
 {ghead:"Vendor Paperwork"},
 {label:"Submit an Invoice", href:VS+"invoice.html"},
 {label:"Upload Documents", href:VS+"upload.html"},
@@ -1143,7 +1143,7 @@ cnt.classList.toggle("zero", !total);
 document.getElementById("alwho").classList.toggle("need", !me);
 var html = me ? "" : '<div class="aneed">Pick your name in the top right of this card first. Then the buttons on each line will work.</div>';
 if(!groups.length){
-html = '<div class="aempty"><b>Nothing waiting.</b>Vendor replies, supply orders and shop orders will show up here.' + (me ? '' : ' Pick your name above so your list opens first.') + '</div>';
+html = '<div class="aempty"><b>Nothing waiting.</b>Vendor replies, supply reports and shop orders will show up here.' + (me ? '' : ' Pick your name above so your list opens first.') + '</div>';
 }
 groups.forEach(function(g){
 var isOpen = (AL.open[g.key] !== undefined) ? AL.open[g.key] : (g.key === me);
@@ -1185,7 +1185,7 @@ return order.map(function(k){ return posts[k]; }).concat(loose);
 }
 function alItem(it){
 var opts = AL.statuses[it.type] || ["Handled"];
-var label = { response:"Vendor reply", supply:"Supply order", shop:"Shop order", posting:"Open posting", night:"Night manager" }[it.type] || it.type;
+var label = { response:"Vendor reply", supply:"Supplies needed", shop:"Shop order", posting:"Open posting", night:"Night manager" }[it.type] || it.type;
 var meta = [];
 if(it.when_nice) meta.push(esc(it.when_nice));
 if(it.email) meta.push('<a href="mailto:' + esc(it.email) + '">' + esc(it.email) + '</a>');

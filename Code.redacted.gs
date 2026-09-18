@@ -9,7 +9,7 @@
 //   POST /exec {kind:'posting'|omitted}   -> team posts a solicitation (passcode required)
 //   POST /exec {kind:'response'}          -> vendor submits interest/quote
 //   POST /exec {kind:'invoice'}           -> vendor monthly invoice (PDF emailed to AP + vendor)
-//   POST /exec {kind:'supply_order'}      -> building supply order (region service line)
+//   POST /exec {kind:'supply_order'}      -> building supply REPORT, not an order (region service line)
 //   GET  /exec                            -> JSON feed of OPEN solicitations for the vendor site
 // Run setup() once after first install; run setupInvoicing() once for the v6 tabs.
 // ============================================================
@@ -581,7 +581,11 @@ function _invoiceEmail(id, d, lines, total, forVendor) {
     '</td></tr></table></td></tr></table>';
 }
 
-// -------------------------------------------------- building supply orders --
+// -------------------------------------------- building supply reports --
+// Sep 17 2026: this is a REPORT that a building needs supplies, not an order.
+// The team email is written so an FSM can forward it straight to the client:
+// reporter NAME only, no email, no phone, no pricing, no internal links.
+// Reporter contact stays on the Supply Orders tab and the Ops Hub Alerts card.
 function handleSupplyOrder(data) {
   var out = { ok: false };
   if (data.website) { out.ok = true; out.id = 'ok'; return _json(out); } // honeypot
@@ -603,11 +607,12 @@ function handleSupplyOrder(data) {
   var ss = supSS_();
   var sp = ss.getSheetByName(SUP_TAB);
   if (!sp) { setupInvoicing(); sp = ss.getSheetByName(SUP_TAB); }
-  var id = 'SUP-' + Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyMMddHHmm') +
+  var now = new Date();
+  var id = 'SUP-' + Utilities.formatDate(now, 'America/Los_Angeles', 'yyMMddHHmm') +
     '-' + Math.random().toString(36).slice(2, 5).toUpperCase();
   var row = SUP_HEADERS.map(function (h) {
     if (h === 'order_id') return id;
-    if (h === 'received') return new Date();
+    if (h === 'received') return now;
     if (h === 'item_count') return items.length;
     if (h === 'subtotal') return subtotal;
     if (h === 'items') return JSON.stringify(items);
@@ -616,24 +621,26 @@ function handleSupplyOrder(data) {
   sp.getRange(_nextRow(sp), 1, 1, row.length).setValues([row]);
 
   var to = REGION_EMAIL[data.region] || REGION_EMAIL['Las Vegas'];
+  var lines = items.map(function (x) { return x.qty + ' x ' + x.name; }).join('\n');
   try {
     cwMail_('supply_int', {
       to: to,
       replyTo: String(data.email),
-      subject: 'Building Supply Order: ' + data.building + ' [' + id + ']',
-      htmlBody: _supplyEmail(id, data, items, subtotal, false),
-      body: 'Building supply order ' + id + ' for ' + data.building + ' from ' +
-        (data.requester || '') + '. Open the CW Solicitations sheet, Supply Orders tab.'
+      subject: 'Supplies needed: ' + data.building + ' [' + id + ']',
+      htmlBody: _supplyEmail(id, data, items, now, false),
+      body: String(data.requester || '') + ' was in ' + data.building + ' on ' +
+        _supplyDay(now) + ' and reported that the following items are needed.\n\n' + lines +
+        (data.comments ? '\n\nNote: ' + data.comments : '') + '\n\nReference ' + id
     });
   } catch (m1) {}
   try {
     cwMail_('supply_conf', {
       to: String(data.email),
       replyTo: to,
-      subject: 'Order received: building supplies for ' + data.building + ' [' + id + ']',
-      htmlBody: _supplyEmail(id, data, items, subtotal, true),
-      body: 'City Wide received your building supply order ' + id + ' for ' +
-        data.building + '. Reply to this email with photos of your dispensers if needed.'
+      subject: 'Report received: supplies needed at ' + data.building + ' [' + id + ']',
+      htmlBody: _supplyEmail(id, data, items, now, true),
+      body: 'City Wide received your report ' + id + ' that ' + data.building +
+        ' needs supplies. Nothing is charged to you. Reply to this email with photos of the dispensers if needed.'
     });
   } catch (m2) {}
 
@@ -641,50 +648,46 @@ function handleSupplyOrder(data) {
   return _json(out);
 }
 
-function _supplyEmail(id, d, items, subtotal, forVendor) {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+function _supplyDay(when) {
+  return Utilities.formatDate(when, 'America/Los_Angeles', 'EEEE, MMMM d, yyyy');
+}
+
+function _supplyEmail(id, d, items, when, forVendor) {
+  var F = 'font-family:Verdana,Arial,sans-serif;';
   var rows = '';
   for (var i = 0; i < items.length; i++) {
     var it = items[i];
     rows += '<tr>' +
-      '<td style="font-family:Verdana,Arial,sans-serif;font-size:12px;color:#2d2a26;padding:7px 8px;border-bottom:1px solid #eeeeee;">' + _esc(it.name) + '</td>' +
-      '<td align="center" style="font-family:Verdana,Arial,sans-serif;font-size:12px;color:#2d2a26;padding:7px 8px;border-bottom:1px solid #eeeeee;">' + it.qty + '</td>' +
-      '<td align="right" style="font-family:Verdana,Arial,sans-serif;font-size:12px;color:#2d2a26;padding:7px 8px;border-bottom:1px solid #eeeeee;white-space:nowrap;">' +
-      (it.price > 0 ? _money(it.price * it.qty) : 'Priced at fulfillment') + '</td></tr>';
+      '<td style="' + F + 'font-size:13px;color:#2d2a26;padding:9px 8px;border-bottom:1px solid #eeeeee;">' + _esc(it.name) + '</td>' +
+      '<td align="center" style="' + F + 'font-size:13px;font-weight:bold;color:#2d2a26;padding:9px 8px;border-bottom:1px solid #eeeeee;">' + it.qty + '</td></tr>';
   }
   var intro = forVendor
-    ? '<h1 style="margin:0 0 4px;font-family:Verdana,Arial,sans-serif;font-size:19px;font-weight:bold;color:#D22730;">Order Received</h1>' +
-      '<p style="margin:0 0 18px;font-family:Verdana,Arial,sans-serif;font-size:13px;color:#636466;">' +
-      'Thanks, ' + _esc(d.requester) + '. Your building supply order for <b>' + _esc(d.building) +
-      '</b> is in. The City Wide team will confirm availability and delivery. ' +
-      'If any items need dispenser matching, reply to this email with photos of the dispensers. ' +
-      'Reference ' + _esc(id) + '.</p>'
-    : '<h1 style="margin:0 0 4px;font-family:Verdana,Arial,sans-serif;font-size:19px;font-weight:bold;color:#D22730;">New Building Supply Order</h1>' +
-      '<p style="margin:0 0 18px;font-family:Verdana,Arial,sans-serif;font-size:13px;color:#636466;">' +
-      _esc(d.building) + ' &middot; ' + _esc(d.region) + ' &middot; ' + _esc(id) + '</p>';
-  var infoRows = _kvRow('Building / Location', d.building) + _kvRow('Region', d.region) +
-    _kvRow('Requested by', d.requester) + _kvRow('Email', d.email) + _kvRow('Phone', d.phone) +
-    _kvRow('Comments', d.comments);
+    ? '<h1 style="margin:0 0 4px;' + F + 'font-size:19px;font-weight:bold;color:#D22730;">Report Received</h1>' +
+      '<p style="margin:0 0 18px;' + F + 'font-size:13px;line-height:1.55;color:#636466;">' +
+      'Thanks, ' + _esc(d.requester) + '. We got your report that <b>' + _esc(d.building) +
+      '</b> needs supplies. It went to the City Wide team for that building. ' +
+      'You are not buying anything and nothing is charged to you. ' +
+      'If an item needs to be matched to a dispenser, reply to this email with photos of the dispensers.</p>'
+    : '<h1 style="margin:0 0 4px;' + F + 'font-size:19px;font-weight:bold;color:#D22730;">Supplies Needed</h1>' +
+      '<p style="margin:0 0 14px;' + F + 'font-size:13px;color:#636466;">' + _esc(d.building) + ' &middot; ' + _supplyDay(when) + '</p>' +
+      '<p style="margin:0 0 18px;' + F + 'font-size:14px;line-height:1.55;color:#2d2a26;">' +
+      '<b>' + _esc(d.requester) + '</b> was in the building on ' + _supplyDay(when) +
+      ' and reported that the following items are needed.</p>';
+  var note = d.comments
+    ? '<p style="margin:16px 0 0;' + F + 'font-size:13px;line-height:1.55;color:#2d2a26;border-left:4px solid #D22730;background-color:#f5f5f5;padding:10px 12px;">' +
+      '<b>Note from the building:</b> ' + _esc(d.comments) + '</p>'
+    : '';
   return '' +
     '<table bgcolor="#f4f4f4" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td align="center" style="padding:20px 0;">' +
     '<table bgcolor="#ffffff" border="0" cellpadding="0" cellspacing="0" width="620">' +
     '<tr><td style="padding:22px 30px 0;"><img src="' + LOGO + '" width="200" alt="City Wide Facility Solutions" style="display:block;border:0;"></td></tr>' +
     '<tr><td style="padding:18px 30px 30px;">' + intro +
     '<table border="0" cellpadding="0" cellspacing="0" width="100%">' +
-    '<tr>' + _invHeadCell('Item') + _invHeadCell('Qty', 'center') + _invHeadCell('Price', 'right') + '</tr>' +
+    '<tr>' + _invHeadCell('Item needed') + _invHeadCell('Qty', 'center') + '</tr>' +
     rows +
-    '<tr><td></td>' +
-    '<td style="font-family:Verdana,Arial,sans-serif;font-size:13px;font-weight:bold;color:#2d2a26;padding:12px 8px;">SUBTOTAL</td>' +
-    '<td align="right" style="font-family:Verdana,Arial,sans-serif;font-size:14px;font-weight:bold;color:#D22730;padding:12px 8px;white-space:nowrap;">' + _money(subtotal) + '</td></tr>' +
-    '</table>' +
-    '<p style="margin:8px 0 0;font-family:Verdana,Arial,sans-serif;font-size:11px;color:#999999;">Standard items are priced when fulfilled. Pricing may exclude applicable taxes.</p>' +
-    (forVendor ? '' :
-      '<h2 style="margin:22px 0 8px;font-family:Verdana,Arial,sans-serif;font-size:15px;font-weight:bold;color:#2d2a26;border-bottom:2px solid #D22730;padding-bottom:5px;">The Request</h2>' +
-      '<table border="0" cellpadding="0" cellspacing="0" width="100%">' + infoRows + '</table>' +
-      '<table border="0" cellpadding="0" cellspacing="0" style="margin-top:24px;"><tr>' +
-      '<td align="center"><a href="' + ss.getUrl() + '" style="display:inline-block;background-color:#D22730;color:#ffffff;font-family:Verdana,Arial,sans-serif;font-size:13px;font-weight:bold;text-decoration:none;padding:11px 22px;border-radius:4px;">Open the Supply Orders Sheet</a></td>' +
-      '</tr></table>' +
-      '<p style="margin:18px 0 0;font-family:Verdana,Arial,sans-serif;font-size:11px;color:#999999;">Reply to this email to reach the requester directly.</p>') +
+    '</table>' + note +
+    '<p style="margin:22px 0 0;' + F + 'font-size:11px;color:#999999;">Reference ' + _esc(id) +
+    ' &middot; City Wide Facility Solutions &middot; GoCityWide.com</p>' +
     '</td></tr></table></td></tr></table>';
 }
 
@@ -2558,7 +2561,7 @@ var CW_TAG_LABEL = {
   posting: 'New opportunities posted', response: 'Vendor responses to opportunities',
   cleaner: 'Cleaner tracker reviews', work_ticket: 'Maintenance work tickets',
   uniform_int: 'Uniform requests', work_ticket_return: 'Work tickets needing a return trip', invoice_int: 'Vendor invoices', invup_int: 'Vendor invoices (uploaded)',
-  coiupload_int: 'Insurance and compliance uploads', supply_int: 'Building supply orders',
+  coiupload_int: 'Insurance and compliance uploads', supply_int: 'Building supply reports',
   envirox: 'EnvirOx orders', profile_int: 'Vendor profile change requests', profile_alert: 'Profile change alerts to vendors',
   snow_int: 'Snow reports', uniform_conf: 'Uniform request confirmations'
 };

@@ -23,7 +23,7 @@ var AL_SHOP_ID = '1p0CJVr6UJnYTBvAF3-VPBA_6uBHG9BLlByryXLwlOTw';
 var AL_TZ = 'America/Los_Angeles';
 var AL_STATUS = {
   response: ['Responded to', 'Not a fit'],
-  supply: ['Ordered', 'Not needed'],
+  supply: ['Ordered', 'Sent to client', 'Not needed'],
   shop: ['Processed', 'Picked up'],
   posting: ['Mark filled'],
   night: ['Handled']
