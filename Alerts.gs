@@ -14,6 +14,10 @@
 //   status '' (or 'Open') reopens an item.
 // Sep 15 2026: night manager escalations (fsm_action_needed = Yes on the CW Night
 // Inspections sheet, NightInspection.gs) join the list as type 'night'.
+// Sep 18 2026: postings and responses carry 'internal', the account_name from the
+// Solicitations row. The hub shows it beside the vendor-facing title so an FSM
+// knows which account they are looking at. doGet deletes account_name from the
+// public feed, so this field must never be echoed to anything vendor facing.
 // ============================================================
 var AL_TAB = 'Alert Status';
 var AL_HEAD = ['alert_key', 'type', 'status', 'handled_by', 'handled_at', 'summary'];
@@ -192,7 +196,11 @@ function alPostings_(statusMap) {
       when: alIso_(when), when_nice: alNice_(when),
       from: alStr_(p.title) || id,
       about: '',
-      summary: 'Open on the vendor board. ' + (n === 1 ? '1 reply so far.' : n + ' replies so far.') + (dl ? ' Deadline ' + dl + '.' : '') + (alStr_(p.account_name) ? ' ' + alStr_(p.account_name) + '.' : ''),
+      // TJ, Sep 18 2026: the title is the vendor-facing one, so an FSM cannot tell
+      // which of their accounts it is. account_name is the internal name and is
+      // stripped from the public feed in doGet, so it is safe here and only here.
+      internal: alStr_(p.account_name),
+      summary: 'Open on the vendor board. ' + (n === 1 ? '1 reply so far.' : n + ' replies so far.') + (dl ? ' Deadline ' + dl + '.' : ''),
       email: '', phone: '',
       link: 'responses.html#' + id,
       ref: id
@@ -243,6 +251,7 @@ function alResponses_(statusMap) {
       when: alIso_(when), when_nice: alNice_(when),
       from: alStr_(r.company) + (alStr_(r.contact_name) ? ' (' + alStr_(r.contact_name) + ')' : ''),
       about: alStr_(r.posting_title) || alStr_(p.title) || alStr_(r.posting_id),
+      internal: alStr_(p.account_name),
       summary: summary,
       email: alStr_(r.email), phone: alStr_(r.phone),
       link: alStr_(r.pdf_url) || ('responses.html#' + alStr_(r.posting_id)),

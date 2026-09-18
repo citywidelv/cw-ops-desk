@@ -10,6 +10,9 @@ does it here now), the four Asana vendor packet forms, Request an Exhibit A (LV)
 does it here now). Added: Vendors > Invite a New Vendor (vendor-invite.html, kind vd_invite) which emails
 the New Vendor steps on the Vendor Hub and writes the prospect to the directory in one call. Vendor
 Resources rebuilt against the live cw-vendor-hub page list.
+build 2026-09-18: Alerts rows carry the internal account name beside the vendor-facing
+title (Alerts.gs sends it as 'internal', from account_name on the Solicitations row, which
+doGet strips from the public feed). Postings and vendor responses only.
 build 2026-09-11: Alerts card (vendor replies, building supply orders and shop orders grouped by FSM, shared check-offs through alerts_list / alerts_set in the CW Solicitations Apps Script, Alert Status tab) placed between the Building Information Sheets band and the Ops Wall, plus a What's New note for the team.
 build 2026-09-05d: Accounts & Buildings > Account Changes (ACT & Ledger) menu for the digital ACT.
      build 2026-09-05c: one team unlock per device (cw-auth.js), external menu links open in a new tab, Team Apps sub-menu, Handteq Point, InsurLink, Verified First, Amazon Business, Company Store links.
@@ -208,6 +211,15 @@ white-space:nowrap;transition:all .15s}
 .aitem .amain{min-width:0;font-size:13px;line-height:1.5}
 .aitem .afrom{font-weight:700}
 .aitem .asum{color:var(--grey);font-size:12.5px;margin-top:2px;overflow-wrap:anywhere}
+/* Internal account name. Shown to the team only; vendors never receive this field. */
+.aitem .aint{display:inline-block;font-size:11.5px;font-weight:700;line-height:1.35;
+  color:var(--black);background:var(--light);border:1px solid var(--border);
+  border-left:3px solid var(--red);border-radius:5px;
+  padding:1px 7px;margin-left:6px;vertical-align:1px;overflow-wrap:break-word}
+.aitem .aint i{font-style:normal;font-weight:700;font-size:9.5px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--red);margin-right:6px}
+.aitem.done .aint{background:var(--light);border-color:var(--border);color:var(--grey)}
+.aitem.done .aint i{color:var(--grey)}
 .aitem .ameta{font-size:11px;color:var(--grey);margin-top:3px}
 .aitem .ameta a{color:var(--grey);font-weight:700}
 .aitem .ameta a:hover{color:var(--red)}
@@ -1202,6 +1214,7 @@ return '<button class="abtn' + (i === 0 ? ' main' : '') + '" type="button" data-
 }
 return '<div class="aitem' + (it.status ? ' done' : '') + '"><span class="atype ' + esc(it.type) + '">' + esc(label) + '</span>' +
 '<div class="amain"><span class="afrom">' + esc(it.from) + '</span> ' + (it.about ? (it.type === "response" ? 'on ' : 'for ') + esc(it.about) : '') +
+(it.internal ? '<span class="aint" title="Internal account name. Vendors never see this."><i>Internal</i>' + esc(it.internal) + '</span>' : '') +
 '<div class="asum">' + esc(it.summary) + '</div><div class="ameta">' + meta.join(' &middot; ') + '</div></div>' + right + '</div>';
 }
 function alClick(e){
