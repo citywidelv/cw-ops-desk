@@ -5,11 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Invite a New Vendor | CW Ops Hub</title>
-<!-- build 2026-09-11
+<!-- build 2026-09-18
 Invite a new vendor for Las Vegas or Northern Nevada. Replaces the four Asana
 "request a vendor packet" forms. Posts kind vd_invite (VendorDirectory.gs): the
 vendor gets the New Vendor steps on the Vendor Hub, and the same call puts them
 on the CW Vendor Directory as a Prospect so the list stays in sync.
+
+Sep 18 2026: the whole email is editable here, the same way an opportunity email
+is on Active Postings. Subject, headline, button words and the message all come
+from this page. The button's LINK does not. VendorDirectory.gs builds it from
+VD_INV_HUB plus the market, so it always lands on the New Vendor steps
+(new-vendors.html), never the shop. Do not add a link field here.
+
 Service type is optional. Anyone invited without one lands on "Not Sorted Yet"
 and their own evaluation form fills the record in.
 Gate: reuses the cached team passcode (cw-auth.js).
@@ -45,13 +52,16 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:70ch}
   border-radius:8px;padding:12px 24px;cursor:pointer;text-decoration:none;display:inline-block}
 .btn:hover{background:var(--red-dark);color:#fff}
 .btn.ghost{background:#fff;color:var(--black);border:2px solid var(--border)}
+.btn.sm{font-size:12.5px;padding:8px 14px}
 .btn:disabled{opacity:.55;cursor:default}
 .card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
   padding:22px 24px;margin-bottom:16px}
 .card>h2{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);
-  margin-bottom:4px}
+  margin-bottom:4px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .card>h2:after{content:"";display:block;width:34px;height:3px;background:var(--red);border-radius:2px;
   margin:8px 0 16px}
+.card>h2 .lk{margin-left:auto;font-size:11px;font-weight:700;color:var(--red);background:none;border:none;
+  font-family:inherit;cursor:pointer;padding:0;letter-spacing:.04em;text-transform:none}
 .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0 20px}
 label{display:block;margin-bottom:14px}
 label>span{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
@@ -62,8 +72,11 @@ input[type=text],input[type=email],input[type=tel],select,textarea{
   border:1.5px solid var(--border);border-radius:8px;padding:10px 12px}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--black)}
 textarea{min-height:74px;resize:vertical;line-height:1.55}
+#body{min-height:240px;font-size:13.5px}
 .full{grid-column:1/-1}
-.hint{font-size:11.5px;color:var(--grey);margin:-9px 0 14px}
+.hint{font-size:11.5px;color:var(--grey);margin:-9px 0 14px;line-height:1.55}
+.hint code{background:var(--light);border:1px solid var(--border);border-radius:4px;padding:1px 5px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
 .types{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:6px}
 .types label{display:flex;align-items:flex-start;gap:8px;margin:0;background:var(--light);
   border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:13px}
@@ -94,6 +107,31 @@ textarea{min-height:74px;resize:vertical;line-height:1.55}
 .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px}
 .hidden{display:none!important}
 .foot{text-align:center;font-size:11px;color:var(--grey);padding:24px}
+.locked{font-size:11.5px;color:var(--grey);background:#FFF8E5;border:1px dashed var(--gold);
+  border-radius:8px;padding:9px 12px;margin:0 0 14px;line-height:1.55}
+.locked b{color:var(--black)}
+/* what the vendor sees */
+.mailpv{border:1px solid var(--border);border-radius:10px;background:#f4f5f7;padding:18px 10px;margin:4px 0 0}
+.mailpv .env{max-width:600px;margin:0 auto 10px;font-size:12px;color:var(--grey);line-height:1.6}
+.mailpv .env b{color:var(--black)}
+.mailpv .card2{max-width:600px;margin:0 auto;background:#fff;border-radius:6px;overflow:hidden;
+  font-size:14px;line-height:1.6;box-shadow:var(--shadow)}
+.mailpv .lg{padding:24px 30px 0}
+.mailpv .lg img{height:38px;width:auto;display:block}
+.mailpv .hd{margin:18px 30px 0;background:var(--red);color:#fff;font-size:16px;font-weight:700;
+  padding:12px 16px;letter-spacing:.5px}
+.mailpv .bd{padding:18px 30px 8px}
+.mailpv .bd p{margin:0 0 16px}
+.mailpv .bd ul{margin:0 0 16px;padding-left:22px}
+.mailpv .bd li{margin:0 0 6px}
+.mailpv .bd a{color:var(--red);font-weight:700}
+.mailpv .bd a.cta{display:inline-block;background:var(--red);color:#fff;text-decoration:none;
+  font-size:17px;padding:18px 34px;border-radius:6px;margin:6px 0 18px}
+.mailpv .paste{padding:0 30px;font-size:12px;color:var(--grey);word-break:break-all;line-height:1.5}
+.mailpv .ft{margin:16px 30px 26px;border-top:1px solid var(--border);padding-top:16px;
+  font-size:12px;color:var(--grey);line-height:1.7}
+.mailpv .ft b{color:var(--black)}
+.mailpv .ft .fine{font-size:11px;margin-top:12px;display:block;line-height:1.6}
 @media(max-width:600px){.pick{grid-template-columns:1fr}}
 </style>
 <link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
@@ -110,7 +148,7 @@ textarea{min-height:74px;resize:vertical;line-height:1.55}
 
 <div id="app" class="hidden">
 <h1>Invite a New Vendor</h1>
-<p class="lede">Send a crew the link to the New Vendor steps on the Vendor Hub. They get the five steps, starting with the evaluation form, and they go on the vendor directory as a prospect the moment you send it.</p>
+<p class="lede">Send a crew the link to the New Vendor steps on the Vendor Hub. They get the five steps, starting with the evaluation form, and they go on the vendor directory as a prospect the moment you send it. Write the email however you want. The red button always goes to the New Vendor steps.</p>
 
 <div class="pick" id="pick">
 <button type="button" data-m="lv" class="on"><b>Las Vegas</b><span>Sends from City Wide of Las Vegas. Replies go to lvservicecall.</span></button>
@@ -138,14 +176,39 @@ textarea{min-height:74px;resize:vertical;line-height:1.55}
 </div>
 
 <div class="card">
+<h2>The email. Edit it here<button type="button" class="lk" id="reset">Start over from the standard invite</button></h2>
+<div class="row">
+<label class="full"><span>Subject <i>*</i></span><input type="text" id="subject" maxlength="200" autocomplete="off"></label>
+<label><span>Red bar across the top</span><input type="text" id="headline" maxlength="90" autocomplete="off" placeholder="Leave blank for no bar"></label>
+<label><span>Words on the button</span><input type="text" id="button" maxlength="44" autocomplete="off"></label>
+</div>
+<label class="full"><span>Message <i>*</i></span><textarea id="body" maxlength="6000" spellcheck="true"></textarea></label>
+<div class="hint">Blank line between paragraphs. Start lines with <code>-</code> for a list. Put <code>{button}</code> on its own line where you want the red button; leave it out and the button goes at the end. Fill-ins: <code>{business}</code> <code>{contact}</code> <code>{market}</code> <code>{sender}</code> <code>{phone}</code> <code>{by}</code>. A line that empties out, like <code>{business}, attn {contact}</code> with no contact name, is dropped.</div>
+<div class="locked"><b>Locked:</b> the button always opens the New Vendor steps on the Vendor Hub for the market you picked. You can rename the button, not repoint it. The address block and the do not email line at the bottom are fixed too.</div>
+</div>
+
+<div class="card">
+<h2>What they see</h2>
+<div class="mailpv">
+  <div class="env" id="pvEnv"></div>
+  <div class="card2">
+    <div class="lg"><img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions"></div>
+    <div class="hd" id="pvHead"></div>
+    <div class="bd" id="pvBody"></div>
+    <div class="paste" id="pvPaste"></div>
+    <div class="ft" id="pvFoot"></div>
+  </div>
+</div>
+</div>
+
+<div class="card">
 <h2>Send it</h2>
-<label class="full"><span>A line just for them</span><textarea id="note" maxlength="600" placeholder="Optional. Goes at the top of the email, above everything else. Leave it blank and the email reads as a clean introduction."></textarea></label>
 <div class="row">
 <label><span>Your first name <i>*</i></span><input type="text" id="by" maxlength="60" autocomplete="given-name"></label>
 </div>
 <div class="sends" id="sends"></div>
 <label class="tst"><input type="checkbox" id="test"> Send it to the office inbox instead so I can read it first</label>
-<div class="actions"><button class="btn" id="send" type="submit">Send the invite</button><a class="btn ghost" href="https://citywidelv.github.io/cw-vendor-hub/new-vendors.html" target="_blank" rel="noopener">See what they get</a></div>
+<div class="actions"><button class="btn" id="send" type="submit">Send the invite</button><a class="btn ghost" href="https://citywidelv.github.io/cw-vendor-hub/new-vendors.html" target="_blank" rel="noopener">See the page it opens</a></div>
 </div>
 </form>
 
@@ -158,9 +221,20 @@ textarea{min-height:74px;resize:vertical;line-height:1.55}
 <script>
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var PASS = "", MKT = "lv", TYPES = [];
+/* The one link. VendorDirectory.gs builds the real one the same way, from
+   VD_INV_HUB plus the market. It is never posted from this page. */
 var LINK = "https://citywidelv.github.io/cw-vendor-hub/new-vendors.html";
+var MARKETS = {
+  lv:  { name:"Las Vegas", sender:"City Wide of Las Vegas", reply:"lvservicecall@gocitywide.com", phone:"(702) 483-1874" },
+  nnv: { name:"Northern Nevada", sender:"City Wide of Northern Nevada", reply:"rnservicecall@gocitywide.com", phone:"(775) 453-4718" }
+};
+var HEADLINE = "BECOME A CITY WIDE VENDOR", BTN = "Start Here";
+var DIRTY = {};   /* a field the sender has typed in is never rewritten under them */
+
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function mk(){ return MARKETS[MKT]; }
+function link(){ return LINK + "?region=" + MKT; }
 function post(body, cb){
   body.passcode = PASS;
   fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) })
@@ -168,24 +242,123 @@ function post(body, cb){
 }
 function say(m){ var e = $("msg"); e.textContent = m; e.classList.toggle("show", !!m); if(m) e.scrollIntoView({ block:"center" }); }
 
+/* ------------------------------------------------------- the template ---- */
+function defaults(){
+  return {
+    subject: "Start here to work with City Wide " + mk().name,
+    headline: HEADLINE,
+    button: BTN,
+    body: [
+      "{business}",
+      "City Wide Facility Solutions manages the cleaning and facility work for hundreds of " +
+        "buildings across {market}. The work is done by independent crews like yours.",
+      "Everything it takes to start with us is on one page. Five steps, at your pace.",
+      "{button}",
+      "Step one is a short evaluation form that tells us what your crew does. When work opens " +
+        "that matches, you hear from us first."
+    ].join("\n\n")
+  };
+}
+/* Fills only the fields the sender has not touched, so switching markets after
+   writing does not wipe the message. */
+function applyDefaults(force){
+  var d = defaults();
+  ["subject","headline","button","body"].forEach(function(k){
+    if(force || !DIRTY[k]){ $(k).value = d[k]; if(force) DIRTY[k] = false; }
+  });
+  preview();
+}
+$("reset").addEventListener("click", function(){ applyDefaults(true); });
+
+/* ------------------------------------------------------- market picker --- */
 function setMkt(m){
   MKT = m;
   Array.prototype.forEach.call($("pick").querySelectorAll("button"), function(b){
     b.classList.toggle("on", b.getAttribute("data-m") === m);
   });
+  applyDefaults(false);
   showSends();
 }
 $("pick").addEventListener("click", function(e){ var b = e.target.closest("button"); if(b) setMkt(b.getAttribute("data-m")); });
-if(/[?&]region=nnv/.test(location.search)) setMkt("nnv");
 
 function showSends(){
-  var name = MKT === "nnv" ? "City Wide of Northern Nevada" : "City Wide of Las Vegas";
   var to = $("test").checked ? "the office inbox, not the vendor" : ($("email").value.trim() || "the address above");
-  $("sends").innerHTML = "Sends as <b>" + esc(name) + "</b> to <b>" + esc(to) + "</b>, " +
-    "with the link to <b>" + esc(LINK + "?region=" + MKT) + "</b>";
+  $("sends").innerHTML = "Sends as <b>" + esc(mk().sender) + "</b> to <b>" + esc(to) + "</b>, " +
+    "with the button going to <b>" + esc(link()) + "</b>";
 }
-["test","email"].forEach(function(id){ $(id).addEventListener("input", showSends); $(id).addEventListener("change", showSends); });
 
+/* --------------------------------------------------------- the preview --- */
+/* Same rules as vdInvFill_ / vdInvBodyHtml_ in VendorDirectory.gs, so what is
+   shown here is what sends. Change one, change the other. */
+function fill(text){
+  var ctx = { business: $("business").value.trim() || "Their company", contact: $("contact").value.trim(),
+              market: mk().name, sender: mk().sender, phone: mk().phone, by: $("by").value.trim() };
+  return String(text == null ? "" : text).replace(/\r/g,"").split("\n").map(function(line){
+    if(!/\{[a-z_]+\}/.test(line)) return line;
+    var emptied = false;
+    var f = line.replace(/\{([a-z_]+)\}/g, function(whole, k){
+      if(k === "button") return whole;
+      var v = ctx[k] == null ? "" : String(ctx[k]);
+      if(!v) emptied = true;
+      return v;
+    });
+    var bare = f.replace(/\battn\b/i,"").replace(/[\s,;:.\-]+/g,"");
+    if(bare === "") return null;
+    if(emptied) f = f.replace(/,\s*attn\s*$/i,"").replace(/[\s,]+$/,"");
+    return f;
+  }).filter(function(l){ return l !== null; }).join("\n").replace(/\n{3,}/g,"\n\n").trim();
+}
+function linkify(h){
+  return h.replace(/(https?:\/\/[^\s<]+)/g, function(u){
+    var t = "", m = u.match(/[.,;:)]+$/); if(m){ t = m[0]; u = u.slice(0, -t.length); }
+    return '<a href="' + u + '" target="_blank" rel="noopener">' + u + '</a>' + t;
+  });
+}
+function buttonHtml(){
+  return '<p><a class="cta" href="' + esc(link()) + '" target="_blank" rel="noopener">' +
+    (esc($("button").value.trim()) || BTN) + '</a></p>';
+}
+function renderBody(text){
+  var placed = false;
+  var html = String(text).replace(/\r/g,"").split(/\n{2,}/).map(function(p){
+    var lines = p.split("\n").filter(function(l){ return l.trim() !== ""; });
+    if(!lines.length) return "";
+    if(lines.length === 1 && lines[0].trim() === "{button}"){ placed = true; return buttonHtml(); }
+    if(lines.every(function(l){ return /^\s*-\s+/.test(l); })){
+      return "<ul>" + lines.map(function(l){ return "<li>" + linkify(esc(l.replace(/^\s*-\s+/,""))) + "</li>"; }).join("") + "</ul>";
+    }
+    return "<p>" + linkify(lines.map(esc).join("<br>")) + "</p>";
+  }).join("");
+  if(!placed) html += buttonHtml();
+  return html;
+}
+function preview(){
+  var m = mk();
+  var to = $("test").checked ? "the office inbox (test)" : ($("email").value.trim() || "the address above");
+  $("pvEnv").innerHTML = "<div><b>From</b> " + esc(m.sender) + "</div>" +
+    "<div><b>To</b> " + esc(to) + "</div>" +
+    "<div><b>Replies go to</b> " + esc(m.reply) + "</div>" +
+    "<div><b>Subject</b> " + (esc(fill($("subject").value.trim())) || "(no subject yet)") + "</div>";
+  var hd = $("headline").value.trim();
+  $("pvHead").textContent = hd;
+  $("pvHead").classList.toggle("hidden", !hd);
+  var b = $("body").value.trim();
+  $("pvBody").innerHTML = b ? renderBody(fill(b)) : '<p style="color:#636466">Nothing written yet. The button still goes out.</p>' + buttonHtml();
+  $("pvPaste").innerHTML = "Or paste this into your browser:<br>" + esc(link());
+  $("pvFoot").innerHTML = "<b>" + esc(m.sender) + "</b><br>" + esc(m.phone) + "<br>" + esc(m.reply) +
+    "<br>GoCityWide.com<span class=\"fine\">The unsubscribe and address lines City Wide sends on every vendor email go here.</span>";
+}
+
+["subject","headline","button","body"].forEach(function(id){
+  $(id).addEventListener("input", function(){ DIRTY[id] = true; preview(); });
+});
+["business","contact","by","email"].forEach(function(id){ $(id).addEventListener("input", preview); });
+["test","email"].forEach(function(id){
+  $(id).addEventListener("input", function(){ showSends(); preview(); });
+  $(id).addEventListener("change", function(){ showSends(); preview(); });
+});
+
+/* ---------------------------------------------------------- the types ---- */
 function renderTypes(){
   if(!TYPES.length){ $("types").innerHTML = '<span class="hint">Could not load the service types. You can still send the invite.</span>'; return; }
   $("types").innerHTML = TYPES.map(function(t){
@@ -200,19 +373,24 @@ function pickedTypes(){
   return Array.prototype.slice.call($("types").querySelectorAll("input:checked")).map(function(i){ return i.value; }).join(",");
 }
 
+/* ------------------------------------------------------------- send ----- */
 $("frm").addEventListener("submit", function(e){
   e.preventDefault();
   var business = $("business").value.trim(), email = $("email").value.trim(), by = $("by").value.trim();
+  var subject = $("subject").value.trim(), body = $("body").value.replace(/\r/g,"").trim();
   var m = !business ? "Type the company name." :
           !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? "That email address does not look right." :
-          !by ? "Add your first name so we know who invited them." : "";
+          !by ? "Add your first name so we know who invited them." :
+          !subject ? "Write a subject." :
+          !body ? "Write the message, or click start over to put the standard invite back." : "";
   if(m){ say(m); return; }
   say("");
   var btn = $("send"); btn.disabled = true; btn.textContent = "Sending...";
   post({
     kind:"vd_invite", market:MKT, business:business, contact:$("contact").value.trim(),
     email:email, phone:$("phone").value.trim(), service_types:pickedTypes(),
-    note:$("note").value.trim(), by:by, test:$("test").checked
+    subject:subject, headline:$("headline").value.trim(), button:$("button").value.trim(),
+    body:body, by:by, test:$("test").checked
   }, function(r){
     btn.disabled = false; btn.textContent = "Send the invite";
     if(!r){ say("Could not reach the server. Nothing was sent. Check your connection and try again."); return; }
@@ -227,8 +405,15 @@ $("frm").addEventListener("submit", function(e){
   });
 });
 
+/* -------------------------------------------------------------- load ---- */
 function load(pass){
   PASS = pass;
+  if(/[?&]region=nnv/.test(location.search)) MKT = "nnv";
+  setMkt(MKT);
+  applyDefaults(true);
+  $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
+  try{ $("by").value = (localStorage.getItem("cwOpsName") || localStorage.getItem("cwAlertsWho") || "").split(" ")[0]; }catch(x){}
+  showSends(); preview();
   post({ kind:"vd_types" }, function(r){
     if(r && r.ok){
       TYPES = (r.types || []).filter(function(t){ return t.slug !== "unsorted"; });
@@ -238,9 +423,6 @@ function load(pass){
     } else {
       renderTypes();
     }
-    $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
-    try{ $("by").value = (localStorage.getItem("cwOpsName") || localStorage.getItem("cwAlertsWho") || "").split(" ")[0]; }catch(x){}
-    showSends();
   });
 }
 (function(){ var p = CWAuth.require({hub:"ops"}); if (p) load(p); })();

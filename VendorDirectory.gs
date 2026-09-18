@@ -1371,6 +1371,18 @@ var VD_INV_LOGO = 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/
 // exactly the confusion an invite is supposed to avoid.
 var VD_INV_UNSORTED = 'unclassified';
 var VD_INV_TEST_TO = 'lvservicecall@gocitywide.com';
+
+// Sep 18 2026: the whole email is editable on the Ops Hub, the same way an
+// opportunity email is. The page sends subject, headline, button label and a
+// plain text body. Everything else is fixed here.
+//
+// THE BUTTON URL IS NEVER TAKEN FROM THE PAGE. It is built below from
+// VD_INV_HUB plus the market, so no edit anyone makes on the hub can point a
+// vendor at the shop, or anywhere else. Only the words on the button change.
+var VD_INV_HEADLINE = 'BECOME A CITY WIDE VENDOR';
+var VD_INV_BTN = 'Start Here';
+var VD_INV_MAX = { subject: 200, headline: 90, button: 44, body: 6000 };
+
 var VD_INV_MARKETS = {
   lv: {
     key: 'lv', name: 'Las Vegas', region: 'Las Vegas',
@@ -1401,6 +1413,104 @@ function vdInvEsc_(s) {
 
 function vdInvToday_() {
   return Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd');
+}
+
+// ---------------------------------------------------------- the template ---
+// Kept here as well as on the page so an old cached page, or a POST with no
+// body at all, still sends a complete email.
+function vdInvDefaults_(mk) {
+  return {
+    subject: 'Start here to work with City Wide ' + mk.name,
+    headline: VD_INV_HEADLINE,
+    button: VD_INV_BTN,
+    body: [
+      '{business}',
+      'City Wide Facility Solutions manages the cleaning and facility work for hundreds of ' +
+        'buildings across {market}. The work is done by independent crews like yours.',
+      'Everything it takes to start with us is on one page. Five steps, at your pace.',
+      '{button}',
+      'Step one is a short evaluation form that tells us what your crew does. When work opens ' +
+        'that matches, you hear from us first.'
+    ].join('\n\n')
+  };
+}
+
+// {business} {contact} {market} {sender} {phone} {by}. A line that held a token
+// and comes out empty is dropped, so a missing contact name leaves no stub.
+function vdInvFill_(text, ctx) {
+  var out = String(text == null ? '' : text).replace(/\r/g, '').split('\n').map(function (line) {
+    if (!/\{[a-z_]+\}/.test(line)) return line;
+    var emptied = false;
+    var filled = line.replace(/\{([a-z_]+)\}/g, function (whole, k) {
+      if (k === 'button') return whole;
+      var v = ctx[k] == null ? '' : String(ctx[k]);
+      if (!v) emptied = true;
+      return v;
+    });
+    var bare = filled.replace(/\battn\b/i, '').replace(/[\s,;:.\-]+/g, '');
+    if (bare === '') return null;
+    // "{business}, attn {contact}" with no contact leaves ", attn". Only tidy a
+    // line that actually lost something, so a written comma is left alone.
+    if (emptied) filled = filled.replace(/,\s*attn\s*$/i, '').replace(/[\s,]+$/, '');
+    return filled;
+  }).filter(function (l) { return l !== null; }).join('\n');
+  return out.replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function vdInvClamp_(s, n) { return vdStr_(s).replace(/\r/g, '').slice(0, n); }
+
+function vdInvLink_(html) {
+  return html.replace(/(https?:\/\/[^\s<]+)/g, function (u) {
+    var tail = '', m = u.match(/[.,;:)]+$/);
+    if (m) { tail = m[0]; u = u.slice(0, -tail.length); }
+    return '<a href="' + u + '" style="color:#D22730;font-weight:bold;">' + u + '</a>' + tail;
+  });
+}
+
+function vdInvButtonHtml_(link, label) {
+  return '<table border="0" cellpadding="0" cellspacing="0" style="margin:6px 0 18px;"><tr>' +
+    '<td bgcolor="#D22730" style="border-radius:6px;">' +
+    '<a href="' + link + '" style="background:#D22730;color:#ffffff;' +
+    'font-family:Verdana,Arial,sans-serif;font-size:17px;font-weight:bold;text-decoration:none;' +
+    'padding:18px 34px;display:inline-block;border-radius:6px;">' + vdInvEsc_(label) +
+    '</a></td></tr></table>';
+}
+
+// Plain text in, email HTML out. Blank line between paragraphs. A block of
+// lines that all start with "- " becomes a list. A line that is only {button}
+// becomes the red button. If nobody placed {button}, it goes after the body.
+function vdInvBodyHtml_(text, link, label) {
+  var F = 'font-family:Verdana,Arial,sans-serif;';
+  var placed = false;
+  var html = String(text).replace(/\r/g, '').split(/\n{2,}/).map(function (p) {
+    var lines = p.split('\n').filter(function (l) { return l.trim() !== ''; });
+    if (!lines.length) return '';
+    if (lines.length === 1 && lines[0].trim() === '{button}') {
+      placed = true;
+      return vdInvButtonHtml_(link, label);
+    }
+    if (lines.every(function (l) { return /^\s*-\s+/.test(l); })) {
+      return '<ul style="margin:0 0 16px;padding-left:22px;' + F +
+        'font-size:14px;line-height:1.6;color:#2d2a26;">' +
+        lines.map(function (l) {
+          return '<li style="margin:0 0 6px;">' + vdInvLink_(vdInvEsc_(l.replace(/^\s*-\s+/, ''))) + '</li>';
+        }).join('') + '</ul>';
+    }
+    return '<p style="margin:0 0 16px;' + F + 'font-size:14px;line-height:1.6;color:#2d2a26;">' +
+      vdInvLink_(lines.map(vdInvEsc_).join('<br>')) + '</p>';
+  }).join('');
+  if (!placed) html += vdInvButtonHtml_(link, label);
+  return html;
+}
+
+function vdInvBodyText_(text, link, label) {
+  var placed = false;
+  var out = String(text).replace(/\r/g, '').split(/\n{2,}/).map(function (p) {
+    if (p.trim() === '{button}') { placed = true; return label + ': ' + link; }
+    return p.trim();
+  }).filter(function (p) { return p !== ''; }).join('\n\n');
+  if (!placed) out += '\n\n' + label + ': ' + link;
+  return out;
 }
 
 // A row this flow created and the vendor has not filled in yet. Only these get
@@ -1445,6 +1555,23 @@ function vdInvite_(data) {
   // Sep 17 2026: an invite is marketing type email, so the do not email list stops it.
   if (typeof dneHas_ === 'function' && dneHas_(dneSet_(vdSS_()), email)) {
     return vdOut_({ ok: false, error: 'That address is on the do not email list, so nothing was sent. If that is a mistake, lift it on the Do Not Email page first.' });
+  }
+
+  // The editable email. Anything the page leaves out falls back to the default,
+  // so an old cached page still sends the original template.
+  var def = vdInvDefaults_(mk);
+  var em = {
+    subject: vdInvClamp_(data.subject, VD_INV_MAX.subject) || def.subject,
+    // Headline is checked for presence, not truth: a sender who clears the red
+    // bar on purpose gets no red bar, instead of the default coming back.
+    headline: (data.headline == null) ? def.headline : vdInvClamp_(data.headline, VD_INV_MAX.headline),
+    button: vdInvClamp_(data.button, VD_INV_MAX.button) || def.button,
+    body: vdInvClamp_(data.body, VD_INV_MAX.body)
+  };
+  if (!em.body.trim()) {
+    // No body sent. Old shape: an optional note above the standard template.
+    em.body = (note ? note + '\n\n' : '') + def.body;
+    note = '';
   }
 
   var types = vdStr_(data.service_types);
@@ -1501,7 +1628,13 @@ function vdInvite_(data) {
 
   var to = test ? VD_INV_TEST_TO : email;
   var link = VD_INV_HUB + '?region=' + mk.key;
-  var subject = (test ? 'TEST | ' : '') + 'Start here to work with City Wide ' + mk.name;
+  var filled = vdInvFill_(em.body, {
+    business: business, contact: contact, market: mk.name,
+    sender: mk.sender, phone: mk.phone, by: by
+  });
+  var subject = (test ? 'TEST | ' : '') +
+    vdInvFill_(em.subject, { business: business, contact: contact, market: mk.name,
+                             sender: mk.sender, phone: mk.phone, by: by });
   var sent = false, sendError = '';
   try {
     MailApp.sendEmail({
@@ -1509,8 +1642,8 @@ function vdInvite_(data) {
       replyTo: mk.reply,
       name: mk.sender,
       subject: subject,
-      htmlBody: vdInvEmailHtml_(business, contact, note, mk, link, test),
-      body: vdInvEmailText_(business, contact, note, mk, link, test)
+      htmlBody: vdInvEmailHtml_(em, filled, mk, link, test),
+      body: vdInvEmailText_(em, filled, mk, link, test)
     });
     sent = true;
   } catch (e) {
@@ -1524,7 +1657,7 @@ function vdInvite_(data) {
       'INVITE', business, contact, email, phone, mk.region, types, vid,
       (sent ? (test ? 'invite TEST sent to ' + to : 'invite sent') : 'INVITE EMAIL FAILED') +
         ', ' + action,
-      JSON.stringify({ by: by, note: note, error: sendError }).slice(0, 45000)
+      JSON.stringify({ by: by, subject: subject, body: filled, error: sendError }).slice(0, 45000)
     ]);
   }
 
@@ -1543,16 +1676,14 @@ function vdInvSet_(sh, row, header, value) {
   sh.getRange(row, i + 1).setValue(String(value == null ? '' : value));
 }
 
-// The email. Short on purpose. One link, one reason to click it.
-function vdInvEmailHtml_(business, contact, note, mk, link, test) {
+// The shell. Logo, headline bar, the sender's message, then the fixed footer.
+// The footer carries the market identity and the do not email wording and is
+// not editable from the hub.
+function vdInvEmailHtml_(em, filledBody, mk, link, test) {
   var F = 'font-family:Verdana,Arial,sans-serif;';
   var banner = test ?
     '<tr><td style="background:#E5B423;padding:8px 30px;' + F + 'font-size:12px;font-weight:bold;' +
     'color:#2d2a26;">TEST. Routed to the internal inbox. Not sent to a vendor.</td></tr>' : '';
-
-  function p(t) {
-    return '<p style="margin:0 0 16px;' + F + 'font-size:14px;line-height:1.6;color:#2d2a26;">' + t + '</p>';
-  }
 
   return '' +
   '<table bgcolor="#f4f4f4" border="0" cellpadding="0" cellspacing="0" width="100%">' +
@@ -1563,28 +1694,14 @@ function vdInvEmailHtml_(business, contact, note, mk, link, test) {
   '<img src="' + VD_INV_LOGO + '" height="38" alt="City Wide Facility Solutions" ' +
   'style="display:block;border:0;height:38px;width:auto;"></td></tr>' +
 
+  (em.headline ?
   '<tr><td style="padding:18px 30px 0;">' +
   '<div style="background:#D22730;color:#ffffff;' + F + 'font-size:16px;font-weight:bold;' +
-  'padding:12px 16px;letter-spacing:0.5px;">BECOME A CITY WIDE VENDOR</div></td></tr>' +
+  'padding:12px 16px;letter-spacing:0.5px;">' + vdInvEsc_(em.headline) + '</div></td></tr>' : '') +
 
   '<tr><td style="padding:18px 30px 30px;">' +
-  '<p style="margin:0 0 16px;' + F + 'font-size:13px;color:#636466;">' +
-  vdInvEsc_(business) + (contact ? ', attn ' + vdInvEsc_(contact) : '') + '</p>' +
 
-  (note ? p(vdInvEsc_(note)) : '') +
-
-  p('City Wide Facility Solutions manages the cleaning and facility work for hundreds of ' +
-    'buildings across ' + vdInvEsc_(mk.name) + '. The work is done by independent crews like yours.') +
-  p('Everything it takes to start with us is on one page. Five steps, at your pace.') +
-
-  '<table border="0" cellpadding="0" cellspacing="0" style="margin:6px 0 18px;"><tr>' +
-  '<td bgcolor="#D22730" style="border-radius:6px;">' +
-  '<a href="' + link + '" style="background:#D22730;color:#ffffff;' + F + 'font-size:17px;' +
-  'font-weight:bold;text-decoration:none;padding:18px 34px;display:inline-block;' +
-  'border-radius:6px;">Start Here</a></td></tr></table>' +
-
-  p('Step one is a short evaluation form that tells us what your crew does. When work opens ' +
-    'that matches, you hear from us first.') +
+  vdInvBodyHtml_(filledBody, link, em.button) +
 
   '<p style="margin:0 0 22px;' + F + 'font-size:12px;line-height:1.5;color:#636466;' +
   'word-break:break-all;">Or paste this into your browser:<br>' +
@@ -1602,19 +1719,14 @@ function vdInvEmailHtml_(business, contact, note, mk, link, test) {
   '</td></tr></table></td></tr></table>';
 }
 
-function vdInvEmailText_(business, contact, note, mk, link, test) {
+function vdInvEmailText_(em, filledBody, mk, link, test) {
   return (test ? 'TEST. Routed to the internal inbox. Not sent to a vendor.\n\n' : '') +
-    business + (contact ? ', attn ' + contact : '') + '\n\n' +
-    (note ? note + '\n\n' : '') +
-    'City Wide Facility Solutions manages the cleaning and facility work for hundreds of ' +
-    'buildings across ' + mk.name + '. The work is done by independent crews like yours.\n\n' +
-    'Everything it takes to start with us is on one page. Five steps, at your pace.\n\n' +
-    link + '\n\n' +
-    'Step one is a short evaluation form that tells us what your crew does. When work opens ' +
-    'that matches, you hear from us first.\n\n' +
+    (em.headline ? em.headline + '\n\n' : '') +
+    vdInvBodyText_(filledBody, link, em.button) + '\n\n' +
     mk.sender + '\n' + mk.phone + '\n' + mk.reply + '\nGoCityWide.com\n' +
     (typeof dneFooterText_ === 'function' ? '\n' + dneFooterText_([mk.region], true) + '\n' : '');
 }
+
 
 // ------------------------------------------------------------ run helpers --
 
