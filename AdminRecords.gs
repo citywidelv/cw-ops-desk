@@ -313,9 +313,10 @@ function adrList_(d) {
       var v = vals[r];
       var anchor = idC >= 0 ? v[idC] : (titleC >= 0 ? v[titleC] : v[0]);
       if (adrStr_(anchor).trim() === '') {
-        // a row with no id and no title is a blank or a spacer; skip it
+        // a row with no id and no title is a blank or a spacer; skip it. Setup paints
+        // checkbox rules far down these tabs, so an unchecked box (false) is not content.
         var any = false;
-        for (var k = 0; k < idx.length; k++) if (adrStr_(v[idx[k]]).trim() !== '') { any = true; break; }
+        for (var k = 0; k < idx.length; k++) { var cell = v[idx[k]]; if (cell !== false && adrStr_(cell).trim() !== '') { any = true; break; } }
         if (!any) continue;
       }
       var row = { _row: r + 2 };
