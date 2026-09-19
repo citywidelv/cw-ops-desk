@@ -239,8 +239,8 @@ window.CW_NAV = {
        "href": "https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit#gid=448859233"
       },
       {
-       "label": "Vendor Background Check Form (Asana)",
-       "href": "https://form.asana.com/?k=FRCnQmbTGjAVPieFt4bnWQ&d=13140959242873"
+       "label": "Vendor Background Check Request (Vendor Hub)",
+       "href": "https://citywidelv.github.io/cw-vendor-hub/background-check.html"
       },
       {
        "label": "Verified First (portal)",
@@ -258,6 +258,11 @@ window.CW_NAV = {
       {
        "label": "Invite for Northern Nevada",
        "href": "vendor-invite.html?region=nnv"
+      },
+      {
+       "label": "New Vendor Onboarding Status (Admin Hub)",
+       "href": "https://citywidelv.github.io/cw-admin-hub/onboarding.html",
+       "tag": "Admin Hub"
       },
       {
        "ghead": "Where the invite takes them"
