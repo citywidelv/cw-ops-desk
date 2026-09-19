@@ -319,7 +319,7 @@ function obList_(data) {
   var log = [];
   if (logSh && data.log !== false) {
     var lr = obRows_(logSh).rows;
-    log = lr.slice(Math.max(0, lr.length - 400)).map(function (r) { delete r._row; return r; }).reverse();
+    log = lr.slice(Math.max(0, lr.length - 150)).map(function (r) { delete r._row; return r; }).reverse();
   }
 
   return vdOut_({ ok: true, checklist: cfg, stages: OB_STAGES, req_types: OB_REQ_TYPES, req_status: OB_REQ_STATUS,
@@ -981,9 +981,11 @@ function obImportAsana_(data) {
       bcr.created++;
       if (rtype === OB_REQ_TYPES[0] && first && !dupe) {
         var result = status === 'Passed' ? 'Pass' : status === 'Failed' ? 'Fail' : '';
+        var reqDay = (t.created_at || '').slice(0, 10) || obToday_();
         var prow = { market: mk, vendor_id: m.v ? m.v.vendor_id : '', vendor: m.v ? m.v.dba_name : company,
           roster_company_as_typed: m.v ? '' : company, first_name: first, last_name: last, check_type: 'Standard', source: 'City Wide',
-          notes: 'Asana request ' + (t.created_at || '').slice(0, 10) + (t.completed ? ', closed in Asana ' + (t.completed_at || '').slice(0, 10) + ' with no result recorded. Confirm in Verified First.' : ', open in Asana.') };
+          first_check: reqDay, most_recent_check: reqDay,
+          notes: 'Asana request ' + reqDay + (t.completed ? ', closed in Asana ' + (t.completed_at || '').slice(0, 10) + ' with no result recorded. Confirm in Verified First.' : ', open in Asana.') };
         if (result) prow.result = result; else prow.status = 'Pending';
         bcRows.push(prow);
       }
