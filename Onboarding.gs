@@ -747,7 +747,8 @@ function obStageFromSection_(sec, completed) {
 // Asana vendors that are not on the directory yet get a directory row, so the desk and
 // every picker see one list. Status follows the Asana stage: set up = Waiting for
 // Account, still in process = In Progress, Not Approved = Prospect. Source 'Asana import'.
-function obAddDirectoryVendor_(ss, all, name, market, track, stage) {
+// Rows are collected and written once per market tab at the end of the run.
+function obDirectoryRowFor_(all, name, market, track, stage) {
   var v = {};
   v.vendor_id = vdNextId_(all);
   v.dba_name = name;
@@ -758,16 +759,15 @@ function obAddDirectoryVendor_(ss, all, name, market, track, stage) {
   v.added_by = 'Asana import ' + obToday_();
   v.updated = obToday_();
   v.internal_notes = 'Added by the Asana onboarding import ' + obToday_() + ' (board stage: ' + stage + '). Contact details were not on the Asana task; fill them in.';
-  var outRow = VD_HEADERS.map(function (h) { return v[h] == null ? '' : String(v[h]); });
-  var sh = vdTabFor_(ss, v.region);
-  var at = vdNextRow_(sh);
-  sh.getRange(at, 1, 1, VD_HEADERS.length).setValues([outRow]);
-  v._sheet = sh; v._row = at; v._tab = sh.getName();
+  v._pending = true;
   all.push(v);
   return v;
 }
 
 // {which:'onboarding'|'bc'|'all', dry:true|false, add_missing:true|false, who}
+// Every write is batched: the Onboarding tab is read once into a matrix, edited in
+// memory, and written back once; new rows, log lines, directory rows and requests are
+// each appended with one setValues. The first run of 269 tasks writes in seconds.
 function obImportAsana_(data) {
   var addMissing = data.add_missing === true || String(data.add_missing) === 'true' || String(data.add_missing) === '1';
   var pat = PropertiesService.getScriptProperties().getProperty('ASANA_PAT') || '';
@@ -779,28 +779,44 @@ function obImportAsana_(data) {
   var cfg = obChecklist_(ss);
   var all = vdAllRows_(ss).filter(function (r) { return r.dba_name; });
   var report = { ok: true, dry: dry, boards: [], bc: null, started: obNow_() };
+  var logLines = [];
+  function log(e) { logLines.push([obNow_(), e.ob_id || '', e.vendor || '', e.who || 'Asana import', e.action || '', e.item || '', e.from || '', e.to || '', String(e.note || '').slice(0, 2000)]); }
 
   if (which === 'all' || which === 'onboarding') {
     var obSh = obTab_(ss, OB_TAB, OB_HEADERS, '#D22730');
-    var existing = obRows_(obSh);
+    var lastRow = Math.max(obSh.getLastRow(), 1), lastCol = obSh.getLastColumn();
+    var vals = obSh.getRange(1, 1, lastRow, lastCol).getValues();
+    var head = vals[0].map(vdStr_);
+    var col = {}; head.forEach(function (h, i) { if (h) col[h] = i; });
+    var dirty = false;
+    var existing = [];
+    for (var i = 1; i < vals.length; i++) {
+      var o = { _i: i };
+      head.forEach(function (h, c) { if (h) o[h] = vdStr_(vals[i][c]); });
+      if (o.ob_id) existing.push(o);
+    }
+    var appends = [];   // objects, written at the end
     var byGid = {}, byVendorTrack = {};
-    existing.rows.forEach(function (r) { if (r.asana_gid) byGid[r.asana_gid] = r; if (r.vendor_id) byVendorTrack[r.vendor_id + '|' + r.track] = r; });
-    // asana subtask name -> checklist key
+    existing.forEach(function (r) { if (r.asana_gid) byGid[r.asana_gid] = r; if (r.vendor_id) byVendorTrack[r.vendor_id + '|' + r.track] = r; });
+    function setField(r, f, v) {
+      v = v == null ? '' : String(v);
+      if (r[f] === v) return;
+      r[f] = v;
+      if (r._i !== undefined) { if (col[f] !== undefined) { vals[r._i][col[f]] = v; dirty = true; } }
+    }
     var nameToKey = {};
     cfg.forEach(function (c) { String(c.asana || '').split('|').forEach(function (n) { n = n.trim().toLowerCase(); if (n) nameToKey[n] = c.key; }); });
 
     OB_ASANA.boards.forEach(function (b) {
-      var br = { board: b.name, tasks: 0, created: 0, updated: 0, unmatched: [], skipped: 0 };
+      var br = { board: b.name, tasks: 0, created: 0, updated: 0, unmatched: [], skipped: 0, added_to_directory: 0 };
       var fields = 'name,completed,completed_at,created_at,assignee.name,memberships.section.name,custom_fields.name,custom_fields.display_value,notes,num_subtasks,permalink_url';
       var tasks;
       try { tasks = obAsanaAll_(pat, '/projects/' + b.gid + '/tasks?limit=100&opt_fields=' + encodeURIComponent(fields)); }
       catch (e) { br.error = String(e); report.boards.push(br); return; }
       br.tasks = tasks.length;
-      // subtasks for every task with subtasks, 20 at a time
       var withSubs = tasks.filter(function (t) { return t.num_subtasks > 0; });
       var subs = obAsanaMany_(pat, withSubs.map(function (t) { return '/tasks/' + t.gid + '/subtasks?limit=100&opt_fields=name,completed,completed_at,assignee.name'; }));
       var subMap = {}; withSubs.forEach(function (t, i) { subMap[t.gid] = subs[i] || []; });
-      // comments for open tasks only
       var open = tasks.filter(function (t) { return !t.completed; });
       var stories = obAsanaMany_(pat, open.map(function (t) { return '/tasks/' + t.gid + '/stories?limit=50&opt_fields=type,text,created_at,created_by.name'; }));
       var storyMap = {}; open.forEach(function (t, i) { storyMap[t.gid] = (stories[i] || []).filter(function (s) { return s.type === 'comment'; }); });
@@ -815,74 +831,91 @@ function obImportAsana_(data) {
         var track = b.track;
         if (st.some(function (s) { return /^OS IC Agreement/i.test(s.name); })) track = 'OS';
         if (st.some(function (s) { return /^JS IC Agreement/i.test(s.name); })) track = 'JS';
-        var docs = {};
-        var unknownSubs = [];
+        var docs = {}, unknownSubs = [];
         st.forEach(function (s) {
           var k = nameToKey[vdStr_(s.name).toLowerCase()];
           if (!k) { unknownSubs.push(s.name); return; }
           if (s.completed) docs[k] = { s: 'verified', d: (s.completed_at || '').slice(0, 10), by: 'Asana' + (s.assignee ? ' ' + s.assignee.name : ''), n: '', src: 'asana' };
         });
         var stage = obStageFromSection_(sec, t.completed);
-        var m = obMatchVendor_(all, name, '');
         var noteLines = [];
         if (vdStr_(t.notes)) noteLines.push((t.created_at || '').slice(0, 10) + ' Asana: ' + vdStr_(t.notes).slice(0, 1500));
         (storyMap[t.gid] || []).forEach(function (s) { noteLines.push((s.created_at || '').slice(0, 10) + ' ' + (s.created_by ? s.created_by.name : 'Asana') + ': ' + vdStr_(s.text).slice(0, 800)); });
         if (unknownSubs.length) noteLines.push('Asana items not in the checklist: ' + unknownSubs.join('; '));
-        rows.push({ t: t, name: name, sec: sec, cf: cf, track: track, docs: docs, stage: stage, m: m, notes: noteLines.join('\n') });
+        rows.push({ t: t, name: name, sec: sec, cf: cf, track: track, docs: docs, stage: stage, m: obMatchVendor_(all, name, ''), notes: noteLines.join('\n') });
       });
 
-      // A vendor often has two Asana tasks (a closed New Requests stub and the real
-      // checklist task). The richer one decides the stage of a row created this run.
       function rank(r) { var s = r.stage; return (r.t.num_subtasks > 0 ? 10 : 0) + (s === 'Complete' ? 5 : s === 'New' ? 1 : 4); }
       var createdRank = {};
-      br.added_to_directory = 0;
       rows.forEach(function (r) {
         var t = r.t;
         if (!r.m.v && addMissing && !dry && !byGid[t.gid]) {
-          // a twin task may have created the row a moment ago: match again first
           r.m = obMatchVendor_(all, r.name, '');
-          if (!r.m.v) { r.m = { v: obAddDirectoryVendor_(ss, all, r.name, b.market, r.track, r.stage), how: 'added', sure: true }; br.added_to_directory++; }
+          if (!r.m.v) { r.m = { v: obDirectoryRowFor_(all, r.name, b.market, r.track, r.stage), how: 'added', sure: true }; br.added_to_directory++; }
         }
         var hit = byGid[t.gid] || (r.m.v ? byVendorTrack[r.m.v.vendor_id + '|' + r.track] : null);
         if (!r.m.v) br.unmatched.push({ name: r.name, section: r.sec, gid: t.gid, url: t.permalink_url });
         if (dry) { if (hit) br.updated++; else br.created++; return; }
         if (hit && createdRank[hit.ob_id] !== undefined && rank(r) > createdRank[hit.ob_id]) {
           createdRank[hit.ob_id] = rank(r);
-          obSet_(obSh, existing.head, hit._row, 'stage', r.stage);
-          obSet_(obSh, existing.head, hit._row, 'asana_gid', t.gid);
-          obSet_(obSh, existing.head, hit._row, 'completed', t.completed ? (t.completed_at || '').slice(0, 10) : '');
-          if (t.assignee) obSet_(obSh, existing.head, hit._row, 'assignee', t.assignee.name);
-          hit.stage = r.stage; hit.asana_gid = t.gid;
+          setField(hit, 'stage', r.stage); setField(hit, 'asana_gid', t.gid); setField(hit, 'asana_section', r.sec);
+          setField(hit, 'completed', t.completed ? (t.completed_at || '').slice(0, 10) : '');
+          if (t.assignee) setField(hit, 'assignee', t.assignee.name);
           byGid[t.gid] = hit;
         }
         if (hit) {
-          // Merge: Asana checks fill blanks and never overwrite a hub edit.
-          var cur = obDocs_(hit);
-          var changed = false;
+          var cur = obDocs_(hit), changed = false;
           Object.keys(r.docs).forEach(function (k) { if (!cur[k]) { cur[k] = r.docs[k]; changed = true; } });
-          if (changed) obSet_(obSh, existing.head, hit._row, 'docs', JSON.stringify(cur));
-          if (!hit.asana_gid) obSet_(obSh, existing.head, hit._row, 'asana_gid', t.gid);
-          obSet_(obSh, existing.head, hit._row, 'asana_section', r.sec);
-          obSet_(obSh, existing.head, hit._row, 'asana_status', r.cf.Status || '');
-          if (!hit.notes && r.notes) obSet_(obSh, existing.head, hit._row, 'notes', r.notes);
-          if (hit.vendor_id === '' && r.m.v) { obSet_(obSh, existing.head, hit._row, 'vendor_id', r.m.v.vendor_id); obSet_(obSh, existing.head, hit._row, 'vendor', r.m.v.dba_name); obSet_(obSh, existing.head, hit._row, 'matched', 'TRUE'); }
-          if (changed) { obSet_(obSh, existing.head, hit._row, 'updated', obNow_()); obSet_(obSh, existing.head, hit._row, 'updated_by', 'Asana import'); }
+          if (changed) setField(hit, 'docs', JSON.stringify(cur));
+          if (!hit.asana_gid) setField(hit, 'asana_gid', t.gid);
+          setField(hit, 'asana_section', r.sec);
+          setField(hit, 'asana_status', r.cf.Status || '');
+          if (!hit.notes && r.notes) setField(hit, 'notes', r.notes);
+          if (!hit.vendor_id && r.m.v) { setField(hit, 'vendor_id', r.m.v.vendor_id); setField(hit, 'vendor', r.m.v.dba_name); setField(hit, 'matched', 'TRUE'); byVendorTrack[r.m.v.vendor_id + '|' + hit.track] = hit; }
+          if (changed) { setField(hit, 'updated', obNow_()); setField(hit, 'updated_by', 'Asana import'); }
           br.updated++;
           return;
         }
-        var obj = obNewRow_(ss, r.m.v, {
-          vendor: r.name, track: r.track, stage: r.stage, market: b.market, priority: r.cf.Priority || '',
-          assignee: t.assignee ? t.assignee.name : '', started: (t.created_at || '').slice(0, 10),
-          completed: t.completed ? (t.completed_at || '').slice(0, 10) : '', asana_gid: t.gid, asana_section: r.sec,
-          asana_status: r.cf.Status || '', notes: r.notes, docs: r.docs, source: 'Asana ' + b.name, who: 'Asana import'
-        });
-        byGid[t.gid] = obj;
-        createdRank[obj.ob_id] = rank(r);
-        if (r.m.v) byVendorTrack[r.m.v.vendor_id + '|' + r.track] = obj;
+        var v = r.m.v;
+        var obj = {
+          ob_id: obId_('OB'), vendor_id: v ? v.vendor_id : '', vendor: v ? v.dba_name : r.name, market: b.market,
+          track: r.track, stage: r.stage, priority: r.cf.Priority || '', assignee: t.assignee ? t.assignee.name : '',
+          started: (t.created_at || '').slice(0, 10), completed: t.completed ? (t.completed_at || '').slice(0, 10) : '',
+          asana_gid: t.gid, asana_section: r.sec, asana_status: r.cf.Status || '', notes: r.notes,
+          docs: JSON.stringify(r.docs), updated: obNow_(), updated_by: 'Asana import', source: 'Asana ' + b.name,
+          contact_name: v ? (v.contact_name || '') : '', email: v ? (v.email || '') : '', phone: v ? (v.phone || '') : '',
+          matched: v ? 'TRUE' : 'FALSE'
+        };
+        appends.push(obj);
+        byGid[t.gid] = obj; createdRank[obj.ob_id] = rank(r);
+        if (v) byVendorTrack[v.vendor_id + '|' + r.track] = obj;
+        log({ ob_id: obj.ob_id, vendor: obj.vendor, action: 'create', item: 'stage', to: obj.stage, note: obj.source + (v ? '' : ' (not matched to a directory vendor)') });
         br.created++;
       });
       report.boards.push(br);
     });
+
+    if (!dry) {
+      if (dirty) obSh.getRange(1, 1, vals.length, lastCol).setValues(vals);
+      if (appends.length) {
+        var out = appends.map(function (o) { return head.map(function (h) { return o[h] == null ? '' : String(o[h]); }); });
+        obSh.getRange(lastRow + 1, 1, out.length, head.length).setValues(out);
+      }
+      // directory rows, one write per market tab
+      var pend = all.filter(function (v) { return v._pending; });
+      if (pend.length) {
+        ['Las Vegas', 'Northern Nevada'].forEach(function (region) {
+          var mine = pend.filter(function (v) { return v.region === region; });
+          if (!mine.length) return;
+          var sh = vdTabFor_(ss, region);
+          var at = vdNextRow_(sh);
+          var rowsOut = mine.map(function (v) { return VD_HEADERS.map(function (h) { return v[h] == null ? '' : String(v[h]); }); });
+          sh.getRange(at, 1, rowsOut.length, VD_HEADERS.length).setValues(rowsOut);
+          mine.forEach(function (v) { delete v._pending; });
+        });
+        report.directory_added = pend.length;
+      }
+    }
   }
 
   if (which === 'all' || which === 'bc') {
@@ -893,12 +926,18 @@ function obImportAsana_(data) {
     catch (e2) { bcr.error = String(e2); report.bc = bcr; return vdOut_(report); }
     bcr.tasks = tasks2.length;
     var reqSh = obTab_(ss, OB_REQ_TAB, OB_REQ_HEADERS, '#2F6FD6');
-    var ex = obRows_(reqSh);
-    var byGid2 = {}; ex.rows.forEach(function (r) { if (r.asana_gid) byGid2[r.asana_gid] = r; });
-    var seen = {};   // company|name|type -> req_id, to mark repeat submissions
-    ex.rows.forEach(function (r) { var k = obNorm_(r.company) + '|' + obNorm_(r.legal_name) + '|' + r.request_type; if (!seen[k]) seen[k] = r.req_id; });
+    var rLast = Math.max(reqSh.getLastRow(), 1), rCols = reqSh.getLastColumn();
+    var rVals = reqSh.getRange(1, 1, rLast, rCols).getValues();
+    var rHead = rVals[0].map(vdStr_);
+    var rCol = {}; rHead.forEach(function (h, i) { if (h) rCol[h] = i; });
+    var rDirty = false;
+    var exRows = [];
+    for (var ri = 1; ri < rVals.length; ri++) { var ro = { _i: ri }; rHead.forEach(function (h, c) { if (h) ro[h] = vdStr_(rVals[ri][c]); }); if (ro.req_id) exRows.push(ro); }
+    var byGid2 = {}; exRows.forEach(function (r) { if (r.asana_gid) byGid2[r.asana_gid] = r; });
+    var seen = {};
+    exRows.forEach(function (r) { var k = obNorm_(r.company) + '|' + obNorm_(r.legal_name) + '|' + r.request_type; if (!seen[k]) seen[k] = r.req_id; });
     tasks2.sort(function (a, b) { return (a.created_at || '') < (b.created_at || '') ? -1 : 1; });
-    var bcRows = [];
+    var reqAppends = [], bcRows = [];
     tasks2.forEach(function (t) {
       var f = obParseBcNotes_(t.notes || '');
       var cf = {}; (t.custom_fields || []).forEach(function (x) { if (x.display_value) cf[x.name] = x.display_value; });
@@ -916,13 +955,14 @@ function obImportAsana_(data) {
         : t.completed ? 'Closed' : (/sent|progress/i.test(sec) || /sent|progress/i.test(aStatus)) ? 'Sent' : 'New';
       var m = obMatchVendor_(all, company, '');
       var k = obNorm_(company) + '|' + obNorm_(legal) + '|' + rtype;
-      var dupe = seen[k] && !byGid2[t.gid] ? seen[k] : '';
       var hit = byGid2[t.gid];
+      var dupe = seen[k] && !hit ? seen[k] : '';
       if (!m.v && !hit) bcr.unmatched.push({ company: company, name: legal, gid: t.gid });
       if (dry) { if (hit) bcr.updated++; else bcr.created++; if (dupe) bcr.dupes++; return; }
       if (hit) {
-        if (!hit.vendor_id && m.v) obSet_(reqSh, ex.head, hit._row, 'vendor_id', m.v.vendor_id);
-        obSet_(reqSh, ex.head, hit._row, 'asana_done', t.completed ? (t.completed_at || '').slice(0, 10) : '');
+        if (!hit.vendor_id && m.v) { rVals[hit._i][rCol.vendor_id] = m.v.vendor_id; rDirty = true; }
+        var done = t.completed ? (t.completed_at || '').slice(0, 10) : '';
+        if (hit.asana_done !== done) { rVals[hit._i][rCol.asana_done] = done; rDirty = true; }
         bcr.updated++; return;
       }
       var rid = obId_('BC');
@@ -936,7 +976,7 @@ function obImportAsana_(data) {
         badge: t.completed ? 'Delivered' : 'Needed', notes: (sec ? 'Asana section: ' + sec + '. ' : '') + (aStatus ? 'Asana status: ' + aStatus + '. ' : '') + (dupe ? 'Repeat of ' + dupe + '. ' : ''),
         updated: obNow_(), updated_by: 'Asana import', dupe_of: dupe
       };
-      obAppend_(reqSh, ex.head, req);
+      reqAppends.push(req);
       byGid2[t.gid] = req; if (!seen[k]) seen[k] = rid; if (dupe) bcr.dupes++;
       bcr.created++;
       if (rtype === OB_REQ_TYPES[0] && first && !dupe) {
@@ -948,26 +988,38 @@ function obImportAsana_(data) {
         bcRows.push(prow);
       }
     });
-    if (!dry && bcRows.length) {
-      // Only add people the roster does not already have; an existing person keeps their result.
-      var have = {};
-      VD_BC_TABS.forEach(function (b) { var sh = ss.getSheetByName(b.name); if (!sh) return; vdRows_(sh).rows.forEach(function (r) {
-        have[b.key + '|' + (vdStr_(r.vendor_id) || obNorm_(r.vendor)) + '|' + vdStr_(r.last_name).toLowerCase() + '|' + vdStr_(r.first_name).toLowerCase()] = 1;
-        have[b.key + '|' + obNorm_(r.vendor) + '|' + vdStr_(r.last_name).toLowerCase() + '|' + vdStr_(r.first_name).toLowerCase()] = 1; }); });
-      var fresh = bcRows.filter(function (p) {
-        return !have[p.market + '|' + (p.vendor_id || obNorm_(p.vendor)) + '|' + p.last_name.toLowerCase() + '|' + p.first_name.toLowerCase()] &&
-               !have[p.market + '|' + obNorm_(p.vendor) + '|' + p.last_name.toLowerCase() + '|' + p.first_name.toLowerCase()];
-      });
-      bcr.people_skipped_existing = bcRows.length - fresh.length;
-      if (fresh.length) {
-        try { var up = JSON.parse(vdBcUpsert_({ rows: fresh, reviewed_by: 'Asana import' }).getContent()); bcr.people_added = up.added; bcr.people_updated = up.updated; bcr.people_errors = up.errors; }
-        catch (ue) { bcr.people_error = String(ue); }
+    if (!dry) {
+      if (rDirty) reqSh.getRange(1, 1, rVals.length, rCols).setValues(rVals);
+      if (reqAppends.length) {
+        var rout = reqAppends.map(function (o) { return rHead.map(function (h) { return o[h] == null ? '' : String(o[h]); }); });
+        reqSh.getRange(rLast + 1, 1, rout.length, rHead.length).setValues(rout);
+      }
+      if (bcRows.length) {
+        var have = {};
+        VD_BC_TABS.forEach(function (b) { var sh = ss.getSheetByName(b.name); if (!sh) return; vdRows_(sh).rows.forEach(function (r) {
+          have[b.key + '|' + (vdStr_(r.vendor_id) || obNorm_(r.vendor)) + '|' + vdStr_(r.last_name).toLowerCase() + '|' + vdStr_(r.first_name).toLowerCase()] = 1;
+          have[b.key + '|' + obNorm_(r.vendor) + '|' + vdStr_(r.last_name).toLowerCase() + '|' + vdStr_(r.first_name).toLowerCase()] = 1; }); });
+        var fresh = bcRows.filter(function (p) {
+          return !have[p.market + '|' + (p.vendor_id || obNorm_(p.vendor)) + '|' + p.last_name.toLowerCase() + '|' + p.first_name.toLowerCase()] &&
+                 !have[p.market + '|' + obNorm_(p.vendor) + '|' + p.last_name.toLowerCase() + '|' + p.first_name.toLowerCase()];
+        });
+        bcr.people_skipped_existing = bcRows.length - fresh.length;
+        if (fresh.length) {
+          try { var up = JSON.parse(vdBcUpsert_({ rows: fresh, reviewed_by: 'Asana import' }).getContent()); bcr.people_added = up.added; bcr.people_updated = up.updated; bcr.people_errors = up.errors; }
+          catch (ue) { bcr.people_error = String(ue); }
+        }
       }
     }
     report.bc = bcr;
   }
   report.finished = obNow_();
-  if (!dry) obLog_(ss, { who: who, action: 'asana import', note: JSON.stringify(report).slice(0, 1900) });
+  if (!dry) {
+    log({ who: who, action: 'asana import', note: JSON.stringify(report).slice(0, 1900) });
+    try {
+      var lsh = obTab_(ss, OB_LOG_TAB, OB_LOG_HEADERS, '#636466');
+      lsh.getRange(Math.max(lsh.getLastRow(), 1) + 1, 1, logLines.length, OB_LOG_HEADERS.length).setValues(logLines);
+    } catch (le) { report.log_error = String(le); }
+  }
   return vdOut_(report);
 }
 
