@@ -1301,7 +1301,7 @@ var digits = String(it.phone).replace(/[^\d+]/g, "");
 out.push('<a class="aact" href="tel:' + esc(digits) + '">' + AL_ICON.phone + 'Call</a>');
 }
 if(it.link){
-var lbl = it.type === "response" ? (/responses\.html/.test(it.link) ? "Open reply" : "Open quote")
+var lbl = it.type === "response" ? (/responses\.html/.test(it.link) ? "Open reply" : (/^Quoted\s/.test(it.summary || "") ? "Open quote" : "Open PDF"))
 : it.type === "posting" ? "Open replies page" : it.type === "night" ? "Open report" : "Open sheet";
 out.push('<a class="aact" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + AL_ICON.open + esc(lbl) + '</a>');
 }
