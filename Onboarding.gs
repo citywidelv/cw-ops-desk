@@ -744,8 +744,32 @@ function obStageFromSection_(sec, completed) {
   return completed ? 'Complete' : 'New';
 }
 
-// {which:'onboarding'|'bc'|'all', dry:true|false, who}
+// Asana vendors that are not on the directory yet get a directory row, so the desk and
+// every picker see one list. Status follows the Asana stage: set up = Waiting for
+// Account, still in process = In Progress, Not Approved = Prospect. Source 'Asana import'.
+function obAddDirectoryVendor_(ss, all, name, market, track, stage) {
+  var v = {};
+  v.vendor_id = vdNextId_(all);
+  v.dba_name = name;
+  v.status = stage === 'Not Approved' ? 'Prospect' : (stage === 'Complete' || stage === 'Ops Support') ? 'Waiting for Account' : 'In Progress';
+  v.region = market === 'nnv' ? 'Northern Nevada' : 'Las Vegas';
+  v.service_types = track === 'JS' ? VD_JANITORIAL : 'unclassified';
+  v.source = 'Asana import';
+  v.added_by = 'Asana import ' + obToday_();
+  v.updated = obToday_();
+  v.internal_notes = 'Added by the Asana onboarding import ' + obToday_() + ' (board stage: ' + stage + '). Contact details were not on the Asana task; fill them in.';
+  var outRow = VD_HEADERS.map(function (h) { return v[h] == null ? '' : String(v[h]); });
+  var sh = vdTabFor_(ss, v.region);
+  var at = vdNextRow_(sh);
+  sh.getRange(at, 1, 1, VD_HEADERS.length).setValues([outRow]);
+  v._sheet = sh; v._row = at; v._tab = sh.getName();
+  all.push(v);
+  return v;
+}
+
+// {which:'onboarding'|'bc'|'all', dry:true|false, add_missing:true|false, who}
 function obImportAsana_(data) {
+  var addMissing = data.add_missing === true || String(data.add_missing) === 'true' || String(data.add_missing) === '1';
   var pat = PropertiesService.getScriptProperties().getProperty('ASANA_PAT') || '';
   if (!pat) return vdOut_({ ok: false, error: 'The Asana token (ASANA_PAT) is not set on the script.' });
   var which = vdStr_(data.which) || 'all';
@@ -811,8 +835,14 @@ function obImportAsana_(data) {
       // checklist task). The richer one decides the stage of a row created this run.
       function rank(r) { var s = r.stage; return (r.t.num_subtasks > 0 ? 10 : 0) + (s === 'Complete' ? 5 : s === 'New' ? 1 : 4); }
       var createdRank = {};
+      br.added_to_directory = 0;
       rows.forEach(function (r) {
         var t = r.t;
+        if (!r.m.v && addMissing && !dry && !byGid[t.gid]) {
+          // a twin task may have created the row a moment ago: match again first
+          r.m = obMatchVendor_(all, r.name, '');
+          if (!r.m.v) { r.m = { v: obAddDirectoryVendor_(ss, all, r.name, b.market, r.track, r.stage), how: 'added', sure: true }; br.added_to_directory++; }
+        }
         var hit = byGid[t.gid] || (r.m.v ? byVendorTrack[r.m.v.vendor_id + '|' + r.track] : null);
         if (!r.m.v) br.unmatched.push({ name: r.name, section: r.sec, gid: t.gid, url: t.permalink_url });
         if (dry) { if (hit) br.updated++; else br.created++; return; }
