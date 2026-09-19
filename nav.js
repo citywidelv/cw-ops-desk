@@ -223,7 +223,7 @@ window.CW_NAV = {
      "sub": "Background Checks",
      "items": [
       {
-       "label": "Record Pass / Fail Results (Admin Hub)",
+       "label": "Record Clearance Results (Admin Hub)",
        "href": "https://citywidelv.github.io/cw-admin-hub/background-checks.html"
       },
       {

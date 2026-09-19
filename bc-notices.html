@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>Background Check Notices | CW Ops Hub</title>
 <!--
-  Background Check Notices. Build 2026-09-04e (wording v4: each name carries its result, check type, and whether the vendor submitted it; failed people optional).
+  Background Check Notices. Build 2026-09-19 (wording v5: cleared / did not clear / pending, never passed or failed, never a reason). 2026-09-04e (each name carries its result, check type, and whether the vendor submitted it; people who did not clear optional).
 
   Emails each checked janitorial vendor the list of cleaners City Wide has a
   background check on file for, with the Asana form link for anyone missing.
@@ -141,7 +141,7 @@ pre.prev{white-space:pre-wrap;background:#fafafa;border:1px solid #e6e6e6;border
 
   <div class="card">
     <h2>Email wording</h2>
-    <p class="sub">Placeholders: {dba} {contact} {names} {count} {link} {market} {doo} (the market Director of Operations). {names} lists each person with the check type and where it stands (passed, pending, on file, or submitted by the vendor), as recorded on the <a href="https://citywidelv.github.io/cw-admin-hub/background-checks.html">Admin Hub</a>. Gmail sends add a City Wide Compliance footer with the market office; mail app sends get your own signature. Edits are kept on this browser.</p>
+    <p class="sub">Placeholders: {dba} {contact} {names} {count} {link} {market} {doo} (the market Director of Operations). {names} lists each person with the check type and where it stands (cleared, pending, on file, or submitted by the vendor), as recorded on the <a href="https://citywidelv.github.io/cw-admin-hub/background-checks.html">Admin Hub</a>. Gmail sends add a City Wide Compliance footer with the market office; mail app sends get your own signature. Edits are kept on this browser.</p>
     <p class="sub"><label class="chk" style="margin:0;"><input type="checkbox" id="inclFail" checked> Include people who did not clear (shown as "Did not clear", no reason given)</label></p>
     <label>Subject</label>
     <input type="text" id="tSubject">
@@ -235,12 +235,12 @@ function boot(){
     VENDORS = (r.vendors||[]).filter(function(v){ return v.janitorial; });
     // Sep 4 2026: bc_all carries everyone on the tabs with result / type / source.
     // _people = everyone the email can mention; _names = those still counted as on
-    // file (anyone not failed), which drives the counts and the zero-on-file logic.
+    // file (anyone cleared or pending), which drives the counts and the zero-on-file logic.
     VENDORS.forEach(function(v){
-      var all = ((r.bc_all||{})[v.vendor_id]||[]).filter(function(p){ return p.result === 'Fail' || p.status !== 'Removed'; });
+      var all = ((r.bc_all||{})[v.vendor_id]||[]).filter(function(p){ return bcRes(p) === 'Not clear' || p.status !== 'Removed'; });
       if(!all.length) all = ((r.cleared||{})[v.vendor_id]||[]).map(function(p){ p.status = 'Cleared'; return p; });
       v._people = all;
-      v._names = all.filter(function(p){ return p.result !== 'Fail'; }).map(function(p){ return p.name; });
+      v._names = all.filter(function(p){ return bcRes(p) !== 'Not clear'; }).map(function(p){ return p.name; });
     });
     el('gate').style.display='none'; el('app').style.display='block';
 
@@ -342,25 +342,27 @@ function firstName(v){
   return c ? c.split(/\s+/)[0] : (v.dba_name||'').trim();
 }
 /* Per-person wording for the vendor. Result and source come from the Admin Hub.
-   Failed people are listed as "Did not clear" only when the checkbox is on, and
+   People who did not clear are listed as "Did not clear" only when the checkbox is on, and
    never with a reason. */
 function personLine(p){
   var type = p.check_type || 'Standard';
   var t = type === '10-Year' ? '10-Year check' : type === 'Standard + 10-Year' ? 'Standard and 10-Year checks' : 'Standard check';
-  if(p.result === 'Pass') return p.name + ': passed, ' + t + (p.source === 'Vendor submitted' ? ' submitted by you' : ' run by City Wide');
-  if(p.result === 'Fail') return p.name + ': did not clear';
+  if(bcRes(p) === 'Clear') return p.name + ': cleared, ' + t + (p.source === 'Vendor submitted' ? ' submitted by you' : ' run by City Wide');
+  if(bcRes(p) === 'Not clear') return p.name + ': did not clear';
   if(p.result === 'Pending') return p.name + ': pending, ' + t + ' in progress';
   return p.name + ': ' + t + ' on file' + (p.source === 'Vendor submitted' ? ', submitted by you' : '');
 }
 function personTag(p){
   var type = p.check_type === '10-Year' ? '10-Yr' : p.check_type === 'Standard + 10-Year' ? 'Std + 10-Yr' : 'Std';
-  var r = p.result === 'Pass' ? 'passed' : p.result === 'Fail' ? 'did not clear' : p.result === 'Pending' ? 'pending' : 'on file';
+  var r = bcRes(p) === 'Clear' ? 'cleared' : bcRes(p) === 'Not clear' ? 'did not clear' : bcRes(p) === 'Pending' ? 'pending' : 'on file';
   return type + ' ' + r + (p.source === 'Vendor submitted' ? ', vendor' : '');
 }
-function personCls(p){ return p.result === 'Pass' ? 'pass' : p.result === 'Fail' ? 'fail' : p.result === 'Pending' ? 'pend' : ''; }
+function personCls(p){ return bcRes(p) === 'Clear' ? 'pass' : bcRes(p) === 'Not clear' ? 'fail' : bcRes(p) === 'Pending' ? 'pend' : ''; }
+/* Sep 19 2026: results are Clear / Not clear / Pending. Older payloads may still say Pass / Fail. */
+function bcRes(p){ var v = (p && p.result) || ''; return v === 'Pass' ? 'Clear' : v === 'Fail' ? 'Not clear' : v; }
 function peopleForEmail(v){
   var incl = el('inclFail') && el('inclFail').checked;
-  return (v._people||[]).filter(function(p){ return p.result !== 'Fail' || incl; });
+  return (v._people||[]).filter(function(p){ return bcRes(p) !== 'Not clear' || incl; });
 }
 function fill(tpl, v){
   var mkKey = el('market').value, mk = MARKET_NAME[mkKey], doo = MARKET_DOO[mkKey] || MARKET_DOO.lv;

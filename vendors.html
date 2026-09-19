@@ -283,10 +283,10 @@ function clearedHtml(v){
       var ttl = (tabName[p.tab] || "") + (p.check_type ? " | " + p.check_type : "") + (p.result ? " | " + p.result : "");
       return '<span class="' + (p.tab === "nnv" ? "nnv" : "") + '" title="' + esc(ttl) + '">' + esc(p.name) +
         (p.ten_year ? '<i class="ten">10-Yr</i>' : "") + (p.source === "Vendor submitted" ? '<i class="sub" title="Check submitted by the vendor">vendor</i>' : "") +
-        (p.result === "Pass" ? '<i class="ok" title="Passed review">&#10003;</i>' : p.result === "Pending" ? '<i class="pend" title="Pending">pending</i>' : '<i class="rv" title="On file, result not yet recorded on the Admin Hub">?</i>') + "</span>";
+        ((p.result === "Clear" || p.result === "Pass") ? '<i class="ok" title="Cleared">&#10003;</i>' : p.result === "Pending" ? '<i class="pend" title="Pending">pending</i>' : '<i class="rv" title="On file, result not yet recorded on the Admin Hub">?</i>') + "</span>";
     }).join("") + "</div>"
     + '<div class="bcnote">' + list.length + (list.length === 1 ? " person" : " people")
-    + " with a completed background check on file. Names only. Pass or fail results are recorded on the "
+    + " with a completed background check on file. Names only. Clearance results are recorded on the "
     + '<a href="https://citywidelv.github.io/cw-admin-hub/background-checks.html">Admin Hub</a>; a failed person drops off this list. '
     + "10-Yr marks the Arroweye package, a check mark means passed, ? means on file but not yet reviewed, vendor means the vendor submitted the check.</div>";
 }

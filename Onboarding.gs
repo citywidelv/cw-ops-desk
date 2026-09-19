@@ -15,7 +15,7 @@
 //   BC Requests           every background check / name badge request from the
 //                         Vendor Hub (and the ones imported from Asana). The person
 //                         row on the "Background checks <market>" tabs stays the
-//                         source of truth for the Pass / Fail result.
+//                         source of truth for the Clear / Not clear result.
 //
 // Kinds (team passcode unless noted):
 //   ob_setup          create the tabs, seed the checklist (safe to re-run)
@@ -68,7 +68,29 @@ var OB_REQ_TYPES = [
   'First name badge',
   'Replacement name badge ($5)'
 ];
-var OB_REQ_STATUS = ['New', 'Sent', 'Review report', 'Passed', 'Failed', 'Badge only', 'Closed'];
+var OB_REQ_STATUS = ['New', 'Sent', 'Review report', 'Cleared', 'Not cleared', 'Badge only', 'Closed'];
+// Sep 19 2026: request statuses were Passed / Failed until the wording review. Legacy
+// rows are normalized on read; obReqStatus_ keeps both spellings working.
+function obReqStatus_(v) {
+  v = vdStr_(v);
+  if (v === 'Passed') return 'Cleared';
+  if (v === 'Failed') return 'Not cleared';
+  return v;
+}
+// One-time migration of stored request statuses. Run once from Runner.gs:
+// cwRunNow -> obMigrateReqStatus_(). Safe to re-run.
+function obMigrateReqStatus_() {
+  var ss = vdSS_(), sh = ss.getSheetByName(OB_REQ_TAB);
+  if (!sh || sh.getLastRow() < 2) return 0;
+  var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(vdStr_);
+  var col = head.indexOf('status') + 1;
+  if (!col) return 0;
+  var rng = sh.getRange(2, col, sh.getLastRow() - 1, 1), vals = rng.getValues(), n = 0;
+  vals.forEach(function (r) { var nv = obReqStatus_(r[0]); if (nv !== vdStr_(r[0])) { r[0] = nv; n++; } });
+  if (n) rng.setValues(vals);
+  try { sh.getRange(2, col, Math.max(sh.getMaxRows() - 1, 1), 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(OB_REQ_STATUS, true).build()); } catch (e) {}
+  return n;
+}
 var OB_BADGE = ['', 'Needed', 'Ordered', 'Delivered'];
 
 var OB_MARKETS = {
@@ -311,14 +333,14 @@ function obList_(data) {
       var name = [vdStr_(r.first_name), vdStr_(r.last_name)].filter(function (x) { return x; }).join(' ');
       if (!name) return;
       crew.push({ market: b.key, row: r._row, vendor_id: r.vendor_id || '', vendor: r.vendor || r.roster_company_as_typed || '',
-                  first_name: r.first_name || '', last_name: r.last_name || '', status: r.status || '', result: r.result || '',
+                  first_name: r.first_name || '', last_name: r.last_name || '', status: r.status || '', result: vdBcRes_(r.result),
                   result_date: r.result_date || '', check_type: r.check_type || '', source: r.source || '',
                   most_recent_check: r.most_recent_check || '', notes: r.notes || '', reviewed_by: r.reviewed_by || '' });
     });
   });
 
   var reqSh = obTab_(ss, OB_REQ_TAB, OB_REQ_HEADERS, '#2F6FD6');
-  var reqs = obRows_(reqSh).rows.map(function (r) { delete r._row; return r; });
+  var reqs = obRows_(reqSh).rows.map(function (r) { delete r._row; r.status = obReqStatus_(r.status); return r; });
 
   var logSh = ss.getSheetByName(OB_LOG_TAB);
   var log = [];
@@ -727,7 +749,7 @@ function obBcRequest_(data) {
       bcRows.push({ market: mk.key, vendor_id: m.v ? m.v.vendor_id : '', vendor: m.v ? m.v.dba_name : company,
         roster_company_as_typed: m.v ? '' : company, first_name: first, last_name: last, status: 'Pending', check_type: 'Standard',
         source: hasReport ? 'Vendor submitted' : 'City Wide',
-        notes: (hasReport ? 'Vendor-run report attached on the Vendor Hub ' + obToday_() + ' (' + rid + '). Review it, save it to the vendor folder, then Pass or Fail. ' + p._report.link
+        notes: (hasReport ? 'Vendor-run report attached on the Vendor Hub ' + obToday_() + ' (' + rid + '). Review it, save it to the vendor folder, then mark Clear or Not clear. ' + p._report.link
                           : 'Requested on the Vendor Hub ' + obToday_() + ' (' + rid + ').') });
     }
   });
@@ -775,6 +797,7 @@ function obBcUpdate_(data) {
   ['status', 'sent', 'badge', 'notes', 'vendor_id'].forEach(function (f) {
     if (data[f] === undefined) return;
     var v = vdStr_(data[f]);
+    if (f === 'status') v = obReqStatus_(v);
     if (f === 'status' && OB_REQ_STATUS.indexOf(v) < 0) throw new Error('Bad status');
     if (f === 'badge' && OB_BADGE.indexOf(v) < 0) throw new Error('Bad badge state');
     if (row[f] === v) return;
@@ -1034,7 +1057,7 @@ function obImportAsana_(data) {
       var sec = (t.memberships || []).map(function (m) { return m.section && m.section.name; }).filter(Boolean)[0] || '';
       var aStatus = vdStr_(cf['Background Check Status']);
       var status = rtype !== OB_REQ_TYPES[0] ? 'Badge only'
-        : /passed/i.test(aStatus) ? 'Passed' : /failed/i.test(aStatus) ? 'Failed'
+        : /passed|clear(ed)?$/i.test(aStatus) ? 'Cleared' : /failed|not clear/i.test(aStatus) ? 'Not cleared'
         : t.completed ? 'Closed' : (/sent|progress/i.test(sec) || /sent|progress/i.test(aStatus)) ? 'Sent' : 'New';
       var m = obMatchVendor_(all, company, '');
       var k = obNorm_(company) + '|' + obNorm_(legal) + '|' + rtype;
@@ -1063,7 +1086,7 @@ function obImportAsana_(data) {
       byGid2[t.gid] = req; if (!seen[k]) seen[k] = rid; if (dupe) bcr.dupes++;
       bcr.created++;
       if (rtype === OB_REQ_TYPES[0] && first && !dupe) {
-        var result = status === 'Passed' ? 'Pass' : status === 'Failed' ? 'Fail' : '';
+        var result = status === 'Cleared' ? 'Clear' : status === 'Not cleared' ? 'Not clear' : '';
         var reqDay = (t.created_at || '').slice(0, 10) || obToday_();
         var prow = { market: mk, vendor_id: m.v ? m.v.vendor_id : '', vendor: m.v ? m.v.dba_name : company,
           roster_company_as_typed: m.v ? '' : company, first_name: first, last_name: last, check_type: 'Standard', source: 'City Wide',

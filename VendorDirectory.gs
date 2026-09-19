@@ -67,7 +67,9 @@ var VD_BC_HEADERS = [
   'ten_year', 'first_check', 'most_recent_check', 'vf_file_no',
   'roster_company_as_typed', 'notes', 'added',
   // Sep 4 2026: Admin Hub review columns. result is the Business Operations
-  // Manager's call (Pass / Fail / Pending); status keeps driving the Ops Hub list.
+  // Manager's call. Sep 19 2026: Clear / Not clear / Pending (the Verified First
+  // terms; never "failed"). Legacy Pass / Fail rows are normalized by vdBcRes_.
+  // status keeps driving the Ops Hub list.
   'result', 'result_date', 'reviewed_by', 'market',
   // Sep 4 2026: source = who ran the check. 'City Wide' (Verified First, ordered by
   // City Wide) or 'Vendor submitted' (the vendor uploaded a passing check they ran).
@@ -75,7 +77,29 @@ var VD_BC_HEADERS = [
 ];
 var VD_BC_SOURCES = ['City Wide', 'Vendor submitted'];
 var VD_BC_STATUS = ['Cleared', 'Pending', 'Removed'];
-var VD_BC_RESULT = ['Pass', 'Fail', 'Pending'];
+var VD_BC_RESULT = ['Clear', 'Not clear', 'Pending'];
+// Sep 19 2026: every read and write of result goes through this. Pass / Fail were the
+// original values; "Clear" / "Not clear" is City Wide's access decision, not a verdict on
+// the person, and no reason is ever stored. Old rows keep working until migrated.
+function vdBcRes_(v) {
+  v = vdStr_(v);
+  if (v === 'Pass' || v === 'Passed' || v === 'Cleared') return 'Clear';
+  if (v === 'Fail' || v === 'Failed' || v === 'Not cleared' || v === 'Did not clear') return 'Not clear';
+  return v;
+}
+// One-time migration of the stored values on both tabs. Run once from Runner.gs:
+// cwRunNow -> vdBcMigrateResults_(). Safe to re-run; it only touches Pass / Fail cells.
+function vdBcMigrateResults_() {
+  var ss = vdSS_(), col = VD_BC_HEADERS.indexOf('result') + 1, n = 0;
+  VD_BC_TABS.forEach(function (b) {
+    var sh = ss.getSheetByName(b.name);
+    if (!sh || sh.getLastRow() < 2) return;
+    var rng = sh.getRange(2, col, sh.getLastRow() - 1, 1), vals = rng.getValues(), hit = false;
+    vals.forEach(function (r) { var nv = vdBcRes_(r[0]); if (nv !== vdStr_(r[0])) { r[0] = nv; hit = true; n++; } });
+    if (hit) rng.setValues(vals);
+  });
+  return n;
+}
 var VD_BC_TYPES = ['Standard', '10-Year', 'Standard + 10-Year'];
 // Sep 4 2026: the Admin Hub has its own passcode (script property BOM_PASSCODE, set
 // with vd_bom_setpass using the team passcode). It unlocks only the kinds below.
@@ -530,13 +554,13 @@ function vdCleared_(ss, vendors) {
       n++;
       var st = vdStr_(r.status);
       if (st && st !== 'Cleared') return;
-      if (vdStr_(r.result) === 'Fail') return;   // a failed review never reaches the page
+      if (vdBcRes_(r.result) === 'Not clear') return;   // a person who was not cleared never reaches the page
       var id = vdStr_(r.vendor_id);
       if (!id) id = byName[vdStr_(r.vendor).toLowerCase()] || '';
       if (!id) { unmatched.push({ vendor: vdStr_(r.vendor), name: name, tab: b.name }); return; }
       out[id] = out[id] || [];
       out[id].push({ name: name, tab: b.key, last: vdStr_(r.last_name), first: vdStr_(r.first_name),
-                     check_type: vdStr_(r.check_type), result: vdStr_(r.result), ten_year: vdYes_(r.ten_year),
+                     check_type: vdStr_(r.check_type), result: vdBcRes_(r.result), ten_year: vdYes_(r.ten_year),
                      source: vdStr_(r.source) || 'City Wide' });
     });
   });
@@ -639,8 +663,8 @@ function vdList_(data) {
   vendors.forEach(function (v) { if (cleared.byId[v.vendor_id]) clearedOut[v.vendor_id] = cleared.byId[v.vendor_id]; });
 
   // Sep 4 2026: bc_all is the full picture per vendor for the notices page
-  // (bc-notices.html): everyone on the tabs including Fail and Pending, so the
-  // vendor email can say passed / failed / pending / vendor submitted per name.
+  // (bc-notices.html): everyone on the tabs including Not clear and Pending, so the
+  // vendor email can say cleared / did not clear / pending / vendor submitted per name.
   // Still names + result only, never file numbers. Hidden vendors excluded.
   var bcAll = {};
   var vis = {};
@@ -660,7 +684,7 @@ function vdList_(data) {
       var id = vdStr_(r.vendor_id) || byNameAll[vdStr_(r.vendor).toLowerCase()] || '';
       if (!id || !vis[id]) return;
       bcAll[id] = bcAll[id] || [];
-      bcAll[id].push({ name: name, tab: b.key, status: vdStr_(r.status), result: vdStr_(r.result),
+      bcAll[id].push({ name: name, tab: b.key, status: vdStr_(r.status), result: vdBcRes_(r.result),
                        check_type: vdStr_(r.check_type) || 'Standard', ten_year: vdYes_(r.ten_year),
                        source: vdStr_(r.source) || 'City Wide', result_date: vdStr_(r.result_date),
                        last: vdStr_(r.last_name), first: vdStr_(r.first_name) });
@@ -1073,10 +1097,10 @@ function vdBcSeed_(data) {
 
 // Sep 4 2026. The Business Operations Manager runs and reviews every background
 // check. The Admin Hub (citywidelv.github.io/cw-admin-hub/) records the outcome per
-// person: result Pass / Fail / Pending plus the check type (Standard, or the
+// person: result Clear / Not clear / Pending plus the check type (Standard, or the
 // 10-Year package Arroweye requires). status stays the switch the Ops Hub reads:
-// Pass -> Cleared, Fail -> Removed, Pending -> Pending, so the vendor directory
-// never shows a failed person and nothing else on the platform had to change.
+// Clear -> Cleared, Not clear -> Removed, Pending -> Pending, so the vendor directory
+// never shows a person who was not cleared and nothing else on the platform had to change.
 
 // One-time, or whenever TJ rotates it: {kind:'vd_bom_setpass', passcode:TEAM, new_pass}.
 // Team passcode only; the BOM passcode itself never appears in code or a repo.
@@ -1090,7 +1114,7 @@ function vdBomSetPass_(data) {
 
 // Every row on both background check tabs, with the sheet row number so the
 // page can patch a person in place. Unlike vdCleared_ this includes Pending,
-// Removed and Fail rows: the BOM needs the whole history, the Ops Hub does not.
+// Removed and Not clear rows: the BOM needs the whole history, the Ops Hub does not.
 function vdBcRows_(data) {
   var ss = vdSS_();
   var vendors = vdAllRows_(ss).filter(function (r) { return r.dba_name; });
@@ -1108,6 +1132,7 @@ function vdBcRows_(data) {
       if (!vdStr_(r.last_name) && !vdStr_(r.first_name)) return;
       var o = { row: r._row, market: b.key };
       VD_BC_HEADERS.forEach(function (h) { o[h] = vdStr_(r[h]); });
+      o.result = vdBcRes_(o.result);
       o.market = b.key;
       if (!o.vendor_id) o.vendor_id = byName[o.vendor.toLowerCase()] || '';
       o.matched = !!(o.vendor_id && byId[o.vendor_id]);
@@ -1162,8 +1187,9 @@ function vdBcUpsert_(data) {
       VD_BC_HEADERS.forEach(function (h) { if (r[h] !== undefined && h !== 'added') p[h] = vdStr_(r[h]); });
       if (p.vendor_id && byId[p.vendor_id]) p.vendor = byId[p.vendor_id].dba_name;
       if (p.result !== undefined) {
+        p.result = vdBcRes_(p.result);
         if (p.result && VD_BC_RESULT.indexOf(p.result) < 0) { errors.push('Bad result for ' + r.first_name + ' ' + r.last_name); return; }
-        p.status = p.result === 'Pass' ? 'Cleared' : p.result === 'Fail' ? 'Removed' : p.result === 'Pending' ? 'Pending' : (p.status || 'Cleared');
+        p.status = p.result === 'Clear' ? 'Cleared' : p.result === 'Not clear' ? 'Removed' : p.result === 'Pending' ? 'Pending' : (p.status || 'Cleared');
         p.result_date = p.result ? today : '';
         p.reviewed_by = p.result ? who : '';
       }
