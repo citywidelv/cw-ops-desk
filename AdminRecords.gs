@@ -235,7 +235,14 @@ function adrLabel_(surf, col) {
 }
 // The editor type for a column: declared wins, then options, then the cell itself.
 function adrTypeOf_(surf, col, v) {
-  if (surf.types && surf.types[col]) return surf.types[col];
+  if (surf.types && surf.types[col]) {
+    var t = surf.types[col];
+    // A declared date column that holds free text ("Mid October", "To be scheduled") is
+    // edited as text. A date picker would show it blank and a save would wipe it.
+    if ((t === 'date' || t === 'datetime') && !(v instanceof Date) && adrStr_(v).trim() !== '' && !/^\d{4}-\d{2}-\d{2}/.test(adrStr_(v).trim())) return 'text';
+    if (t === 'number' && adrStr_(v).trim() !== '' && isNaN(Number(adrStr_(v).replace(/[$,\s]/g, '')))) return 'text';
+    return t;
+  }
   if (surf.options && surf.options[col]) return 'select';
   if (/^(active|hide|hidden|live|star|filled)$/i.test(col)) return 'bool';
   if (v instanceof Date) return Utilities.formatDate(v, ADR_TZ, 'HH:mm') === '00:00' ? 'date' : 'datetime';
