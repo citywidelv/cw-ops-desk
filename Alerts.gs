@@ -37,8 +37,8 @@ function alDispatch(d) {
   if (String(d.passcode || '') !== PASSCODE) return _json({ ok: false, error: 'Wrong passcode.' });
   var kind = String(d.kind || '');
   try {
-    if (kind === 'alerts_list') return _json(alList_(d));
-    if (kind === 'alerts_set') return _json(alSet_(d));
+    if (kind === 'alerts_list') return _json(alListCached_(d));
+    if (kind === 'alerts_set') { var r = alSet_(d); alCacheDrop_(); return _json(r); }
   } catch (e) {
     return _json({ ok: false, error: String(e && e.message || e) });
   }
@@ -355,6 +355,21 @@ function alNight_() {
 }
 
 // ------------------------------------------------------------ handlers -----
+// Sep 18 2026: the full list takes 10s to build (five books, whole tabs). Cache the built
+// payload for AL_CACHE_SECS so every hub load in that window answers in well under a
+// second. alerts_set drops the cache, and the hub's Refresh button passes fresh:1 to skip it.
+var AL_CACHE_KEY = 'al_list_v1';
+var AL_CACHE_SECS = 120;
+function alListCached_(d) {
+  var cache = CacheService.getScriptCache();
+  if (!d.fresh) {
+    try { var hit = cache.get(AL_CACHE_KEY); if (hit) { var o = JSON.parse(hit); o.cached = true; return o; } } catch (e) {}
+  }
+  var out = alList_(d);
+  try { var s = JSON.stringify(out); if (s.length < 95000) cache.put(AL_CACHE_KEY, s, AL_CACHE_SECS); } catch (e) {}
+  return out;
+}
+function alCacheDrop_() { try { CacheService.getScriptCache().remove(AL_CACHE_KEY); } catch (e) {} }
 function alList_(d) {
   var sh = alSheet_();
   var map = alStatusMap_(sh);

@@ -1173,7 +1173,7 @@ function alLoad(manual){
 if(AL.busy) return;
 AL.busy = true;
 if(manual) alSay("Refreshing...");
-alPost({ kind:"alerts_list" }).then(function(r){
+alPost({ kind:"alerts_list", fresh: manual ? 1 : 0 }).then(function(r){
 AL.busy = false;
 if(!r || !r.ok){
 if(r && r.error && CWAuth.isPassError(r.error)){ CWAuth.locked("ops", r.error); return; }
