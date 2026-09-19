@@ -27,6 +27,8 @@
 //   ob_bc_update      request-level fields: sent date, badge, notes, status
 //   ob_import_asana   pull the five Asana boards through the ASANA_PAT property
 //   ob_bc_request     NO PASSCODE. Vendor Hub background-check.html submits here.
+//   ob_vendor_suggest NO PASSCODE. Company name picker on that page: at most three
+//                     matches, and only once most of the name is typed (house rule).
 //   vd_eval           NO PASSCODE. Vendor Hub vendor-evaluation.html submits here.
 //
 // Hooks other modules call (all guarded with typeof so nothing breaks if this file
@@ -53,7 +55,9 @@ var OB_REQ_HEADERS = [
   'req_id', 'received', 'market', 'company', 'vendor_id', 'request_type', 'legal_name',
   'first_name', 'last_name', 'preferred_name', 'email', 'mobile', 'notify', 'client_account',
   'submitted_by', 'submitter_email', 'source', 'asana_gid', 'asana_done', 'status', 'sent',
-  'badge', 'notes', 'updated', 'updated_by', 'dupe_of'
+  'badge', 'notes', 'updated', 'updated_by', 'dupe_of',
+  // Sep 19 2026: a report the vendor ran themselves, stored in Drive (Uploads.gs folder)
+  'report_link', 'report_name', 'matched_how'
 ];
 
 var OB_STAGES = ['Invited', 'New', 'In Process', 'Complete', 'Not Approved', 'Ops Support'];
@@ -64,7 +68,7 @@ var OB_REQ_TYPES = [
   'First name badge',
   'Replacement name badge ($5)'
 ];
-var OB_REQ_STATUS = ['New', 'Sent', 'Passed', 'Failed', 'Badge only', 'Closed'];
+var OB_REQ_STATUS = ['New', 'Sent', 'Review report', 'Passed', 'Failed', 'Badge only', 'Closed'];
 var OB_BADGE = ['', 'Needed', 'Ordered', 'Delivered'];
 
 var OB_MARKETS = {
@@ -122,6 +126,7 @@ function obDispatch(data) {
   try {
     if (kind === 'vd_eval') return obVendorEval_(data);
     if (kind === 'ob_bc_request') return obBcRequest_(data);
+    if (kind === 'ob_vendor_suggest') return obVendorSuggest_(data);
     if ((data.passcode || '') === '' || (data.passcode || '') !== vdPass_()) {
       return vdOut_({ ok: false, error: 'Wrong passcode.' });
     }
@@ -600,6 +605,53 @@ function obVendorEval_(data) {
   return vdOut_({ ok: true, vendor_id: vid, action: action });
 }
 
+// ------------------------------------------------------------ suggest -----
+
+// The company picker on the Vendor Hub background check page. Vendors must never be
+// able to browse the directory, so: region required, at least five letters typed,
+// only names the typed text covers 60% of, at most three, and only name plus the
+// contact's name (so Bright Cleaning, Bright View and Go-Bright are told apart).
+function obVendorSuggest_(data) {
+  var mk = obMarketKey_(data.market);
+  var q = obNorm_(data.q);
+  if (!mk || q.length < 5) return vdOut_({ ok: true, matches: [] });
+  var all = vdAllRows_(vdSS_()).filter(function (r) { return r.dba_name && !vdTrue_(r.hide) && r.status !== 'Do Not Contact'; });
+  var region = mk === 'nnv' ? 'Northern Nevada' : 'Las Vegas';
+  var out = [];
+  all.forEach(function (r) {
+    var reg = vdRegion_(r.region);
+    if (reg !== region && reg !== 'Both') return;
+    var names = [obNorm_(r.dba_name), obNorm_(r.legal_name || '')].filter(Boolean);
+    var best = 0;
+    names.forEach(function (n) {
+      if (!n) return;
+      if (n === q) best = Math.max(best, 3);
+      else if (n.indexOf(q) === 0 && q.length >= 0.6 * n.length) best = Math.max(best, 2);
+      else if (n.indexOf(q) >= 0 && q.length >= 0.6 * n.length) best = Math.max(best, 1);
+    });
+    if (best) out.push({ score: best, vendor_id: r.vendor_id, name: r.dba_name, contact: vdStr_(r.contact_name), region: reg });
+  });
+  out.sort(function (a, b) { return b.score - a.score || a.name.localeCompare(b.name); });
+  return vdOut_({ ok: true, matches: out.slice(0, 3).map(function (m) { return { vendor_id: m.vendor_id, name: m.name, contact: m.contact }; }) });
+}
+
+// Store a vendor-run report in the compliance uploads folder (Uploads.gs owns it).
+// Returns { link, name } or throws with a plain message.
+function obStoreReport_(rid, company, person, f) {
+  var ct = String(f.type || 'application/pdf');
+  var okTypes = ['application/pdf', 'image/png', 'image/jpeg'];
+  var name = String(f.name || 'report').replace(/[^\w .()-]+/g, '_').slice(0, 120) || 'report';
+  if (okTypes.indexOf(ct) < 0) throw new Error('"' + name + '" is not a PDF or a photo (JPG, PNG).');
+  var blob;
+  try { blob = Utilities.newBlob(Utilities.base64Decode(String(f.data || '')), ct, name); } catch (e) { throw new Error('Could not read "' + name + '". Attach it again.'); }
+  var n = blob.getBytes().length;
+  if (!n) throw new Error('"' + name + '" came through empty. Attach it again.');
+  if (n > 10 * 1024 * 1024) throw new Error('"' + name + '" is over 10 MB. Compress it and try again.');
+  var folder = (typeof docFolder_ === 'function') ? docFolder_() : DriveApp.getRootFolder();
+  var stored = folder.createFile(blob.copyBlob().setName(rid + ' - ' + String(company).replace(/[^\w .()-]+/g, '_').slice(0, 60) + ' - ' + person + ' - ' + name));
+  return { link: stored.getUrl(), name: name, blob: blob };
+}
+
 // ------------------------------------------------------------ BC requests -
 
 // Vendor Hub background-check.html. No passcode. Payload:
@@ -627,28 +679,56 @@ function obBcRequest_(data) {
 
   var ss = vdSS_();
   var all = vdAllRows_(ss).filter(function (r) { return r.dba_name; });
-  var m = obMatchVendor_(all, company, subMail);
+  // The vendor picked their company from the suggestions: use that record, as long as the
+  // typed name still resembles it (a stray id cannot attach a request to someone else).
+  var m = { v: null, how: '' };
+  var pickedId = vdStr_(data.vendor_id);
+  if (pickedId) {
+    var picked = all.filter(function (r) { return r.vendor_id === pickedId; })[0];
+    if (picked) {
+      var nq = obNorm_(company), nn = obNorm_(picked.dba_name), nl = obNorm_(picked.legal_name || '');
+      if (nq === nn || nq === nl || (nq.length >= 5 && (nn.indexOf(nq) >= 0 || nq.indexOf(nn) >= 0 || (nl && nl.indexOf(nq) >= 0)))) m = { v: picked, how: 'picked' };
+    }
+  }
+  if (!m.v) m = obMatchVendor_(all, company, subMail);
   var reqSh = obTab_(ss, OB_REQ_TAB, OB_REQ_HEADERS, '#2F6FD6');
   var head = obRows_(reqSh).head;
-  var ids = [], bcRows = [];
+  var ids = [], bcRows = [], attachments = [], reports = [];
+  // Store any vendor-run reports before writing rows, so a bad file stops the whole submission cleanly.
+  for (var pi = 0; pi < people.length; pi++) {
+    var pp = people[pi] || {};
+    if (pp.report && pp.report.data) {
+      var ridR = obId_('BC');
+      pp._rid = ridR;
+      var who2 = [vdStr_(pp.first), vdStr_(pp.last)].filter(Boolean).join(' ');
+      var st;
+      try { st = obStoreReport_(ridR, company, who2, pp.report); }
+      catch (se) { return vdOut_({ ok: false, error: 'Person ' + (pi + 1) + ': ' + String(se.message || se) + ' Or email it to ' + mk.compliance + '.' }); }
+      pp._report = st; attachments.push(st.blob); reports.push(who2 + ': ' + st.link);
+    }
+  }
   people.forEach(function (p) {
     var first = vdStr_(p.first).slice(0, 80), middle = vdStr_(p.middle).slice(0, 80), last = vdStr_(p.last).slice(0, 80);
     var legal = [first, middle, last].filter(function (x) { return x; }).join(' ');
-    var rid = obId_('BC');
+    var rid = p._rid || obId_('BC');
+    var hasReport = !!p._report;
     var req = {
       req_id: rid, received: obNow_(), market: mk.key, company: company, vendor_id: m.v ? m.v.vendor_id : '',
       request_type: rtype, legal_name: legal, first_name: first, last_name: last, preferred_name: vdStr_(p.preferred).slice(0, 80),
       email: vdStr_(p.email).slice(0, 160), mobile: vdStr_(p.mobile).slice(0, 40), notify: vdStr_(p.notify).slice(0, 160),
       client_account: vdStr_(p.client_account).slice(0, 160), submitted_by: subBy, submitter_email: subMail,
-      source: 'Vendor Hub', asana_gid: '', asana_done: '', status: needsCheck ? 'New' : 'Badge only', sent: '',
-      badge: 'Needed', notes: '', updated: obNow_(), updated_by: 'Vendor Hub', dupe_of: ''
+      source: 'Vendor Hub', asana_gid: '', asana_done: '', status: hasReport ? 'Review report' : needsCheck ? 'New' : 'Badge only', sent: '',
+      badge: 'Needed', notes: hasReport ? 'Vendor ran the check on their own platform and attached the report.' : '', updated: obNow_(), updated_by: 'Vendor Hub', dupe_of: '',
+      report_link: hasReport ? p._report.link : '', report_name: hasReport ? p._report.name : '', matched_how: m.how || ''
     };
     obAppend_(reqSh, head, req);
     ids.push(rid);
-    if (needsCheck) {
+    if (needsCheck || hasReport) {
       bcRows.push({ market: mk.key, vendor_id: m.v ? m.v.vendor_id : '', vendor: m.v ? m.v.dba_name : company,
         roster_company_as_typed: m.v ? '' : company, first_name: first, last_name: last, status: 'Pending', check_type: 'Standard',
-        source: 'City Wide', notes: 'Requested on the Vendor Hub ' + obToday_() + ' (' + rid + ').' });
+        source: hasReport ? 'Vendor submitted' : 'City Wide',
+        notes: (hasReport ? 'Vendor-run report attached on the Vendor Hub ' + obToday_() + ' (' + rid + '). Review it, save it to the vendor folder, then Pass or Fail. ' + p._report.link
+                          : 'Requested on the Vendor Hub ' + obToday_() + ' (' + rid + ').') });
     }
   });
   // The person rows the review desk already works from. Pending until the BOM records
@@ -658,27 +738,30 @@ function obBcRequest_(data) {
     try { upsert = JSON.parse(vdBcUpsert_({ rows: bcRows, reviewed_by: 'Vendor Hub' }).getContent()); } catch (ue) { upsert = { error: String(ue) }; }
   }
   // Tick the vendor's onboarding item.
-  if (m.v) {
+  if (m.v && (needsCheck || reports.length)) {
     try {
       var found = obEnsure_(ss, m.v, 'JS', 'Background check request', 'Vendor Hub');
-      obFeedDoc_(ss, found, 'bc_request', 'received', people.length + ' person' + (people.length === 1 ? '' : 's') + ' requested ' + obToday_(), 'Vendor Hub');
+      obFeedDoc_(ss, found, 'bc_request', 'received', people.length + ' person' + (people.length === 1 ? '' : 's') + (reports.length ? ' with a vendor-run report' : ' requested') + ' ' + obToday_(), 'Vendor Hub');
     } catch (oe) {}
-  } else {
+  } else if (!m.v) {
     obLog_(ss, { vendor: company, who: 'Vendor Hub', action: 'bc request unmatched', item: ids.join(','), note: 'Company not on the directory. Attach it on the desk.' });
   }
   // Team notice.
   try {
-    var lines = [(needsCheck ? 'Background check request' : 'Name badge request') + ' from ' + company + (m.v ? ' (' + m.v.vendor_id + ')' : ' (NOT on the vendor directory yet)'), '',
+    var lines = [(reports.length ? 'Vendor-run background report to review' : needsCheck ? 'Background check request' : 'Name badge request') + ' from ' + company + (m.v ? ' (' + m.v.vendor_id + (m.how === 'picked' ? ', picked by the vendor' : ', matched by name') + ')' : ' (NOT on the vendor directory yet)'), '',
       'Request: ' + rtype, 'Region: ' + mk.name, 'Submitted by: ' + subBy + ', ' + subMail, ''];
+    if (reports.length) lines.push('Reports (also attached): ' + reports.join('; '), '');
     people.forEach(function (p, i) {
       lines.push((i + 1) + '. ' + [vdStr_(p.first), vdStr_(p.middle), vdStr_(p.last)].filter(function (x) { return x; }).join(' ') +
         (vdStr_(p.preferred) ? ' (goes by ' + vdStr_(p.preferred) + ')' : '') + (vdStr_(p.email) ? ', ' + vdStr_(p.email) : '') +
         (vdStr_(p.mobile) ? ', ' + vdStr_(p.mobile) : '') + (vdStr_(p.client_account) ? ', for ' + vdStr_(p.client_account) : ''));
     });
     lines.push('', 'Open the onboarding desk: ' + OB_DESK_URL + '#bc');
-    cwMail_('ob_bc_request', { to: mk.compliance, name: mk.sender, replyTo: subMail, subject: (needsCheck ? 'Background check: ' : 'Name badge: ') + company + ' (' + people.length + ')', body: lines.join('\n') });
+    var mail = { to: mk.compliance, name: mk.sender, replyTo: subMail, subject: (reports.length ? 'Review a vendor-run background report: ' : needsCheck ? 'Background check: ' : 'Name badge: ') + company + ' (' + people.length + ')', body: lines.join('\n') };
+    if (attachments.length) mail.attachments = attachments;
+    cwMail_('ob_bc_request', mail);
   } catch (me) {}
-  return vdOut_({ ok: true, ids: ids, matched: !!m.v, upsert: upsert });
+  return vdOut_({ ok: true, ids: ids, matched: !!m.v, how: m.how || '', reports: reports.length, upsert: upsert });
 }
 
 // Admin: {req_id, status?, sent?, badge?, notes?, vendor_id?, who}
