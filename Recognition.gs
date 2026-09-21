@@ -416,15 +416,20 @@ function recCouponFind_(sh, code) {
   }
   return null;
 }
+// vendor_id -> {email, contact}. Reading the whole directory costs 5+ seconds, so the map is
+// cached for 10 minutes; a vendor email edited in the directory shows here within that window.
 function recDirectoryContacts_() {
+  var cache = null, KEY = 'rec_contacts_v1';
+  try { cache = CacheService.getScriptCache(); var hit = cache.get(KEY); if (hit) return JSON.parse(hit); } catch (e) {}
   var idx = {};
   try {
     if (typeof vdSS_ !== 'function' || typeof vdAllRows_ !== 'function') return idx;
     vdAllRows_(vdSS_()).forEach(function (r) {
       if (!r.vendor_id) return;
-      idx[String(r.vendor_id)] = { email: recStr_(r.email), contact: recStr_(r.contact_name), region: recStr_(r.region) };
+      idx[String(r.vendor_id)] = { email: recStr_(r.email), contact: recStr_(r.contact_name) };
     });
   } catch (e) {}
+  try { var s = JSON.stringify(idx); if (cache && s.length < 95000) cache.put(KEY, s, 600); } catch (e) {}
   return idx;
 }
 function recEmailOk_(s) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(recStr_(s)); }
