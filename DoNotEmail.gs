@@ -283,7 +283,7 @@ function dneAlert_(live, by, reason) {
     try {
       var opts = { to: to, name: 'City Wide Ops Hub',
         subject: 'Do not email. ' + names.length + ' working vendor' + (names.length === 1 ? '' : 's') + ' in ' + m, body: body };
-      if (typeof cwMail_ === 'function') cwMail_('dne_active', opts); else MailApp.sendEmail(opts);
+      if (typeof cwMail_ === 'function') cwMail_('dne_active', opts); else cwSend_(opts);
     } catch (e) {}
   });
 }

@@ -974,7 +974,7 @@ function vdBcSend_(data) {
     else if (!subject || !body.trim()) { out.status = 'skipped'; out.error = 'Empty subject or body'; }
     else {
       try {
-        MailApp.sendEmail({
+        cwSend_({
           to: test ? testTo : to,
           replyTo: mk.compliance,
           name: VD_BC_SENDER,
@@ -1768,7 +1768,7 @@ function vdInvite_(data) {
   var subject = (test ? 'TEST | ' : '') + vdInvFill_(em.subject, ctx);
   var sent = false, sendError = '';
   try {
-    MailApp.sendEmail({
+    cwSend_({
       to: to,
       replyTo: fsm && fsm.email ? fsm.email : mk.reply,
       name: mk.sender,

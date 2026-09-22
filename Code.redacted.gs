@@ -2580,6 +2580,46 @@ function cwSendCfg_() {
 }
 function cwMode_(tag) { var cfg = cwSendCfg_(); if (cfg[tag]) return cfg[tag]; return CW_DEFAULT_MODE[tag] || 'send'; }
 
+// Sep 22 2026: one send path for the whole project. Script property MAIL_FROM = a
+// verified send-as alias on this mailbox (citywideoflasvegas@gmail.com) makes every
+// email go out From that address through GmailApp. Mail sent as citywidenv@cwfs-nv.com
+// was not reaching gocitywide.com (no bounce, just gone). MAIL_VIA=mailapp or a blank
+// MAIL_FROM falls back to plain MailApp. Takes the MailApp object form or (to, subject, body, options).
+var CW_ALIASES_ = null;
+function cwSend_(a, b, c, d) {
+  var obj = a && typeof a === 'object';
+  var o = obj ? a : (d || {});
+  var to = obj ? a.to : a, subject = obj ? a.subject : b, body = obj ? a.body : c;
+  var from = '', via = '';
+  try {
+    var props = PropertiesService.getScriptProperties();
+    from = String(props.getProperty('MAIL_FROM') || '').trim();
+    via = String(props.getProperty('MAIL_VIA') || '').toLowerCase();
+  } catch (e) {}
+  if (via === 'mailapp' || !from) return obj ? MailApp.sendEmail(a) : MailApp.sendEmail(to, subject, body, o);
+  var opt = {};
+  ['htmlBody', 'name', 'cc', 'bcc', 'replyTo', 'attachments', 'inlineImages', 'noReply'].forEach(function (k) {
+    if (o[k] !== undefined && o[k] !== null && o[k] !== '') opt[k] = o[k];
+  });
+  try {
+    if (CW_ALIASES_ === null) CW_ALIASES_ = GmailApp.getAliases();
+    if (CW_ALIASES_.indexOf(from) >= 0) opt.from = from;
+  } catch (e2) {}
+  return GmailApp.sendEmail(String(to || ''), String(subject || ''), String(body || ''), opt);
+}
+
+// Run from the editor once: grants the Gmail permission and sends one test to TJ the same way every notice goes out.
+function cwSendTest() {
+  var stamp = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'h:mm a');
+  var from = '';
+  try { from = String(PropertiesService.getScriptProperties().getProperty('MAIL_FROM') || ''); } catch (e) {}
+  cwSend_({ to: 'tjroberts@gocitywide.com', name: 'City Wide Ops Digest', replyTo: 'lvservicecall@gocitywide.com',
+    subject: 'CW Solicitations delivery test ' + stamp,
+    htmlBody: '<p>Delivery test from CW Solicitations at ' + stamp + ', sent From ' + (from || 'the mailbox itself') + '.</p><p>If you can read this in Outlook, the automatic notices are back.</p>',
+    body: 'Delivery test from CW Solicitations at ' + stamp + '. If you can read this in Outlook, the automatic notices are back.' });
+  Logger.log('Sent. MAIL_FROM: ' + (from || '(blank)') + '. Aliases: ' + GmailApp.getAliases().join(', '));
+}
+
 function cwMail_(tag, opts) {
   var mode; try { mode = cwMode_(tag); } catch (e) { mode = 'send'; }
   var hasFile = !!(opts && opts.attachments && opts.attachments.length);
@@ -2588,10 +2628,10 @@ function cwMail_(tag, opts) {
     if ((mode === 'digest' || mode === 'weekly') && !hasFile) {
       try { cwQueueDigest_(tag, opts, mode === 'weekly' ? 'weekly' : 'daily'); return; } catch (dq) { /* fall through to send */ }
     }
-    var r = MailApp.sendEmail(opts);
+    var r = cwSend_(opts);
     try { cwQueueDigest_(tag, opts, 'immediate'); } catch (li) {}
     return r;
-  } catch (e) { try { return MailApp.sendEmail(opts); } catch (e2) { return; } }
+  } catch (e) { try { return cwSend_(opts); } catch (e2) { return; } }
 }
 
 function cwDigestSheet_() {
@@ -2695,7 +2735,7 @@ function cwSendSlotDigest_(slot) {
   cwGroupByTo_(rows).forEach(function (g) {
     var cc = Object.keys(g.cc).join(',');
     var html = cwDigestHtml_(label, when, g.rows, 'Items since the last digest. Full records are in the sheets linked on each item.');
-    MailApp.sendEmail({ to: g.to, cc: cc, name: CW_DIGEST_SENDER,
+    cwSend_({ to: g.to, cc: cc, name: CW_DIGEST_SENDER,
       subject: 'City Wide ' + label.toLowerCase() + ' - ' + when + ' (' + g.rows.length + (g.rows.length === 1 ? ' item)' : ' items)'),
       htmlBody: html, body: cwDigestPlain_(label, when, g.rows) });
     sentCount++;
@@ -2716,7 +2756,7 @@ function cwSendWeeklyRollup_() {
   var sentCount = 0;
   cwGroupByTo_(rows).forEach(function (g) {
     var html = cwDigestHtml_('Weekly rollup', when, g.rows, 'Everything that came through in the last 7 days, including notices that were sent right away. Items marked "sent immediately" already reached you when they happened.');
-    MailApp.sendEmail({ to: g.to, cc: Object.keys(g.cc).join(','), name: CW_DIGEST_SENDER,
+    cwSend_({ to: g.to, cc: Object.keys(g.cc).join(','), name: CW_DIGEST_SENDER,
       subject: 'City Wide weekly rollup - ' + when + ' (' + g.rows.length + (g.rows.length === 1 ? ' item)' : ' items)'),
       htmlBody: html, body: cwDigestPlain_('Weekly rollup', when, g.rows) });
     sentCount++;
@@ -2858,7 +2898,7 @@ function cwDigestSelfTest(to) {
     fields: [['Contact', 'Sample Vendor <vendor@example.com> 702-555-0100'], ['Earliest start', 'Next week'], ['Crew size', '2']], links: [['Responses sheet', SpreadsheetApp.openById(SHEET_ID).getUrl()]] } }, 'daily');
   var rows = cwRows_(sh).filter(function (r) { return !r.sent && r.cadence === 'daily' && r.to.toLowerCase() === String(to).toLowerCase() && /ZZ SELFTEST/.test(r.subject); });
   var when = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'EEE MMM d h:mm a');
-  MailApp.sendEmail({ to: to, name: CW_DIGEST_SENDER, subject: 'City Wide digest SELF-TEST - ' + when + ' (' + rows.length + ' items)',
+  cwSend_({ to: to, name: CW_DIGEST_SENDER, subject: 'City Wide digest SELF-TEST - ' + when + ' (' + rows.length + ' items)',
     htmlBody: cwDigestHtml_('Self-test digest', when, rows, 'Two sample items queued by cwDigestSelfTest. Real digests go out at 8 AM and 4 PM.'), body: cwDigestPlain_('Self-test digest', when, rows) });
   rows.forEach(function (r) { sh.getRange(r.i + 1, 6).setValue(true); });
   var s = 'self-test digest sent to ' + to + ' with ' + rows.length + ' rows';

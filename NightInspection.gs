@@ -492,7 +492,7 @@ function niRequest_(data) {
   var opts = { to: to, subject: 'Night inspection: add ' + (type === 'vendor' ? 'cleaning company' : 'building') + ' ' + label, body: body,
     name: 'City Wide ' + (mkt === 'nnv' ? 'NNV' : 'LV') + ' Night Ops' };
   var status = 'sent';
-  try { if (typeof cwMail_ === 'function') cwMail_('ni_request', opts); else MailApp.sendEmail(opts); } catch (e) { status = 'mail failed: ' + e.message; }
+  try { if (typeof cwMail_ === 'function') cwMail_('ni_request', opts); else cwSend_(opts); } catch (e) { status = 'mail failed: ' + e.message; }
   try {
     var sh = niTab_(niSS_(), NI_REQ_TAB, NI_REQ_HEADERS);
     sh.getRange(sh.getLastRow() + 1, 1, 1, NI_REQ_HEADERS.length).setValues([[new Date(), NI_MARKETS[mkt], type, name, owner, label, nm, to, status]]);

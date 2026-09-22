@@ -482,7 +482,7 @@ function insSend_(d) {
     var status = '';
     var sentOk = false;
     try {
-      MailApp.sendEmail({
+      cwSend_({
         to: actualTo,
         replyTo: mk.compliance,
         name: senderName,

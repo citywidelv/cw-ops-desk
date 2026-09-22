@@ -940,7 +940,7 @@ function actNotify_(ss, kind, region, msg) {
     var body = msg.lines.filter(function (l) { return l !== undefined && l !== null; }).join('\n') +
       (test ? '\n\n(Test mode: Config live is FALSE, so this went to test_to instead of ' + (actStr_(cfg[k]) || 'the empty ' + k + ' list') + '.)' : '') +
       '\n\nCity Wide Facility Solutions - Account Changes';
-    MailApp.sendEmail({ to: to, subject: subject, body: body, name: 'City Wide Account Changes' });
+    cwSend_({ to: to, subject: subject, body: body, name: 'City Wide Account Changes' });
     return { to: to, test: test };
   } catch (e) {
     return { skipped: 'mail error: ' + (e && e.message ? e.message : e) };

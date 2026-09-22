@@ -419,7 +419,7 @@ function nrSendMarket_(mkt, date, manual) {
   if (cc.length) opts.cc = cc.join(',');
 
   try {
-    if (typeof cwMail_ === 'function') cwMail_('ni_route', opts); else MailApp.sendEmail(opts);
+    if (typeof cwMail_ === 'function') cwMail_('ni_route', opts); else cwSend_(opts);
   } catch (e) {
     return { ok: false, error: 'Mail failed: ' + (e && e.message || e) };
   }

@@ -114,7 +114,7 @@ function vmSend_(d) {
         body: plain
       };
       if (!test) opts.bcc = c.join(',');
-      MailApp.sendEmail(opts);
+      cwSend_(opts);
       sent += test ? 0 : c.length;
     } catch (e) { errs.push('Chunk ' + (n + 1) + ': ' + String(e && e.message || e)); }
   });

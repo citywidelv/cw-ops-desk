@@ -438,7 +438,7 @@ function vioSubmit_(d) {
   var apprTo = test ? VIO_TEST_TO : approver;
   var emailStatus = '';
   try {
-    MailApp.sendEmail({ to: apprTo, subject: apprSubject,
+    cwSend_({ to: apprTo, subject: apprSubject,
       htmlBody: vioApprovalEmail_(nid, d, level, test, approveLink, html, approver),
       name: vioSender_(d.market).name,
       body: 'Notice ' + nid + ' is awaiting approval. Review at ' + approveLink });
@@ -522,14 +522,14 @@ function vioSendVendor_(market, test, to, cc, replyTo, subject, html, nid) {
       else { emailStatus = 'RELAY FAILED, sent from LV'; relayMissing = true; }
     } else { relayMissing = true; }
     if (relayMissing) {
-      MailApp.sendEmail({ to: to, cc: cc, replyTo: replyTo, subject: subject,
+      cwSend_({ to: to, cc: cc, replyTo: replyTo, subject: subject,
         htmlBody: html, name: snd.name,
         body: 'Notice ' + nid + '. Open in an HTML mail client.' });
       emailStatus = emailStatus === 'RELAY FAILED, sent from LV' ? emailStatus :
         'sent from LV (no Reno relay configured)';
     }
   } else {
-    MailApp.sendEmail({ to: to, cc: cc, replyTo: replyTo, subject: subject,
+    cwSend_({ to: to, cc: cc, replyTo: replyTo, subject: subject,
       htmlBody: html, name: snd.name,
       body: 'Notice ' + nid + '. Open in an HTML mail client.' });
     emailStatus = test ? 'TEST sent to ' + VIO_TEST_TO : 'sent';

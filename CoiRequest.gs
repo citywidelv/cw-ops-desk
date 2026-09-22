@@ -319,7 +319,7 @@ function coiSubmit_(data) {
           '\n\nRequest log: ' + COI_LOG_URL
       };
       if (blobs.length) opts.attachments = blobs;
-      MailApp.sendEmail(opts);
+      cwSend_(opts);
       mailStatus = 'sent to ' + to + ' ' + now;
     } catch (mErr) {
       mailStatus = 'MAIL FAILED: ' + String(mErr && mErr.message ? mErr.message : mErr);

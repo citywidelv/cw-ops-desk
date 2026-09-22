@@ -627,7 +627,7 @@ function recCertSend_(data) {
   if (cc.length && !test) opts.cc = cc.join(',');
   if (pdf) opts.attachments = [pdf];
   var status = 'sent', err = '';
-  try { MailApp.sendEmail(opts); } catch (e) { status = 'failed'; err = String(e && e.message || e); }
+  try { cwSend_(opts); } catch (e) { status = 'failed'; err = String(e && e.message || e); }
   try {
     recSndTab_(ss).appendRow([recNow_(), recStr_(w.id), recStr_(w.name), Number(w.year), Number(w.month), region, to.join(', '), test ? '' : cc.join(', '),
       subject, coupon ? coupon.code : '', !!pdf, test, recStr_(data.who).slice(0, 60) || 'Admin Hub', status, err, certUrl]);
