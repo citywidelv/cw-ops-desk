@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Vendor Email | CW Ops Hub</title>
+<!-- build 2026-09-22a
+Vendor Email. One place to send any email to vendors. Pick what you are sending,
+then the rest of the screen is that tool. Nothing here invents a new send path:
+
+  New opportunity        the Email Vendors panel from Active Postings (notify.js,
+                         kind vm_queue on CW Vendor Sender). One Schedule and Send,
+                         staggered by the script, everyone in BCC.
+  Message to vendors     the pre-written messages (uniforms, audit, invoices,
+                         insurance, crew list, background checks, holiday, custom).
+                         Vendor picker from the live directory (vd_list), counts
+                         update on every click, one Schedule and Send (vm_queue).
+  Violation notice       violations.html embedded. Same fields, same approver.
+  Invite a new vendor    vendor-invite.html embedded (vd_invite).
+  Background check notices  bc-notices.html embedded (vd_bc_send).
+  Insurance reminders    insurance.html embedded (ins_send).
+
+The embedded pages get ?embed=1, which hides their own header and footer.
+Rules that hold everywhere here: vendors are always in BCC, never To or CC.
+The do not email list is honored by the script on every marketing send.
+Deep links: ?type=message|opportunity|violation|invite|bc|insurance
+            ?vendor=V-042 (pre-picks that vendor for a message)
+            ?tpl=uniforms (opens that message)
+-->
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
+  --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;--green:#1E8E5A;--green-bg:#E7F6EE;--amber:#B5780A;--amber-bg:#FFF4D6;
+  --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
+a{color:var(--red)}
+.head{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.head .bar{max-width:1100px;margin:0 auto;padding:0 20px;height:64px;display:flex;align-items:center;gap:14px}
+.head img{height:38px;width:auto;max-width:none;flex:none}
+.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);border-left:2px solid var(--border);padding-left:14px}
+.head .back{margin-left:auto;font-size:12px;font-weight:700;background:var(--red);color:#fff;text-decoration:none;border-radius:6px;padding:8px 14px;white-space:nowrap}
+.head .back:hover{background:var(--red-dark);color:#fff}
+.wrap{max-width:1100px;margin:0 auto;padding:26px 20px 80px}
+h1{font-size:24px;line-height:1.25}
+h1:after{content:"";display:block;width:52px;height:4px;background:var(--red);border-radius:2px;margin-top:12px}
+p.lede{color:var(--grey);margin:12px 0 20px;max-width:72ch}
+.gatebox{max-width:360px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.gatebox b{display:block;font-size:16px;margin-bottom:10px}
+#gmsg{font-size:12.5px;color:var(--grey);line-height:1.55}
+.hidden{display:none!important}
+.btn{font-family:inherit;font-size:14px;font-weight:700;background:var(--red);color:#fff;border:none;border-radius:8px;padding:12px 24px;cursor:pointer;text-decoration:none;display:inline-block;min-height:44px}
+.btn:hover{background:var(--red-dark);color:#fff}
+.btn.ghost{background:#fff;color:var(--black);border:2px solid var(--border)}
+.btn.ghost:hover{border-color:var(--black);background:#fff;color:var(--black)}
+.btn.sm{font-size:12.5px;padding:8px 14px;min-height:36px}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.busy{opacity:.6;pointer-events:none}
+/* choices */
+.choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:20px}
+.choice{font-family:inherit;text-align:left;background:#fff;border:2px solid var(--border);border-radius:12px;padding:16px 18px;cursor:pointer;box-shadow:var(--shadow);color:var(--black);display:flex;gap:12px;align-items:flex-start}
+.choice:hover{border-color:var(--black)}
+.choice.on{border-color:var(--red);box-shadow:0 0 0 3px rgba(210,39,48,.12)}
+.choice svg{width:26px;height:26px;flex:none;fill:none;stroke:var(--red);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-top:2px}
+.choice b{display:block;font-size:15px}
+.choice span{display:block;font-size:12.5px;color:var(--grey);margin-top:3px;line-height:1.45}
+.choices.compact{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.choices.compact .choice{padding:10px 12px;gap:8px}
+.choices.compact .choice svg{width:18px;height:18px}
+.choices.compact .choice b{font-size:12.5px}
+.choices.compact .choice span{display:none}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:22px 24px;margin-bottom:16px}
+.card>h2{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);margin-bottom:4px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.card>h2:after{content:"";display:block;width:34px;height:3px;background:var(--red);border-radius:2px;margin:8px 0 16px}
+.card>h2 .lk{margin-left:auto;font-size:11px;font-weight:700;color:var(--red);background:none;border:none;font-family:inherit;cursor:pointer;padding:0;text-transform:none;letter-spacing:.02em}
+.hint{font-size:11.5px;color:var(--grey);line-height:1.55;margin:0 0 12px}
+.hint code{background:var(--light);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
+.msg{border-radius:8px;padding:12px 14px;font-size:13px;margin:12px 0;display:none;line-height:1.55}
+.msg.show{display:block}
+.msg.err{background:#FDEEEF;border:1px solid var(--red)}
+.msg.ok{background:var(--green-bg);border:1px solid var(--green)}
+.msg.warn{background:var(--amber-bg);border:1px solid var(--gold)}
+/* embedded tools */
+.frame{width:100%;border:none;border-radius:12px;background:#fff;min-height:720px;display:block}
+/* postings list */
+.plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.post{font-family:inherit;text-align:left;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;color:var(--black)}
+.post:hover{border-color:var(--black)}
+.post.on{border-color:var(--red);box-shadow:0 0 0 3px rgba(210,39,48,.12)}
+.post b{display:block;font-size:13.5px}
+.post span{display:block;font-size:11.5px;color:var(--grey);margin-top:3px}
+.post .tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:1px 7px;background:var(--light);color:var(--grey);margin-right:4px}
+/* templates */
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:4px 0 14px}
+.tpl{border:1.5px solid var(--border);border-left:4px solid #d9d9d9;border-radius:8px;background:#fff;padding:10px 12px;text-align:left;cursor:pointer;font-family:inherit;color:var(--black)}
+.tpl:hover{border-color:var(--black)}
+.tpl.on{border-left-color:var(--red);border-color:var(--red)}
+.tpl b{display:block;font-size:12.5px;margin-bottom:3px}
+.tpl span{font-size:11px;color:var(--grey);line-height:1.4;display:block}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+label.f{display:block;margin-bottom:12px}
+label.f>span{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin-bottom:5px}
+input[type=text],input[type=email],select,textarea{width:100%;font-family:inherit;font-size:13.5px;color:var(--black);background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;min-height:42px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--black)}
+textarea{min-height:260px;line-height:1.55;resize:vertical}
+.ph{background:#fff6d8;border-bottom:2px solid var(--gold);padding:0 2px}
+.env{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#f4f5f7}
+.env .eh{padding:10px 14px;font-size:11.5px;color:var(--grey);background:#fff;border-bottom:1px solid var(--border);line-height:1.6}
+.env .eb{margin:16px;background:#fff;border-radius:8px;padding:18px 22px;font-size:13.5px;line-height:1.55;overflow-wrap:anywhere}
+.env .eb p{margin:0 0 14px}
+.env .eb ul{margin:0 0 14px;padding-left:22px}
+.env .eb .ebtn{display:inline-block;background:var(--red);color:#fff;text-decoration:none;font-weight:700;padding:11px 20px;border-radius:6px;margin:4px 0 14px}
+.env .ef{padding:10px 14px 16px;font-size:11px;color:var(--grey);line-height:1.5;white-space:pre-wrap}
+/* picker */
+.tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.tools input[type=text]{flex:1;min-width:220px}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.chk input{width:18px;height:18px;accent-color:var(--red);margin:0}
+.reg{border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.reg>.rh{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--light);cursor:pointer;font-weight:700;font-size:13px}
+.reg>.rh .c{margin-left:auto;font-size:11.5px;color:var(--grey);font-weight:400}
+.reg>.rh .car{transition:transform .15s}
+.reg.open>.rh .car{transform:rotate(90deg)}
+.reg>.rb{display:none;padding:6px 10px 10px}
+.reg.open>.rb{display:block}
+.grp{border:1px solid var(--border);border-radius:8px;margin:6px 0}
+.grp .gh{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer}
+.grp .gh .c{color:var(--grey);font-weight:400;font-size:11.5px}
+.grp .gh .all{margin-left:auto;font-size:11px;color:var(--red);background:none;border:none;font-family:inherit;font-weight:700;cursor:pointer}
+.grp .gb{display:none;border-top:1px solid var(--light);padding:4px 8px 6px;max-height:340px;overflow-y:auto}
+.grp.open .gb{display:block}
+.vrow{display:flex;align-items:center;gap:10px;padding:6px 6px;font-size:12.5px;border-bottom:1px solid var(--light);cursor:pointer}
+.vrow:last-child{border-bottom:none}
+.vrow input{width:18px;height:18px;accent-color:var(--red);margin:0;flex:none}
+.vrow b{font-weight:700}
+.vrow span{color:var(--grey);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vrow.noemail{opacity:.55;cursor:default}
+.vrow.hit{background:#fff8e6}
+/* send bar */
+.sendbar{position:sticky;bottom:0;background:#fff;border-top:2px solid var(--red);box-shadow:0 -4px 14px rgba(45,42,38,.08);margin:0 -20px;padding:12px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;z-index:9}
+.sendbar .cnt{font-size:14px}
+.sendbar .cnt b{font-size:20px;color:var(--red)}
+.sendbar .grow{flex:1}
+.sendbar select{min-height:40px;width:auto;font-size:12.5px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 18px;margin-top:6px}
+.tst{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--grey);margin:6px 0 10px;flex-wrap:wrap}
+.tst input[type=text]{width:260px;min-height:38px;padding:7px 10px}
+.done{background:#fff;border:1px solid var(--border);border-left:5px solid var(--teal);border-radius:12px;box-shadow:var(--shadow);padding:28px;text-align:center;margin-top:12px}
+.done b{display:block;font-size:19px;margin-bottom:8px}
+.done p{color:var(--grey);max-width:60ch;margin:0 auto 6px}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:24px}
+.mailtos a{display:inline-block;margin:0 8px 8px 0}
+@media(max-width:820px){.two{grid-template-columns:1fr}.head .bar{height:56px}}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="head"><div class="bar">
+  <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+  <span class="t">Vendor Email</span>
+  <a class="back" id="backlink" href="index.html">&larr; Ops Hub</a>
+</div></header>
+
+<div class="wrap">
+<div id="gate" class="gatebox hidden"><b>Team passcode</b><p id="gmsg">Loading...</p></div>
+
+<div id="app" class="hidden">
+<h1>Vendor Email</h1>
+<p class="lede">Every email that goes to vendors starts here. Pick what you are sending and the rest of the page becomes that tool. Vendors are always blind copied and the do not email list is honored on every opportunity and message send.</p>
+
+<div class="choices" id="choices">
+  <button type="button" class="choice" data-t="opportunity"><svg viewBox="0 0 24 24"><path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg><div><b>New opportunity</b><span>Tell the matching vendors about an open posting. One send, staggered on its own.</span></div></button>
+  <button type="button" class="choice" data-t="message"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-6a8 8 0 0 1 8-8h2a8 8 0 0 1 8 3z"/></svg><div><b>Message to vendors</b><span>Uniforms, audits, invoices, insurance, crew list, background checks, holiday, or your own words.</span></div></button>
+  <button type="button" class="choice" data-t="violation"><svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></svg><div><b>Violation notice</b><span>Formal notice to one vendor about one account. Goes to the approver first, then to the vendor.</span></div></button>
+  <button type="button" class="choice" data-t="invite"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/><path d="M19 8h4M21 6v4"/></svg><div><b>Invite a new vendor</b><span>Send a crew the New Vendor steps. They go on the directory as a prospect the moment you send it.</span></div></button>
+  <button type="button" class="choice" data-t="bc"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg><div><b>Background check notices</b><span>Tell each vendor who we have on file for their crew and where each person stands.</span></div></button>
+  <button type="button" class="choice" data-t="insurance"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/></svg><div><b>Insurance reminders</b><span>Certificates expiring or expired. Reminders go to the vendor with the upload link.</span></div></button>
+</div>
+
+<!-- ============ OPPORTUNITY ============ -->
+<div id="t_opportunity" class="hidden">
+<div class="card"><h2>Which opportunity? <button class="lk" type="button" id="op_reload">Refresh the list</button></h2>
+<p class="hint">Open postings from the Opportunity Wall, newest first. Pick one and the email panel opens under it: matched vendors, the email you can edit, one Schedule and Send.</p>
+<div id="op_list"><span class="hint">Loading open postings&hellip;</span></div>
+</div>
+<div class="card hidden" id="op_card"><h2 id="op_title">Email vendors</h2><div id="op_panel"></div></div>
+</div>
+
+<!-- ============ MESSAGE ============ -->
+<div id="t_message" class="hidden">
+<div class="card"><h2>1. What is the message?</h2>
+<div class="shelf" id="shelf"></div>
+<div class="two">
+  <div>
+    <label class="f"><span>Subject</span><input type="text" id="subj" autocomplete="off"></label>
+    <label class="f"><span>Message</span><textarea id="body" spellcheck="true"></textarea></label>
+    <p class="hint">Blank line between paragraphs. A line written as <code>Button text: https://link</code> becomes a red button. Anything in <span class="ph">{braces}</span> has to be filled in before it can go. <button class="lk" type="button" id="resetTpl" style="color:var(--red);background:none;border:none;font-family:inherit;font-weight:700;cursor:pointer;padding:0">Reset this message</button></p>
+  </div>
+  <div><div class="env"><div class="eh" id="envHead"></div><div class="eb" id="envBody"></div><div class="ef" id="envFoot"></div></div></div>
+</div>
+</div>
+
+<div class="card"><h2>2. Who gets it? <span class="lk" style="cursor:default" id="pickCount">0 picked</span></h2>
+<p class="hint">From the live Vendor Directory. Do Not Contact vendors, hidden vendors and anyone on the <a href="vendor-dne.html">do not email list</a> are never listed. Vendors without an email show greyed out. Everyone you pick goes in BCC; they never see each other.</p>
+<div class="tools">
+  <input type="text" id="search" placeholder="Search by company, owner or email" autocomplete="off">
+  <label class="chk"><input type="checkbox" id="showProspects"> Show prospects</label>
+  <button class="btn ghost sm" type="button" id="clearAll">Clear all picks</button>
+  <button class="btn ghost sm" type="button" id="refreshCount">Refresh count</button>
+</div>
+<div id="picker"><span class="hint">Loading the directory&hellip;</span></div>
+<div class="msg warn" id="dneNote"></div>
+</div>
+
+<div class="card" id="sendCard"><h2>3. Send</h2>
+<div class="opts">
+  <label class="f"><span>Show the sender as</span><select id="sender"><option value="lv">City Wide of Las Vegas</option><option value="nnv">City Wide of Northern Nevada</option><option value="both">City Wide Nevada</option></select></label>
+  <label class="f"><span>Replies go to</span><select id="replyTo"><option value="office">The office mailbox for that sender</option><option value="me">Me</option></select></label>
+  <label class="f hidden" id="meBox"><span>Your email</span><input type="text" id="myEmail" placeholder="you@gocitywide.com" autocomplete="email"></label>
+  <label class="f"><span>Your name</span><input type="text" id="by" placeholder="So the log shows who sent it" autocomplete="name"></label>
+</div>
+<p class="hint">One click. The script sends 20 vendors per email, a batch every 10 minutes between 7am and 7pm, inside the day's allowance, and logs every send. Nobody has to click through anything.</p>
+<div class="tst"><label class="chk"><input type="checkbox" id="testMode"> Test first: send one copy to this address instead of the vendors</label><input type="text" id="testTo" placeholder="you@gocitywide.com" disabled></div>
+<div class="msg err" id="sendErr"></div>
+<div class="msg ok" id="sendOk"></div>
+<div class="actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+  <button class="btn" id="sendBtn" type="button">Schedule and Send</button>
+  <button class="btn ghost" id="mailappBtn" type="button">Open in mail app</button>
+  <span class="hint" style="margin:0">Mail app is the backup when the hub sender is down. It opens the same email with the vendors in BCC; nothing is logged.</span>
+</div>
+<div class="mailtos" id="mailtos" style="margin-top:10px"></div>
+</div>
+
+<div class="sendbar" id="sendbar"><span class="cnt"><b id="barCount">0</b> vendors in BCC</span><span class="grow"></span><span class="hint" style="margin:0" id="barNote"></span><a class="btn sm" href="#sendCard">Go to send</a></div>
+</div>
+
+<!-- ============ EMBEDDED TOOLS ============ -->
+<div id="t_violation" class="hidden"><div class="card" style="padding:10px"><iframe class="frame" data-src="violations.html?embed=1" title="Violation notice"></iframe></div></div>
+<div id="t_invite" class="hidden"><div class="card" style="padding:10px"><iframe class="frame" data-src="vendor-invite.html?embed=1" title="Invite a new vendor"></iframe></div></div>
+<div id="t_bc" class="hidden"><div class="card" style="padding:10px"><iframe class="frame" data-src="bc-notices.html?embed=1" title="Background check notices"></iframe></div></div>
+<div id="t_insurance" class="hidden"><div class="card" style="padding:10px"><iframe class="frame" data-src="insurance.html?embed=1" title="Insurance reminders"></iframe></div></div>
+
+</div><!-- /app -->
+</div>
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
+
+<script src="notify.js?v=20260922a"></script>
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script>
+(function(){
+"use strict";
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+/* CW Vendor Sender: the staggered queue. Same script notify.js uses. */
+var SEND_WEBHOOK = "https://script.google.com/macros/s/AKfycbx5bqTwNq4_DFNXR1Z4mCAzMZ5GZzgmUFphrjvJYGXQ5DRpTtgjaaq7MFvapE9pCSMiOQ/exec";
+var VS = "https://citywidelv.github.io/cw-vendor-hub/";
+var BATCH_MAX = 50, MAILTO_MAX = 1800;
+var BOOKINGS = {
+  lv:  "https://outlook.office.com/book/CityWideFacilitySolutions@gocitywide.com/s/CfvcZnBXNU-uwAA6rKuaOA2",
+  nnv: "https://outlook.office.com/book/CWFSNewClientsCopy@gocitywide.com/s/GF_o2mGP5U-bLECn5JgH3Q2"
+};
+var SENDERS = {
+  lv:   { name:"City Wide of Las Vegas",       reply:"lvservicecall@gocitywide.com", foot:"City Wide Facility Solutions of Las Vegas, 3215 W Charleston Blvd, Suite 130, Las Vegas, NV 89102" },
+  nnv:  { name:"City Wide of Northern Nevada", reply:"rnservicecall@gocitywide.com", foot:"City Wide Facility Solutions of Northern Nevada, 1000 Bible Way, Suite 2, Reno, NV 89502" },
+  both: { name:"City Wide Nevada",             reply:"lvservicecall@gocitywide.com", foot:"City Wide Facility Solutions of Las Vegas, 3215 W Charleston Blvd, Suite 130, Las Vegas, NV 89102\nCity Wide Facility Solutions of Northern Nevada, 1000 Bible Way, Suite 2, Reno, NV 89502" }
+};
+var REGION_NAME = { lv:"Las Vegas", nnv:"Northern Nevada" };
+var DNE_FOOTER = "To stop these emails, reply and ask to be taken off our lists. You will stop hearing about new work. Notices about buildings you hold will still come to this address. A vendor we cannot reach by email cannot stay active with City Wide.";
+var DNE_SHORT = "To stop these emails, reply and ask to be taken off our lists.";
+
+/* The pre-written messages. Same wording as vendor-messages.html (Sep 17 2026). */
+var TEMPLATES = [
+  { key:"uniforms", name:"Uniforms and supplies", blurb:"Order dates, pickup, shop link",
+    subject:"Do you need uniforms or supplies?",
+    body:"Hi team,\n\nDo you need uniforms? Make sure you pop into the Vendor Hub and tell us what you need. Remember, we place custom orders on the 1st and the 15th. Vests and aprons are available for pickup in our office while supplies last.\n\nShop uniforms and supplies: " + VS + "shop/\n\nRunning low on building supplies? Order them the same way and we will get them to the building.\n\nOrder building supplies: " + VS + "building-supplies.html\n\nThank you for everything you do for our clients." },
+  { key:"audit", name:"Schedule your audit", blurb:"Bookings link, quarterly audit",
+    subject:"It's time to schedule your audit",
+    body:"Hi team,\n\nIt's time to schedule your quarterly audit. Please use the link below to pick a time that works for you. Audits are in person at our office and take about an hour.\n\n{bookings_link}\n\nIf none of the open times work, reply to this email and we will find one together.\n\nThank you." },
+  { key:"invoice", name:"Invoice reminder", blurb:"Monthly invoice, hub link",
+    subject:"Reminder: monthly invoices are due",
+    body:"Hi team,\n\nA quick reminder that monthly invoices are due by {due_date}. Submit yours through the Vendor Hub so it lands in the right place and gets paid on time.\n\nSubmit your invoice: " + VS + "invoice.html\n\nInvoices sent any other way take longer to process. Thank you." },
+  { key:"insurance", name:"Insurance renewal", blurb:"Upload a current certificate",
+    subject:"Your insurance certificate needs a refresh",
+    body:"Hi team,\n\nOur records show your insurance certificate is expiring soon, or has already expired. Please have your agent send an updated certificate, or upload it yourself through the Vendor Hub.\n\nUpload your certificate: " + VS + "upload.html\n\nA current certificate has to be on file for your crew to keep working at our clients' buildings. Thank you for staying on top of it." },
+  { key:"roster", name:"Update your crew list", blurb:"Add or remove cleaners",
+    subject:"Please update your crew list",
+    body:"Hi team,\n\nPlease take a minute to make sure the crew list we have for you is current. Add anyone new and remove anyone who no longer works with you. Every person working in one of our clients' buildings needs to be on the list with a background check on file.\n\nAdd or remove a cleaner: " + VS + "cleaner-roster.html\n\nThank you." },
+  { key:"bgcheck", name:"Background check reminder", blurb:"Vendor Hub page for new crew",
+    subject:"Background checks for your crew",
+    body:"Hi team,\n\nYour agreement requires a background check on file for every person working at any property you service for City Wide. If you have added anyone to your crew recently, please get their check started now. Use the page below to upload one you already have, or to have City Wide run it.\n\nUpload or request a background check: " + VS + "background-check.html\n\nThank you." },
+  { key:"eval", name:"Evaluation form", blurb:"Fill in or update the vendor evaluation",
+    subject:"Please complete your City Wide vendor evaluation",
+    body:"Hi team,\n\nWe do not have a completed vendor evaluation on file for you, or the one we have is out of date. It takes about ten minutes and it is how we match you to work.\n\nComplete the evaluation: " + VS + "vendor-evaluation.html\n\nThank you." },
+  { key:"holiday", name:"Holiday schedule", blurb:"Service changes around a holiday",
+    subject:"Holiday schedule: {holiday}",
+    body:"Hi team,\n\nWith {holiday} coming up, here is what we need from you.\n\n- Confirm with your FSM which buildings are closed and which need service as normal.\n- If a building is closed, do not enter it that day.\n- Any change to your normal schedule needs to be cleared with your FSM ahead of time.\n\nQuestions? Reply to this email or call your FSM. Thank you, and enjoy the holiday." },
+  { key:"custom", name:"Write your own", blurb:"Blank message", subject:"", body:"Hi team,\n\n" }
+];
+
+var TYPE = "", DIR = null, VENDORS = [], TYPES = {}, SEL = {}, OPEN = { lv:true, nnv:false }, GOPEN = {}, TPL = "", EDITS = {}, SENDER_LOCK = false, POSTINGS = null, POSTING = null, PREPICK = "";
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d = document.createElement("div"); d.textContent = String(s == null ? "" : s); return d.innerHTML; }
+function emailOk(s){ return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(s || "").trim()); }
+function param(n){ var m = new RegExp("[?&]" + n + "=([^&]*)").exec(location.search); return m ? decodeURIComponent(m[1].replace(/\+/g, " ")) : ""; }
+function lsGet(k){ try{ return localStorage.getItem(k) || ""; }catch(e){ return ""; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+function post(url, payload){ payload.passcode = CWAuth.get(); return fetch(url, { method:"POST", headers:{ "Content-Type":"text/plain" }, body:JSON.stringify(payload) }).then(function(r){ return r.json(); }); }
+function show(id, on){ $(id).classList.toggle("hidden", !on); }
+function note(id, text, cls){ var el = $(id); el.className = "msg " + (cls || "warn") + (text ? " show" : ""); el.innerHTML = text || ""; }
+
+/* ---------- choosing the tool ---------- */
+var FRAMES_LOADED = {};
+function choose(t){
+  TYPE = t;
+  document.querySelectorAll("#choices .choice").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-t") === t); });
+  $("choices").classList.toggle("compact", !!t);
+  ["opportunity","message","violation","invite","bc","insurance"].forEach(function(k){ show("t_" + k, k === t); });
+  try{ history.replaceState(null, "", "vendor-email.html?type=" + t + (PREPICK ? "&vendor=" + encodeURIComponent(PREPICK) : "")); }catch(e){}
+  if(t === "opportunity" && !POSTINGS) loadPostings();
+  if(t === "message" && !DIR) loadDirectory();
+  var fr = document.querySelector("#t_" + t + " iframe.frame");
+  if(fr && !FRAMES_LOADED[t]){ FRAMES_LOADED[t] = true; fr.src = fr.getAttribute("data-src") + (t === "invite" && param("region") ? "&region=" + encodeURIComponent(param("region")) : ""); fitFrame(fr); }
+  var top = $("choices").getBoundingClientRect().bottom + window.scrollY - 70; if(t) window.scrollTo({ top: Math.max(0, top), behavior:"smooth" });
+}
+$("choices").addEventListener("click", function(e){ var b = e.target.closest(".choice"); if(b) choose(b.getAttribute("data-t")); });
+/* Same-origin frames: size them to their content so the page scrolls as one. */
+function fitFrame(fr){
+  function fit(){ try{ var d = fr.contentDocument; if(d && d.body){ var h = Math.max(d.documentElement.scrollHeight, d.body.scrollHeight); if(h > 300) fr.style.height = (h + 24) + "px"; } }catch(e){} }
+  fr.addEventListener("load", function(){ fit(); if(!fr._timer) fr._timer = setInterval(fit, 700); });
+}
+
+/* ---------- opportunity ---------- */
+function loadPostings(force){
+  $("op_list").innerHTML = '<span class="hint">Loading open postings&hellip;</span>';
+  fetch(WEBHOOK + "?t=" + Date.now()).then(function(r){ return r.json(); }).then(function(r){
+    POSTINGS = (r && r.items) || [];
+    POSTINGS.sort(function(a, b){ return (new Date(b.posted).getTime() || 0) - (new Date(a.posted).getTime() || 0); });
+    renderPostings();
+  }).catch(function(){ $("op_list").innerHTML = '<div class="msg err show">Could not load the postings. Check your connection and refresh.</div>'; });
+}
+function renderPostings(){
+  if(!POSTINGS.length){ $("op_list").innerHTML = '<p class="hint">No open postings. <a href="post.html">Post an opportunity</a> first; the email panel is on that page too.</p>'; return; }
+  $("op_list").innerHTML = '<div class="plist">' + POSTINGS.map(function(p){
+    return '<button type="button" class="post' + (POSTING && POSTING.id === p.id ? " on" : "") + '" data-id="' + esc(p.id) + '"><b>' + esc(p.title) + '</b><span><i class="tag">' + esc(p.region) + '</i><i class="tag">' + esc(p.trade) + '</i>' + esc([p.facility_type, p.area].filter(Boolean).join(" · ")) + '</span><span>' + esc(p.id) + (p.posted ? " · posted " + esc(p.posted) : "") + '</span></button>';
+  }).join("") + '</div>';
+}
+$("op_list").addEventListener("click", function(e){
+  var b = e.target.closest(".post"); if(!b) return;
+  var p = POSTINGS.filter(function(x){ return String(x.id) === b.getAttribute("data-id"); })[0]; if(!p) return;
+  POSTING = p; renderPostings();
+  $("op_title").textContent = "Email vendors: " + p.title;
+  show("op_card", true);
+  var panel = $("op_panel"); panel.innerHTML = ""; panel.className = "";
+  CWNotify.render(panel, p, CWAuth.get());
+  $("op_card").scrollIntoView({ behavior:"smooth", block:"start" });
+});
+$("op_reload").addEventListener("click", function(){ POSTINGS = null; loadPostings(); });
+
+/* ---------- message: templates ---------- */
+function tpl(){ return TEMPLATES.filter(function(t){ return t.key === TPL; })[0] || TEMPLATES[TEMPLATES.length - 1]; }
+function renderShelf(){ $("shelf").innerHTML = TEMPLATES.map(function(t){ return '<button type="button" class="tpl' + (t.key === TPL ? " on" : "") + '" data-k="' + esc(t.key) + '"><b>' + esc(t.name) + '</b><span>' + esc(t.blurb) + '</span></button>'; }).join(""); }
+$("shelf").addEventListener("click", function(e){ var b = e.target.closest(".tpl"); if(b) pickTpl(b.getAttribute("data-k")); });
+function pickTpl(k){
+  if(TPL){ EDITS[TPL] = { subject:$("subj").value, body:$("body").value }; }
+  TPL = k; renderShelf();
+  var t = tpl(), ed = EDITS[k];
+  $("subj").value = ed ? ed.subject : t.subject; $("body").value = ed ? ed.body : t.body;
+  lsSet("cwVendorEmailTpl", k);
+  preview();
+}
+$("resetTpl").addEventListener("click", function(){ var t = tpl(); delete EDITS[TPL]; $("subj").value = t.subject; $("body").value = t.body; preview(); });
+$("subj").addEventListener("input", preview); $("body").addEventListener("input", preview);
+function bookingsLines(){
+  var s = $("sender").value;
+  if(s === "both") return "Las Vegas, book with Robert Krause: " + BOOKINGS.lv + "\n\nNorthern Nevada, book with Jeremy Walker: " + BOOKINGS.nnv;
+  return "Book your audit: " + BOOKINGS[s === "nnv" ? "nnv" : "lv"];
+}
+function filled(text){ return String(text || "").replace(/\{bookings_link\}/g, bookingsLines()); }
+function renderBody(text){
+  return String(text).split(/\n{2,}/).map(function(p){
+    var lines = p.split("\n").filter(function(l){ return l.trim() !== ""; }); if(!lines.length) return "";
+    if(lines.every(function(l){ return /^\s*-\s+/.test(l); })) return "<ul>" + lines.map(function(l){ return "<li>" + linkify(esc(l.replace(/^\s*-\s+/, ""))) + "</li>"; }).join("") + "</ul>";
+    var m = lines.length === 1 && lines[0].trim().match(/^([^:]{2,60}):\s+(https?:\/\/\S+)$/);
+    if(m) return '<p><a class="ebtn" href="' + esc(m[2]) + '" target="_blank" rel="noopener">' + esc(m[1]) + "</a></p>";
+    return "<p>" + linkify(lines.map(esc).join("<br>")) + "</p>";
+  }).join("");
+}
+function linkify(html){ return html.replace(/(https?:\/\/[^\s<]+)/g, function(u){ var tail = "", m = u.match(/[.,;:)]+$/); if(m){ tail = m[0]; u = u.slice(0, -tail.length); } return '<a href="' + u + '" target="_blank" rel="noopener">' + u + "</a>" + tail; }).replace(/\{([a-z_]+)\}/gi, '<span class="ph">{$1}</span>'); }
+function preview(){
+  var s = SENDERS[$("sender").value], n = selectedEmails().length;
+  $("envHead").innerHTML = "<b>From:</b> " + esc(s.name) + "<br><b>To:</b> " + esc(currentReply()) + " &nbsp;<b>BCC:</b> " + n + " vendor" + (n === 1 ? "" : "s") + "<br><b>Subject:</b> " + esc(filled($("subj").value) || "(no subject)");
+  $("envBody").innerHTML = renderBody(filled($("body").value)) || '<p class="hint">Nothing to show yet.</p>';
+  $("envFoot").textContent = s.foot + "\n" + DNE_FOOTER;
+}
+
+/* ---------- message: picker ---------- */
+function loadDirectory(){
+  $("picker").innerHTML = '<span class="hint">Loading the directory&hellip;</span>';
+  post(WEBHOOK, { kind:"vd_list" }).then(function(r){
+    if(!r || r.ok === false){ if(r && /passcode/i.test(r.error || "")){ CWAuth.locked("ops", r.error); return; } throw new Error((r && r.error) || "Could not load the directory."); }
+    DIR = r; TYPES = {}; (r.types || []).forEach(function(t){ TYPES[t.slug] = t.name; });
+    var dne = [];
+    VENDORS = (r.vendors || []).filter(function(v){ if(v.dne){ dne.push(v); return false; } return v.status !== "Do Not Contact" && v.status !== "Inactive"; });
+    VENDORS.forEach(function(v){ v._email = String(v.email || "").trim().toLowerCase(); v._ok = emailOk(v._email); });
+    note("dneNote", dne.length ? dne.length + " vendor" + (dne.length === 1 ? " is" : "s are") + " on the do not email list and not shown: " + dne.slice(0, 12).map(function(v){ return esc(v.dba_name); }).join(", ") + (dne.length > 12 ? ", and more" : "") + '. <a href="vendor-dne.html">Manage the list</a>.' : "");
+    if(PREPICK){ var pv = VENDORS.filter(function(v){ return v.vendor_id === PREPICK; })[0]; if(pv && pv._ok){ SEL[pv._email] = true; OPEN[pv.regions[0]] = true; GOPEN[pv.regions[0] + ":" + groupKey(pv)] = true; if(pv.prospect) $("showProspects").checked = true; } else if(pv) note("dneNote", esc(pv.dba_name) + " has no usable email address on the directory, so they cannot be picked."); }
+    buildPicker(); autoSender(); preview();
+  }).catch(function(e){ $("picker").innerHTML = '<div class="msg err show">' + esc(e.message) + ' <button class="btn ghost sm" type="button" onclick="location.reload()">Reload</button></div>'; });
+}
+function groupKey(v){ if(v.prospect) return "prospects"; if(v.janitorial) return "janitorial"; return (v.slugs && v.slugs[0]) || "none"; }
+function groupsFor(region){
+  var q = $("search").value.trim().toLowerCase(), showP = $("showProspects").checked;
+  var list = VENDORS.filter(function(v){ return v.regions && v.regions.indexOf(region) >= 0 && (showP || !v.prospect) && (!q || (v.dba_name + " " + (v.contact_name || "") + " " + v._email + " " + (v.legal_name || "")).toLowerCase().indexOf(q) >= 0); });
+  var live = list.filter(function(v){ return !v.prospect; }), pros = list.filter(function(v){ return v.prospect; });
+  var groups = [];
+  var jan = live.filter(function(v){ return v.janitorial; }); if(jan.length) groups.push({ key:"janitorial", name:"Janitorial and day porter", list:jan });
+  var bySlug = {};
+  live.filter(function(v){ return !v.janitorial; }).forEach(function(v){ var s = (v.slugs && v.slugs.length) ? v.slugs : ["none"]; s.forEach(function(k){ (bySlug[k] = bySlug[k] || []).push(v); }); });
+  Object.keys(bySlug).filter(function(k){ return k !== "none"; }).sort(function(a, b){ return (TYPES[a] || a).localeCompare(TYPES[b] || b); }).forEach(function(k){ groups.push({ key:k, name:TYPES[k] || k, list:bySlug[k] }); });
+  if(bySlug.none) groups.push({ key:"none", name:"No trade listed", list:bySlug.none });
+  if(pros.length) groups.push({ key:"prospects", name:"Prospects", list:pros });
+  groups.forEach(function(g){ g.list.sort(function(a, b){ return a.dba_name.localeCompare(b.dba_name); }); });
+  return groups;
+}
+function buildPicker(){
+  var q = $("search").value.trim();
+  var h = "";
+  ["lv","nnv"].forEach(function(region){
+    var groups = groupsFor(region), total = 0, picked = 0, withEmail = 0;
+    groups.forEach(function(g){ g.list.forEach(function(v){ total++; if(v._ok){ withEmail++; if(SEL[v._email]) picked++; } }); });
+    var open = OPEN[region] || (q && total);
+    h += '<div class="reg' + (open ? " open" : "") + '" data-region="' + region + '"><div class="rh"><span class="car">&#9656;</span>' + esc(REGION_NAME[region]) + '<span class="c"><b>' + picked + '</b> picked of ' + withEmail + ' with email' + (total !== withEmail ? " (" + (total - withEmail) + " without)" : "") + '</span></div><div class="rb">';
+    if(!groups.length) h += '<p class="hint" style="padding:8px 4px">Nobody matches here.</p>';
+    groups.forEach(function(g){
+      var gp = g.list.filter(function(v){ return v._ok && SEL[v._email]; }).length, gt = g.list.filter(function(v){ return v._ok; }).length;
+      var gk = region + ":" + g.key, gopen = GOPEN[gk] || (q && g.list.length);
+      h += '<div class="grp' + (gopen ? " open" : "") + '" data-g="' + esc(gk) + '"><div class="gh"><span>' + esc(g.name) + '</span><span class="c"><b>' + gp + '</b> of ' + gt + '</span>' + (gt ? '<button type="button" class="all" data-all="' + esc(gk) + '">' + (gp === gt ? "Uncheck all" : "Select all") + '</button>' : '<span class="all" style="color:var(--grey)">no email on file</span>') + '</div><div class="gb">';
+      g.list.forEach(function(v){
+        h += '<label class="vrow' + (v._ok ? "" : " noemail") + (q && v._ok && SEL[v._email] ? " hit" : "") + '"><input type="checkbox" data-e="' + esc(v._email) + '"' + (v._ok ? (SEL[v._email] ? " checked" : "") : " disabled") + '><b>' + esc(v.dba_name) + '</b><span>' + esc([v.contact_name, v._ok ? v._email : "no email", v.status].filter(Boolean).join(" · ")) + '</span></label>';
+      });
+      h += '</div></div>';
+    });
+    h += '</div></div>';
+  });
+  $("picker").innerHTML = h;
+  syncCounts();
+}
+$("picker").addEventListener("click", function(e){
+  var rh = e.target.closest(".rh"); if(rh){ var r = rh.parentNode.getAttribute("data-region"); OPEN[r] = !OPEN[r]; rh.parentNode.classList.toggle("open", OPEN[r]); return; }
+  var all = e.target.closest("button.all");
+  if(all){
+    e.preventDefault(); var gk = all.getAttribute("data-all"), region = gk.split(":")[0], key = gk.slice(region.length + 1);
+    var g = groupsFor(region).filter(function(x){ return x.key === key; })[0]; if(!g) return;
+    var ok = g.list.filter(function(v){ return v._ok; }), allOn = ok.every(function(v){ return SEL[v._email]; });
+    ok.forEach(function(v){ if(allOn) delete SEL[v._email]; else SEL[v._email] = true; });
+    GOPEN[gk] = true; buildPicker(); autoSender(); preview(); return;
+  }
+  var gh = e.target.closest(".gh"); if(gh){ var gk2 = gh.parentNode.getAttribute("data-g"); GOPEN[gk2] = !GOPEN[gk2]; gh.parentNode.classList.toggle("open", GOPEN[gk2]); }
+});
+$("picker").addEventListener("change", function(e){
+  var cb = e.target; if(cb.type !== "checkbox") return;
+  var em = cb.getAttribute("data-e"); if(cb.checked) SEL[em] = true; else delete SEL[em];
+  document.querySelectorAll('#picker input[data-e="' + em + '"]').forEach(function(x){ x.checked = cb.checked; });
+  syncCounts(); autoSender(); preview();
+});
+$("search").addEventListener("input", buildPicker);
+$("showProspects").addEventListener("change", buildPicker);
+$("clearAll").addEventListener("click", function(){ SEL = {}; buildPicker(); preview(); });
+$("refreshCount").addEventListener("click", function(){ buildPicker(); preview(); note("sendOk", ""); });
+function selectedEmails(){ var out = [], seen = {}; VENDORS.forEach(function(v){ if(v._ok && SEL[v._email] && !seen[v._email]){ seen[v._email] = 1; out.push(v._email); } }); return out; }
+function syncCounts(){
+  var n = selectedEmails().length;
+  $("pickCount").textContent = n + " picked"; $("barCount").textContent = n;
+  $("sendBtn").textContent = n ? "Schedule and Send to " + n + " vendor" + (n === 1 ? "" : "s") : "Schedule and Send";
+  $("barNote").textContent = n > BATCH_MAX ? "Over " + BATCH_MAX + ": the script spreads it out on its own." : "";
+  ["lv","nnv"].forEach(function(region){
+    var el = document.querySelector('.reg[data-region="' + region + '"] .rh .c'); if(!el) return;
+    var groups = groupsFor(region), withEmail = 0, picked = 0, total = 0;
+    groups.forEach(function(g){ g.list.forEach(function(v){ total++; if(v._ok){ withEmail++; if(SEL[v._email]) picked++; } }); });
+    el.innerHTML = "<b>" + picked + "</b> picked of " + withEmail + " with email" + (total !== withEmail ? " (" + (total - withEmail) + " without)" : "");
+    groups.forEach(function(g){
+      var gel = document.querySelector('.grp[data-g="' + region + ":" + g.key + '"] .gh'); if(!gel) return;
+      var gp = g.list.filter(function(v){ return v._ok && SEL[v._email]; }).length, gt = g.list.filter(function(v){ return v._ok; }).length;
+      gel.querySelector(".c").innerHTML = "<b>" + gp + "</b> of " + gt; var ab = gel.querySelector("button.all"); if(ab) ab.textContent = gp === gt ? "Uncheck all" : "Select all";
+    });
+  });
+}
+function autoSender(){
+  if(SENDER_LOCK) return;
+  var lv = false, nnv = false;
+  VENDORS.forEach(function(v){ if(v._ok && SEL[v._email]){ if(v.regions.indexOf("lv") >= 0) lv = true; if(v.regions.indexOf("nnv") >= 0) nnv = true; } });
+  $("sender").value = lv && nnv ? "both" : nnv ? "nnv" : "lv";
+}
+$("sender").addEventListener("change", function(){ SENDER_LOCK = true; preview(); });
+$("replyTo").addEventListener("change", function(){ show("meBox", this.value === "me"); preview(); });
+$("myEmail").addEventListener("input", function(){ lsSet("cwVendorEmailMe", this.value.trim()); preview(); });
+$("by").addEventListener("input", function(){ lsSet("cwVendorEmailBy", this.value.trim()); });
+$("testMode").addEventListener("change", function(){ $("testTo").disabled = !this.checked; if(this.checked) $("testTo").focus(); });
+$("testTo").addEventListener("input", function(){ lsSet("cwVendorEmailTest", this.value.trim()); });
+function currentReply(){ return $("replyTo").value === "me" && emailOk($("myEmail").value) ? $("myEmail").value.trim() : SENDERS[$("sender").value].reply; }
+
+/* ---------- message: send ---------- */
+function stamp(){ var d = new Date(); function p(n){ return String(n).padStart(2, "0"); } return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes()); }
+function checkReady(){
+  var subj = filled($("subj").value).trim(), body = filled($("body").value).trim(), by = $("by").value.trim();
+  if(!subj) return "The subject is empty.";
+  if(!body) return "The message is empty.";
+  var ph = (subj + " " + body).match(/\{[a-z_]+\}/i); if(ph) return "Fill in " + ph[0] + " in the message first.";
+  if(!by) return "Type your name so the log shows who sent it.";
+  if($("replyTo").value === "me" && !emailOk($("myEmail").value)) return "Type your email for replies, or pick the office mailbox.";
+  return "";
+}
+$("sendBtn").addEventListener("click", function(){
+  note("sendErr", ""); note("sendOk", "");
+  var err = checkReady(); if(err){ note("sendErr", esc(err), "err"); return; }
+  var emails = selectedEmails(), test = $("testMode").checked, testTo = $("testTo").value.trim();
+  if(test && !emailOk(testTo)){ note("sendErr", "Type the address the test copy should go to.", "err"); return; }
+  if(!test && !emails.length){ note("sendErr", "Pick at least one vendor.", "err"); return; }
+  if(!test && !confirm("Schedule this message to " + emails.length + " vendor" + (emails.length === 1 ? "" : "s") + " in BCC?")) return;
+  var btn = $("sendBtn"); btn.classList.add("busy");
+  var payload = { sender:$("sender").value, reply_to:currentReply(), template:"msg:" + TPL + ":" + stamp(), subject:filled($("subj").value).trim(), body:filled($("body").value), by:$("by").value.trim() };
+  if(test){ payload.kind = "vm_send"; payload.to = emails.length && emails.length <= BATCH_MAX ? emails : [testTo]; payload.test = true; payload.test_to = testTo; }
+  else { payload.kind = "vm_queue"; payload.to = emails; }
+  post(SEND_WEBHOOK, payload).then(function(r){
+    btn.classList.remove("busy");
+    if(!r || r.ok === false){ note("sendErr", esc((r && r.error) || "The script did not answer.") + ' If the hub sender is down, use <b>Open in mail app</b> below.', "err"); return; }
+    if(test){ note("sendOk", "Test copy sent to " + esc(testTo) + ". The live send would go to " + emails.length + " vendors.", "ok"); return; }
+    var n = r.queued != null ? r.queued : emails.length;
+    note("sendOk", "<b>Scheduled.</b> " + n + " vendor" + (n === 1 ? "" : "s") + " will get it, 20 per email, one batch every 10 minutes between 7am and 7pm." + (r.already ? " " + r.already + " had already been sent this one." : "") + (r.blocked && r.blocked.length ? " " + r.blocked.length + " on the do not email list were skipped." : "") + (r.sent_now ? " The first " + r.sent_now + " went out just now." : "") + (r.note ? " " + esc(r.note) : "") + " Every send is logged on the Vendor Messages tab.", "ok");
+    SEL = {}; buildPicker(); preview();
+  }).catch(function(){ btn.classList.remove("busy"); note("sendErr", 'Could not reach the sender script. Nothing was scheduled. Use <b>Open in mail app</b> below or try again.', "err"); });
+});
+$("mailappBtn").addEventListener("click", function(){
+  note("sendErr", ""); var err = checkReady(); if(err && !/your name|email for replies/.test(err)){ note("sendErr", esc(err), "err"); return; }
+  var emails = selectedEmails(); if(!emails.length){ note("sendErr", "Pick at least one vendor.", "err"); return; }
+  var s = SENDERS[$("sender").value];
+  var subject = filled($("subj").value).trim(), body = (filled($("body").value).trim() + "\n\n" + s.foot + "\n" + DNE_SHORT).replace(/\r?\n/g, "\r\n");
+  var base = "mailto:" + encodeURIComponent(s.reply) + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body) + "&bcc=";
+  var budget = Math.max(MAILTO_MAX - base.length, 300), batches = [], cur = [];
+  emails.forEach(function(e){ var t = cur.concat(e).join(","); if(cur.length && t.length > budget){ batches.push(cur); cur = [e]; } else cur.push(e); });
+  if(cur.length) batches.push(cur);
+  $("mailtos").innerHTML = (batches.length > 1 ? '<p class="hint">Mail apps cap how long a link can be, so this is ' + batches.length + ' emails. Open each one and send it.</p>' : "") + batches.map(function(b, i){ return '<a class="btn ghost sm" href="' + base + encodeURIComponent(b.join(",")) + '">Open email ' + (i + 1) + ' (' + b.length + ' in BCC)</a>'; }).join("");
+  if(batches.length === 1) location.href = base + encodeURIComponent(batches[0].join(","));
+});
+
+/* ---------- boot ---------- */
+function boot(){
+  $("by").value = lsGet("cwVendorEmailBy"); $("myEmail").value = lsGet("cwVendorEmailMe"); $("testTo").value = lsGet("cwVendorEmailTest");
+  PREPICK = param("vendor").toUpperCase();
+  renderShelf(); pickTpl(param("tpl") || lsGet("cwVendorEmailTpl") || "uniforms");
+  if(param("from") === "admin"){ $("backlink").href = "https://citywidelv.github.io/cw-admin-hub/"; $("backlink").innerHTML = "&larr; Admin Hub"; }
+  var t = param("type") || (PREPICK ? "message" : "");
+  if(t) choose(t);
+}
+var p = CWAuth.require({ hub:"ops" });
+if(p){ $("app").classList.remove("hidden"); boot(); }
+})();
+</script>
+</body>
+</html>

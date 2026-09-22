@@ -153,6 +153,9 @@ textarea{min-height:74px;resize:vertical;line-height:1.55}
 @media(max-width:600px){.pick{grid-template-columns:1fr}}
 </style>
 <link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+<!-- embed=1: shown inside vendor-email.html, so the page header and footer are hidden -->
+<style>html.embed .head,html.embed .foot,html.embed footer{display:none!important}html.embed body{background:#fff}</style>
+<script>if(/[?&]embed=1/.test(location.search))document.documentElement.classList.add("embed");</script>
 </head>
 <body>
 <header class="head"><div class="bar">

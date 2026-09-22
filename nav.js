@@ -56,6 +56,10 @@ window.CW_NAV = {
    "icon": "clip",
    "items": [
     {
+     "label": "Vendor Email (one place to send)",
+     "href": "vendor-email.html"
+    },
+    {
      "sub": "Active Vendors",
      "items": [
       {
@@ -805,6 +809,11 @@ window.CW_NAV = {
    "label": "Create an Exhibit A",
    "href": "create-exhibit-a.html",
    "icon": "clip"
+  },
+  {
+   "label": "Vendor Email",
+   "href": "vendor-email.html",
+   "icon": "mail"
   },
   {
    "label": "Invite a New Vendor",
