@@ -73,9 +73,11 @@ body{margin:0;font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,
     <div class="ok" id="okBox"></div>
     <p style="margin:18px 0 0;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
       <button class="btn" id="approveBtn" onclick="approve()">Approved by Director. Send the Notice</button>
+      <button class="btn dark" id="mailappBtn" onclick="approve(true)">Approve and send from my mail app</button>
       <button class="btn ghost" id="discardBtn" onclick="discard()">Discard without sending</button>
     </p>
     <p class="note" style="margin-top:12px;">Approving sends the notice to the vendor with a CC to the issuer and logs your approval. Discarding cancels it; the vendor never sees it and it does not count against their history.</p>
+    <p class="note" style="margin-top:8px;"><b>Approve and send from my mail app</b> is the backup if the hub sender is down. It logs your approval the same way, copies the notice, and opens a new email in Outlook addressed to the vendor with the issuer in CC. Paste the notice into the email body and send it yourself.</p>
   </div>
 </div>
 </div>
@@ -112,6 +114,7 @@ function boot(){
       el('doneWarn').style.display='block';
       el('editBody').setAttribute('contenteditable','false');
       el('approveBtn').disabled=true;
+      el('mailappBtn').disabled=true;
       el('discardBtn').disabled=true;
       document.querySelector('#reviewCard .sub').textContent='Read-only record of the notice.';
     }
@@ -119,25 +122,60 @@ function boot(){
   }).catch(function(e){el('loadErr').textContent='Could not reach the server. '+e;el('loadErr').style.display='block';});
 }
 
-function approve(){
+/* Copies the notice as formatted HTML (and plain text) so it pastes into Outlook looking the same. */
+function copyNotice(){
+  var html=el('editBody').innerHTML, text=el('editBody').innerText;
+  if(navigator.clipboard&&window.ClipboardItem){
+    try{
+      return navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]).then(function(){return true;},function(){return copyPlain(text);});
+    }catch(e){}
+  }
+  return Promise.resolve(copyPlain(text));
+}
+function copyPlain(text){
+  var t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();
+  var ok=false;try{ok=document.execCommand('copy');}catch(e){}
+  document.body.removeChild(t);return ok;
+}
+function esc(s){var d=document.createElement('div');d.textContent=String(s==null?'':s);return d.innerHTML;}
+
+/* mailApp=true: the hub records the approval but does not send. The notice is
+   copied and a new email opens in the approver's own mail app (Sep 21 2026). */
+function approve(mailApp){
   el('actErr').style.display='none';
-  var b=el('approveBtn');
-  b.disabled=true;b.textContent='Sending...';
+  var b=el('approveBtn'), mb=el('mailappBtn');
+  b.disabled=true;mb.disabled=true;(mailApp?mb:b).textContent=mailApp?'Approving...':'Sending...';
   var payload={kind:'vio_approve',token:TOKEN};
+  if(mailApp)payload.mailapp=true;
   if(EDITED)payload.html=el('editBody').innerHTML;
   post(payload).then(function(r){
     if(!r.ok){
-      b.disabled=false;b.textContent='Approved by Director. Send the Notice';
+      b.disabled=false;mb.disabled=false;b.textContent='Approved by Director. Send the Notice';mb.textContent='Approve and send from my mail app';
       el('actErr').textContent=r.error||'Could not send.';el('actErr').style.display='block';return;
     }
-    b.textContent='Approved and sent';
+    // If the script is older than this page it ignores mailapp and sends from the hub itself. Say so, and do not open a second copy.
+    if(mailApp&&r.mailapp!==true){mailApp=false;el('actErr').textContent='The hub script does not know the mail app option yet, so it sent the notice itself. Nothing more to do.';el('actErr').style.display='block';}
+    b.textContent=mailApp?'Approved':'Approved and sent';
+    mb.style.display=mailApp?'':'none';mb.textContent='Open the email again';mb.disabled=false;
     el('discardBtn').style.display='none';
     el('editBody').setAttribute('contenteditable','false');
     var ok=el('okBox');
+    if(mailApp){
+      var to=r.to||el('mEmail').textContent, cc=r.cc||'', subject=r.subject||'';
+      var href='mailto:'+to+'?subject='+encodeURIComponent(subject)+(cc?'&cc='+cc:'')+
+        '&body='+encodeURIComponent('Paste the notice here (Ctrl+V or Cmd+V), then delete this line.\r\n');
+      mb.onclick=function(){copyNotice().then(function(){window.location.href=href;});};
+      ok.innerHTML='<b>Notice '+r.notice_id+' approved.</b> Your approval is logged on the CW Violation Notices sheet. The hub did not send it. '+
+        'The notice is copied to your clipboard and a new email to <b>'+esc(to)+'</b>'+(cc?' (CC '+esc(cc)+')':'')+' is opening in your mail app. '+
+        'Click in the body, paste, check it, and send. If the email did not open, click <b>Open the email again</b>.';
+      ok.style.display='block';
+      copyNotice().then(function(){window.location.href=href;});
+      return;
+    }
     ok.innerHTML='<b>Notice '+r.notice_id+' approved and sent.</b> '+(r.test?'TEST mode: it went to tjroberts@gocitywide.com.':'Delivered to the vendor with a CC to the issuer.')+' Your approval is logged on the CW Violation Notices sheet.'+(r.relay_missing?'<br><b>Heads up:</b> the Reno relay is not configured, so this went out from the Las Vegas account.':'');
     ok.style.display='block';
   }).catch(function(e){
-    b.disabled=false;b.textContent='Approved by Director. Send the Notice';
+    b.disabled=false;mb.disabled=false;b.textContent='Approved by Director. Send the Notice';mb.textContent='Approve and send from my mail app';
     el('actErr').textContent='Could not send. '+e;el('actErr').style.display='block';
   });
 }
@@ -150,6 +188,7 @@ function discard(){
     if(!r.ok){b.disabled=false;b.textContent='Discard without sending';DISCARM=false;el('actErr').textContent=r.error||'Could not discard.';el('actErr').style.display='block';return;}
     b.textContent='Discarded';
     el('approveBtn').disabled=true;
+    el('mailappBtn').disabled=true;
     el('editBody').setAttribute('contenteditable','false');
     var ok=el('okBox');
     ok.innerHTML='<b>Notice '+r.notice_id+' discarded.</b> The vendor never sees it and it does not count against their history.';

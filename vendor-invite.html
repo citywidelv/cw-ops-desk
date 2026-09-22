@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Invite a New Vendor | CW Ops Hub</title>
-<!-- build 2026-09-18b
+<!-- build 2026-09-21a
 Invite a new vendor for Las Vegas or Northern Nevada. Replaces the four Asana
 "request a vendor packet" forms. Posts kind vd_invite (VendorDirectory.gs): the
 vendor gets the New Vendor steps on the Vendor Hub, and the same call puts them
@@ -26,6 +26,12 @@ email link, and the fix is the Sheet.
 
 Service type is optional. Anyone invited without one lands on "Not Sorted Yet"
 and their own evaluation form fills the record in.
+
+Sep 21 2026: "Open in mail app" is the backup when the hub sender is down. It
+opens the same invite, as plain text, in the sender's own mail app addressed to
+the vendor. That path sends nothing through the hub, so the vendor is NOT added
+to the directory and nothing is logged; the hint under the button says so and
+links vendor-add.html.
 Gate: reuses the cached team passcode (cw-auth.js).
 -->
 <link rel="icon" href="favicon.ico" sizes="any">
@@ -228,7 +234,8 @@ textarea{min-height:74px;resize:vertical;line-height:1.55}
 </div>
 <div class="sends" id="sends"></div>
 <label class="tst"><input type="checkbox" id="test"> Send it to the office inbox instead so I can read it first</label>
-<div class="actions"><button class="btn" id="send" type="submit">Send the invite</button><a class="btn ghost" href="https://citywidelv.github.io/cw-vendor-hub/new-vendors.html" target="_blank" rel="noopener">See the page it opens</a></div>
+<div class="actions"><button class="btn" id="send" type="submit">Send the invite</button><button class="btn ghost" id="mailapp" type="button">Open in mail app</button><a class="btn ghost" href="https://citywidelv.github.io/cw-vendor-hub/new-vendors.html" target="_blank" rel="noopener">See the page it opens</a></div>
+<div class="hint" style="margin-top:10px">Open in mail app is the backup if the hub sender is down. It opens this invite in Outlook or your own mail app, plain text, addressed to the vendor. Nothing is logged and the vendor is not added to the directory, so <a href="vendor-add.html">add them yourself</a> after you send it.</div>
 </div>
 </form>
 
@@ -473,6 +480,38 @@ $("frm").addEventListener("submit", function(e){
     $("frm").classList.add("hidden"); $("pick").classList.add("hidden"); $("done").classList.remove("hidden");
     window.scrollTo({ top:0, behavior:"smooth" });
   });
+});
+
+/* ---------------------------------------------------- open in mail app --- */
+/* Plain text twin of renderBody: the {button} paragraph becomes "Words: link",
+   the {fsm} card becomes the person's lines, and the footer matches the preview. */
+function plainBody(text){
+  var placed = false, f = person(), m = mk();
+  var out = String(text).replace(/\r/g,"").split(/\n{2,}/).map(function(p){
+    var t = p.trim();
+    if(!t) return "";
+    if(t === "{button}"){ placed = true; return ($("button").value.trim() || BTN) + ": " + link(); }
+    if(t === "{fsm}"){
+      if(!f) return "";
+      return [f.name, f.title, "City Wide " + m.name, "Operations line " + m.phone, f.email].filter(Boolean).join("\n");
+    }
+    return p.split("\n").filter(function(l){ return l.trim() !== ""; }).join("\n");
+  }).filter(Boolean);
+  if(!placed) out.push(($("button").value.trim() || BTN) + ": " + link());
+  out.push("City Wide Facility Solutions of " + m.name + "\n" + m.phone + "\n" + m.reply + "\nGoCityWide.com");
+  return out.join("\n\n");
+}
+$("mailapp").addEventListener("click", function(){
+  var business = $("business").value.trim(), email = $("email").value.trim();
+  var subject = fill($("subject").value.trim()), body = $("body").value.replace(/\r/g,"").trim();
+  var m = !business ? "Type the company name." :
+          !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? "That email address does not look right." :
+          !subject ? "Write a subject." :
+          !body ? "Write the message, or click start over to put the standard invite back." : "";
+  if(m){ say(m); return; }
+  say("");
+  var text = plainBody(fill(body)).replace(/\n/g,"\r\n");
+  window.location.href = "mailto:" + email + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(text);
 });
 
 /* -------------------------------------------------------------- load ---- */

@@ -1,9 +1,15 @@
-/* CW Ops Hub: Email Vendors panel (build 2026-09-17c: one click Schedule and Send through the CW Vendor Sender)
+/* CW Ops Hub: Email Vendors panel (build 2026-09-21a: Open in mail app fallback beside Schedule and Send)
    Shared by post.html (right after a posting goes live) and postings.html
    (any open posting). Pulls the live Vendor Directory (vd_list), matches
    vendors to the posting's region and trade, and sends a short branded HTML
-   email through the company Gmail (kind vm_queue, CW Vendor Sender script). Nothing
-   opens in Outlook. Every send is logged on the Vendor Messages tab.
+   email through the company Gmail (kind vm_queue, CW Vendor Sender script). Every
+   send is logged on the Vendor Messages tab.
+
+   Fallback (TJ, Sep 21 2026): when the hub sender is down, "Open in mail app"
+   opens the same email in the sender's own mail app (Outlook, Apple Mail) with
+   To = the office mailbox and every checked vendor in BCC, split into batches
+   because mail apps cap how long a mailto link can be. Plain text, no logo,
+   and nothing is logged on the hub, so the Emailed tags do not update.
 
    Rule from TJ: vendors are ALWAYS blind copied. The To line is the office
    mailbox. No path here puts a vendor in To or CC. Do not add one.
@@ -41,6 +47,8 @@
   var OPT_OUT = "To stop these emails, reply and ask to be taken off our lists. You will stop hearing about new work. Notices about buildings you hold will still come to this address. A vendor we cannot reach by email cannot stay active with City Wide.";
   var LOGO = "https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png";
   var BATCH_MAX = 50, CHUNK = 20;   // must match VM_BATCH_MAX / VM_CHUNK in VendorMessages.gs
+  var MAILTO_MAX = 1800;            // longest mailto: link that Outlook and Apple Mail open reliably
+  var OPT_OUT_SHORT = "To stop these emails, reply and ask to be taken off our lists.";
   var SENDERS = {
     lv:  { name: "City Wide of Las Vegas",       reply: "lvservicecall@gocitywide.com", foot: "City Wide Facility Solutions of Las Vegas, 3215 W Charleston Blvd, Suite 130, Las Vegas, NV 89102" },
     nnv: { name: "City Wide of Northern Nevada", reply: "rnservicecall@gocitywide.com", foot: "City Wide Facility Solutions of Northern Nevada, 1000 Bible Way, Suite 2, Reno, NV 89502" }
@@ -139,6 +147,8 @@
     ".cwn .btn:disabled{opacity:.45;cursor:default}" +
     ".cwn .done{font-size:13px;background:#E6F5EA;border:1px solid #1E7B34;color:#14532d;border-radius:8px;padding:10px 14px;margin-top:10px}" +
     ".cwn .err{font-size:13px;background:#FDECEC;border:1px solid #D22730;color:#8c1a20;border-radius:8px;padding:10px 14px;margin-top:10px}" +
+    ".cwn .mailtos{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}" +
+    ".cwn .mailtos .btn{font-size:13px;padding:10px 16px}" +
     ".cwn .hidden{display:none!important}";
 
   var cache = null;      // vd_list result for this page load
@@ -322,7 +332,8 @@
     var h = '<h3>Email vendors about this posting</h3>' +
       '<div class="sub"><b>1.</b> Check the vendors who should hear about this job. Nobody is checked to start. ' +
       '<b>2.</b> Look over the email. <b>3.</b> Click Schedule and Send once. The hub sends it for you as ' + esc(sender.name) +
-      ', 20 vendors at a time every 10 minutes, every vendor on BCC so nobody sees anybody else. You can close the page. Nothing opens in Outlook.</div>' +
+      ', 20 vendors at a time every 10 minutes, every vendor on BCC so nobody sees anybody else. You can close the page. ' +
+      'If the hub sender is down, use <b>Open in mail app</b> instead and send it from Outlook yourself.</div>' +
       '<div class="qstat hidden"></div>' +
       '<div class="tools"><input type="search" placeholder="Find a vendor&hellip;"></div>';
     if (!pick.slugs.length) {
@@ -358,6 +369,9 @@
       '<div class="line"><span class="tot"></span><button type="button" class="btn ghost sm" data-act="refresh">Refresh count</button>' +
       '<button type="button" class="btn" data-act="send">Schedule and Send</button>' +
       '<button type="button" class="btn ghost sm hidden" data-act="cancel">Cancel</button></div>' +
+      '<div class="line"><button type="button" class="btn ghost sm" data-act="mailapp">Open in mail app</button>' +
+      '<span class="msg mailnote">Backup if the hub sender is down. Opens this email in Outlook or your own mail app with the vendors in BCC. Nothing is logged on the hub.</span></div>' +
+      '<div class="mailtos hidden"></div>' +
       '<div class="line"><label>Send a test copy to <input type="email" class="testto" placeholder="you@gocitywide.com" autocomplete="email"></label>' +
       '<button type="button" class="btn ghost sm" data-act="test">Send me a test</button>' +
       '<button type="button" class="btn ghost sm" data-act="copy">Copy addresses</button><span class="msg copied"></span></div>' +
@@ -461,6 +475,37 @@
       q(".quota").textContent = quota >= 0 ? "Vendor emails left today: " + Math.max(0, quota - reserve) + "." : "";
       preview();
     }
+    // Open in mail app: same To, BCC, subject and body, through a mailto: link. Mail apps cap the link length,
+    // so a long list becomes several emails; each one is offered as its own button.
+    function openMailApp() {
+      var holder = q(".mailtos"); holder.innerHTML = ""; holder.classList.add("hidden");
+      show(".err", "");
+      var subj = q(".ed-subj").value.trim(), body = q(".ed-body").value.replace(/\r/g, "").trim(), emails = selected();
+      var why = !subj ? "Write a subject first." : !body ? "Write the message first." : !emails.length ? "Check at least one vendor." : "";
+      if (why) { show(".err", esc(why)); return; }
+      var text = (body + "\n\n" + sender.foot + "\n" + OPT_OUT_SHORT).replace(/\n/g, "\r\n");
+      var base = "mailto:" + sender.reply + "?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(text) + "&bcc=";
+      // A long edited body eats the link budget. Always leave room for at least ~25 addresses per email.
+      var cap = Math.max(MAILTO_MAX, base.length + 900);
+      var batches = [], cur = [];
+      emails.forEach(function (em) {
+        if (cur.length && (base + encodeURIComponent(cur.concat([em]).join(","))).length > cap) { batches.push(cur); cur = []; }
+        cur.push(em);
+      });
+      if (cur.length) batches.push(cur);
+      if (batches.length === 1) { window.location.href = base + encodeURIComponent(batches[0].join(",")); return; }
+      batches.forEach(function (b, i) {
+        var a = document.createElement("a"); a.className = "btn ghost"; a.href = base + encodeURIComponent(b.join(","));
+        a.textContent = "Open email " + (i + 1) + " of " + batches.length + " (" + b.length + " in BCC)";
+        holder.appendChild(a);
+      });
+      var note = document.createElement("div"); note.className = "msg";
+      note.style.width = "100%";
+      note.textContent = "Mail apps cap how many addresses one link can carry, so this list is split into " + batches.length + " emails. Open and send each one. Every vendor is in BCC.";
+      holder.appendChild(note);
+      holder.classList.remove("hidden");
+    }
+    q('[data-act="mailapp"]').addEventListener("click", openMailApp);
     q('[data-act="refresh"]').addEventListener("click", function () {
       update(); var t = q(".tot"); t.classList.add("flash"); setTimeout(function () { t.classList.remove("flash"); }, 600);
     });

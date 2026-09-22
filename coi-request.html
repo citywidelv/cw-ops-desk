@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Request a COI for a Customer | CW Ops Hub</title>
-<!-- build 2026-09-05b (success screen inline email fix)
+<!-- build 2026-09-21a (Open in mail app backup on the success screen)
 Customer certificate of insurance (COI) request. A rep or FSM answers every question a
 customer can ask for on an ACORD 25, pastes the customer's own email, and attaches a
 sample or spec if one was sent. The page renders the broker checklist and posts it
@@ -14,6 +14,9 @@ the market compliance inbox. Status is tracked on the Admin Hub (coi-log.html).
 Gate: reuses the team passcode cached by the Ops Hub, Sales Hub, or Admin Hub on this
 origin; the server checks it on every call. Add ?test=1 to send to the test inbox.
 This is the customer-facing direction. Vendor COIs coming in are insurance.html.
+Sep 21 2026: the success screen always offers "Open in mail app": copies the checklist
+and opens a new email to the compliance inbox in the requester's own mail app, for when
+the hub sender is down. Attached files do not travel that way; the Drive links do.
 -->
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
@@ -798,12 +801,23 @@ function submit(e){
       (TEST ? '<div class="warn">TEST request. It went to the test inbox and is flagged TEST on the log.</div>' : '') +
       '<div class="actions" style="justify-content:center;margin-top:16px">' +
       '<button type="button" class="btn ghost" id="copy2">Copy the checklist</button>' +
+      '<button type="button" class="btn ghost" id="mailapp2">Open in mail app</button>' +
       '<a class="btn ghost" href="' + LOG_URL + '">Open the request log</a>' +
       '<a class="btn" href="' + location.pathname + (TEST ? '?test=1' : '') + '">Start another request</a></div>' +
       '<pre id="pre2" style="text-align:left;font-family:inherit;font-size:11.5px;line-height:1.5;white-space:pre-wrap;background:#F5F5F5;border:1px solid #E5E5E5;border-radius:8px;padding:12px 14px;margin-top:18px;max-height:50vh;overflow:auto"></pre>';
     $("pre2").textContent = text + "\n\nRequest " + r.id;
     $("done").classList.remove("hidden");
     $("copy2").addEventListener("click", function(){ copyText(text + "\n\nRequest " + r.id, $("copy2")); });
+    // Backup for a down hub sender: the checklist is copied, then a new email to the compliance inbox opens
+    // in the requester's own mail app. The body stays short because mail apps cap mailto links.
+    $("mailapp2").addEventListener("click", function(){
+      var to = TEST ? (CTX.test_to || "") : ((MARKETS[A.market] || {}).compliance || "");
+      var links = (r.links && r.links.length) ? "\r\n\r\nFiles in Drive:\r\n" + r.links.map(function(l){ return typeof l === "string" ? l : (l.url || l.link || ""); }).filter(Boolean).join("\r\n") : "";
+      var body = "COI request " + r.id + ". Paste the checklist below this line (Ctrl+V or Cmd+V)." + links + "\r\n\r\n";
+      var href = "mailto:" + to + "?subject=" + encodeURIComponent((TEST ? "[TEST] " : "") + "COI request | " + (answers.account_name || "") + " | " + (A.market || "") + " | " + r.id) + "&body=" + encodeURIComponent(body);
+      copyText(text + "\n\nRequest " + r.id, $("mailapp2"));
+      setTimeout(function(){ window.location.href = href; }, 250);
+    });
     window.scrollTo({ top:0, behavior:"smooth" });
   });
 }

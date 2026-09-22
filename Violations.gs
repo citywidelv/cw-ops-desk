@@ -495,8 +495,11 @@ function vioSubmit_(d) {
   var rule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
   sh.getRange(nextRow, VIO_LOG_HEADERS.indexOf('test') + 1).setDataValidation(rule).setValue(test);
 
+  // Sep 21 2026: the approval link and subject come back to the page, so when the
+  // hub sender is down the issuer can email the approver from their own mail app.
   return _json({ ok: true, notice_id: nid, test: test, pending: true,
-    approver: approver, email_status: emailStatus });
+    approver: approver, email_status: emailStatus,
+    approve_link: approveLink, approve_to: apprTo, approve_subject: apprSubject });
 }
 
 // ------------------------------------------------------- approval flow -----
@@ -607,11 +610,18 @@ function vioApprove_(data) {
   var to = test ? VIO_TEST_TO : notify;
   var cc = String(H('issuer_email') || '');
   var replyTo = vioSender_(String(H('market'))).replyTo;
+  // Sep 21 2026: mailapp:true = the approver sends the notice from their own mail
+  // app (hub sender down). The approval is recorded the same way; only the send is skipped.
+  var viaMailApp = data.mailapp === true || String(data.mailapp).toUpperCase() === 'TRUE';
   var sent;
-  try {
-    sent = vioSendVendor_(String(H('market')), test, to, cc, replyTo, subject, html, nid);
-  } catch (mailErr) {
-    sent = { emailStatus: 'SEND FAILED: ' + String(mailErr), relayMissing: false };
+  if (viaMailApp) {
+    sent = { emailStatus: 'approved; sent by the approver from their own mail app', relayMissing: false };
+  } else {
+    try {
+      sent = vioSendVendor_(String(H('market')), test, to, cc, replyTo, subject, html, nid);
+    } catch (mailErr) {
+      sent = { emailStatus: 'SEND FAILED: ' + String(mailErr), relayMissing: false };
+    }
   }
   vioCell_(hit, 'status', 'Open');
   vioCell_(hit, 'email_status', sent.emailStatus);
@@ -619,7 +629,8 @@ function vioApprove_(data) {
   vioCell_(hit, 'approved_date', new Date());
   if (data.html) vioCell_(hit, 'notes', String(H('notes') || '') + (H('notes') ? ' | ' : '') + 'Body edited at approval');
   return _json({ ok: true, notice_id: nid, test: test, email_status: sent.emailStatus,
-    relay_missing: sent.relayMissing });
+    relay_missing: sent.relayMissing, mailapp: viaMailApp,
+    to: to, cc: cc, reply_to: replyTo, subject: subject });
 }
 
 function vioDiscard_(data) {

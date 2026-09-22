@@ -35,6 +35,7 @@ textarea{min-height:60px;resize:vertical;}
 .hist ul{margin:6px 0 0 16px;padding:0;}
 .btn{background:var(--red);color:#fff;border:0;border-radius:6px;font-family:inherit;font-size:14px;font-weight:bold;padding:12px 22px;cursor:pointer;}
 .btn.dark{background:var(--black);}
+.btn.ghost{background:#fff;color:var(--black);border:1px solid #ccc;font-weight:normal;}
 .btn:disabled{background:#bbb;cursor:default;}
 .note{font-size:12px;color:var(--grey);}
 .warn{background:#fff6d8;border:1px solid #e5b423;border-radius:8px;padding:10px 14px;font-size:12.5px;margin:0 0 16px;}
@@ -495,7 +496,12 @@ function send(){
     el('sendBtn').textContent='Submit for Director approval';
     if(!r.ok){eb.textContent=r.error||'Send failed';eb.style.display='block';return;}
     var ok=el('okBox');
+    // Sep 21 2026: the approval link comes back from the server, so if the hub's email to the
+    // approver never lands, the issuer can send the same link from their own mail app.
+    var mailto=r.approve_link?('mailto:'+(r.approve_to||r.approver||'')+'?subject='+encodeURIComponent(r.approve_subject||('Approval required | Notice '+r.notice_id))+
+      '&body='+encodeURIComponent('Notice '+r.notice_id+' is waiting for your approval.\r\n\r\nReview and approve it here:\r\n'+r.approve_link+'\r\n')):'';
     ok.innerHTML='<b>Notice '+r.notice_id+' staged for approval.</b> '+(r.test?'TEST mode: the approval request went to tjroberts@gocitywide.com.':'Sent to '+(r.approver||'the Director of Operations')+' for review. Nothing reaches the vendor until it is approved.')+' Logged on the CW Violation Notices sheet as Pending approval.'+(r.relay_missing?'<br><b>Heads up:</b> the Reno relay is not configured, so this went out from the Las Vegas account.':'')+
+      (mailto?'<br><br><span class="note">If the approval email does not arrive (hub sender down), send the review link yourself: </span><a class="btn ghost" style="display:inline-block;text-decoration:none;padding:9px 14px;font-size:13px" href="'+mailto.replace(/"/g,'&quot;')+'">Open approval request in mail app</a>':'')+
       '<br><br><button class="btn dark" onclick="another()">Issue another notice</button>';
     ok.style.display='block';
     PHOTOS=[];drawThumbs();
