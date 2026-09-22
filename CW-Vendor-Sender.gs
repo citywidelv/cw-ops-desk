@@ -74,20 +74,29 @@ var DNE_FOOTER = 'To stop these emails, reply and ask to be taken off our lists.
 function dneFilter_(emails) {
   var pass = VS_CUR_PASS || PropertiesService.getScriptProperties().getProperty('VS_PASS') || '';
   if (!pass) throw new Error('No passcode on file yet.');
-  // The main script is sometimes busy for a moment. Try three times before giving up.
-  var j = null, lastErr = '';
-  for (var attempt = 0; attempt < 3 && !(j && j.ok === true && j.blocked); attempt++) {
-    if (attempt) Utilities.sleep(2000);
-    try {
-      var r = UrlFetchApp.fetch(VS_MAIN, { method: 'post', contentType: 'text/plain', payload: JSON.stringify({ kind: 'dne_list', passcode: pass }),
-        followRedirects: true, muteHttpExceptions: true });
-      j = JSON.parse(r.getContentText());
-      if (!(j && j.ok === true && j.blocked)) lastErr = (j && j.error) || 'The main script did not answer.';
-    } catch (e) { j = null; lastErr = String(e && e.message || e); }
+  // Sep 22 2026: the blocked list is cached for 5 minutes. Every send used to make a
+  // round trip to the main script for the whole directory, and that hop is what made
+  // a send take one to four minutes. A vendor added to the list is blocked within 5 min.
+  var cache = null, blockedList = null;
+  try { cache = CacheService.getScriptCache(); var hit = cache.get('dne_blocked_v1'); if (hit) blockedList = JSON.parse(hit); } catch (e) { blockedList = null; }
+  if (!blockedList) {
+    // The main script is sometimes busy for a moment. Try three times before giving up.
+    var j = null, lastErr = '';
+    for (var attempt = 0; attempt < 3 && !(j && j.ok === true && j.blocked); attempt++) {
+      if (attempt) Utilities.sleep(2000);
+      try {
+        var r = UrlFetchApp.fetch(VS_MAIN, { method: 'post', contentType: 'text/plain', payload: JSON.stringify({ kind: 'dne_list', passcode: pass }),
+          followRedirects: true, muteHttpExceptions: true });
+        j = JSON.parse(r.getContentText());
+        if (!(j && j.ok === true && j.blocked)) lastErr = (j && j.error) || 'The main script did not answer.';
+      } catch (e) { j = null; lastErr = String(e && e.message || e); }
+    }
+    if (!(j && j.ok === true && j.blocked)) throw new Error(lastErr || 'The main script did not answer.');
+    blockedList = j.blocked.map(function (b) { return String(b && b.email || '').trim().toLowerCase(); }).filter(function (e) { return e; });
+    try { if (cache) cache.put('dne_blocked_v1', JSON.stringify(blockedList), 300); } catch (e) {}
   }
-  if (!(j && j.ok === true && j.blocked)) throw new Error(lastErr || 'The main script did not answer.');
   var set = {};
-  j.blocked.forEach(function (b) { var e = String(b && b.email || '').trim().toLowerCase(); if (e) set[e] = true; });
+  blockedList.forEach(function (e) { set[e] = true; });
   var ok = [], blocked = [];
   (emails || []).forEach(function (e) {
     var s = String(e || '').trim().toLowerCase();
