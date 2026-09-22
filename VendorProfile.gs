@@ -1,5 +1,5 @@
 // ============================================================
-// VendorProfile.gs - one vendor, everything, one page (Sep 22 2026, b: column-limited reads)
+// VendorProfile.gs - one vendor, everything, one page (Sep 22 2026, c: parallel parts, index cache)
 // File in the CW Solicitations Apps Script project.
 // Routing: doPost in Code.gs routes any kind starting 'vp_' to vpDispatch(d),
 //          just before doPostBase.
@@ -12,11 +12,13 @@
 //   do not email / hide   dne_add / dne_remove / dne_hide (DoNotEmail.gs)
 //
 // Kinds (team passcode):
-//   vp_index   slim list of every directory vendor for the search box
-//   vp_get     {vendor_id, part}  part 'core' = everything on the CW Vendor
-//              Directory book (fast, one book); part 'more' = the other books
-//              (responses, uploads, notices, insurance, profile requests).
-//              The page asks for core first, paints, then asks for more.
+//   vp_index   slim list of every directory vendor for the search box (cached 10 min,
+//              {fresh:true} bypasses the cache; the page sends that after a save)
+//   vp_get     {vendor_id, part}  part 'head' = record + summary; 'onboarding' =
+//              checklist, requests, log; 'crew' = background checks, evaluation,
+//              audits; 'more' = the other books (responses, uploads, notices,
+//              insurance, profile requests); 'core' = head + onboarding + crew.
+//              The page fires head, onboarding, crew and more at once.
 //
 // How a record is tied to the vendor. Only the directory, Onboarding, BC
 // Requests, the Background checks tabs, Audits and profile Requests carry a
@@ -43,7 +45,19 @@ function vpDispatch(d) {
 
 // ------------------------------------------------------------ index ------
 
+var VP_INDEX_KEY = 'vp_index_v1', VP_INDEX_TTL = 600;
 function vpIndex_(d) {
+  var cache = null;
+  try { cache = CacheService.getScriptCache(); } catch (e) {}
+  if (cache && !d.fresh) {
+    try {
+      var hit = cache.get(VP_INDEX_KEY);
+      if (hit) {
+        var json = Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(hit), 'application/x-gzip')).getDataAsString();
+        return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+      }
+    } catch (e) {}
+  }
   var ss = vdSS_();
   var out = [];
   vdAllRows_(ss).forEach(function (r) {
@@ -56,7 +70,14 @@ function vpIndex_(d) {
     });
   });
   out.sort(function (a, b) { return a.dba_name.toLowerCase() < b.dba_name.toLowerCase() ? -1 : 1; });
-  return vdOut_({ ok: true, vendors: out, total: out.length, generated: new Date().toISOString() });
+  var res = { ok: true, vendors: out, total: out.length, generated: new Date().toISOString(), cached: false };
+  if (cache) {
+    try {
+      var packed = Utilities.base64Encode(Utilities.gzip(Utilities.newBlob(JSON.stringify(Object.assign({}, res, { cached: true })))).getBytes());
+      if (packed.length < 95000) cache.put(VP_INDEX_KEY, packed, VP_INDEX_TTL);
+    } catch (e) {}
+  }
+  return vdOut_(res);
 }
 
 // ------------------------------------------------------------ get --------
@@ -65,33 +86,44 @@ function vpGet_(d) {
   var vid = vdStr_(d.vendor_id);
   if (!vid) return vdOut_({ ok: false, error: 'No vendor id.' });
   var part = vdStr_(d.part) || 'core';
+  var t0 = Date.now();
   var ss = vdSS_();
   var v = vpFindVendor_(ss, vid);
   if (!v) return vdOut_({ ok: false, error: 'No vendor with id ' + vid + ' on the directory.' });
 
   var m = vpMatcher_(v);
-  var out = { ok: true, vendor_id: vid, part: part, errors: {}, generated: new Date().toISOString() };
+  var out = { ok: true, vendor_id: vid, part: part, errors: {}, timing: { find: Date.now() - t0 }, generated: new Date().toISOString() };
   function block(name, fn) {
+    var t = Date.now();
     try { out[name] = fn(); } catch (e) { out.errors[name] = String(e && e.message ? e.message : e); }
+    out.timing[name] = Date.now() - t;
   }
 
-  if (part === 'core') {
+  // Parts. The page asks for head, onboarding, crew and more AT THE SAME TIME, so
+  // the wall time is the slowest part, not the sum. 'core' is the old head +
+  // onboarding + crew in one call, kept for anything that still asks for it.
+  var want = { head: /^(core|head)$/.test(part), onboarding: /^(core|onboarding)$/.test(part), crew: /^(core|crew)$/.test(part), more: part === 'more' };
+  if (want.head) {
     block('record', function () { return vpRecord_(v); });
     block('summary', function () { return vpSummary_(v, ss); });
+  }
+  if (want.onboarding) {
     block('onboarding', function () { return vpOnboarding_(ss, v, m); });
     block('requests', function () { return vpRequests_(ss, v, m); });
+    block('log', function () { return vpLog_(ss, v, m, out.onboarding); });
+  }
+  if (want.crew) {
     block('crew', function () { return vpCrew_(ss, v, m); });
     block('intake', function () { return vpIntake_(ss, v, m); });
     block('audits', function () { return vpAudits_(ss, v); });
-    block('log', function () { return vpLog_(ss, v, m, out.onboarding); });
-    return vdOut_(out);
   }
-
-  block('responses', function () { return vpResponses_(v, m); });
-  block('documents', function () { return vpDocuments_(v, m); });
-  block('notices', function () { return vpNotices_(v, m); });
-  block('insurance', function () { return vpInsurance_(v, m); });
-  block('profile_requests', function () { return vpProfileRequests_(v, m); });
+  if (want.more) {
+    block('responses', function () { return vpResponses_(v, m); });
+    block('documents', function () { return vpDocuments_(v, m); });
+    block('notices', function () { return vpNotices_(v, m); });
+    block('insurance', function () { return vpInsurance_(v, m); });
+    block('profile_requests', function () { return vpProfileRequests_(v, m); });
+  }
   return vdOut_(out);
 }
 
@@ -300,13 +332,11 @@ function vpIntake_(ss, v, m) {
   });
   out.sort(function (a, b) { return vpDesc_(a, b, 'received'); });
   // The raw JSON cell is only read for the newest few rows that need it.
-  var fetched = 0;
-  out.forEach(function (o) {
-    if (fetched >= 6 || !rawCol || (o.kind !== 'EVAL' && o.kind !== 'INVITE')) return;
-    fetched++;
-    var raw = vdStr_(sh.getRange(o._row, rawCol).getValue());
-    if (raw) { try { o.raw = JSON.parse(raw); } catch (e) { o.raw_text = raw.slice(0, 4000); } }
-  });
+  var first = out.filter(function (o) { return o.kind === 'EVAL'; })[0];
+  if (first && rawCol) {
+    var raw = vdStr_(sh.getRange(first._row, rawCol).getValue());
+    if (raw) { try { first.raw = JSON.parse(raw); } catch (e) { first.raw_text = raw.slice(0, 4000); } }
+  }
   out.forEach(function (o) { delete o._row; });
   var ev = out.filter(function (r) { return r.kind === 'EVAL' && r.raw; })[0] || null;
   return { rows: out.slice(0, 25).map(function (r) { var c = {}; for (var k in r) if (k !== 'raw' || r.kind !== 'EVAL') c[k] = r[k]; if (r.kind === 'EVAL') c.has_raw = !!r.raw; return c; }),
@@ -318,16 +348,11 @@ function vpAudits_(ss, v) {
   if (!sh) return { rows: [] };
   var mine = vdRows_(sh).rows.filter(function (r) { return r.vendor_id === v.vendor_id && !vdTrue_(r.test); });
   var ids = {};
-  mine.forEach(function (r) { ids[r.audit_id] = []; });
-  var ash = ss.getSheetByName(AUD_TABS.ACCOUNTS);
-  if (ash && mine.length) {
-    vdRows_(ash).rows.forEach(function (a) { if (ids[a.audit_id]) ids[a.audit_id].push({ account: a.account || '', person: a.person || '', background_check: a.background_check || '', age_18_plus: a.age_18_plus || '', sds_on_site: a.sds_on_site || '' }); });
-  }
   var out = mine.map(function (r) {
     return { audit_id: r.audit_id, audit_date: r.audit_date || '', market: r.market || '', result: r.result || '',
              fail_reasons: r.fail_reasons || '', finding_list: r.finding_list || '', submitted_by: r.submitted_by || '',
              accounts_audited: r.accounts_audited || '', people_listed: r.people_listed || '', notes: r.notes || '',
-             pdf_url: r.pdf_url || '', next_due: r.next_due || '', lines: ids[r.audit_id] || [] };
+             pdf_url: r.pdf_url || '', next_due: r.next_due || '' };
   });
   out.sort(function (a, b) { return vpDesc_(a, b, 'audit_date'); });
   return { rows: out };
