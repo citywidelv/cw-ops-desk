@@ -1,4 +1,4 @@
-/* VendorSelf.gs - CW Solicitations project. Build 2026-09-23a.
+/* VendorSelf.gs - CW Solicitations project. Build 2026-09-23b (append lock, no catch-all type).
    Vendor self-service profile (cw-vendor-hub/my-profile.html) and the Admin Hub
    Vendor Activity feed (cw-admin-hub/vendor-activity.html).
 
@@ -193,12 +193,19 @@ function vsNextRow_(sh) {
   for (var i = 0; i < a.length; i++) if (vdStr_(a[i][0]) === '') return i + 2;
   return last + 1;
 }
+// Appends hold a script lock: two vendor-page saves can land at the same second
+// and would otherwise pick the same "next row" and overwrite each other.
 function vsAppend_(sh, headers, obj) {
   var head = vsHeaders_(sh);
   var row = head.map(function (h) { return obj[h] === undefined || obj[h] === null ? '' : obj[h]; });
-  var r = vsNextRow_(sh);
-  sh.getRange(r, 1, 1, head.length).setValues([row]);
-  return r;
+  var lock = null;
+  try { lock = LockService.getScriptLock(); lock.waitLock(15000); } catch (e) { lock = null; }
+  try {
+    var r = vsNextRow_(sh);
+    sh.getRange(r, 1, 1, head.length).setValues([row]);
+    SpreadsheetApp.flush();
+    return r;
+  } finally { try { if (lock) lock.releaseLock(); } catch (e2) {} }
 }
 function vsSet_(sh, head, row, field, value) {
   var c = head.indexOf(field);
@@ -471,7 +478,7 @@ function vsVendorView_(v) {
 function vsTypes_(ss) {
   var sh = ss.getSheetByName(VD_TABS.TYPES);
   if (!sh) return [];
-  return vdRows_(sh).rows.filter(function (t) { return t.slug && vdStr_(t.active).toUpperCase() !== 'FALSE'; })
+  return vdRows_(sh).rows.filter(function (t) { return t.slug && t.slug !== 'unclassified' && vdStr_(t.active).toUpperCase() !== 'FALSE'; })
     .sort(function (a, b) { return Number(a.sort || 0) - Number(b.sort || 0); })
     .map(function (t) { return { slug: t.slug, name: t.name || t.slug }; });
 }
