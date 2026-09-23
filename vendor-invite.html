@@ -236,7 +236,7 @@ textarea{min-height:74px;resize:vertical;line-height:1.55}
 <label><span>Your first name <i>*</i></span><input type="text" id="by" maxlength="60" autocomplete="given-name"></label>
 </div>
 <div class="sends" id="sends"></div>
-<label class="tst"><input type="checkbox" id="test"> Send it to the office inbox instead so I can read it first</label>
+<label class="tst"><input type="checkbox" id="test" autocomplete="off"> Send it to the office inbox instead so I can read it first</label>
 <div class="actions"><button class="btn" id="send" type="submit">Send the invite</button><button class="btn ghost" id="mailapp" type="button">Open in mail app</button><a class="btn ghost" href="https://citywidelv.github.io/cw-vendor-hub/new-vendors.html" target="_blank" rel="noopener">See the page it opens</a></div>
 <div class="hint" style="margin-top:10px">Open in mail app is the backup if the hub sender is down. It opens this invite in Outlook or your own mail app, plain text, addressed to the vendor. Nothing is logged and the vendor is not added to the directory, so <a href="vendor-add.html">add them yourself</a> after you send it.</div>
 </div>
@@ -525,6 +525,9 @@ function load(pass){
   applyDefaults(true);
   $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
   try{ $("by").value = (localStorage.getItem("cwOpsName") || localStorage.getItem("cwAlertsWho") || "").split(" ")[0]; }catch(x){}
+  // Test always starts unchecked. Chrome restores a checked box on reload or Back,
+  // which sent a real invite to the office inbox by mistake (Sep 22 2026).
+  $("test").checked = false;
   showSends(); preview();
   post({ kind:"vd_inv_roster" }, function(r){
     if(r && r.ok){ PEOPLE = r.people || []; renderPeople(); }
@@ -542,6 +545,7 @@ function load(pass){
   });
 }
 (function(){ var p = CWAuth.require({hub:"ops"}); if (p) load(p); })();
+window.addEventListener("pageshow", function(){ var t = document.getElementById("test"); if(t && t.checked){ t.checked = false; t.dispatchEvent(new Event("change")); } });
 </script>
 </body>
 </html>
