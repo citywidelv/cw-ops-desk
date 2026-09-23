@@ -18,6 +18,14 @@
 // Solicitations row. The hub shows it beside the vendor-facing title so an FSM
 // knows which account they are looking at. doGet deletes account_name from the
 // public feed, so this field must never be echoed to anything vendor facing.
+// Sep 22 2026: filling a posting now CLOSES its replies on the Alert Status tab
+// (status AL_FILL_CLOSE, summary 'filled post:<id>') instead of only hiding them
+// while Filled stays checked. Brett's SVN posting showed why: it was marked filled
+// Sep 17, the Filled box was unchecked on the sheet Sep 21, and all ten replies came
+// back. Now a reopened posting keeps its old replies closed and shows as open again
+// (it IS back on the vendor board). Postings filled outside the hub (the sheet, the
+// Admin Desk records page) get their replies closed on the next list build. Undo on
+// the posting in the hub reopens exactly the replies its fill closed.
 // ============================================================
 var AL_TAB = 'Alert Status';
 var AL_HEAD = ['alert_key', 'type', 'status', 'handled_by', 'handled_at', 'summary'];
@@ -32,13 +40,14 @@ var AL_STATUS = {
   posting: ['Mark filled'],
   night: ['Handled']
 };
+var AL_FILL_CLOSE = 'Posting filled';   // reply status written when its posting is filled
 
 function alDispatch(d) {
   if (String(d.passcode || '') !== PASSCODE) return _json({ ok: false, error: 'Wrong passcode.' });
   var kind = String(d.kind || '');
   try {
-    if (kind === 'alerts_list') return _json(alListCached_(d));
-    if (kind === 'alerts_set') { var r = alSet_(d); alCacheDrop_(); return _json(r); }
+    if (kind === 'alerts_list') return _json(alList_(d));
+    if (kind === 'alerts_set') return _json(alSet_(d));
   } catch (e) {
     return _json({ ok: false, error: String(e && e.message || e) });
   }
@@ -98,7 +107,7 @@ function alStatusMap_(sh) {
   alRows_(sh).forEach(function (r) {
     var k = alStr_(r.alert_key);
     if (!k) return;
-    map[k] = { row: r._row, status: alStr_(r.status), by: alStr_(r.handled_by), at: alDate_(r.handled_at) };
+    map[k] = { row: r._row, status: alStr_(r.status), by: alStr_(r.handled_by), at: alDate_(r.handled_at), summary: alStr_(r.summary) };
   });
   return map;
 }
@@ -184,7 +193,11 @@ function alPostings_(statusMap) {
     if (!id) return;
     var filled = p.filled === true || String(p.filled).toUpperCase() === 'TRUE';
     var key = 'post:' + id;
-    if (filled && !(statusMap[key] && statusMap[key].status)) return; // filled from the sheet: not an alert
+    var st = statusMap[key];
+    if (filled && !(st && st.status)) return; // filled from the sheet: not an alert
+    // Marked filled in the hub, but Filled is unchecked on the sheet now, so it is live on
+    // the vendor board again. Show it as open so the hub matches the board.
+    var reopened = !filled && !!(st && st.status && st.status !== 'Open');
     var when = alDate_(p.posted);
     var n = Number(p.responses) || 0;
     var dlD = alDate_(p.deadline);
@@ -200,10 +213,11 @@ function alPostings_(statusMap) {
       // which of their accounts it is. account_name is the internal name and is
       // stripped from the public feed in doGet, so it is safe here and only here.
       internal: alStr_(p.account_name),
-      summary: 'Open on the vendor board. ' + (n === 1 ? '1 reply so far.' : n + ' replies so far.') + (dl ? ' Deadline ' + dl + '.' : ''),
+      summary: (reopened ? 'Back on the vendor board. Filled was unchecked after it was marked filled. ' : 'Open on the vendor board. ') + (n === 1 ? '1 reply so far.' : n + ' replies so far.') + (dl ? ' Deadline ' + dl + '.' : ''),
       email: '', phone: '',
       link: 'responses.html#' + id,
-      ref: id
+      ref: id,
+      reopened: reopened
     });
   });
   return items;
@@ -220,7 +234,7 @@ function alPostingFilled_(id, flag) {
   }
   return false;
 }
-function alResponses_(statusMap) {
+function alResponses_(statusMap, toClose) {
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var posts = {};
   alRows_(ss.getSheetByName(TAB)).forEach(function (p) {
@@ -242,7 +256,13 @@ function alResponses_(statusMap) {
       ? 'Quoted ' + (/^\$/.test(amt) ? amt : '$' + amt) + (alStr_(r.quote_basis) ? ' ' + alStr_(r.quote_basis) : '')
       : 'Interested';
     var filled = p.filled === true || String(p.filled).toUpperCase() === 'TRUE';
-    if (filled) return; // posting is filled: its replies leave the list with it
+    if (filled) {
+      // posting is filled: its replies leave the list with it, and any still open are
+      // queued so alList_ closes them for good (in case the posting is ever reopened)
+      var rst = statusMap['resp:' + rid];
+      if (toClose && !(rst && rst.status)) toClose.push({ key: 'resp:' + rid, pid: alStr_(r.posting_id) });
+      return;
+    }
     items.push({
       key: 'resp:' + rid, type: 'response',
       pid: alStr_(r.posting_id),
@@ -355,31 +375,20 @@ function alNight_() {
 }
 
 // ------------------------------------------------------------ handlers -----
-// Sep 18 2026: the full list takes 10s to build (five books, whole tabs). Cache the built
-// payload for AL_CACHE_SECS so every hub load in that window answers in well under a
-// second. alerts_set drops the cache, and the hub's Refresh button passes fresh:1 to skip it.
-var AL_CACHE_KEY = 'al_list_v1';
-var AL_CACHE_SECS = 120;
-function alListCached_(d) {
-  var cache = CacheService.getScriptCache();
-  if (!d.fresh) {
-    try { var hit = cache.get(AL_CACHE_KEY); if (hit) { var o = JSON.parse(hit); o.cached = true; return o; } } catch (e) {}
-  }
-  var out = alList_(d);
-  try { var s = JSON.stringify(out); if (s.length < 95000) cache.put(AL_CACHE_KEY, s, AL_CACHE_SECS); } catch (e) {}
-  return out;
-}
-function alCacheDrop_() { try { CacheService.getScriptCache().remove(AL_CACHE_KEY); } catch (e) {} }
 function alList_(d) {
   var sh = alSheet_();
   var map = alStatusMap_(sh);
   var accounts = alAccounts_();
-  var items = alPostings_(map).concat(alResponses_(map)).concat(alSupply_(accounts)).concat(alShop_(accounts)).concat(alNight_());
+  var toClose = [];
+  var items = alPostings_(map).concat(alResponses_(map, toClose)).concat(alSupply_(accounts)).concat(alShop_(accounts)).concat(alNight_());
+  if (toClose.length) { try { alCloseLater_(toClose); } catch (e) { /* hidden anyway while filled; retried next build */ } }
   var out = [];
   items.forEach(function (it) {
     var st = map[it.key];
     delete it._row;
-    if (st && st.status && st.status !== 'Open') {
+    var reopened = !!it.reopened;
+    delete it.reopened;
+    if (st && st.status && st.status !== 'Open' && !reopened) {
       if (!alFresh_(st.at, AL_DONE_DAYS)) return; // handled a while ago: gone
       it.status = st.status; it.by = st.by; it.at = alIso_(st.at); it.at_nice = alNice_(st.at);
     } else {
@@ -418,9 +427,75 @@ function alSet_(d) {
       map[k] = { row: row, status: status, by: by, at: now };
       saved.push({ key: k, status: status, by: status ? by : '', at: status ? alIso_(now) : '', at_nice: status ? alNice_(now) : '' });
       if (type === 'shop') { try { alShopSync_(k, status); } catch (e) {} }
-      if (type === 'posting') { try { alPostingFilled_(k.slice(5), !!status); } catch (e) {} }
+      if (type === 'posting') {
+        try { alPostingFilled_(k.slice(5), !!status); } catch (e) {}
+        try { saved = saved.concat(status ? alCloseReplies_(sh, map, alRepliesFor_(k.slice(5)), by, now) : alReopenReplies_(sh, map, k.slice(5))); } catch (e) {}
+      }
     });
     return { ok: true, saved: saved };
+  } finally {
+    lock.releaseLock();
+  }
+}
+// Every reply to one posting, newest data straight from the Responses tab.
+function alRepliesFor_(pid) {
+  var out = [];
+  var sh = SpreadsheetApp.openById(SHEET_ID).getSheetByName(RESP_TAB);
+  if (!sh) return out;
+  alRows_(sh).forEach(function (r) {
+    var rid = alStr_(r.response_id);
+    if (rid && alStr_(r.posting_id) === pid) out.push({ key: 'resp:' + rid, pid: pid });
+  });
+  return out;
+}
+// Close replies as AL_FILL_CLOSE. Replies someone already handled (Responded to,
+// Not a fit) are left exactly as they are. New rows go in as one block.
+function alCloseReplies_(sh, map, list, by, now) {
+  var add = [], addKeys = [], saved = [];
+  list.forEach(function (x) {
+    var st = map[x.key];
+    if (st && st.status && st.status !== 'Open') return;
+    var who = x.by || by || 'Unknown';
+    var vals = [x.key, 'response', AL_FILL_CLOSE, who, now, 'filled post:' + x.pid];
+    if (st && st.row) sh.getRange(st.row, 1, 1, AL_HEAD.length).setValues([vals]);
+    else { add.push(vals); addKeys.push(x.key); }
+    map[x.key] = { row: st ? st.row : 0, status: AL_FILL_CLOSE, by: who, at: now, summary: vals[5] };
+    saved.push({ key: x.key, status: AL_FILL_CLOSE, by: who, at: alIso_(now), at_nice: alNice_(now) });
+  });
+  if (add.length) {
+    var start = sh.getLastRow() + 1;
+    sh.getRange(start, 1, add.length, AL_HEAD.length).setValues(add);
+    addKeys.forEach(function (k, i) { map[k].row = start + i; });
+  }
+  return saved;
+}
+// Undo on a posting: reopen only the replies that its own fill closed.
+function alReopenReplies_(sh, map, pid) {
+  var saved = [];
+  Object.keys(map).forEach(function (k) {
+    var st = map[k];
+    if (k.indexOf('resp:') !== 0 || st.status !== AL_FILL_CLOSE || st.summary !== 'filled post:' + pid || !st.row) return;
+    sh.getRange(st.row, 1, 1, AL_HEAD.length).setValues([[k, 'response', '', '', '', '']]);
+    map[k] = { row: st.row, status: '', by: '', at: null, summary: '' };
+    saved.push({ key: k, status: '', by: '', at: '', at_nice: '' });
+  });
+  return saved;
+}
+// List build found open replies under postings that are filled (on the sheet, the
+// Admin Desk, or the hub before this change). Close them now, under the lock, re-reading
+// the status tab first so nothing handled a moment ago is overwritten. Credited to
+// whoever marked the posting filled in the hub, if anyone did.
+function alCloseLater_(list) {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return;
+  try {
+    var sh = alSheet_();
+    var map = alStatusMap_(sh);
+    list.forEach(function (x) {
+      var ps = map['post:' + x.pid];
+      x.by = (ps && ps.status && ps.by) ? ps.by : 'Filled box on the sheet';
+    });
+    alCloseReplies_(sh, map, list, '', new Date());
   } finally {
     lock.releaseLock();
   }
