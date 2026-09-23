@@ -298,6 +298,10 @@ function alAcct_(text, region, accounts, idx) {
   if (m && m.acct) return { fsm: m.acct.fsm, name: m.acct.name, id: m.acct.id, region: m.acct.region, how: m.how, cands: [] };
   if (m && m.cands && m.cands.length) return { fsm: '', name: '', id: '', region: '', how: 'unsure', cands: m.cands };
   var a = alMatch_(text, region, accounts);
+  // The old matcher accepts any 4-letter name inside the text ("All accounts" -> ACCO).
+  // Keep its result only when a whole name, or most of one, lines up.
+  var t = alNorm_(text);
+  if (a && !a.norms.some(function (n) { return n === t || (n.length >= 6 && t.indexOf(n) >= 0) || (t.length >= 5 && n.indexOf(t) >= 0); })) a = null;
   if (a) return { fsm: a.fsm, name: a.name, id: '', region: a.region, how: 'directory', cands: [] };
   return { fsm: '', name: '', id: '', region: '', how: '', cands: [] };
 }
