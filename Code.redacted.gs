@@ -22,7 +22,7 @@ var LOGO = 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/signatu
 var BOARD_URL = 'https://citywidelv.github.io/cw-vendor-shop/opportunities.html';
 
 var FSM_ROSTER = {
-  allison:{ name: 'Allison Donovan',title: 'Facility Solutions Manager',  region: 'Las Vegas',                   territory: 'North', photo: 'https://citywidelv.github.io/cw-ops-desk/images/fsm-allison-donovan.jpg' },
+  allison:{ name: 'Allison Donavan',title: 'Facility Solutions Manager',  region: 'Las Vegas',                   territory: 'North', photo: 'https://citywidelv.github.io/cw-ops-desk/images/fsm-allison-donovan.jpg' },
   alex:   { name: 'Alex Manon',     title: 'Facility Solutions Manager',  region: 'Las Vegas',                   photo: 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/Franchise-Location-Uploads/Las_Vegas/IMG_4680.jpg' },
   brett:  { name: 'Brett Stephens', title: 'Facility Solutions Manager',  region: 'Las Vegas',                   photo: 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/Franchise-Location-Uploads/Las_Vegas/IMG_4080.PNG' },
   jake:   { name: 'Jake Schmidt',   title: 'Facility Solutions Manager',  region: 'Las Vegas',                   photo: 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/Franchise-Location-Uploads/Las_Vegas/IMG_3966.jpg' },
@@ -2727,20 +2727,128 @@ function cwGroupByTo_(rows) {
 function cwSendSlotDigest_(slot) {
   var sh = cwDigestSheet_();
   var rows = cwRows_(sh).filter(function (r) { return !r.sent && r.cadence === 'daily'; });
-  if (!rows.length) return 'nothing to send';
+  var open = cwOpenSupplyAlerts_();
   var label = slot === '16' ? 'Afternoon digest' : (slot === 'now' ? 'Digest' : 'Morning digest');
   var when = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'EEE MMM d') + (slot === '16' ? ', 4 PM' : (slot === 'now' ? ', ' + Utilities.formatDate(new Date(), 'America/Los_Angeles', 'h:mm a') : ', 8 AM'));
+  if (!rows.length) return slot === '16' ? 'nothing to send' : cwSendAlertReminder_(open, when);
   var sentCount = 0;
   cwGroupByTo_(rows).forEach(function (g) {
     var cc = Object.keys(g.cc).join(',');
-    var html = cwDigestHtml_(label, when, g.rows, 'Items since the last digest. Full records are in the sheets linked on each item.');
+    var mine = cwAlertsFor_(g.to, open);
+    var late = mine.filter(function (a) { return a.late; }).length;
+    var html = cwDigestHtml_(label, when, g.rows, 'Items since the last digest. Full records are in the sheets linked on each item.', mine);
     cwSend_({ to: g.to, cc: cc, name: CW_DIGEST_SENDER,
-      subject: 'City Wide ' + label.toLowerCase() + ' - ' + when + ' (' + g.rows.length + (g.rows.length === 1 ? ' item)' : ' items)'),
-      htmlBody: html, body: cwDigestPlain_(label, when, g.rows) });
+      subject: (late ? '[' + late + ' past due] ' : '') + 'City Wide ' + label.toLowerCase() + ' - ' + when + ' (' + g.rows.length + (g.rows.length === 1 ? ' item)' : ' items)'),
+      htmlBody: html, body: cwAlertsPlain_(mine) + cwDigestPlain_(label, when, g.rows) });
     sentCount++;
   });
   rows.forEach(function (r) { sh.getRange(r.i + 1, 6).setValue(true); });
   return 'sent ' + rows.length + ' item(s) in ' + sentCount + ' email(s)';
+}
+
+// ---------------------------------------- unmarked supply alerts -----
+// Sep 23 2026: supply reports and shop orders still open on the Ops Hub Alerts
+// card ride at the TOP of every daily digest so they cannot be missed. Open longer
+// than CW_STALE_HOURS = past due (red); newer = waiting (gold). Each market inbox
+// sees its own market plus anything with no market. Read from alList_, the same
+// list the hub shows, so marking an item on the hub clears it here.
+// With nothing else queued, the 8 AM run still sends a short reminder when
+// something is past due. The 4 PM run never sends a reminder on its own.
+var CW_STALE_HOURS = 24;
+var CW_ALERTS_URL = 'https://citywidelv.github.io/cw-ops-desk/#alerts';
+function cwOpenSupplyAlerts_() {
+  var out = [];
+  try {
+    if (typeof alList_ !== 'function') return out;
+    (alList_({}).items || []).forEach(function (it) {
+      if ((it.type !== 'supply' && it.type !== 'shop') || it.status) return;
+      var t = null;
+      try { if (it.when) t = Utilities.parseDate(it.when, 'America/Los_Angeles', "yyyy-MM-dd'T'HH:mm:ss"); } catch (pe) { t = null; }
+      var hrs = t ? (Date.now() - t.getTime()) / 3600000 : 999;
+      var f = (it.fsm && typeof FSM_ROSTER !== 'undefined' && FSM_ROSTER[it.fsm]) ? FSM_ROSTER[it.fsm].name : '';
+      out.push({ type: it.type, market: cwMarketKey_(it.region), about: String(it.about || ''), from: String(it.from || ''),
+        summary: String(it.summary || ''), when: String(it.when_nice || ''), hrs: hrs, late: hrs >= CW_STALE_HOURS, fsm: f });
+    });
+  } catch (e) {}
+  out.sort(function (a, b) { return b.hrs - a.hrs; });
+  return out;
+}
+function cwMarketKey_(s) {
+  s = String(s || '').toLowerCase();
+  if (/north|reno|sparks|carson|nnv/.test(s)) return 'NNV';
+  if (/vegas|\blv\b/.test(s)) return 'LV';
+  return '';
+}
+function cwAlertsFor_(to, list) {
+  var t = String(to || '').toLowerCase();
+  var lv = t.indexOf(String(REGION_EMAIL['Las Vegas']).toLowerCase()) >= 0;
+  var nn = t.indexOf(String(REGION_EMAIL['Northern Nevada']).toLowerCase()) >= 0;
+  var want = (lv && !nn) ? 'LV' : (nn && !lv) ? 'NNV' : '';
+  return (list || []).filter(function (a) { return !want || !a.market || a.market === want; });
+}
+function cwAge_(h) {
+  if (h >= 999) return 'date unknown';
+  if (h < 1) return 'under an hour';
+  if (h < 48) return Math.floor(h) + (Math.floor(h) === 1 ? ' hour' : ' hours');
+  return Math.floor(h / 24) + ' days';
+}
+function cwAlertsHtml_(list, F) {
+  if (!list || !list.length) return '';
+  var late = list.filter(function (a) { return a.late; }), wait = list.filter(function (a) { return !a.late; });
+  function rows(arr, color) {
+    return arr.map(function (a) {
+      return '<tr><td style="padding:7px 0;border-top:1px solid ' + color + '33;' + F + 'font-size:12px;color:#2d2a26;line-height:1.5;">' +
+        '<b>' + _esc(a.about || 'No building given') + '</b> <span style="color:' + color + ';font-weight:bold;">' + _esc(cwAge_(a.hrs)) + '</span>' +
+        '<br><span style="color:#636466;">' + (a.type === 'shop' ? 'Shop order' : 'Supply report') + (a.from ? ' from ' + _esc(a.from) : '') + (a.fsm ? ' &middot; FSM ' + _esc(a.fsm) : '') + '</span>' +
+        '<br>' + _esc(a.summary.length > 160 ? a.summary.slice(0, 157) + '...' : a.summary) + '</td></tr>';
+    }).join('');
+  }
+  function box(arr, color, bg, head, line) {
+    if (!arr.length) return '';
+    return '<div style="background:' + bg + ';border:2px solid ' + color + ';border-radius:6px;padding:14px 16px;margin:0 0 12px;">' +
+      '<p style="margin:0 0 4px;' + F + 'font-size:15px;font-weight:bold;color:' + color + ';text-transform:uppercase;letter-spacing:0.04em;">' + head + '</p>' +
+      '<p style="margin:0 0 8px;' + F + 'font-size:13px;color:#2d2a26;line-height:1.5;">' + line + '</p>' +
+      '<table border="0" cellpadding="0" cellspacing="0" width="100%">' + rows(arr, color) + '</table></div>';
+  }
+  var shop = ' Shop orders get Processed or Picked up.';
+  return box(late, '#D22730', '#FDF1F2', late.length + ' past due',
+      'These have been sitting more than a day and nobody has marked them. Go mark each one Ordered, Sent to client or Not needed.' + (late.some(function (a) { return a.type === 'shop'; }) ? shop : '')) +
+    box(wait, '#B8860B', '#FFF8E5', wait.length + ' waiting on you',
+      'Have you ordered these supplies for your account or your vendors? Mark them once you have.') +
+    '<p style="margin:0 0 6px;"><a href="' + CW_ALERTS_URL + '" style="display:inline-block;background:#D22730;color:#ffffff;' + F + 'font-size:13px;font-weight:bold;text-decoration:none;padding:10px 18px;border-radius:4px;">Open the Alerts card &rarr;</a></p>';
+}
+function cwAlertsPlain_(list) {
+  if (!list || !list.length) return '';
+  var late = list.filter(function (a) { return a.late; }), wait = list.filter(function (a) { return !a.late; });
+  var l = [];
+  function add(arr, head) {
+    if (!arr.length) return;
+    l.push(head);
+    arr.forEach(function (a) { l.push('  * ' + (a.about || 'No building given') + ' (' + cwAge_(a.hrs) + ') ' + a.summary.slice(0, 120)); });
+    l.push('');
+  }
+  add(late, late.length + ' PAST DUE. Nobody has marked these. Mark each one Ordered, Sent to client or Not needed.');
+  add(wait, wait.length + ' WAITING ON YOU. Have you ordered these supplies for your account or your vendors?');
+  l.push('Alerts card: ' + CW_ALERTS_URL, '', '');
+  return l.join('\n');
+}
+// 8 AM with nothing else queued: a short reminder, past-due items only, to each
+// market inbox that has one. Items with no market go to both inboxes.
+function cwSendAlertReminder_(open, when) {
+  var late = (open || []).filter(function (a) { return a.late; });
+  if (!late.length) return 'nothing to send';
+  var sent = 0;
+  ['Las Vegas', 'Northern Nevada'].forEach(function (region) {
+    var to = REGION_EMAIL[region];
+    var mine = cwAlertsFor_(to, late);
+    if (!mine.length) return;
+    cwSend_({ to: to, name: CW_DIGEST_SENDER,
+      subject: '[' + mine.length + ' past due] Supplies nobody has marked - ' + when,
+      htmlBody: cwDigestHtml_('Supply reminder', when, [], 'Nothing new came in, but these are still open on the Ops Hub.', mine),
+      body: cwAlertsPlain_(mine) });
+    sent++;
+  });
+  return 'reminder: ' + late.length + ' past due in ' + sent + ' email(s)';
 }
 
 // Monday rollup: everything queued in the last 7 days (digested or immediate)
@@ -2765,8 +2873,9 @@ function cwSendWeeklyRollup_() {
 }
 
 // -------------------------------------------------------------- HTML -----
-function cwDigestHtml_(label, when, rows, note) {
+function cwDigestHtml_(label, when, rows, note, alerts) {
   var F = 'font-family:Verdana,Arial,sans-serif;';
+  var alertBlock = cwAlertsHtml_(alerts, F);
   var byTag = {}; var order = [];
   rows.forEach(function (r) { if (!byTag[r.tag]) { byTag[r.tag] = []; order.push(r.tag); } byTag[r.tag].push(r); });
   var chips = order.map(function (t) {
@@ -2784,6 +2893,7 @@ function cwDigestHtml_(label, when, rows, note) {
     '<tr><td style="padding:24px 30px 0;"><img src="' + LOGO + '" height="38" alt="City Wide Facility Solutions" style="display:block;border:0;height:38px;width:auto;"></td></tr>' +
     '<tr><td style="padding:18px 30px 0;"><div style="background:#2d2a26;color:#ffffff;' + F + 'font-size:15px;font-weight:bold;padding:12px 16px;letter-spacing:0.5px;">' +
     _esc(label.toUpperCase()) + ' <span style="font-weight:normal;color:#cfcdca;">&middot; ' + _esc(when) + '</span></div></td></tr>' +
+    (alertBlock ? '<tr><td style="padding:16px 30px 0;">' + alertBlock + '</td></tr>' : '') +
     '<tr><td style="padding:16px 30px 0;"><p style="margin:0 0 12px;' + F + 'font-size:12px;color:#636466;line-height:1.5;">' + _esc(note) + '</p>' +
     '<table border="0" cellpadding="0" cellspacing="0"><tr>' + chips + '</tr></table></td></tr>' +
     '<tr><td style="padding:0 30px 30px;">' + sections +

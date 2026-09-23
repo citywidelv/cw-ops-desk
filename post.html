@@ -384,7 +384,7 @@ var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDF
 var BS_WEBHOOK = "https://script.google.com/macros/s/AKfycbwQKATsO_nRIKKaCJYqtjVDn3kPs5h71ChFdGudR8zYkxSeLOKufEvlRXWNNMxfG-oIKQ/exec";
 var state = { region: "Las Vegas", type: "contract", pay_type: "set", mode: "interest", fsm: "" };
 var FSM_ROSTER = {
-  allison:{ name:"Allison Donovan",title:"Facility Solutions Manager",  region:"Las Vegas", territory:"North" },
+  allison:{ name:"Allison Donavan",title:"Facility Solutions Manager",  region:"Las Vegas", territory:"North" },
   alex:   { name:"Alex Manon",     title:"Facility Solutions Manager",  region:"Las Vegas", territory:"West" },
   brett:  { name:"Brett Stephens", title:"Facility Solutions Manager",  region:"Las Vegas", territory:"Southeast" },
   jake:   { name:"Jake Schmidt",   title:"Facility Solutions Manager",  region:"Las Vegas", territory:"Southwest" },
@@ -429,7 +429,7 @@ function dirFind(name){
     // "TJ Robert" vs "TJ Roberts" still matches, same rule the server uses.
     if (got && (got === want || got.indexOf(want) === 0 || want.indexOf(got) === 0)) return DIR.people[i];
   }
-  // Spelling drift on the Sheet ("Allison Donavan"): same first name, last name starts the same.
+  // Spelling drift between the card and the Sheet: same first name, last name starts the same.
   for (var j = 0; j < DIR.people.length; j++) {
     var gp = dirParts(DIR.people[j].name);
     if (gp.length > 1 && wp.length > 1 && gp[0] === wp[0] &&
