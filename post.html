@@ -6,6 +6,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Desk | Post an Opportunity</title>
 <!-- build 2026-09-04a: Email Vendors panel (notify.js) on every posting -->
+<!-- build 2026-09-23a: picking an FSM fills name, email and phone from the CW Team Directory (staff_list) -->
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
   --border:#E5E5E5;--gold:#E5B423;
@@ -349,6 +350,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
     <div><label>Your Name <span class="req">*</span></label><input type="text" id="contact_name" placeholder="First Last"></div>
     <div><label>Your Email <span class="req">*</span></label><input type="email" id="contact_email" placeholder="you@gocitywide.com"></div>
     <div><label>Your Phone</label><input type="tel" id="contact_phone" placeholder="(702) 555-1234"></div>
+    <div class="full hint" id="dirNote">Pick an FSM above and their name, email and phone fill in from the team directory.</div>
     <div id="passwrap" class="hidden"><label>Team Passcode <span class="req">*</span></label><input type="text" id="passcode" placeholder="Ask TJ if you do not have it"></div>
     <div class="full"><label>Account / Client Name (Internal Only)</label>
       <input type="text" id="account_name" placeholder="e.g., Kitty Academy - Craig Rd">
@@ -386,7 +388,6 @@ var FSM_ROSTER = {
   alex:   { name:"Alex Manon",     title:"Facility Solutions Manager",  region:"Las Vegas", territory:"West" },
   brett:  { name:"Brett Stephens", title:"Facility Solutions Manager",  region:"Las Vegas", territory:"Southeast" },
   jake:   { name:"Jake Schmidt",   title:"Facility Solutions Manager",  region:"Las Vegas", territory:"Southwest" },
-  sam:    { name:"Sam Morse",      title:"Facility Solutions Manager",  region:"Northern Nevada" },
   jeremy: { name:"Jeremy Walker",  title:"General Manager",             region:"Northern Nevada" },
   robert: { name:"Robert Krause",  title:"Director of Operations",      region:"Las Vegas" },
   josh:   { name:"Joshua Smith",   title:"Business Operations Manager", region:"Las Vegas & Northern Nevada" },
@@ -394,7 +395,7 @@ var FSM_ROSTER = {
 };
 var FSM_PHOTO_BASE = "https://emailer.emfluence.com/clients/citywide/uploadedfiles/Franchise-Location-Uploads/Las_Vegas/";
 var FSM_PHOTOS = { allison:"https://citywidelv.github.io/cw-ops-desk/images/fsm-allison-donovan.jpg",
-  alex:"IMG_4680.jpg", brett:"IMG_4080.PNG", jake:"IMG_3966.jpg", sam:"IMG_5569.jpg",
+  alex:"IMG_4680.jpg", brett:"IMG_4080.PNG", jake:"IMG_3966.jpg",
   jeremy:"IMG_3968.jpg", robert:"IMG_3964.jpg", josh:"IMG_3963.jpg", tj:"IMG_3962.jpg" };
 // A value starting with http is used as is, anything else hangs off FSM_PHOTO_BASE.
 // No entry at all falls back to initials so a new manager still looks intentional.
@@ -412,6 +413,80 @@ function fsmInitials(name){
   var p = CWAuth.require({hub:"ops"});
   if (p) document.getElementById("passcode").value = p;
 })();
+/* Contact autofill. Name, email and phone come from the CW Team Directory (Staff tab,
+   kind staff_list), so a new number or a retired person is a Sheet edit, not a code
+   change. The fetch runs in the background after the page renders and never blocks it.
+   A field is only overwritten when it is empty or still holds what we filled last time,
+   so a hand edit survives a second click. */
+var DIR = { state: "idle", people: [] }, AUTO = {}, PENDING = "";
+function dirKey(s){ return String(s == null ? "" : s).toLowerCase().replace(/[^a-z]/g, ""); }
+function dirParts(s){ return String(s == null ? "" : s).toLowerCase().replace(/[^a-z\s]/g, "").trim().split(/\s+/); }
+function dirFind(name){
+  var want = dirKey(name), wp = dirParts(name);
+  if (!want) return null;
+  for (var i = 0; i < DIR.people.length; i++) {
+    var got = dirKey(DIR.people[i].name);
+    // "TJ Robert" vs "TJ Roberts" still matches, same rule the server uses.
+    if (got && (got === want || got.indexOf(want) === 0 || want.indexOf(got) === 0)) return DIR.people[i];
+  }
+  // Spelling drift on the Sheet ("Allison Donavan"): same first name, last name starts the same.
+  for (var j = 0; j < DIR.people.length; j++) {
+    var gp = dirParts(DIR.people[j].name);
+    if (gp.length > 1 && wp.length > 1 && gp[0] === wp[0] &&
+        gp[gp.length-1].slice(0,3) === wp[wp.length-1].slice(0,3)) return DIR.people[j];
+  }
+  return null;
+}
+function setAuto(id, val){
+  val = String(val == null ? "" : val).replace(/\s+/g, " ").trim();
+  var el = document.getElementById(id), cur = el.value.trim();
+  if (!val) { if (cur && cur === AUTO[id]) el.value = ""; AUTO[id] = ""; return; }
+  if (!cur || cur === AUTO[id]) el.value = val;
+  AUTO[id] = val;
+}
+function fillContact(k){
+  var f = FSM_ROSTER[k], note = document.getElementById("dirNote");
+  if (!f) return;
+  if (DIR.state === "loading" || DIR.state === "idle") {
+    PENDING = k; setAuto("contact_name", f.name);
+    note.textContent = "Loading " + f.name + "'s email and phone from the team directory...";
+    return;
+  }
+  var p = DIR.state === "ok" ? dirFind(f.name) : null;
+  setAuto("contact_name", f.name);
+  setAuto("contact_email", p ? p.email : "");
+  setAuto("contact_phone", p ? p.phone : "");
+  if (DIR.state !== "ok") { note.textContent = "Could not load the team directory. Type the email and phone this time."; return; }
+  var miss = [];
+  if (p && !p.email) miss.push("email");
+  if (p && !p.phone) miss.push("phone");
+  note.innerHTML = !p ? esc(f.name) + " is not on the team directory. Type the email and phone this time."
+    : miss.length ? esc(f.name) + " has no " + miss.join(" or ") + " on the team directory. Type it here, and fix it on the <a href=\"https://citywidelv.github.io/cw-admin-hub/records.html?s=staff\" target=\"_blank\" rel=\"noopener\">Team roster</a> for next time."
+    : "Filled from the team directory. Wrong info? Fix it on the <a href=\"https://citywidelv.github.io/cw-admin-hub/records.html?s=staff\" target=\"_blank\" rel=\"noopener\">Team roster</a>.";
+}
+function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function loadDirectory(){
+  var pass = document.getElementById("passcode").value;
+  if (!pass) return;
+  DIR.state = "loading";
+  fetch(WEBHOOK, { method: "POST", headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ kind: "staff_list", passcode: pass }) })
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      if (!r || !r.ok || !r.staff || !r.staff.length) throw new Error((r && r.error) || "empty");
+      DIR.people = r.staff; DIR.state = "ok";
+      // Anyone retired on the directory (Active FALSE) drops off the picker.
+      Array.prototype.forEach.call(document.querySelectorAll("#fsmPick button"), function(b){
+        var k = b.getAttribute("data-fsm");
+        if (FSM_ROSTER[k] && !dirFind(FSM_ROSTER[k].name)) {
+          b.style.display = "none";
+          if (state.fsm === k) { state.fsm = ""; b.classList.remove("on"); PENDING = ""; }
+        }
+      });
+    })
+    .catch(function(){ DIR.state = "fail"; })
+    .then(function(){ if (PENDING) { var k = PENDING; PENDING = ""; if (state.fsm === k) fillContact(k); } });
+}
 (function buildFsmPick(){
   var box = document.getElementById("fsmPick");
   Object.keys(FSM_ROSTER).forEach(function(k){
@@ -429,11 +504,11 @@ function fsmInitials(name){
       Array.prototype.forEach.call(box.querySelectorAll("button"), function(x){ x.classList.remove("on"); });
       b.classList.add("on");
       state.fsm = k;
-      var cn = document.getElementById("contact_name");
-      if (!cn.value.trim()) cn.value = f.name;
+      fillContact(k);
     });
     box.appendChild(b);
   });
+  loadDirectory();
 })();
 
 
