@@ -26,6 +26,12 @@
 // (it IS back on the vendor board). Postings filled outside the hub (the sheet, the
 // Admin Desk records page) get their replies closed on the next list build. Undo on
 // the posting in the hub reopens exactly the replies its fill closed.
+// Sep 23 2026: supply reports and shop orders match first against the Account FSM tab
+// (the CRM export uploaded on the Admin Hub, AccountFsm.gs), with a token matcher that
+// weights rare words, then fall back to the Account Directory and postings as before.
+// Anyone can reassign an alert on the hub (alerts_assign, Alert Assign tab); replies
+// follow their posting. Kinds alerts_acct_list / alerts_acct_import / alerts_acct_set /
+// alerts_assign are served from AccountFsm.gs.
 // ============================================================
 var AL_TAB = 'Alert Status';
 var AL_HEAD = ['alert_key', 'type', 'status', 'handled_by', 'handled_at', 'summary'];
@@ -48,6 +54,10 @@ function alDispatch(d) {
   try {
     if (kind === 'alerts_list') return _json(alList_(d));
     if (kind === 'alerts_set') return _json(alSet_(d));
+    if (kind === 'alerts_assign') return _json(afAssign_(d));
+    if (kind === 'alerts_acct_list') return _json(afList_(d));
+    if (kind === 'alerts_acct_import') return _json(afImport_(d));
+    if (kind === 'alerts_acct_set') return _json(afSet_(d));
   } catch (e) {
     return _json({ ok: false, error: String(e && e.message || e) });
   }
@@ -280,7 +290,18 @@ function alResponses_(statusMap, toClose) {
   });
   return items;
 }
-function alSupply_(accounts) {
+// CRM account match first, then the old directory/postings match. Returns the fields
+// every supply or shop item carries about its account.
+function alAcct_(text, region, accounts, idx) {
+  var m = null;
+  try { m = afMatch_(text, region, idx); } catch (e) { m = null; }
+  if (m && m.acct) return { fsm: m.acct.fsm, name: m.acct.name, id: m.acct.id, region: m.acct.region, how: m.how, cands: [] };
+  if (m && m.cands && m.cands.length) return { fsm: '', name: '', id: '', region: '', how: 'unsure', cands: m.cands };
+  var a = alMatch_(text, region, accounts);
+  if (a) return { fsm: a.fsm, name: a.name, id: '', region: a.region, how: 'directory', cands: [] };
+  return { fsm: '', name: '', id: '', region: '', how: '', cands: [] };
+}
+function alSupply_(accounts, idx) {
   var items = [];
   var ss;
   try { ss = supSS_(); } catch (e) { return items; }
@@ -293,14 +314,15 @@ function alSupply_(accounts) {
     if (!alFresh_(when, AL_DAYS)) return;
     var names = [];
     try { (JSON.parse(alStr_(r.items) || '[]') || []).forEach(function (it) { names.push((it.qty ? it.qty + ' x ' : '') + alStr_(it.name)); }); } catch (e) {}
-    var acct = alMatch_(r.building, r.region, accounts);
+    var acct = alAcct_(r.building, r.region, accounts, idx);
     items.push({
       key: 'sup:' + id, type: 'supply',
-      fsm: acct ? acct.fsm : '',
+      fsm: acct.fsm,
       region: alStr_(r.region),
       when: alIso_(when), when_nice: alNice_(when),
       from: alStr_(r.requester),
-      about: alStr_(r.building) + (acct && alNorm_(acct.name) !== alNorm_(r.building) ? ' (matched to ' + acct.name + ')' : ''),
+      about: alStr_(r.building) + (acct.name && alNorm_(acct.name) !== alNorm_(r.building) ? ' (matched to ' + acct.name + ')' : ''),
+      typed: alStr_(r.building), acct_id: acct.id, acct_name: acct.name, match: acct.how, cands: acct.cands,
       summary: (names.length ? names.join(', ') : alStr_(r.item_count) + ' items') + (alStr_(r.comments) ? ' - ' + alStr_(r.comments) : ''),
       email: alStr_(r.email), phone: alStr_(r.phone),
       link: ss.getUrl(),
@@ -309,7 +331,7 @@ function alSupply_(accounts) {
   });
   return items;
 }
-function alShop_(accounts) {
+function alShop_(accounts, idx) {
   var items = [];
   var ss, sh;
   try { ss = SpreadsheetApp.openById(AL_SHOP_ID); sh = ss.getSheetByName('Orders'); } catch (e) { return items; }
@@ -321,17 +343,18 @@ function alShop_(accounts) {
     if (!alFresh_(when, AL_DAYS)) return;
     if (r['Picked Up'] === true || String(r['Picked Up']).toUpperCase() === 'TRUE') return; // already closed on the sheet
     var key = 'shop:' + (when ? Utilities.formatDate(when, AL_TZ, 'yyyyMMddHHmmss') : 'nodate') + '|' + email;
-    var acct = alMatch_(r['Primary Account'], '', accounts);
+    var acct = alAcct_(r['Primary Account'], '', accounts, idx);
     var total = r['Total'];
     var totalStr = (typeof total === 'number') ? '$' + total.toFixed(2) : alStr_(total);
     var placed = r['Order Placed'] === true || String(r['Order Placed']).toUpperCase() === 'TRUE';
     items.push({
       key: key, type: 'shop',
-      fsm: acct ? acct.fsm : '',
-      region: acct ? acct.region : '',
+      fsm: acct.fsm,
+      region: acct.region,
       when: alIso_(when), when_nice: alNice_(when),
       from: alStr_(r['Vendor Name']) + (alStr_(r['Company']) ? ' (' + alStr_(r['Company']) + ')' : ''),
-      about: alStr_(r['Primary Account']) || 'No account given',
+      about: (alStr_(r['Primary Account']) || 'No account given') + (acct.name && alNorm_(acct.name) !== alNorm_(r['Primary Account']) ? ' (matched to ' + acct.name + ')' : ''),
+      typed: alStr_(r['Primary Account']), acct_id: acct.id, acct_name: acct.name, match: acct.how, cands: acct.cands,
       summary: alStr_(r['Items']) + (totalStr ? ' - ' + totalStr : '') + (placed ? ' - order placed with supplier' : '') + (alStr_(r['Notes']) ? ' - ' + alStr_(r['Notes']) : ''),
       email: email, phone: '',
       link: ss.getUrl(),
@@ -379,8 +402,24 @@ function alList_(d) {
   var sh = alSheet_();
   var map = alStatusMap_(sh);
   var accounts = alAccounts_();
+  var idx = null;
+  try { idx = afIndex_(); } catch (e) { idx = null; }
   var toClose = [];
-  var items = alPostings_(map).concat(alResponses_(map, toClose)).concat(alSupply_(accounts)).concat(alShop_(accounts)).concat(alNight_());
+  var items = alPostings_(map).concat(alResponses_(map, toClose)).concat(alSupply_(accounts, idx)).concat(alShop_(accounts, idx)).concat(alNight_());
+  // Reassignments made on the hub (Alert Assign tab). Replies follow their posting.
+  var asg = {};
+  try { asg = afAssignMap_(afTab_(SpreadsheetApp.openById(SHEET_ID), AF_ASSIGN_TAB, AF_ASSIGN_HEAD)); } catch (e) { asg = {}; }
+  items.forEach(function (it) {
+    it.auto_fsm = it.fsm || '';
+    var a = asg[it.key] || (it.type === 'response' && it.pid ? asg['post:' + it.pid] : null);
+    if (a && a.crm_id && idx && idx.byId[a.crm_id]) {
+      it.acct_id = a.crm_id; it.acct_name = idx.byId[a.crm_id].name; it.match = 'linked'; it.cands = [];
+      if (!a.fsm) it.fsm = idx.byId[a.crm_id].fsm;
+    }
+    if (a && a.fsm && FSM_ROSTER[a.fsm]) {
+      it.fsm = a.fsm; it.assigned = true; it.assigned_by = a.by; it.assigned_nice = alNice_(a.at);
+    }
+  });
   if (toClose.length) { try { alCloseLater_(toClose); } catch (e) { /* hidden anyway while filled; retried next build */ } }
   var out = [];
   items.forEach(function (it) {
@@ -398,7 +437,7 @@ function alList_(d) {
   });
   out.sort(function (a, b) { return (b.when || '').localeCompare(a.when || ''); });
   return { ok: true, items: out, roster: alRoster_(), statuses: AL_STATUS, days: AL_DAYS,
-           accounts_loaded: accounts.length, generated: alIso_(new Date()) };
+           accounts_loaded: accounts.length, crm_accounts: idx ? idx.accts.length : 0, generated: alIso_(new Date()) };
 }
 function alSet_(d) {
   var keys = d.keys || (d.key ? [d.key] : []);
