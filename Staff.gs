@@ -22,7 +22,7 @@ var STAFF_MARKETS = ['Las Vegas', 'Northern Nevada', 'Both'];
 // Las Vegas valley coverage areas. Blank for anyone not assigned to one.
 var STAFF_TERRITORIES = ['North', 'West', 'Southwest', 'Southeast', 'Citywide'];
 var STAFF_SEED = [
-  ['Allison Donovan', 'Facility Solutions Manager', 'Las Vegas', '(949) 291-0549', 'Allison.Donovan@gocitywide.com', 'TRUE', 'North'],
+  ['Allison Donavan', 'Facility Solutions Manager', 'Las Vegas', '(949) 291-0549', 'Allison.Donavan@gocitywide.com', 'TRUE', 'North'],
   ['Alex Manon', 'Facility Solutions Manager', 'Las Vegas', '(805) 340-3380', 'alejandro.manon@gocitywide.com', 'TRUE', 'West'],
   ['Brett Stephens', 'Facility Solutions Manager', 'Las Vegas', '(702) 529-2292', 'brett.stephens@gocitywide.com', 'TRUE', 'Southeast'],
   ['Jake Schmidt', 'Facility Solutions Manager', 'Las Vegas', '(702) 529-2292', 'jschmidt@gocitywide.com', 'TRUE', 'Southwest'],
@@ -159,7 +159,7 @@ function staffOptionAdd_(data) {
 }
 
 
-// ---- one time migration, Sep 2026: territory column + Allison Donovan ----
+// ---- one time migration, Sep 2026: territory column + Allison Donavan ----
 // Safe to re-run. Adds the territory header if missing, backfills the Las Vegas
 // coverage areas by name, and appends anyone in STAFF_SEED who is not on the sheet.
 function staffMigrateTerritory() {

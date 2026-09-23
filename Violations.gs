@@ -16,7 +16,7 @@ var VIO_TABS = { LOG: 'Notices', ROSTER: 'Roster', ISSUERS: 'Issuers', CONFIG: '
 // People who can issue a notice. Kept in sync onto the Issuers tab by the setup run.
 var VIO_ISSUER_SEED = [
   ['TJ Roberts', 'tjroberts@gocitywide.com', 'TRUE'],
-  ['Allison Donovan', 'Allison.Donovan@gocitywide.com', 'TRUE'],
+  ['Allison Donavan', 'Allison.Donavan@gocitywide.com', 'TRUE'],
   ['Jake Schmidt', 'jschmidt@gocitywide.com', 'TRUE'],
   ['Alex Manon', 'alejandro.manon@gocitywide.com', 'TRUE'],
   ['Brett Stephens', 'brett.stephens@gocitywide.com', 'TRUE'],
