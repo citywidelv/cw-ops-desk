@@ -10,6 +10,10 @@ does it here now), the four Asana vendor packet forms, Request an Exhibit A (LV)
 does it here now). Added: Vendors > Invite a New Vendor (vendor-invite.html, kind vd_invite) which emails
 the New Vendor steps on the Vendor Hub and writes the prospect to the directory in one call. Vendor
 Resources rebuilt against the live cw-vendor-hub page list.
+build 2026-09-23: Alerts can be reassigned. Every posting, supply report, shop order and night report has a
+Reassign button: pick the FSM, and for supply and shop pick or confirm the account (from the CRM list uploaded on
+the Admin Hub, account-fsm.html). Optional: make that FSM the account's FSM from now on. Kind alerts_assign;
+the account list loads only when someone opens Reassign (alerts_acct_list), so the hub still paints from cache.
 build 2026-09-18b: Alerts card redesign, appearance only. The account or building is the headline on
 every block, replies sit inside their posting, and every vendor line carries Email / Call / Open beside
 the status buttons. Same alerts_list / alerts_set payloads, same data-* click contract. The last list
@@ -294,6 +298,24 @@ status buttons. Type scale 12 / 13 / 15 / 17, 4px spacing grid, radius 6 / 11 / 
 .agfoot .markall{font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);border:1px solid var(--border);border-radius:6px;background:#fff;padding:0 12px;min-height:40px;cursor:pointer;margin-left:auto}
 .adonelist{display:none}
 .agroup.showdone .adonelist{display:block}
+/* who owns it, and the reassign panel (Sep 23 2026) */
+.bown{font-size:12px;color:var(--grey);margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.bown b{color:var(--black)}
+.bown .warn{color:var(--red);font-weight:700}
+.areasb{font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);background:none;border:none;text-decoration:underline;cursor:pointer;padding:6px 0;min-height:32px}
+.arp{border-top:1px solid var(--border);background:#fcfbf8;padding:14px 18px 16px;display:grid;gap:12px}
+.arp .rl{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);margin-bottom:6px}
+.arp .cands{display:flex;flex-wrap:wrap;gap:8px}
+.arp .cand{font-family:inherit;font-size:13px;text-align:left;border:1.5px solid var(--border);border-radius:8px;background:#fff;padding:8px 12px;cursor:pointer;min-height:40px;color:var(--black);max-width:100%}
+.arp .cand small{display:block;font-size:12px;color:var(--grey)}
+.arp .cand.on{border-color:var(--red);box-shadow:0 0 0 3px rgba(210,39,48,.14)}
+.arp input[type=search],.arp select{font-family:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:6px;padding:8px 12px;background:#fff;min-height:42px;width:100%;max-width:420px;color:var(--black)}
+.arp input[type=search]:focus,.arp select:focus{outline:none;border-color:var(--red)}
+.arp .ares{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.arp .chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;cursor:pointer}
+.arp .chk input{width:18px;height:18px;margin-top:1px;flex:none;accent-color:var(--red)}
+.arp .note{font-size:12px;color:var(--grey);line-height:1.5}
+.arp .rbtns{display:flex;gap:8px;flex-wrap:wrap}
 .astatus{padding:8px 20px;font-size:12px;color:var(--grey);border-top:1px solid var(--border);min-height:32px}
 .astatus .err{color:var(--red);font-weight:700}
 .anew{border-top:3px solid var(--red);background:var(--light);padding:16px 20px 20px}
@@ -1128,7 +1150,7 @@ via kind:"announcement" - both are now used by citywidelv.github.io. ---------- 
 list, grouped by FSM. Read and write through the Apps Script (alerts_list / alerts_set,
 passcode checked server side). Check-offs live on the Alert Status tab of the CW
 Solicitations sheet, so one person's click shows for everyone. ---------- */
-var AL = { items:[], roster:[], statuses:{}, days:45, open:{}, showDone:{}, showKids:{}, busy:false, timer:null };
+var AL = { items:[], roster:[], statuses:{}, days:45, open:{}, showDone:{}, showKids:{}, busy:false, timer:null, rp:null, accts:null, acctsBusy:false };
 var AL_WHOKEY = "cwAlertsWho";
 /* Instant paint: the last list this browser saw is kept in localStorage and drawn before the
 server is asked, so the card never sits on a spinner. The fresh list replaces it when it lands. */
@@ -1165,12 +1187,22 @@ var sel = document.getElementById("alwho");
 sel.addEventListener("change", function(){ alSetWho(sel.value); alRender(); });
 document.getElementById("alrefresh").addEventListener("click", function(){ alLoad(true); });
 document.getElementById("albody").addEventListener("click", alClick);
+document.getElementById("albody").addEventListener("input", function(e){ if(e.target.hasAttribute("data-acsearch")) alSearch(e.target.value); });
+document.getElementById("albody").addEventListener("change", function(e){
+if(!AL.rp) return;
+if(e.target.hasAttribute("data-rfsm")){
+AL.rp.fsm = e.target.value;
+AL.rp.fwd = !!(AL.rp.acct && AL.rp.fsm && AL.rp.acct.fsm !== AL.rp.fsm);
+alRender();
+}
+if(e.target.hasAttribute("data-rfwd")) AL.rp.fwd = e.target.checked;
+});
 var c = alCacheRead();
 if(c){ alApply(c.r); alSay("Showing the list from " + alAgo(c.t) + ". Checking for anything new..."); }
 else document.getElementById("albody").innerHTML = alSkeleton();
 alLoad(false);
-window.addEventListener("focus", function(){ alLoad(false); });
-AL.timer = setInterval(function(){ if(!document.hidden) alLoad(false); }, 90000);
+window.addEventListener("focus", function(){ if(!AL.rp) alLoad(false); });
+AL.timer = setInterval(function(){ if(!document.hidden && !AL.rp) alLoad(false); }, 90000);
 }
 function alLoad(manual){
 if(AL.busy) return;
@@ -1218,7 +1250,7 @@ var g;
 if(it.fsm && byKey[it.fsm]) g = byKey[it.fsm];
 else {
 var rk = "un:" + (it.region || "Region unknown");
-if(!un[rk]) un[rk] = { key:rk, name:"No FSM matched", sub:(it.region || "Region unknown") + ". We could not tie these to an account. Anyone can clear them.", open:[], done:[] };
+if(!un[rk]) un[rk] = { key:rk, name:"No FSM matched", sub:(it.region || "Region unknown") + ". We could not tie these to an account. Use Reassign to send one to the right FSM.", open:[], done:[] };
 g = un[rk];
 }
 (it.status ? g.done : g.open).push(it);
@@ -1366,7 +1398,8 @@ var html = '<div class="ablk ' + esc(it.type) + (it.status ? ' done' : '') + '">
 (sub ? '<div class="bsub">' + sub + '</div>' : '') +
 (it.type !== "posting" && it.summary ? '<div class="bsum">' + esc(it.summary) + '</div>' : '') +
 (meta.length ? '<div class="bmeta">' + meta.map(function(m){ return '<span>' + m + '</span>'; }).join('') + '</div>' : '') +
-'</div>' + side + '</div>';
+alOwn(it) +
+'</div>' + side + '</div>' + (AL.rp && AL.rp.key === it.key ? alPanel(it) : '');
 if(it.type === "posting" && !it.status){
 if(!kids.length){
 html += '<div class="rnone">No vendor has replied yet.' + (/deadline/i.test(it.summary || '') ? ' ' + esc(it.summary.replace(/^.*?(Deadline)/, '$1')) : '') + '</div>';
@@ -1383,6 +1416,138 @@ html += '</div>';
 }
 }
 return html + '</div>';
+}
+/* Who this alert is with, how we know, and the Reassign button. Replies follow their posting. */
+function alFsmName(k){ var f = AL.roster.filter(function(x){ return x.key === k; })[0]; return f ? f.name : ""; }
+function alOwn(it){
+if(it.type === "response") return "";
+var bits = [];
+if(it.assigned){
+bits.push('With <b>' + esc(alFsmName(it.fsm) || "someone") + '</b>, reassigned by ' + esc(it.assigned_by || "someone") + (it.assigned_nice ? ' ' + esc(it.assigned_nice) : ''));
+} else if(it.type === "supply" || it.type === "shop"){
+if(it.acct_name) bits.push('Account <b>' + esc(it.acct_name) + '</b>' + (it.fsm ? '' : ', <span class="warn">no FSM on it yet</span>'));
+else if(it.cands && it.cands.length) bits.push('<span class="warn">Could be ' + it.cands.length + ' accounts.</span> Pick the right one with Reassign');
+else bits.push('<span class="warn">Not matched to an account.</span>');
+}
+var b = it.status ? '' : '<button class="areasb" type="button" data-reas="' + esc(it.key) + '">' + (AL.rp && AL.rp.key === it.key ? 'Close' : 'Reassign') + '</button>';
+if(!bits.length && !b) return "";
+return '<div class="bown">' + bits.map(function(x){ return '<span>' + x + '</span>'; }).join('') + b + '</div>';
+}
+/* The reassign panel. Supply and shop also pick or confirm the account; picking one teaches
+the hub that name, so the next report that says the same thing lands on its own. */
+function alPanel(it){
+var rp = AL.rp, acctish = it.type === "supply" || it.type === "shop";
+var h = '<div class="arp">';
+if(acctish){
+h += '<div><div class="rl">Which account</div>';
+var list = (it.cands || []).slice();
+if(it.acct_id && !list.some(function(c){ return c.id === it.acct_id; })) list.unshift({ id:it.acct_id, name:it.acct_name, fsm:it.auto_fsm });
+if(rp.acct && !list.some(function(c){ return c.id === rp.acct.id; })) list.unshift(rp.acct);
+if(list.length){
+h += '<div class="cands">' + list.map(function(c){
+return '<button type="button" class="cand' + (rp.acct && rp.acct.id === c.id ? ' on' : '') + '" data-pick="' + esc(c.id) + '" data-pname="' + esc(c.name) + '" data-pfsm="' + esc(c.fsm || "") + '">' + esc(c.name) + '<small>' + esc(alFsmName(c.fsm) || "No FSM yet") + '</small></button>';
+}).join('') + '</div>';
+}
+h += '<div style="margin-top:8px"><input type="search" data-acsearch="1" placeholder="' + (list.length ? 'Not one of these? Search all accounts' : 'Search accounts by name, street or city') + '" autocomplete="off"><div class="ares" id="alares"></div></div></div>';
+}
+h += '<div><div class="rl">Send it to</div><select data-rfsm="1"><option value="">Pick an FSM</option>' +
+AL.roster.map(function(f){ return '<option value="' + esc(f.key) + '"' + (f.key === rp.fsm ? ' selected' : '') + '>' + esc(f.name) + '</option>'; }).join('') + '</select></div>';
+if(acctish && rp.acct){
+var cur = rp.acct.fsm, pick = rp.fsm;
+h += '<label class="chk"><input type="checkbox" data-rfwd="1"' + (rp.fwd ? ' checked' : '') + '><span>Make ' + esc(alFsmName(pick) || "them") + ' the FSM for <b>' + esc(rp.acct.name) + '</b> from now on' + (cur && cur !== pick ? ' (it is ' + esc(alFsmName(cur)) + ' today)' : '') + '.</span></label>' +
+'<div class="note">Untick it to move only this one. If it stays ticked, change CRM too. The next CRM upload keeps this choice until CRM itself changes the account.</div>';
+}
+if(it.type === "posting") h += '<div class="note">Replies to this posting move with it.</div>';
+h += '<div class="rbtns"><button class="abtn main" type="button" data-rsave="' + esc(it.key) + '">Save</button><button class="abtn" type="button" data-rcancel="1">Cancel</button>' +
+(it.assigned ? '<button class="abtn" type="button" data-rclear="' + esc(it.key) + '">Undo reassign</button>' : '') + '</div></div>';
+return h;
+}
+function alItem(key){ return AL.items.filter(function(x){ return x.key === key; })[0]; }
+function alOpenPanel(key){
+var it = alItem(key);
+if(!it) return;
+if(AL.rp && AL.rp.key === key){ AL.rp = null; alRender(); return; }
+var acct = it.acct_id ? { id:it.acct_id, name:it.acct_name, fsm:it.auto_fsm } : null;
+AL.rp = { key:key, acct:acct, fsm:it.fsm || "", fwd:false };
+alRender();
+if(it.type === "supply" || it.type === "shop") alLoadAccts();
+}
+/* The CRM account list, only when someone opens Reassign. Kept for the day in this browser. */
+var AL_ACCTKEY = "cwAcctFsmCache";
+function alLoadAccts(){
+if(!AL.accts){ try{ var c = JSON.parse(localStorage.getItem(AL_ACCTKEY) || "null"); if(c && c.t && (Date.now() - c.t) < 864e5) AL.accts = c.a; }catch(e){} }
+if(AL.acctsBusy || (AL.accts && AL.acctsFresh)) return;
+AL.acctsBusy = true;
+alPost({ kind:"alerts_acct_list" }).then(function(r){
+AL.acctsBusy = false;
+if(!r || !r.ok) return;
+AL.accts = (r.accounts || []).map(function(a){ return { id:a.id, name:a.name, fsm:a.fsm, region:a.region, addr:a.addr, city:a.city }; });
+AL.acctsFresh = true;
+try{ localStorage.setItem(AL_ACCTKEY, JSON.stringify({ t:Date.now(), a:AL.accts })); }catch(e){}
+var s = document.querySelector('[data-acsearch]'); if(s && s.value) alSearch(s.value);
+}).catch(function(){ AL.acctsBusy = false; });
+}
+function alSearch(q){
+var box = document.getElementById("alares");
+if(!box) return;
+var words = String(q || "").toLowerCase().split(/[^a-z0-9]+/).filter(function(w){ return w.length > 1; });
+if(!words.length){ box.innerHTML = ""; return; }
+if(!AL.accts){ box.innerHTML = '<div class="note">Loading the account list...</div>'; alLoadAccts(); return; }
+var it = alItem(AL.rp && AL.rp.key) || {};
+var hits = AL.accts.filter(function(a){
+if(it.region && a.region && a.region !== it.region) return false;
+var hay = (a.name + " " + a.addr + " " + a.city).toLowerCase();
+return words.every(function(w){ return hay.indexOf(w) >= 0; });
+}).slice(0, 8);
+box.innerHTML = hits.length ? hits.map(function(a){
+return '<button type="button" class="cand" data-pick="' + esc(a.id) + '" data-pname="' + esc(a.name) + '" data-pfsm="' + esc(a.fsm || "") + '">' + esc(a.name) + '<small>' + esc([a.addr, a.city].filter(Boolean).join(", ")) + ' &middot; ' + esc(alFsmName(a.fsm) || "No FSM yet") + '</small></button>';
+}).join('') : '<div class="note">No account matches that. Check the spelling, or just pick the FSM below.</div>';
+}
+function alNeedWho(btn){
+var by = alByName();
+if(by) return by;
+var sel = document.getElementById("alwho");
+sel.classList.add("need");
+alSay('<span class="err">Pick your name first so the team can see who handled it.</span>');
+try { sel.scrollIntoView({ block:"center", behavior:"smooth" }); } catch(e){}
+sel.focus();
+return "";
+}
+function alAssign(key, clear, btn){
+var it = alItem(key), rp = AL.rp;
+if(!it) return;
+var by = alNeedWho(btn);
+if(!by) return;
+var body = { kind:"alerts_assign", key:key, by:by, fsm:"" };
+if(!clear){
+if(!rp.fsm && !rp.acct){ alSay('<span class="err">Pick an FSM' + (it.type === "supply" || it.type === "shop" ? ' or an account' : '') + ' first.</span>'); return; }
+body.fsm = rp.fsm;
+if(rp.acct){
+body.crm_id = rp.acct.id;
+body.forward = !!rp.fwd;
+if(it.typed && rp.acct.id !== it.acct_id) body.alias = it.typed;
+}
+}
+if(btn) btn.disabled = true;
+alPost(body).then(function(r){
+if(btn) btn.disabled = false;
+if(!r || !r.ok){
+if(r && r.error && CWAuth.isPassError(r.error)){ CWAuth.locked("ops", r.error); return; }
+alSay('<span class="err">Could not save. ' + esc((r && r.error) || "Try again.") + '</span>'); return;
+}
+var moved = clear ? it.auto_fsm : r.fsm;
+it.fsm = moved || ""; it.assigned = !clear && !!r.fsm; it.assigned_by = r.by; it.assigned_nice = r.at_nice;
+if(r.account){ it.acct_id = r.account.id; it.acct_name = r.account.name; it.cands = []; }
+AL.items.forEach(function(x){
+if(it.type === "posting" && x.type === "response" && x.pid === it.ref){ x.fsm = it.fsm; x.assigned = it.assigned; x.assigned_by = it.assigned_by; }
+if(body.forward && r.account && x !== it && x.acct_id === r.account.id && !x.assigned){ x.fsm = r.account.fsm; }
+});
+if(body.forward && r.account && AL.accts) AL.accts.forEach(function(a){ if(a.id === r.account.id) a.fsm = r.account.fsm; });
+AL.rp = null;
+alRender(); alCacheWrite(AL);
+var nm = alFsmName(it.fsm);
+alSay(clear ? "Reassignment undone." : "Saved. " + (nm ? "It is in " + esc(nm) + "'s list now" : "Saved") + (body.forward ? ", and " + esc(r.account.name) + " is theirs from now on." : "."));
+}).catch(function(){ if(btn) btn.disabled = false; alSay('<span class="err">Could not reach the server. Try again.</span>'); });
 }
 /* One reply row inside its posting: who, what they offered, then Email / Call / Open and the
 status buttons. Nothing repeats the posting title, the row already sits under it. */
@@ -1407,6 +1572,16 @@ if(t.hasAttribute("data-kids")){ var kk = t.getAttribute("data-kids"); AL.showKi
 if(t.hasAttribute("data-done")){ var k2 = t.getAttribute("data-done"); AL.showDone[k2] = !AL.showDone[k2]; alRender(); return; }
 if(t.hasAttribute("data-key")){ alMark([t.getAttribute("data-key")], t.getAttribute("data-status"), t); return; }
 if(t.hasAttribute("data-undo")){ alMark([t.getAttribute("data-undo")], "", t); return; }
+if(t.hasAttribute("data-reas")){ alOpenPanel(t.getAttribute("data-reas")); return; }
+if(t.hasAttribute("data-rcancel")){ AL.rp = null; alRender(); return; }
+if(t.hasAttribute("data-rsave")){ alAssign(t.getAttribute("data-rsave"), false, t); return; }
+if(t.hasAttribute("data-rclear")){ alAssign(t.getAttribute("data-rclear"), true, t); return; }
+if(t.hasAttribute("data-pick") && AL.rp){
+var pf = t.getAttribute("data-pfsm");
+AL.rp.acct = { id:t.getAttribute("data-pick"), name:t.getAttribute("data-pname"), fsm:pf };
+AL.rp.fsm = pf || AL.rp.fsm; AL.rp.fwd = false;
+alRender(); return;
+}
 if(t.hasAttribute("data-markall")){
 var gk = t.getAttribute("data-markall");
 var grp = alGroups().filter(function(x){ return x.key === gk; })[0];
