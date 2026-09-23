@@ -1,4 +1,4 @@
-/* VendorSelf.gs - CW Solicitations project. Build 2026-09-23b (append lock, no catch-all type).
+/* VendorSelf.gs - CW Solicitations project. Build 2026-09-23c (appendRow under lock, no catch-all type).
    Vendor self-service profile (cw-vendor-hub/my-profile.html) and the Admin Hub
    Vendor Activity feed (cw-admin-hub/vendor-activity.html).
 
@@ -66,6 +66,7 @@ var VS_RATE_EMAIL = 3;      // link requests per email per hour
 var VS_RATE_ALL = 60;       // link requests platform-wide per hour
 var VS_FEED_DAYS = 45;      // feed window
 var VS_FEED_DONE_DAYS = 7;  // handled items stay visible this long
+var VS_TEST_TO = 'tjroberts@gocitywide.com';   // test vendors (DBA starts with ZZ or TEST) never email the compliance inboxes
 
 var VS_TABS = { CONTACTS: 'Vendor Contacts', DETAILS: 'Vendor Details', LINKS: 'Profile Links',
                 ACT: 'Vendor Activity', STATUS: 'Activity Status' };
@@ -201,10 +202,12 @@ function vsAppend_(sh, headers, obj) {
   var lock = null;
   try { lock = LockService.getScriptLock(); lock.waitLock(15000); } catch (e) { lock = null; }
   try {
-    var r = vsNextRow_(sh);
-    sh.getRange(r, 1, 1, head.length).setValues([row]);
+    // appendRow lets the Sheets service pick the row at write time, so a stale
+    // getLastRow() read from earlier in this execution cannot land on a row
+    // another execution just filled. These tabs carry no painted validation.
+    sh.appendRow(row);
     SpreadsheetApp.flush();
-    return r;
+    return sh.getLastRow();
   } finally { try { if (lock) lock.releaseLock(); } catch (e2) {} }
 }
 function vsSet_(sh, head, row, field, value) {
@@ -213,6 +216,7 @@ function vsSet_(sh, head, row, field, value) {
 }
 function vsMarketKey_(v) { return vdRegion_(v.region) === 'Northern Nevada' ? 'nnv' : 'lv'; }
 function vsMarket_(v) { return OB_MARKETS[vsMarketKey_(v)]; }
+function vsIsTest_(v) { return /^(zz\b|zz |test\b)/i.test(String(v && v.dba_name || '')); }
 function vsMarketCode_(region) { return /north/i.test(String(region || '')) ? 'NNV' : 'LV'; }
 function vsEsc_(s) { return _esc(s); }
 function vsPass_(d) { return String(d.passcode || '') !== '' && String(d.passcode || '') === vdPass_(); }
@@ -622,7 +626,8 @@ function vsNotify_(a, title, lines) {
     var plain = a.v.dba_name + ' (' + a.v.vendor_id + ')\n' + title + ' by ' + a.actor + ' (' + a.actor_email + ')\n\n' +
       lines.map(function (l) { return l[0] + ': ' + (l[1] || 'blank') + ' -> ' + (l[2] || 'blank'); }).join('\n') +
       '\n\nThe Vendor Directory is updated. CRM, Business Central and emfluence are not.\n' + VS_PROFILE_ADMIN + '?id=' + a.v.vendor_id;
-    var opts = { to: a.mk.compliance, name: a.mk.sender, replyTo: a.mk.compliance, subject: title + ': ' + a.v.dba_name, body: plain, htmlBody: html,
+    var to = vsIsTest_(a.v) ? VS_TEST_TO : a.mk.compliance;
+    var opts = { to: to, name: a.mk.sender, replyTo: a.mk.compliance, subject: (vsIsTest_(a.v) ? 'TEST | ' : '') + title + ': ' + a.v.dba_name, body: plain, htmlBody: html,
                  digest: { title: title + ': ' + a.v.dba_name, fields: lines.map(function (l) { return [l[0], (l[1] || 'blank') + ' -> ' + (l[2] || 'blank')]; }),
                            links: [['Vendor profile', VS_PROFILE_ADMIN + '?id=' + a.v.vendor_id]], region: vdRegion_(a.v.region), id: a.v.vendor_id } };
     if (typeof cwMail_ === 'function') cwMail_('vs_edit', opts); else cwSend_(opts);
