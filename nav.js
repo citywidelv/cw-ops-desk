@@ -157,8 +157,8 @@ window.CW_NAV = {
        "href": "cleaners.html"
       },
       {
-       "label": "Opportunities Tracker (Sheet)",
-       "href": "https://docs.google.com/spreadsheets/d/1ymbqR7LMvA7sbgZe2Ro5o2dNiXhP08Tn9Hw1b-H5AeQ/edit#gid=0"
+       "label": "Edit Active Postings",
+       "href": "https://citywidelv.github.io/cw-admin-hub/records.html?s=postings&f=Open"
       }
      ]
     },
