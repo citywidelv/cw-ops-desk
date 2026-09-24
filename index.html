@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
-<!-- build 2026-09-11b: hub cleanup per TJ. Removed: Request a Walkthrough Email (postings.html
+<!-- build 2026-09-24: Ops asked for the Exhibit A request link back, so Vendors now carries an Exhibit A cascade (Create an Exhibit A, Request an Exhibit A Asana form, the Exhibit A Requests board) and the quick row has the Exhibit A Request chip again. Vendor Evaluation Form now points at the native Vendor Hub page (the Jotform never fed the directory). Nav: any tall dropdown lists its section headings as side cascades and every panel is kept on screen by CWNav.place (flip left, shift up, scroll).
+build 2026-09-11b: hub cleanup per TJ. Removed: Request a Walkthrough Email (postings.html
 does it here now), the four Asana vendor packet forms, Request an Exhibit A (LV) (create-exhibit-a.html
 does it here now). Added: Vendors > Invite a New Vendor (vendor-invite.html, kind vd_invite) which emails
 the New Vendor steps on the Vendor Hub and writes the prospect to the directory in one call. Vendor
@@ -104,6 +105,12 @@ padding:6px 0;z-index:80}
 .nitem:hover>.nmenu{display:block}
 .nsub:hover>.nsubmenu{display:block}
 }
+/* Sep 24 2026: panels are kept on screen by CWNav.place. flip = open to the left instead of
+the right (or hug the right edge for a top dropdown); scroll = taller than the screen. */
+.nmenu.flip{left:auto;right:0}
+.nsubmenu.flip{left:auto;right:100%}
+.nsub.flip>a.subbtn::after{content:"\25C2"}
+.nmenu.scroll,.nsubmenu.scroll{overflow-y:auto;overscroll-behavior:contain}
 
 /* ---------- Hero: Las Vegas + Reno skyline, greyscale per brand ---------- */
 .wrap{max-width:1160px;margin:0 auto;padding:0 20px}
@@ -821,13 +828,17 @@ var MENU = [
 {label:"New Vendor Onboarding Status", href:"https://citywidelv.github.io/cw-admin-hub/onboarding.html", tag:"Admin Hub"},
 {ghead:"Where the invite takes them"},
 {label:"New Vendor Steps (Vendor Hub)", href:VS+"new-vendors.html"},
-{label:"Vendor Evaluation Form", href:"https://form.jotform.com/tjroberts/vendor-evaluation-form"},
+{label:"Vendor Evaluation Form (Vendor Hub)", href:VS+"vendor-evaluation.html"},
 {ghead:"Then"},
 {label:"Prospects (Las Vegas)", href:"vendors.html#/lv/prospects"},
 {label:"Prospects (Northern Nevada)", href:"vendors.html#/nnv/prospects"},
 {label:"Add a Vendor by Hand", href:"vendor-add.html"}
 ]},
+{sub:"Exhibit A", items:[
 {label:"Create an Exhibit A", href:"create-exhibit-a.html"},
+{label:"Request an Exhibit A (Asana form)", href:"https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873"},
+{label:"Exhibit A Requests board", href:"https://app.asana.com/1/13140959242873/project/1211502025570262", tag:"Asana"}
+]},
 {sub:"Vendor Resources", items:[
 {label:"Resource Home", href:VS},
 {label:"New Vendor Steps", href:VS+"new-vendors.html"},
@@ -983,11 +994,15 @@ return out;
 var host = document.getElementById("mainnav");
 var html = "";
 MENU.forEach(function(m, mi){
+/* Sep 24 2026: a tall dropdown lists its section names and each opens to the side, so nothing
+runs off the bottom of the screen. Short menus keep their inline headings. */
+var tree = (window.CWNav && CWNav.cascadeGroups && !m.flat) ? CWNav.cascadeGroups(m.items) : m.items;
 html += '<div class="nitem"><button class="nbtn" data-dd="' + mi + '">' +
 iconSvg(m.icon, 14) + esc(m.label) + ' <span class="caret">&#9660;</span></button>' +
-'<div class="nmenu" id="dd-' + mi + '">' + items(m.items, 0) + '</div></div>';
+'<div class="nmenu" id="dd-' + mi + '">' + items(tree, 0) + '</div></div>';
 });
 host.innerHTML = html;
+if(window.CWNav && CWNav.bind) CWNav.bind(host);   // keeps every open panel on screen (flip left, shift up, scroll)
 
 /* Phones: the open menu is moved out of the scrolling nav bar onto <body> while it is
 open (WebKit clips position:fixed inside an overflow container), then put back. */
@@ -1017,8 +1032,8 @@ var tgt = (/^https?:/.test(href) && href.indexOf("citywidelv.github.io")<0) ? ' 
 return '<a href="' + esc(href) + '"' + tgt + '>' + (icon ? iconSvg(icon, 14) : '') + esc(label) + '</a>';
 }
 function closeMenus(){
-document.querySelectorAll(".nmenu.show").forEach(function(d){ d.classList.remove("show"); d.style.top = ""; if(d._home) portalClose(d); });
-document.querySelectorAll(".nsubmenu.show").forEach(function(d){ d.classList.remove("show"); });
+document.querySelectorAll(".nmenu.show").forEach(function(d){ d.classList.remove("show"); d.style.top = ""; d.style.maxHeight = ""; d.classList.remove("flip", "scroll"); if(d._home) portalClose(d); });
+document.querySelectorAll(".nsubmenu.show").forEach(function(d){ d.classList.remove("show"); d.style.top = ""; d.style.left = ""; d.style.maxHeight = ""; d.classList.remove("flip", "scroll"); });
 document.querySelectorAll(".nbtn.open").forEach(function(b){ b.classList.remove("open"); });
 }
 function portalClose(dd){
@@ -1050,6 +1065,7 @@ var QUICK = [
 { label:"Live Board", href:"https://citywidelv.github.io/cw-vendor-hub/opportunities.html", icon:"board", pill:true },
 { label:"Nominate a Vendor / G.O.A.T.", href:"nominate.html", icon:"plus" },
 { label:"Create an Exhibit A", href:"create-exhibit-a.html", icon:"clip" },
+{ label:"Exhibit A Request", href:"https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873", icon:"clip" },
 { label:"Vendor Email", href:"vendor-email.html", icon:"mail" },
 { label:"Invite a New Vendor", href:"vendor-invite.html", icon:"mail" },
 { label:"Night Inspection", href:"https://form.jotform.com/233486327771060", icon:"clip" },

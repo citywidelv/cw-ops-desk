@@ -1,4 +1,4 @@
-/* CW Nav. Build 2026-09-13.
+/* CW Nav. Build 2026-09-24 (cascade helpers: cascadeGroups, place, bind; scroll floor for Vendor and Sales dropdowns). 2026-09-13.
    Shared menu renderer for the hubs that used to carry their nav as hand-edited HTML
    (Team Portal, Sales Hub, Vendor Hub). The Ops Hub and Admin Hub keep their own
    renderers and only swap their MENU data for window.CW_NAV.
@@ -140,5 +140,106 @@
     return q.length ? q : null;
   }
 
-  window.CWNav = { vendor: vendor, sales: sales, portal: portal, menuFor: menuFor, quickFor: quickFor, prune: prune, manifest: manifest, here: here };
+  /* ---------- Cascade menus (Sep 24 2026) ----------
+     Two helpers the Ops Hub and Admin Hub renderers share.
+
+     cascadeGroups(items, opts): at the top level of one dropdown, turn every group heading
+     (ghead) and the links under it into a side cascade ({sub, items}), so the dropdown
+     lists section names and each section opens to the side on hover. Links before the
+     first heading stay as direct links. Only applied when the dropdown is tall (more rows
+     than opts.max, default 9) unless opts.always is set, so a short menu keeps its inline
+     headings. Group headings inside a cascade are left inline. Set flat:true on a top
+     item to opt out.
+
+     place(panel): after a panel (.nmenu or .nsubmenu) opens, keep it on screen. A side
+     panel flips to the left of its parent when it would leave the right edge, moves up
+     when it would leave the bottom, and scrolls when it is taller than the viewport. A
+     top dropdown scrolls only when it holds no cascades (a scrolling box would clip them).
+
+     bind(host): watches pointer and focus inside a nav host and calls place for the panel
+     that just opened. Phones (max-width 820px) render cascades inline and are skipped. */
+  function cascadeGroups(items, opts){
+    opts = opts || {};
+    var list = shown(items);
+    var rows = list.length;
+    var hasHead = list.some(function(it){ return it.ghead; });
+    if(!hasHead) return list;
+    if(!opts.always && rows <= (opts.max || 9)) return list;
+    var out = [], cur = null;
+    list.forEach(function(it){
+      if(it.ghead){ cur = { sub: it.ghead, items: [] }; out.push(cur); return; }
+      if(cur) cur.items.push(it); else out.push(it);
+    });
+    /* a heading with nothing under it, or a single cascade inside the cascade, stays as is */
+    return out.filter(function(it){ return !(it.sub && it.items && it.items.length === 0); });
+  }
+  function phoneNav(){ return !!(window.matchMedia && matchMedia("(max-width:820px)").matches); }
+  function place(panel){
+    if(!panel || phoneNav()) return;
+    var side = panel.classList.contains("nsubmenu");
+    var holder = side ? panel.parentElement : null;
+    panel.classList.remove("flip", "scroll"); panel.style.top = ""; panel.style.maxHeight = "";
+    if(holder) holder.classList.remove("flip");
+    var vw = document.documentElement.clientWidth, vh = window.innerHeight, pad = 8;
+    var r = panel.getBoundingClientRect();
+    if(!r.width) return;
+    if(r.right > vw - pad){
+      var hr = holder ? holder.getBoundingClientRect() : null;
+      if(!side || (hr && hr.left - r.width >= pad)){ panel.classList.add("flip"); if(holder) holder.classList.add("flip"); }
+      else if(side){ panel.style.left = Math.max(pad - r.left, vw - pad - r.right) + "px"; }
+      r = panel.getBoundingClientRect();
+    }
+    var hasSubs = !!panel.querySelector(".nsub");
+    if(r.bottom > vh - pad){
+      if(side){
+        var shift = r.bottom - (vh - pad);
+        var top = panel.offsetTop - shift;
+        if(r.top - shift < pad){ shift = r.top - pad; top = panel.offsetTop - shift; }
+        panel.style.top = Math.round(top) + "px";
+        r = panel.getBoundingClientRect();
+      }
+      if(r.bottom > vh - pad && !hasSubs){
+        panel.style.maxHeight = Math.max(160, Math.floor(vh - r.top - pad)) + "px";
+        panel.classList.add("scroll");
+      }
+    }
+  }
+  function bind(host){
+    if(!host || host._cwPlaced) return;
+    host._cwPlaced = true;
+    var last = null;
+    function onOver(e){
+      var t = e.target; if(!t || !t.closest) return;
+      var sub = t.closest(".nsub");
+      var item = t.closest(".nitem");
+      var key = sub || item;
+      if(!key || key === last) return;
+      last = key;
+      if(item && !sub){ var m = item.querySelector(":scope > .nmenu"); if(m) requestAnimationFrame(function(){ place(m); }); }
+      if(sub){ var sm = sub.querySelector(":scope > .nsubmenu"); if(sm) requestAnimationFrame(function(){ place(sm); }); }
+    }
+    host.addEventListener("pointerover", onOver);
+    host.addEventListener("focusin", onOver);
+    host.addEventListener("pointerleave", function(){ last = null; });
+    host.addEventListener("click", function(e){
+      var t = e.target; if(!t || !t.closest) return;
+      var sub = t.closest(".nsub"), item = t.closest(".nitem");
+      setTimeout(function(){
+        if(sub){ var sm = sub.querySelector(":scope > .nsubmenu"); if(sm && sm.classList.contains("show")) place(sm); }
+        else if(item){ var m = item.querySelector(":scope > .nmenu"); if(m && m.classList.contains("show")) place(m); }
+      }, 0);
+    });
+  }
+  /* Vendor Hub and Sales Hub dropdowns have no cascades, so a plain scroll floor keeps
+     them on screen. Injected here so the 18 Vendor Hub pages need no CSS edit. */
+  function floor(){
+    if(document.getElementById("cwnav-floor")) return;
+    var st = document.createElement("style"); st.id = "cwnav-floor";
+    st.textContent = "@media(min-width:1081px){.site-head .dd-menu{max-height:calc(100vh - 140px);overflow-y:auto}}@media(min-width:821px){.menupanel{max-height:calc(100vh - 120px);overflow-y:auto}}";
+    document.head.appendChild(st);
+  }
+  try { floor(); } catch(e){}
+
+  window.CWNav = { vendor: vendor, sales: sales, portal: portal, menuFor: menuFor, quickFor: quickFor, prune: prune, manifest: manifest, here: here,
+    cascadeGroups: cascadeGroups, place: place, bind: bind };
 })();

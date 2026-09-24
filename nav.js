@@ -1,6 +1,7 @@
 /* nav.js for the Ops Hub. Seeded from the page menu on 2026-09-13 by Claude.
    The Site Admin hub (cw-admin-hub/site-admin.html) republishes this file; do not edit by hand.
-   The page keeps its own MENU as a fallback if this file is missing or malformed. */
+   The page keeps its own MENU as a fallback if this file is missing or malformed.
+   Edited by hand 2026-09-24 (Exhibit A cascade and quick chip, Vendor Evaluation link): before the next Site Admin publish, click Import live menu. */
 window.CW_NAV = {
  "hub": "ops",
  "label": "Ops Hub",
@@ -276,8 +277,8 @@ window.CW_NAV = {
        "href": "https://citywidelv.github.io/cw-vendor-hub/new-vendors.html"
       },
       {
-       "label": "Vendor Evaluation Form",
-       "href": "https://form.jotform.com/tjroberts/vendor-evaluation-form"
+       "label": "Vendor Evaluation Form (Vendor Hub)",
+       "href": "https://citywidelv.github.io/cw-vendor-hub/vendor-evaluation.html"
       },
       {
        "ghead": "Then"
@@ -297,8 +298,22 @@ window.CW_NAV = {
      ]
     },
     {
-     "label": "Create an Exhibit A",
-     "href": "create-exhibit-a.html"
+     "sub": "Exhibit A",
+     "items": [
+      {
+       "label": "Create an Exhibit A",
+       "href": "create-exhibit-a.html"
+      },
+      {
+       "label": "Request an Exhibit A (Asana form)",
+       "href": "https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873"
+      },
+      {
+       "label": "Exhibit A Requests board",
+       "href": "https://app.asana.com/1/13140959242873/project/1211502025570262",
+       "tag": "Asana"
+      }
+     ]
     },
     {
      "sub": "Vendor Resources",
@@ -808,6 +823,11 @@ window.CW_NAV = {
   {
    "label": "Create an Exhibit A",
    "href": "create-exhibit-a.html",
+   "icon": "clip"
+  },
+  {
+   "label": "Exhibit A Request",
+   "href": "https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873",
    "icon": "clip"
   },
   {
