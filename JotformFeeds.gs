@@ -34,12 +34,12 @@ var JF_HEAD = ['slug', 'label', 'group', 'account', 'form_id', 'sheet_id', 'tab'
 var JF_FOLDER_TEAM = '1j6EKIby3zJDTyvzw-iYSrq8b6DJ5i_MH';   // Team Portal > Team and Admin (registry book lives here)
 var JF_TZ = 'America/Los_Angeles';
 var JF_CACHE_FEEDS = 180;   // seconds
-var JF_CACHE_LIST = 60;
 var JF_MAX_ROWS = 400;      // most rows one jf_list reply carries
+var JF_SHAPE_MAX = 1000;    // most rows shaped per request (search runs over these)
 
 // slug, label, group, account, form_id, sheet_id, alert, region, notes
 var JF_SEED = [
-  ['ni_lv',      'Night Manager Inspection (Las Vegas)',      'Night Ops', '',                          '233486327771060', '1RHnq3Yu_Olp7851f_guFffrtCyh04LWSYPVt2ASGNZA', '',        'Las Vegas',       'Old Jotform. The hub night-inspection.html page is the replacement.'],
+  ['ni_lv',      'Night Manager Inspection (Las Vegas)',      'Night Ops', '',                          '233486327771060', '1RHnq3Yu_Olp7851f_guFffrtCyh04LWSYPVt2ASGNZA', '',        'Las Vegas',       'Old Jotform. The hub night-inspection.html page is the replacement. This book also holds the route-out syncs and the night managers\' monthly report tabs; the live form writes tab "Form responses (1)" (set in the tab column).'],
   ['ni_nnv',     'Night Manager Inspection (Northern Nevada)','Night Ops', '',                          '261328145353151', '1qjI9yquxROKR4fy2kcWOKFN9xKNNb6k8lHVEqiV1ZVQ', '',        'Northern Nevada', ''],
   ['nm_supply',  'Night Manager Supply Orders',               'Night Ops', '',                          '251408022161140', '1ZoiiVEfu3S-6eQpFDERq-e6XfTquqrsAalpy9Q2GPvk', '',        'Las Vegas',       ''],
   ['cccnv_req',  'CCCNV Site Work Requests',                  'Work',      'Comprehensive Cancer Centers', '252935932465163', '1n3Vjd3z-bOZ_aGVVgWWczBd5xMqiZIjUgXefGYt1Ygc', 'workreq', 'Las Vegas',    'Client staff file these. Alerts go to the FSM for the CCCNV site.'],
@@ -75,16 +75,44 @@ function jfDispatch(d) {
 function jfStr_(v) { return (v === null || v === undefined) ? '' : String(v).trim(); }
 function jfIso_(d) { return d ? Utilities.formatDate(d, JF_TZ, "yyyy-MM-dd'T'HH:mm:ss") : ''; }
 function jfNice_(d) { return d ? Utilities.formatDate(d, JF_TZ, 'MMM d, h:mm a') : ''; }
-function jfDate_(v) {
-  if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+// Dates come three ways: a text stamp "2026-09-09 8:35:36" (Jotform writes it in the
+// form's time zone, Pacific, and the script runs in UTC so it must be read AS Pacific),
+// a text "09-09-2026", or a real Date cell holding the wall clock as a UTC instant. A
+// date-only cell is midnight UTC, which read in Pacific is 5 PM the day before; those
+// become noon Pacific on the right calendar day. Utilities.parseDate is not trusted with
+// zones, so the Pacific offset is applied by hand.
+var jfOff_ = {};
+function jfLocal_(y, mo, d, h, mi, s, dateOnly) {
+  var guess = new Date(Date.UTC(y, mo - 1, d, h, mi, s));
+  var key = y + '-' + mo + '-' + d;
+  if (jfOff_[key] === undefined) {
+    var z = Utilities.formatDate(guess, JF_TZ, 'Z');            // e.g. -0700
+    var sign = z.charAt(0) === '-' ? -1 : 1;
+    jfOff_[key] = sign * (parseInt(z.slice(1, 3), 10) * 60 + parseInt(z.slice(3, 5), 10));
+  }
+  var out = new Date(guess.getTime() - jfOff_[key] * 60000);
+  if (dateOnly) out.dateOnly = true;
+  return out;
+}
+function jfDate_(v, tz) {
+  var m;
+  if (v instanceof Date) {
+    if (isNaN(v.getTime())) return null;
+    // The integration writes Jotform's Pacific wall clock as a UTC instant (9:35 AM
+    // Pacific lands as 09:35Z, a date-only field as 00:00Z whatever the sheet's zone),
+    // so take the wall clock back out in UTC and read it as Pacific.
+    var st = Utilities.formatDate(v, 'UTC', 'yyyy-MM-dd HH:mm:ss');
+    m = st.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+    if (!m) return v;
+    if (m[4] === '00' && m[5] === '00' && m[6] === '00') return jfLocal_(+m[1], +m[2], +m[3], 12, 0, 0, true);
+    return jfLocal_(+m[1], +m[2], +m[3], +m[4], +m[5], +m[6]);
+  }
   var s = jfStr_(v);
   if (!s) return null;
-  var m;
-  // Jotform writes "2026-09-09 8:35:36" (form time zone) and "09-09-2026"
   if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/))) {
-    return new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+    return jfLocal_(+m[1], +m[2], +m[3], m[4] ? +m[4] : 12, +(m[5] || 0), +(m[6] || 0), !m[4]);
   }
-  if ((m = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/))) return new Date(+m[3], +m[1] - 1, +m[2]);
+  if ((m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/))) return jfLocal_(+m[3], +m[1], +m[2], 12, 0, 0, true);
   var d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
 }
@@ -93,14 +121,24 @@ function jfBook_() {
   if (!id) throw new Error('Jotform feeds are not set up yet (script property JF_SHEET_ID). Run jfSetupRun once.');
   return SpreadsheetApp.openById(id);
 }
-function jfRows_(sh) {
+function jfRows_(sh, keyName) {
   var last = sh.getLastRow(), lastC = sh.getLastColumn();
   if (last < 2 || lastC < 1) return { head: [], rows: [] };
-  var vals = sh.getRange(1, 1, last, lastC).getValues();
-  var head = vals[0].map(jfStr_);
+  var head = sh.getRange(1, 1, 1, lastC).getValues()[0].map(jfStr_);
+  // Report formulas in spare columns stretch these tabs to tens of thousands of rows.
+  // When the tab has a key column (Submission ID), read only down to its last value.
+  var kc = keyName ? head.indexOf(keyName) : -1;
+  if (kc >= 0) {
+    var col = sh.getRange(2, kc + 1, last - 1, 1).getValues();
+    var lastKey = 1;
+    for (var k = col.length - 1; k >= 0; k--) { if (jfStr_(col[k][0]) !== '') { lastKey = k + 2; break; } }
+    last = lastKey;
+    if (last < 2) return { head: head, rows: [] };
+  }
+  var vals = sh.getRange(2, 1, last - 1, lastC).getValues();
   var rows = [];
-  for (var i = 1; i < vals.length; i++) {
-    var o = { _row: i + 1 }, any = false;
+  for (var i = 0; i < vals.length; i++) {
+    var o = { _row: i + 2 }, any = false;
     for (var c = 0; c < head.length; c++) {
       if (!head[c]) continue;
       var v = vals[i][c];
@@ -173,17 +211,18 @@ function jfRoles_(head, feed) {
   return r;
 }
 function jfIsUpload_(v) { return /^https?:\/\/(www\.)?jotform\.com\/(uploads|widget-uploads)\//i.test(jfStr_(v)); }
-function jfShape_(row, head, roles) {
+function jfShape_(row, head, roles, tz) {
   var g = function (k) { return k ? jfStr_(row[k]) : ''; };
-  var when = jfDate_(row[roles.when]);
+  var when = jfDate_(row[roles.when], tz);
   var who = [g(roles.first), g(roles.last)].filter(Boolean).join(' ');
   var photos = [], fields = {};
   head.forEach(function (h) {
     if (!h || h === 'Submission ID' || h === 'Submission URL') return;
     var v = row[h];
-    if (v instanceof Date) v = Utilities.formatDate(v, JF_TZ, 'yyyy-MM-dd h:mm a');
+    if (v instanceof Date) { var vd = jfDate_(v, tz); v = vd ? Utilities.formatDate(vd, JF_TZ, vd.dateOnly ? 'yyyy-MM-dd' : 'yyyy-MM-dd h:mm a') : ''; }
     v = jfStr_(v);
     if (!v) return;
+    if (v.length > 1200) v = v.slice(0, 1200) + '...';
     if (jfIsUpload_(v) || (/\n/.test(v) && v.split(/\s+/).every(jfIsUpload_))) { v.split(/\s+/).forEach(function (u) { if (jfIsUpload_(u)) photos.push(u); }); return; }
     fields[h] = v;
   });
@@ -198,20 +237,36 @@ function jfShape_(row, head, roles) {
     fields: fields
   };
 }
-// All rows of one feed shaped and sorted newest first. Cached briefly.
+// One feed read from its sheet: raw rows plus a light index (id, ts) sorted newest
+// first. Rows are shaped only when a caller asks for them (jfShaped_), because the
+// Night Manager book carries thousands of rows and shaping every one is slow.
 function jfLoad_(feed) {
-  var cache = null, key = 'jf_rows_' + feed.slug;
-  try { cache = CacheService.getScriptCache(); var hit = cache.get(key); if (hit) return JSON.parse(hit); } catch (e) { cache = null; }
   var sh = jfSyncTab_(feed);
-  var data = jfRows_(sh);
+  var tz = JF_TZ; try { tz = sh.getParent().getSpreadsheetTimeZone() || JF_TZ; } catch (e) {}
+  var head0 = sh.getLastColumn() ? sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(jfStr_) : [];
+  var roles0 = jfRoles_(head0, feed);
+  var data = jfRows_(sh, roles0.id || roles0.when || '');
   var roles = jfRoles_(data.head, feed);
-  var rows = data.rows.map(function (r) { return jfShape_(r, data.head, roles); });
-  rows.sort(function (a, b) { return b.ts - a.ts; });
-  var out = { cols: data.head.filter(Boolean), roles: roles, rows: rows };
-  try { var s = JSON.stringify(out); if (s.length < 95000) cache.put(key, s, JF_CACHE_LIST); } catch (e) {}
-  return out;
+  // a row is a submission only when Jotform wrote its id (or its date on the older
+  // integrations that carry no id); one submission id counts once
+  var keyCol = roles.id || roles.when || '';
+  var seen = {};
+  var src = data.rows.filter(function (r) {
+    if (!keyCol) return true;
+    var k = jfStr_(r[keyCol]);
+    if (!k) return false;
+    if (roles.id) { if (seen[k]) return false; seen[k] = 1; }
+    return true;
+  });
+  var idx = src.map(function (r, i) {
+    var w = roles.when ? jfDate_(r[roles.when], tz) : null;
+    return { i: i, id: roles.id ? jfStr_(r[roles.id]) : String(r._row), ts: w ? w.getTime() : 0 };
+  });
+  // newest first; without a date column the sheet order is oldest first, so reverse it
+  idx.sort(function (a, b) { return (b.ts - a.ts) || (b.i - a.i); });
+  return { cols: data.head.filter(Boolean), roles: roles, tz: tz, src: src, idx: idx };
 }
-
+function jfShaped_(data, entry) { return jfShape_(data.src[entry.i], data.cols, data.roles, data.tz); }
 // ------------------------------------------------------------ handlers -----
 function jfFeeds_(d) {
   var cache = null;
@@ -229,14 +284,14 @@ function jfFeeds_(d) {
     if (hit2) { var s2 = JSON.parse(hit2); Object.keys(s2).forEach(function (k) { o[k] = s2[k]; }); return o; }
     try {
       var data = jfLoad_(f);
-      o.total = data.rows.length;
-      data.rows.forEach(function (r) {
+      o.total = data.idx.length;
+      data.idx.forEach(function (r) {
         if (!r.ts) return;
         var age = now - r.ts;
         if (age <= 7 * 864e5) o.d7++;
         if (age <= 30 * 864e5) o.d30++;
       });
-      var top = data.rows[0];
+      var top = data.idx.length ? jfShaped_(data, data.idx[0]) : null;
       if (top) { o.last = top.when; o.last_nice = top.when_nice; o.last_who = top.who; o.last_where = top.where || top.title; }
       try { cache.put(pk, JSON.stringify({ total: o.total, d7: o.d7, d30: o.d30, last: o.last, last_nice: o.last_nice, last_who: o.last_who, last_where: o.last_where }), 600); } catch (e) {}
     } catch (e) { o.error = String(e && e.message || e).slice(0, 160); }
@@ -256,19 +311,18 @@ function jfList_(d) {
   var q = jfStr_(d.q).toLowerCase();
   var data = jfLoad_(feed);
   var cut = days ? Date.now() - days * 864e5 : 0;
-  var rows = data.rows.filter(function (r) {
-    if (cut && r.ts && r.ts < cut) return false;
-    if (q) {
-      var hay = (r.who + ' ' + r.where + ' ' + r.title + ' ' + r.summary + ' ' + Object.keys(r.fields).map(function (k) { return r.fields[k]; }).join(' ')).toLowerCase();
-      if (hay.indexOf(q) < 0) return false;
-    }
-    return true;
+  var inWindow = data.idx.filter(function (e) { return !(cut && e.ts && e.ts < cut); });
+  // shape at most JF_SHAPE_MAX rows (newest first); a search runs over those
+  var rows = inWindow.slice(0, JF_SHAPE_MAX).map(function (e) { return jfShaped_(data, e); });
+  if (q) rows = rows.filter(function (r) {
+    var hay = (r.who + ' ' + r.where + ' ' + r.title + ' ' + r.summary + ' ' + Object.keys(r.fields).map(function (k) { return r.fields[k]; }).join(' ')).toLowerCase();
+    return hay.indexOf(q) >= 0;
   });
   var total = rows.length;
   rows = rows.slice(0, limit);
   return { ok: true, feed: { slug: feed.slug, label: feed.label, group: feed.group, account: feed.account, region: feed.region,
                              form_url: feed.form_url, sheet_url: feed.sheet_url, inbox_url: feed.inbox_url, alert: feed.alert, notes: feed.notes },
-           cols: data.cols, roles: data.roles, rows: rows, total: total, all: data.rows.length, generated: jfIso_(new Date()) };
+           cols: data.cols, roles: data.roles, rows: rows, total: total, in_window: inWindow.length, all: data.idx.length, generated: jfIso_(new Date()) };
 }
 
 // ------------------------------------------------------------ alerts -----
@@ -281,8 +335,9 @@ function jfAlertItems_(accounts, idx) {
   feeds.forEach(function (f) {
     var data;
     try { data = jfLoad_(f); } catch (e) { return; }
-    data.rows.forEach(function (r) {
-      if (!r.ts || !alFresh_(new Date(r.ts), AL_DAYS)) return;
+    data.idx.forEach(function (e) {
+      if (!e.ts || !alFresh_(new Date(e.ts), AL_DAYS)) return;
+      var r = jfShaped_(data, e);
       var fsm = '', acct = { fsm: '', name: '', id: '', region: '', how: '', cands: [] };
       if (r.fsm) fsm = alFsmKey_(r.fsm);
       if (!fsm) {
