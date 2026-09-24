@@ -44,8 +44,13 @@ var AL_STATUS = {
   supply: ['Ordered', 'Sent to client', 'Not needed'],
   shop: ['Processed', 'Picked up'],
   posting: ['Mark filled'],
-  night: ['Handled']
+  night: ['Handled'],
+  // Sep 24 2026: Jotform feeds (JotformFeeds.gs) whose Feeds row carries an alert value
+  workreq: ['Scheduled', 'Dispatched', 'Done', 'Not ours'],
+  workdone: ['Reviewed'],
+  review: ['Reviewed']
 };
+var AL_JF_TYPES = { workreq: 1, workdone: 1, review: 1 };
 var AL_FILL_CLOSE = 'Posting filled';   // reply status written when its posting is filled
 
 function alDispatch(d) {
@@ -410,6 +415,8 @@ function alList_(d) {
   try { idx = afIndex_(); } catch (e) { idx = null; }
   var toClose = [];
   var items = alPostings_(map).concat(alResponses_(map, toClose)).concat(alSupply_(accounts, idx)).concat(alShop_(accounts, idx)).concat(alNight_());
+  // Jotform feeds flagged for alerts (client work requests and the like), JotformFeeds.gs
+  if (typeof jfAlertItems_ === 'function') { try { items = items.concat(jfAlertItems_(accounts, idx)); } catch (e) { /* feeds unavailable: the rest of the list still renders */ } }
   // Reassignments made on the hub (Alert Assign tab). Replies follow their posting.
   var asg = {};
   try { asg = afAssignMap_(afTab_(cwSS_(), AF_ASSIGN_TAB, AF_ASSIGN_HEAD)); } catch (e) { asg = {}; }
@@ -463,6 +470,10 @@ function alSet_(d) {
       k = alStr_(k);
       if (!k) return;
       var type = k.indexOf('resp:') === 0 ? 'response' : k.indexOf('sup:') === 0 ? 'supply' : k.indexOf('shop:') === 0 ? 'shop' : k.indexOf('post:') === 0 ? 'posting' : k.indexOf('ni:') === 0 ? 'night' : '';
+      if (!type && k.indexOf('jf:') === 0) {
+        // a Jotform feed item: the status names its type; a reopen keeps the type already on the row
+        type = (status && AL_JF_TYPES[valid[status]]) ? valid[status] : (map[k] && AL_JF_TYPES[alJfRowType_(sh, map[k].row)] ? alJfRowType_(sh, map[k].row) : 'review');
+      }
       if (!type) return;
       if (status && valid[status] !== type) return; // status must fit the item
       var row = map[k] ? map[k].row : alNextRow_(sh);
@@ -543,6 +554,7 @@ function alCloseLater_(list) {
     lock.releaseLock();
   }
 }
+function alJfRowType_(sh, row) { try { return row ? alStr_(sh.getRange(row, 2).getValue()) : ''; } catch (e) { return ''; } }
 function alNextRow_(sh) {
   var last = Math.max(sh.getLastRow(), 1);
   var vals = sh.getRange(1, 1, last, 1).getValues();

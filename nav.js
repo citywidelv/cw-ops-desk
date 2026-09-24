@@ -1,7 +1,7 @@
 /* nav.js for the Ops Hub. Seeded from the page menu on 2026-09-13 by Claude.
    The Site Admin hub (cw-admin-hub/site-admin.html) republishes this file; do not edit by hand.
    The page keeps its own MENU as a fallback if this file is missing or malformed.
-   Edited by hand 2026-09-24 (Exhibit A cascade and quick chip, Vendor Evaluation link): before the next Site Admin publish, click Import live menu. */
+   Edited by hand 2026-09-24 (Exhibit A cascade and quick chip, Vendor Evaluation link; Form Submissions cascade and Jotform hub views): before the next Site Admin publish, click Import live menu. */
 window.CW_NAV = {
  "hub": "ops",
  "label": "Ops Hub",
@@ -32,12 +32,25 @@ window.CW_NAV = {
      "ghead": "CCCNV (Comprehensive Cancer)"
     },
     {
-     "label": "CCCNV Work Requests",
+     "label": "CCCNV Work Requests (hub view)",
+     "href": "form-view.html?f=cccnv_req",
+     "tag": "New"
+    },
+    {
+     "label": "CCCNV Work Request form (Jotform)",
      "href": "https://form.jotform.com/252935932465163"
     },
     {
-     "label": "CCCNV Requests Log",
-     "href": "https://www.jotform.com/tables/252935932465163"
+     "ghead": "Handyman"
+    },
+    {
+     "label": "Completed Work Orders (hub view)",
+     "href": "form-view.html?f=handyman_wo",
+     "tag": "New"
+    },
+    {
+     "label": "Handyman Work Order form (Jotform)",
+     "href": "https://form.jotform.com/240175011302033"
     },
     {
      "ghead": "Tracking"
@@ -582,6 +595,23 @@ window.CW_NAV = {
       {
        "label": "Night Inspection Jotform (old form)",
        "href": "https://form.jotform.com/233486327771060"
+      },
+      {
+       "ghead": "Jotform submissions"
+      },
+      {
+       "label": "Las Vegas inspections (hub view)",
+       "href": "form-view.html?f=ni_lv",
+       "tag": "New"
+      },
+      {
+       "label": "Northern Nevada inspections (hub view)",
+       "href": "form-view.html?f=ni_nnv",
+       "tag": "New"
+      },
+      {
+       "label": "Night Manager supply orders (hub view)",
+       "href": "form-view.html?f=nm_supply"
       }
      ]
     },
@@ -692,6 +722,76 @@ window.CW_NAV = {
       {
        "label": "Team Emails by Position (Admin Hub)",
        "href": "https://citywidelv.github.io/cw-admin-hub/team-emails.html"
+      }
+     ]
+    },
+    {
+     "sub": "Form Submissions",
+     "items": [
+      {
+       "label": "All forms (submission counts)",
+       "href": "forms.html",
+       "tag": "New"
+      },
+      {
+       "ghead": "Most used"
+      },
+      {
+       "label": "Night inspections, Las Vegas",
+       "href": "form-view.html?f=ni_lv"
+      },
+      {
+       "label": "Night inspections, Northern Nevada",
+       "href": "form-view.html?f=ni_nnv"
+      },
+      {
+       "label": "CCCNV work requests",
+       "href": "form-view.html?f=cccnv_req"
+      },
+      {
+       "label": "Handyman work orders",
+       "href": "form-view.html?f=handyman_wo"
+      },
+      {
+       "ghead": "Site checklists"
+      },
+      {
+       "label": "Arroweye porter check-in / out",
+       "href": "form-view.html?f=arroweye"
+      },
+      {
+       "label": "Ken's Foods end of shift",
+       "href": "form-view.html?f=kens_shift"
+      },
+      {
+       "label": "Ken's Foods area cleaning",
+       "href": "form-view.html?f=kens_area"
+      },
+      {
+       "label": "Infinity Hospice IPU checklist",
+       "href": "form-view.html?f=infinity"
+      },
+      {
+       "label": "Southridge HOA porter recap",
+       "href": "form-view.html?f=southridge"
+      },
+      {
+       "ghead": "Client feedback"
+      },
+      {
+       "label": "Sand's Kitchen feedback",
+       "href": "form-view.html?f=sands"
+      },
+      {
+       "label": "Stile Aesthetic feedback",
+       "href": "form-view.html?f=stile"
+      },
+      {
+       "ghead": "Jotform"
+      },
+      {
+       "label": "My Forms (Jotform)",
+       "href": "https://www.jotform.com/myforms/"
       }
      ]
     },

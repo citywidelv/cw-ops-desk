@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Form Submissions | City Wide Facility Solutions</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;--border:#E5E5E5;--ok:#1d8f4e;
+--shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;color:var(--black);background:var(--light);font-size:14px;line-height:1.5}
+.head{background:#fff;box-shadow:0 1px 8px rgba(45,42,38,.10);position:sticky;top:0;z-index:5}
+.head .bar{max-width:1100px;margin:0 auto;padding:0 16px;height:56px;display:flex;align-items:center;gap:12px}
+.head img{height:30px;width:auto;flex:none}
+.head .t{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);border-left:2px solid var(--border);padding-left:12px;white-space:nowrap}
+.head a.back{margin-left:auto;font-size:11px;font-weight:700;color:var(--grey);text-decoration:none;border:1px solid var(--border);border-radius:14px;padding:7px 12px;background:var(--light);white-space:nowrap}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin-bottom:4px}
+.sub{color:var(--grey);font-size:13px;margin-bottom:14px}
+.sub a{color:var(--red-dark)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.tools input[type=search]{font-family:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;background:#fff;min-height:42px;flex:1;min-width:180px}
+.chip{border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-weight:700;background:#fff;cursor:pointer;min-height:42px;font-family:inherit;color:var(--black)}
+.chip.on{border-color:var(--red);background:#fdf3f3;color:var(--red-dark)}
+.count{font-size:12px;color:var(--grey);margin-left:auto}
+.day{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin:18px 0 8px}
+.day:first-child{margin-top:0}
+.card{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden}
+.card.hit{border-color:var(--red);box-shadow:0 0 0 2px #fdd}
+.row{display:grid;grid-template-columns:76px 1fr auto;gap:12px;padding:14px 16px;cursor:pointer;align-items:start}
+.when{width:76px;border-radius:12px;background:var(--light);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:13px;padding:10px 4px;text-align:center}
+.when small{font-size:10px;color:var(--grey);font-weight:400;display:block}
+.main b{font-size:16px;display:block}
+.main .meta{font-size:13px;color:var(--grey);margin-top:2px}
+.main .sum{font-size:13px;margin-top:6px;white-space:pre-wrap;color:var(--black)}
+.main .sum.clip{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.links{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.links a{font-size:12px;font-weight:700;color:#fff;background:var(--black);text-decoration:none;border-radius:9px;padding:8px 12px;white-space:nowrap}
+.links a.jf{background:var(--red)}
+.links span{font-size:11px;color:var(--grey)}
+.det{display:none;border-top:1px solid var(--border);padding:14px 16px;background:#fafafa}
+.card.open .det{display:block}
+.card.open .main .sum.clip{display:block;-webkit-line-clamp:unset}
+.det table{width:100%;border-collapse:collapse;font-size:13px}
+.det th{text-align:left;color:var(--grey);font-weight:400;width:260px;padding:5px 8px 5px 0;vertical-align:top}
+.det td{padding:5px 0;white-space:pre-wrap;vertical-align:top}
+.det td.yes{color:var(--ok);font-weight:700}
+.det td.no{color:var(--red);font-weight:700}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.thumbs a{display:block;width:120px;height:120px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#eee;position:relative}
+.thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+.thumbs a i{position:absolute;left:0;right:0;bottom:0;background:rgba(45,42,38,.75);color:#fff;font-size:10px;font-style:normal;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty{text-align:center;color:var(--grey);padding:40px 10px}
+.more{display:block;margin:10px auto 0;font-family:inherit;font-size:13px;font-weight:700;border:1.5px solid var(--border);background:#fff;border-radius:10px;padding:10px 16px;cursor:pointer}
+.gatebox{max-width:380px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.hidden{display:none!important}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:22px}
+@media (max-width:640px){.row{grid-template-columns:60px 1fr}.when{width:60px;font-size:12px}.links{grid-column:1/-1;flex-direction:row;justify-content:flex-start;align-items:center}.det th{width:130px}}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="head"><div class="bar">
+<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+<span class="t" id="crumb">Form Submissions</span>
+<a class="back" href="forms.html">&larr; All forms</a>
+</div></header>
+
+<div class="wrap">
+<div id="gate" class="gatebox hidden"><b>Open this from the Ops Hub</b><p class="sub">This page uses the Ops Hub session on this device.</p><a href="index.html">&larr; Ops Hub</a></div>
+<div id="app" class="hidden">
+<h1 id="title">Loading...</h1>
+<div class="sub" id="subline">Newest first. Tap a row to see every answer.</div>
+<div class="tools">
+<button class="chip" data-d="7" type="button">7 days</button><button class="chip on" data-d="30" type="button">30 days</button><button class="chip" data-d="90" type="button">90 days</button><button class="chip" data-d="0" type="button">All</button>
+<input type="search" id="q" placeholder="Search names, sites, answers">
+<span class="count" id="count"></span>
+</div>
+<div id="list"><div class="empty">Loading...</div></div>
+</div>
+</div>
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
+
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script>
+(function(){
+"use strict";
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var PASS = "", SLUG = "", DAYS = 30, ROWS = [], FEED = null, ROLES = {}, SHOW = 60, HIT = "";
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d=document.createElement("div"); d.textContent=String(s==null?"":s); return d.innerHTML; }
+function post(body){ body.passcode = PASS; return fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) }).then(function(r){ return r.json(); }); }
+function param(k){ var m = location.search.match(new RegExp('[?&]' + k + '=([^&]*)')); return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : ''; }
+
+function load(){
+  $("list").innerHTML = '<div class="empty">Loading...</div>';
+  post({ kind:"jf_list", slug: SLUG, days: DAYS, limit: 400 }).then(function(r){
+    if (!r || !r.ok){ if (r && CWAuth.isPassError(r.error)) return CWAuth.locked("ops", r.error); $("list").innerHTML = '<div class="empty">' + esc((r && r.error) || "Could not load.") + '</div>'; $("title").textContent = "Form submissions"; return; }
+    FEED = r.feed; ROWS = r.rows || []; ROLES = r.roles || {};
+    document.title = FEED.label + " | City Wide Facility Solutions";
+    $("crumb").textContent = FEED.group || "Form Submissions";
+    $("title").textContent = FEED.label;
+    $("subline").innerHTML = 'Newest first. Tap a row to see every answer.'
+      + (FEED.account ? ' Account: <b>' + esc(FEED.account) + '</b>.' : '')
+      + (FEED.alert ? ' New ones also show on the <a href="index.html#alerts">Alerts card</a>.' : '')
+      + (FEED.form_url ? ' <a href="' + esc(FEED.form_url) + '" target="_blank" rel="noopener">Open the form</a>' : '')
+      + (FEED.inbox_url ? ' &middot; <a href="' + esc(FEED.inbox_url) + '" target="_blank" rel="noopener">Jotform inbox</a>' : '')
+      + (FEED.sheet_url ? ' &middot; <a href="' + esc(FEED.sheet_url) + '" target="_blank" rel="noopener">Sheet</a>' : '')
+      + (r.all ? ' &middot; ' + r.all + ' all time' : '');
+    SHOW = 60;
+    render();
+  }).catch(function(){ $("list").innerHTML = '<div class="empty">Could not reach the server.</div>'; });
+}
+function yesno(v){ var s = String(v).trim().toLowerCase(); return s === "yes" || s === "true" ? "yes" : (s === "no" || s === "false" ? "no" : ""); }
+function fname(u){ try { return decodeURIComponent(u.split("/").pop()); } catch(e){ return u; } }
+function whenBox(r){
+  if (!r.when) return '<div class="when">no<small>date</small></div>';
+  var d = new Date(r.when);
+  return '<div class="when">' + esc(d.toLocaleDateString("en-US", { month:"short", day:"numeric" })) + '<small>' + esc(d.toLocaleTimeString("en-US", { hour:"numeric", minute:"2-digit" })) + '</small></div>';
+}
+function render(){
+  var q = $("q").value.trim().toLowerCase();
+  var rows = ROWS.filter(function(r){
+    if (!q) return true;
+    var hay = (r.who + " " + r.where + " " + r.title + " " + r.summary + " " + Object.keys(r.fields).map(function(k){ return r.fields[k]; }).join(" ")).toLowerCase();
+    return hay.indexOf(q) >= 0;
+  });
+  $("count").textContent = rows.length ? rows.length + (rows.length === 1 ? " submission" : " submissions") : "";
+  if (!rows.length){ $("list").innerHTML = '<div class="empty">Nothing ' + (DAYS ? 'in the last ' + DAYS + ' days' : 'yet') + (q ? ' matching that search' : '') + '.</div>'; return; }
+  var html = "", day = "";
+  rows.slice(0, SHOW).forEach(function(r, i){
+    var rd = String(r.when || '').slice(0, 10);
+    if (rd !== day){ day = rd; html += '<div class="day">' + esc(niceDay(day)) + '</div>'; }
+    var headline = r.where || r.title || r.who || FEED.label;
+    var metaBits = [];
+    if (r.who && r.who !== headline) metaBits.push(r.who);
+    if (r.title && r.title !== headline) metaBits.push(r.title);
+    if (r.fsm) metaBits.push("FSM " + r.fsm);
+    var hit = HIT && String(r.id) === HIT;
+    html += '<div class="card' + (hit ? ' open hit' : '') + '" id="s-' + esc(r.id) + '" data-i="' + i + '"><div class="row">'
+      + whenBox(r)
+      + '<div class="main"><b>' + esc(headline) + '</b>' + (metaBits.length ? '<div class="meta">' + esc(metaBits.join(' · ')) + '</div>' : '')
+      + (r.summary ? '<div class="sum clip">' + esc(r.summary) + '</div>' : '') + '</div>'
+      + '<div class="links">' + (r.url ? '<a class="jf" href="' + esc(r.url) + '" target="_blank" rel="noopener">Open in Jotform</a>' : '') + (r.photos.length ? '<span>' + r.photos.length + ' photo' + (r.photos.length > 1 ? 's' : '') + '</span>' : '') + '</div>'
+      + '</div><div class="det">' + detail(r) + '</div></div>';
+  });
+  if (rows.length > SHOW) html += '<button class="more" type="button" id="more">Show ' + Math.min(60, rows.length - SHOW) + ' more (' + (rows.length - SHOW) + ' left)</button>';
+  $("list").innerHTML = html;
+  Array.prototype.forEach.call(document.querySelectorAll(".row"), function(el){ el.addEventListener("click", function(e){ if (e.target.closest("a")) return; el.parentNode.classList.toggle("open"); }); });
+  var m = $("more"); if (m) m.addEventListener("click", function(){ SHOW += 60; render(); });
+  if (HIT){ var h = $("s-" + HIT); if (h) h.scrollIntoView({ block:"center" }); HIT = ""; }
+}
+function detail(r){
+  var skip = {}; [ROLES.first, ROLES.last, ROLES.when].forEach(function(k){ if (k) skip[k] = 1; });
+  var t = '<table>';
+  if (r.who) t += '<tr><th>Submitted by</th><td>' + esc(r.who) + '</td></tr>';
+  Object.keys(r.fields).forEach(function(k){
+    if (skip[k] || k === ROLES.summary) return;
+    var v = r.fields[k], yn = yesno(v);
+    t += '<tr><th>' + esc(k) + '</th><td' + (yn ? ' class="' + yn + '"' : '') + '>' + esc(v) + '</td></tr>';
+  });
+  if (r.when_nice) t += '<tr><th>Filed</th><td>' + esc(r.when_nice) + (r.id && !/^\d{1,4}$/.test(r.id) ? ' · ' + esc(r.id) : '') + '</td></tr>';
+  t += '</table>';
+  if (r.photos.length) t += '<div class="thumbs">' + r.photos.map(function(u){ return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img loading="lazy" src="' + esc(u) + '" alt="" onerror="this.style.display=\'none\'"><i>' + esc(fname(u)) + '</i></a>'; }).join("") + '</div>';
+  return t;
+}
+function niceDay(d){ if (!d) return "No date"; var p = d.split("-"); var dt = new Date(Number(p[0]), Number(p[1])-1, Number(p[2])); return dt.toLocaleDateString("en-US", { weekday:"long", month:"short", day:"numeric", year: (dt.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined) }); }
+
+Array.prototype.forEach.call(document.querySelectorAll("[data-d]"), function(b){ b.addEventListener("click", function(){ DAYS = Number(b.getAttribute("data-d")); Array.prototype.forEach.call(document.querySelectorAll("[data-d]"), function(x){ x.classList.toggle("on", x===b); }); load(); }); });
+$("q").addEventListener("input", render);
+
+SLUG = param("f");
+HIT = location.hash ? decodeURIComponent(location.hash.slice(1)) : "";
+if (HIT) DAYS = 0;
+if (HIT) Array.prototype.forEach.call(document.querySelectorAll("[data-d]"), function(x){ x.classList.toggle("on", x.getAttribute("data-d") === "0"); });
+PASS = CWAuth.require({hub:"ops"});
+if (PASS){
+  $("app").classList.remove("hidden");
+  if (!SLUG){ $("title").textContent = "Pick a form"; $("list").innerHTML = '<div class="empty">No form picked. <a href="forms.html">Back to all forms</a>.</div>'; }
+  else load();
+}
+})();
+</script>
+</body>
+</html>

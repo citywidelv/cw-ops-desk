@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Form Submissions | City Wide Facility Solutions</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;--border:#E5E5E5;--ok:#1d8f4e;--gold:#B8860B;
+--shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;color:var(--black);background:var(--light);font-size:14px;line-height:1.5}
+.head{background:#fff;box-shadow:0 1px 8px rgba(45,42,38,.10);position:sticky;top:0;z-index:5}
+.head .bar{max-width:1100px;margin:0 auto;padding:0 16px;height:56px;display:flex;align-items:center;gap:12px}
+.head img{height:30px;width:auto;flex:none}
+.head .t{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);border-left:2px solid var(--border);padding-left:12px;white-space:nowrap}
+.head a.back{margin-left:auto;font-size:11px;font-weight:700;color:var(--grey);text-decoration:none;border:1px solid var(--border);border-radius:14px;padding:7px 12px;background:var(--light);white-space:nowrap}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin-bottom:4px}
+.sub{color:var(--grey);font-size:13px;margin-bottom:14px}
+.sub a{color:var(--red-dark)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.tools input[type=search]{font-family:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;background:#fff;min-height:42px;flex:1;min-width:180px}
+.chip{border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-weight:700;background:#fff;cursor:pointer;min-height:42px;font-family:inherit;color:var(--black)}
+.chip.on{border-color:var(--red);background:#fdf3f3;color:var(--red-dark)}
+.status{font-size:12px;color:var(--grey);margin-left:auto}
+.grp{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin:20px 0 8px;display:flex;align-items:center;gap:10px}
+.grp:after{content:"";flex:1;height:1px;background:var(--border)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.card{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px;display:flex;flex-direction:column;gap:8px;border-top:4px solid var(--black)}
+.card.alert{border-top-color:var(--red)}
+.card.quiet{border-top-color:var(--gold)}
+.card .lbl{font-size:15px;font-weight:700;line-height:1.3}
+.card .acct{font-size:12px;color:var(--grey)}
+.nums{display:flex;gap:14px;align-items:flex-end}
+.num{display:flex;flex-direction:column}
+.num b{font-size:24px;line-height:1;font-weight:700}
+.num small{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);font-weight:700}
+.num.hot b{color:var(--red)}
+.last{font-size:12px;color:var(--grey);min-height:18px}
+.last b{color:var(--black);font-weight:700}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:11px;font-weight:700;border-radius:9px;padding:2px 8px;background:var(--light);color:var(--black)}
+.tag.red{background:var(--red);color:#fff}
+.tag.gold{background:#fbf3df;color:#7a5a00}
+.acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:4px}
+.acts a{font-size:12px;font-weight:700;text-decoration:none;border-radius:9px;padding:8px 12px;white-space:nowrap;border:1.5px solid var(--border);color:var(--black);background:#fff}
+.acts a.main{background:var(--red);border-color:var(--red);color:#fff}
+.skel{background:linear-gradient(90deg,#eee,#f7f7f7,#eee);background-size:200% 100%;animation:sh 1.2s infinite;border-radius:6px;display:inline-block;height:14px;width:60%}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.err{font-size:12px;color:var(--red-dark)}
+.empty{text-align:center;color:var(--grey);padding:40px 10px}
+.note{background:#fff;border:1px solid var(--border);border-left:4px solid var(--red);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--grey);margin-top:22px}
+.note b{color:var(--black)}
+.gatebox{max-width:380px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.hidden{display:none!important}
+.foot{text-align:center;font-size:11px;color:var(--grey);padding:22px}
+@media (max-width:640px){.grid{grid-template-columns:1fr}}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="head"><div class="bar">
+<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+<span class="t">Form Submissions</span>
+<a class="back" href="index.html">&larr; Ops Hub</a>
+</div></header>
+
+<div class="wrap">
+<div id="gate" class="gatebox hidden"><b>Open this from the Ops Hub</b><p class="sub">This page uses the Ops Hub session on this device.</p><a href="index.html">&larr; Ops Hub</a></div>
+<div id="app" class="hidden">
+<h1>Form submissions</h1>
+<div class="sub">Every Jotform the team and our clients still fill out, in one place. Pick a form to review what came in. Client work requests also land on the Alerts card of the Ops Hub under the account's FSM.</div>
+<div class="tools">
+<button class="chip on" data-g="" type="button">All</button>
+<button class="chip" data-g="Night Ops" type="button">Night Ops</button>
+<button class="chip" data-g="Work" type="button">Work</button>
+<button class="chip" data-g="Site checklists" type="button">Site checklists</button>
+<button class="chip" data-g="Client feedback" type="button">Client feedback</button>
+<button class="chip" data-g="Supplies" type="button">Supplies</button>
+<button class="chip" data-g="Team" type="button">Team</button>
+<input type="search" id="q" placeholder="Search forms and accounts">
+<span class="status" id="status"></span>
+</div>
+<div id="list"></div>
+<div class="note"><b>Adding a form.</b> In the Jotform builder open Settings, Integrations, Google Sheets, and add the Google Sheets integration on the City Wide account (send existing submissions too). Then add one row on the Feeds tab of the <a id="regLink" href="#" target="_blank" rel="noopener">CW Jotform Feeds</a> sheet: slug, label, group, account, form id, sheet id. Put <b>workreq</b>, <b>workdone</b> or <b>review</b> in the alert column when that form's submissions should also show on the Alerts card. No deploy needed.</div>
+</div>
+</div>
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
+
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script>
+(function(){
+"use strict";
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var CACHEKEY = "cwFormsFeeds";
+var GROUPS = ["Night Ops", "Work", "Site checklists", "Client feedback", "Supplies", "Team"];
+var PASS = "", FEEDS = [], GRP = "", LOADING = false;
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d=document.createElement("div"); d.textContent=String(s==null?"":s); return d.innerHTML; }
+function post(body){ body.passcode = PASS; return fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) }).then(function(r){ return r.json(); }); }
+function ago(iso){
+  if (!iso) return "";
+  var t = new Date(iso).getTime(); if (isNaN(t)) return "";
+  var m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return "just now"; if (m < 60) return m + " min ago";
+  var h = Math.round(m / 60); if (h < 36) return h + " hr ago";
+  var d = Math.round(h / 24); if (d < 60) return d + " days ago";
+  return Math.round(d / 30) + " months ago";
+}
+function cacheRead(){ try{ var c = JSON.parse(localStorage.getItem(CACHEKEY) || "null"); if (c && c.feeds && c.t) return c; }catch(e){} return null; }
+function cacheWrite(feeds){ try{ localStorage.setItem(CACHEKEY, JSON.stringify({ t: Date.now(), feeds: feeds })); }catch(e){} }
+
+function load(fresh){
+  if (LOADING) return; LOADING = true;
+  $("status").textContent = FEEDS.length ? "Refreshing..." : "Loading counts...";
+  post({ kind:"jf_feeds", fresh: fresh ? 1 : 0 }).then(function(r){
+    LOADING = false;
+    if (!r || !r.ok){ if (r && CWAuth.isPassError(r.error)) return CWAuth.locked("ops", r.error); $("status").innerHTML = '<span class="err">' + esc((r && r.error) || "Could not load.") + '</span>'; if (!FEEDS.length) $("list").innerHTML = '<div class="empty">' + esc((r && r.error) || "Could not load the feeds.") + '</div>'; return; }
+    FEEDS = r.feeds || [];
+    cacheWrite(FEEDS);
+    if (r.registry_url) $("regLink").href = r.registry_url;
+    $("status").innerHTML = 'Updated ' + esc(ago(new Date().toISOString())) + ' &middot; <a href="#" id="refresh">refresh</a>';
+    bindRefresh();
+    render();
+  }).catch(function(){ LOADING = false; $("status").innerHTML = '<span class="err">Could not reach the server.</span>'; if (!FEEDS.length) $("list").innerHTML = '<div class="empty">Could not reach the server.</div>'; });
+}
+function bindRefresh(){ var a = $("refresh"); if (a) a.addEventListener("click", function(e){ e.preventDefault(); load(true); }); }
+function skeleton(){
+  var c = '<div class="card"><span class="skel"></span><span class="skel" style="width:40%"></span><div class="nums"><div class="num"><b>&nbsp;</b></div></div><span class="skel" style="width:80%"></span></div>';
+  return '<div class="grp">Loading</div><div class="grid">' + c + c + c + c + c + c + '</div>';
+}
+function card(f){
+  var quiet = /Site checklists|Night Ops/.test(f.group) && !f.d7 && f.total > 0 && !f.error;
+  var cls = "card" + (f.alert ? " alert" : quiet ? " quiet" : "");
+  var tags = [];
+  if (f.alert) tags.push('<span class="tag red">On the Alerts card</span>');
+  if (quiet) tags.push('<span class="tag gold">Nothing filed in 7 days</span>');
+  if (f.region) tags.push('<span class="tag">' + esc(f.region) + '</span>');
+  var last = f.error ? '<span class="err">' + esc(f.error) + '</span>'
+    : f.last ? 'Last: <b>' + esc(ago(f.last)) + '</b>' + (f.last_who ? ' by ' + esc(f.last_who) : '') + (f.last_where ? ' &middot; ' + esc(f.last_where) : '')
+    : (f.total === 0 && !f.error ? 'No submissions yet' : '');
+  return '<div class="' + cls + '">'
+    + '<div class="lbl">' + esc(f.label) + '</div>'
+    + '<div class="acct">' + esc(f.account || (f.group === "Night Ops" ? "Night managers" : "")) + '</div>'
+    + '<div class="nums"><div class="num' + (f.d7 && f.alert ? ' hot' : '') + '"><b>' + (f.d7 || 0) + '</b><small>Last 7 days</small></div><div class="num"><b>' + (f.d30 || 0) + '</b><small>Last 30 days</small></div><div class="num"><b>' + (f.total || 0) + '</b><small>All time</small></div></div>'
+    + '<div class="last">' + last + '</div>'
+    + (tags.length ? '<div class="tags">' + tags.join('') + '</div>' : '')
+    + '<div class="acts"><a class="main" href="form-view.html?f=' + encodeURIComponent(f.slug) + '">Review submissions</a>'
+    + (f.form_url ? '<a href="' + esc(f.form_url) + '" target="_blank" rel="noopener">Open the form</a>' : '')
+    + (f.sheet_url ? '<a href="' + esc(f.sheet_url) + '" target="_blank" rel="noopener">Sheet</a>' : '')
+    + '</div></div>';
+}
+function render(){
+  var q = $("q").value.trim().toLowerCase();
+  var list = FEEDS.filter(function(f){
+    if (GRP && f.group !== GRP) return false;
+    if (q && (f.label + " " + f.account + " " + f.group + " " + f.region).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+  if (!list.length){ $("list").innerHTML = '<div class="empty">No forms match.</div>'; return; }
+  var html = "";
+  var order = GROUPS.slice(); list.forEach(function(f){ if (order.indexOf(f.group) < 0) order.push(f.group); });
+  order.forEach(function(g){
+    var in_ = list.filter(function(f){ return f.group === g; });
+    if (!in_.length) return;
+    html += '<div class="grp">' + esc(g) + '</div><div class="grid">' + in_.map(card).join('') + '</div>';
+  });
+  $("list").innerHTML = html;
+}
+Array.prototype.forEach.call(document.querySelectorAll("[data-g]"), function(b){ b.addEventListener("click", function(){ GRP = b.getAttribute("data-g"); Array.prototype.forEach.call(document.querySelectorAll("[data-g]"), function(x){ x.classList.toggle("on", x===b); }); render(); }); });
+$("q").addEventListener("input", render);
+
+PASS = CWAuth.require({hub:"ops"});
+if (PASS){
+  $("app").classList.remove("hidden");
+  var c = cacheRead();
+  if (c){ FEEDS = c.feeds; render(); $("status").textContent = "Showing counts from " + ago(new Date(c.t).toISOString()); }
+  else $("list").innerHTML = skeleton();
+  load(false);
+}
+})();
+</script>
+</body>
+</html>

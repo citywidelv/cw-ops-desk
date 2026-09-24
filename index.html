@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
-<!-- build 2026-09-24: Ops asked for the Exhibit A request link back, so Vendors now carries an Exhibit A cascade (Create an Exhibit A, Request an Exhibit A Asana form, the Exhibit A Requests board) and the quick row has the Exhibit A Request chip again. Vendor Evaluation Form now points at the native Vendor Hub page (the Jotform never fed the directory). Nav: any tall dropdown lists its section headings as side cascades and every panel is kept on screen by CWNav.place (flip left, shift up, scroll).
+<!-- build 2026-09-24b: Jotform submissions on the hub. Every Jotform still in use syncs to a Google Sheet on the company Google account; forms.html lists them with counts and form-view.html?f=<slug> shows one form. Menu: Team & Admin > Form Submissions cascade, Jotform hub views under Night Ops > Night Manager Inspection and Work Tickets (CCCNV, Handyman). Alerts card gained client work requests (type workreq, CCCNV) and the workdone / review types, all read from the Feeds tab of CW Jotform Feeds (JotformFeeds.gs, kinds jf_*).
+build 2026-09-24: Ops asked for the Exhibit A request link back, so Vendors now carries an Exhibit A cascade (Create an Exhibit A, Request an Exhibit A Asana form, the Exhibit A Requests board) and the quick row has the Exhibit A Request chip again. Vendor Evaluation Form now points at the native Vendor Hub page (the Jotform never fed the directory). Nav: any tall dropdown lists its section headings as side cascades and every panel is kept on screen by CWNav.place (flip left, shift up, scroll).
 build 2026-09-11b: hub cleanup per TJ. Removed: Request a Walkthrough Email (postings.html
 does it here now), the four Asana vendor packet forms, Request an Exhibit A (LV) (create-exhibit-a.html
 does it here now). Added: Vendors > Invite a New Vendor (vendor-invite.html, kind vd_invite) which emails
@@ -203,7 +204,7 @@ status buttons. Type scale 12 / 13 / 15 / 17, 4px spacing grid, radius 6 / 11 / 
 .alegend{display:flex;flex-wrap:wrap;gap:8px 20px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--light);font-size:12px;color:var(--grey)}
 .alegend span{display:inline-flex;align-items:center;gap:6px}
 .alegend i{display:inline-block;width:10px;height:10px;border-radius:2px;flex:none}
-.alegend i.posting{background:var(--gold)}.alegend i.response{background:var(--red)}.alegend i.supply{background:var(--black)}.alegend i.shop{background:var(--grey)}.alegend i.night{background:var(--red-dark)}
+.alegend i.posting{background:var(--gold)}.alegend i.response{background:var(--red)}.alegend i.supply{background:var(--black)}.alegend i.shop{background:var(--grey)}.alegend i.night{background:var(--red-dark)}.alegend i.workreq{background:#7a1f7a}.alegend i.workdone{background:#1d8f4e}.alegend i.review{background:#1f5fa8}
 /* loading skeleton, the shape of a group header and one posting block */
 .askel{padding:0 20px 16px}
 .skel{background:linear-gradient(90deg,#EFEFEF 25%,#F7F7F7 37%,#EFEFEF 63%);background-size:400% 100%;animation:alsk 1.4s ease infinite;border-radius:6px;display:block}
@@ -242,6 +243,7 @@ status buttons. Type scale 12 / 13 / 15 / 17, 4px spacing grid, radius 6 / 11 / 
 .ablk.supply .bhead{border-left-color:var(--black)}
 .ablk.shop .bhead{border-left-color:var(--grey)}
 .ablk.night .bhead{border-left-color:var(--red-dark)}
+.ablk.workreq .bhead{border-left-color:#7a1f7a}.ablk.workdone .bhead{border-left-color:#1d8f4e}.ablk.review .bhead{border-left-color:#1f5fa8}
 .ablk.response .bhead{border-left-color:var(--red)}
 .bkind{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);line-height:1.3;margin-bottom:4px}
 .btitle{font-size:17px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
@@ -759,8 +761,11 @@ var MENU = [
 {ghead:"7-Eleven"},
 {label:"Handteq Point (7-Eleven maintenance app)", href:"https://point.handteq.com/development/app/output2/seveneleven/web/gray.0.7.0"},
 {ghead:"CCCNV (Comprehensive Cancer)"},
-{label:"CCCNV Work Requests", href:"https://form.jotform.com/252935932465163"},
-{label:"CCCNV Requests Log", href:"https://www.jotform.com/tables/252935932465163"},
+{label:"CCCNV Work Requests (hub view)", href:"form-view.html?f=cccnv_req", tag:"New"},
+{label:"CCCNV Work Request form (Jotform)", href:"https://form.jotform.com/252935932465163"},
+{ghead:"Handyman"},
+{label:"Completed Work Orders (hub view)", href:"form-view.html?f=handyman_wo", tag:"New"},
+{label:"Handyman Work Order form (Jotform)", href:"https://form.jotform.com/240175011302033"},
 {ghead:"Tracking"},
 {label:"Work Tickets Sheet", href:"https://docs.google.com/spreadsheets/d/17awrIV6X-Ugaxkw0VLDIH8WVpJ51Ux_5ntNxHu2tzBg/edit"},
 {label:"Snow Reports Sheet", href:"https://docs.google.com/spreadsheets/d/1hoeWUmO4l881SbrPfC28M-R0uLeslT3i48nqDv4VXAs/edit"}
@@ -913,7 +918,11 @@ var MENU = [
 {sub:"Night Manager Inspection", items:[
 {label:"Night Inspection (new page)", href:"night-inspection.html", tag:"New"},
 {label:"Night Inspection Recaps (FSM view)", href:"night-inspections.html"},
-{label:"Night Inspection Jotform (old form)", href:"https://form.jotform.com/233486327771060"}
+{label:"Night Inspection Jotform (old form)", href:"https://form.jotform.com/233486327771060"},
+{ghead:"Jotform submissions"},
+{label:"Las Vegas inspections (hub view)", href:"form-view.html?f=ni_lv", tag:"New"},
+{label:"Northern Nevada inspections (hub view)", href:"form-view.html?f=ni_nnv", tag:"New"},
+{label:"Night Manager supply orders (hub view)", href:"form-view.html?f=nm_supply"}
 ]},
 {sub:"Nightly Route Outs", items:[
 {label:"Route Out (new page)", href:"night-route.html", tag:"New"},
@@ -945,6 +954,25 @@ var MENU = [
 {label:"ADP TotalSource", href:"https://workforcenow.adp.com/"},
 {label:"Order CW Merch", href:"https://cwlv.printful.me/"},
 {label:"Team Emails by Position (Admin Hub)", href:"https://citywidelv.github.io/cw-admin-hub/team-emails.html"}
+]},
+{sub:"Form Submissions", items:[
+{label:"All forms (submission counts)", href:"forms.html", tag:"New"},
+{ghead:"Most used"},
+{label:"Night inspections, Las Vegas", href:"form-view.html?f=ni_lv"},
+{label:"Night inspections, Northern Nevada", href:"form-view.html?f=ni_nnv"},
+{label:"CCCNV work requests", href:"form-view.html?f=cccnv_req"},
+{label:"Handyman work orders", href:"form-view.html?f=handyman_wo"},
+{ghead:"Site checklists"},
+{label:"Arroweye porter check-in / out", href:"form-view.html?f=arroweye"},
+{label:"Ken's Foods end of shift", href:"form-view.html?f=kens_shift"},
+{label:"Ken's Foods area cleaning", href:"form-view.html?f=kens_area"},
+{label:"Infinity Hospice IPU checklist", href:"form-view.html?f=infinity"},
+{label:"Southridge HOA porter recap", href:"form-view.html?f=southridge"},
+{ghead:"Client feedback"},
+{label:"Sand's Kitchen feedback", href:"form-view.html?f=sands"},
+{label:"Stile Aesthetic feedback", href:"form-view.html?f=stile"},
+{ghead:"Jotform"},
+{label:"My Forms (Jotform)", href:"https://www.jotform.com/myforms/"}
 ]},
 {sub:"Team Apps", items:[
 {label:"Slack", href:"https://slack.com/signin"},
@@ -1292,7 +1320,7 @@ cnt.textContent = total + " open";
 cnt.classList.toggle("zero", !total);
 document.getElementById("alwho").classList.toggle("need", !me);
 var html = me ? "" : '<div class="aneed">Pick your name in the top right of this card first. Then the buttons on each line will work.</div>';
-html += '<div class="alegend"><span><i class="posting"></i>Open posting, replies listed under it</span><span><i class="response"></i>Vendor reply</span><span><i class="supply"></i>Supplies needed</span><span><i class="shop"></i>Shop order</span><span><i class="night"></i>Night manager</span></div>';
+html += '<div class="alegend"><span><i class="posting"></i>Open posting, replies listed under it</span><span><i class="response"></i>Vendor reply</span><span><i class="supply"></i>Supplies needed</span><span><i class="shop"></i>Shop order</span><span><i class="night"></i>Night manager</span><span><i class="workreq"></i>Client work request</span></div>';
 if(!groups.length){
 html += '<div class="aempty"><b>Nothing waiting.</b>Vendor replies, supply reports and shop orders will show up here.' + (me ? '' : ' Pick your name above so your list opens first.') + '</div>';
 }
@@ -1321,8 +1349,8 @@ document.getElementById("albody").innerHTML = html;
 function alMix(list){
 var c = {};
 list.forEach(function(it){ c[it.type] = (c[it.type] || 0) + 1; });
-var words = { posting:["posting","postings"], response:["reply","replies"], supply:["supply report","supply reports"], shop:["shop order","shop orders"], night:["night report","night reports"] };
-return ["posting","response","supply","shop","night"].filter(function(t){ return c[t]; }).map(function(t){ return c[t] + " " + words[t][c[t] === 1 ? 0 : 1]; });
+var words = { posting:["posting","postings"], response:["reply","replies"], supply:["supply report","supply reports"], shop:["shop order","shop orders"], night:["night report","night reports"], workreq:["work request","work requests"], workdone:["completed work order","completed work orders"], review:["form to review","forms to review"] };
+return ["posting","response","supply","shop","night","workreq","workdone","review"].filter(function(t){ return c[t]; }).map(function(t){ return c[t] + " " + words[t][c[t] === 1 ? 0 : 1]; });
 }
 function alNest(list){
 var posts = {}, order = [], loose = [];
@@ -1353,7 +1381,7 @@ out.push('<a class="aact" href="tel:' + esc(digits) + '">' + AL_ICON.phone + 'Ca
 }
 if(it.link){
 var lbl = it.type === "response" ? (/responses\.html/.test(it.link) ? "Open reply" : (/^Quoted\s/.test(it.summary || "") ? "Open quote" : "Open PDF"))
-: it.type === "posting" ? "Open replies page" : it.type === "night" ? "Open report" : "Open sheet";
+: it.type === "posting" ? "Open replies page" : it.type === "night" ? "Open report" : (it.type === "workreq" || it.type === "workdone" || it.type === "review") ? "Open submission" : "Open sheet";
 out.push('<a class="aact" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + AL_ICON.open + esc(lbl) + '</a>');
 }
 return out;
@@ -1376,7 +1404,7 @@ return '<div class="acts">' + (c.length ? '<span class="cgrp">' + c.join('') + '
 /* One block. The headline is always the thing the FSM thinks in: the account or building.
 Who it came from sits underneath. */
 function alBlock(it, kids){
-var kind = { response:"Vendor reply", supply:"Supplies needed", shop:"Shop order", posting:"Open posting", night:"Night manager report" }[it.type] || it.type;
+var kind = { response:"Vendor reply", supply:"Supplies needed", shop:"Shop order", posting:"Open posting", night:"Night manager report", workreq:"Client work request", workdone:"Completed work order", review:"Form submission" }[it.type] || it.type;
 var title, sub, intl = '';
 if(it.type === "posting"){
 title = it.internal || it.from;
