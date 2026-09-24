@@ -436,20 +436,13 @@ function vpNotices_(v, m) {
   return { rows: out };
 }
 
-// COI expiry as Insurance.gs tracks it (Roster tab on the violations book), next
-// to the copy on the directory row, so the page can show both and flag drift.
+// COI expiry comes from the directory row itself (gl_exp / wc_exp). Insurance.gs
+// reads the same columns (Sep 24 2026), so there is no second copy to drift.
+// roster is kept in the payload for older page builds and always equals the row.
 function vpInsurance_(v, m) {
   var ss = insSS_();
-  var sh = ss.getSheetByName(INS_TABS.ROSTER);
-  var hit = null;
-  if (sh) {
-    vdRows_(sh).rows.some(function (r) {
-      var how = vpHow_(m, r, { vno: 'vendor_no', dba: ['dba'] });
-      if (!how) return false;
-      hit = { market: r.market || '', dba: r.dba || '', vendor_no: r.vendor_no || '', gl_exp: r.gl_exp || '', wc_exp: r.wc_exp || '', _how: how };
-      return true;
-    });
-  }
+  var hit = { market: v.region || '', dba: v.dba_name || '', vendor_no: v.bc_vendor_no || '',
+              gl_exp: v.gl_exp || '', wc_exp: v.wc_exp || '', _how: 'directory' };
   var todayMs = Date.now();
   function state(x) { try { return insExpiryState_(x, todayMs); } catch (e) { return { state: 'unknown', label: x || '' }; } }
   var log = [];

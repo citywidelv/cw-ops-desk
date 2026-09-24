@@ -115,14 +115,14 @@ table.rt td{padding:8px;border-bottom:1px solid #f0f0f0;vertical-align:top;}
 
   <div class="card">
     <h2>Build the list</h2>
-    <p class="sub">Start typing a vendor's company or owner name to pull them off the IC Roster. Anyone not on the roster goes in with the manual button.</p>
+    <p class="sub">Start typing a vendor's company or contact name. The list is the Vendor Directory (Active, Waiting for Account and In Progress vendors for the market you picked). Add a vendor to the Vendor Directory on the Admin Hub to get them on this list; the manual button is for a one-off address that does not belong in the directory.</p>
     <div class="searchbox">
-      <input type="text" id="vsearch" autocomplete="off" placeholder="Search the roster by company or owner name">
+      <input type="text" id="vsearch" autocomplete="off" placeholder="Search the Vendor Directory by company or contact name">
       <div class="results" id="vresults"></div>
     </div>
     <div class="lapsed" id="lapsedBox" style="display:none;"></div>
     <p style="margin:12px 0 0;">
-      <button class="btn ghost" onclick="addManual()">Add a vendor not on the roster</button>
+      <button class="btn ghost" onclick="addManual()">Add a one-off vendor not in the directory</button>
     </p>
   </div>
 
@@ -143,7 +143,7 @@ table.rt td{padding:8px;border-bottom:1px solid #f0f0f0;vertical-align:top;}
       </tr></thead>
       <tbody id="vbody"></tbody>
     </table>
-    <div class="empty" id="vempty">No vendors yet. Search the roster above, or add one manually.</div>
+    <div class="empty" id="vempty">No vendors yet. Search the Vendor Directory above, or add a one-off manually.</div>
     <p class="counts" id="quotaNote"></p>
   </div>
 
@@ -292,7 +292,7 @@ function onMarket(){
   LAST_MARKET = m;
   var list = marketRoster();
   var withEmail = list.filter(function(v){ return (v.email||'').indexOf('@')>0; }).length;
-  el('marketNote').innerHTML = esc(m) + ' roster: <b>' + list.length + '</b> vendors, ' +
+  el('marketNote').innerHTML = esc(m) + ' Vendor Directory: <b>' + list.length + '</b> vendors, ' +
     withEmail + ' with an email on file. Everything in the email (legal entity, address, ' +
     'compliance mailbox, attached request form) follows this market.';
   el('vsearch').value='';
@@ -316,7 +316,7 @@ function doSearch(){
   HITS = hits;
   if(!hits.length){
     box.innerHTML = '<div class="none">' + (q ? 'No match on the ' + esc(el('market').value) +
-      ' roster. Use the manual button below.' : 'Everyone on this roster is already in the batch.') + '</div>';
+      ' Vendor Directory. Add them on the Admin Hub, or use the manual button below for a one-off.' : 'Everyone in the directory for this market is already in the batch.') + '</div>';
   } else {
     // Index into HITS rather than serializing the row into the markup. Real vendor
     // names contain & and quotes and would corrupt an inline attribute.
@@ -476,9 +476,9 @@ function renderLapsed(){
       'Coverage is preselected from whichever policy lapsed.');
   }
   if (noEmail) bits.push(noEmail + ' more ' + (noEmail===1?'is':'are') +
-    ' expired but has no email on the roster, so they cannot be added automatically.');
+    ' expired but has no email in the Vendor Directory, so they cannot be added automatically.');
   if (noDates) bits.push(noDates + ' vendor' + (noDates===1?' has':'s have') +
-    ' no expiration dates on the roster at all, so nothing can be said about them either way.');
+    ' no expiration dates in the Vendor Directory at all, so nothing can be said about them either way.');
   box.innerHTML = bits.join(' ') + (lapsed.length ?
     '<p style="margin:10px 0 0;"><button class="btn ghost" onclick="addAllLapsed()">' +
     'Add all ' + lapsed.length + ' expired</button></p>' : '');

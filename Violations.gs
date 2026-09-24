@@ -372,7 +372,9 @@ function vioDirectoryRoster_() {
       out.push({
         market: k, dba: dba, owner: vdStr_(r.contact_name), email: vdStr_(r.email),
         legal_name: vdStr_(r.legal_name), vendor_no: vdStr_(r.bc_vendor_no),
-        ic_type: vdStr_(r.ic_type), status: vdStr_(r.status)
+        ic_type: vdStr_(r.ic_type), status: vdStr_(r.status),
+        // Sep 24 2026: Insurance.gs builds its list from this same call.
+        gl_exp: vdStr_(r.gl_exp), wc_exp: vdStr_(r.wc_exp)
       });
     });
   });
@@ -384,17 +386,25 @@ function vioDirectoryRoster_() {
 }
 
 // Rewrites the Roster tab from the Vendor Directory. Nothing reads the tab any
-// more, so this exists so the tab never shows something different from the picker.
+// more (violations and insurance both read the directory), so this exists only
+// so the tab never shows something different from the pages. Columns J and K
+// (gl_exp / wc_exp) are mirrored too, since Insurance.gs used to write them here.
+var VIO_ROSTER_MIRROR_HEADERS = VIO_ROSTER_HEADERS.concat(['gl_exp', 'wc_exp']);
 function vioSyncRoster_(data) {
   var sh = vioSS_().getSheetByName(VIO_TABS.ROSTER);
+  if (!sh) sh = vioSS_().insertSheet(VIO_TABS.ROSTER);
   var list = vioDirectoryRoster_();
   var rows = list.map(function (r) {
-    return [r.market, r.dba, r.owner, r.email, r.legal_name, r.vendor_no, r.ic_type, r.status, ''];
+    return [r.market, r.dba, r.owner, r.email, r.legal_name, r.vendor_no, r.ic_type, r.status, '', r.gl_exp, r.wc_exp];
   });
+  sh.getRange(1, 1, 1, VIO_ROSTER_MIRROR_HEADERS.length).setValues([VIO_ROSTER_MIRROR_HEADERS])
+    .setFontWeight('bold').setBackground('#2D2A26').setFontColor('#FFFFFF');
+  sh.getRange(1, 1).setNote('MIRROR of CW Vendor Directory (Vendors Las Vegas / Vendors Northern Nevada). ' +
+    'Rewritten by vio_syncroster. Nothing reads this tab. Edit the Vendor Directory instead; edits here are overwritten.');
   if (sh.getLastRow() > 1) {
-    sh.getRange(2, 1, sh.getLastRow() - 1, VIO_ROSTER_HEADERS.length).clearContent();
+    sh.getRange(2, 1, sh.getLastRow() - 1, VIO_ROSTER_MIRROR_HEADERS.length).clearContent();
   }
-  if (rows.length) sh.getRange(2, 1, rows.length, VIO_ROSTER_HEADERS.length).setValues(rows);
+  if (rows.length) sh.getRange(2, 1, rows.length, VIO_ROSTER_MIRROR_HEADERS.length).setValues(rows);
   return _json({ ok: true, rows: rows.length });
 }
 

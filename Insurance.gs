@@ -2,7 +2,7 @@
 // Insurance.gs - vendor certificate of insurance requests (Aug 2026)
 // New FILE in the CW Solicitations Apps Script project.
 // Routing: doPost in Code.gs routes any kind starting 'ins_' to insDispatch(data).
-// Kinds: ins_setup, ins_roster, ins_send  (all POST, passcode-gated)
+// Kinds: ins_setup, ins_roster, ins_send, ins_form, ins_exp  (all POST, passcode-gated)
 //
 // Purpose: an FSM picks a market, builds a list of vendors whose certificate on
 // file has expired, marks the coverage needed per vendor, and fires ONE separate
@@ -20,7 +20,10 @@
 // deployment, no changes to any vio_* code or tab.
 // ============================================================
 
-var INS_TABS = { LOG: 'Insurance', CONFIG: 'InsConfig', ROSTER: 'Roster', ISSUERS: 'Issuers' };
+// Vendors come from the CW Vendor Directory (Vendors Las Vegas / Vendors Northern
+// Nevada), the one list every hub page reads (Sep 24 2026). There is no separate
+// insurance roster. Issuers still live on CW Violation Notices.
+var INS_TABS = { LOG: 'Insurance', CONFIG: 'InsConfig', ISSUERS: 'Issuers' };
 
 var INS_LOG_HEADERS = [
   'request_id', 'batch_id', 'sent', 'test', 'market', 'vendor_dba', 'vendor_owner',
@@ -102,12 +105,11 @@ function insDispatch(data) {
   return _json({ ok: false, error: 'Unknown ins kind' });
 }
 
-// Shares the CW Violation Notices spreadsheet, because the IC Roster and Issuers
-// already live there. Insurance writes ONLY to its own two tabs.
+// CW Insurance Requests workbook, via the compliance router in Books.gs.
+// Issuers still come from CW Violation Notices; the router sends that tab
+// name there. getUrl() answers for the insurance book. Vendors are never read
+// from here: see insDirectoryRoster_.
 function insSS_() {
-  // CW Insurance Requests workbook, via the compliance router in Books.gs.
-  // Roster and Issuers still come from CW Violation Notices; the router
-  // sends those tab names there. getUrl() answers for the insurance book.
   return cwRouter_('vio', 'insurance');
 }
 
@@ -165,12 +167,23 @@ function insEmails_(raw) {
     .filter(function (s) { return s.indexOf('@') > 0; }).join(',');
 }
 
-// -------------------------------------------------- roster expiry sync -----
-// The Roster tab is shared with the violation notice picklist, which reads
-// columns A through I by fixed index. Expiry is written to J and K, past the end
-// of what that code touches, so this cannot affect violations.
-var INS_ROSTER_GL_COL = 10;   // J
-var INS_ROSTER_WC_COL = 11;   // K
+// -------------------------------------------------- vendor directory -----
+// The insurance page shows exactly what the Vendor Directory holds: dispatchable
+// statuses only (VD_LIVE_STATUS), hide honoured, a region of Both listed under
+// each market, expiry from the directory's gl_exp / wc_exp columns. The list is
+// built by vioDirectoryRoster_ (Violations.gs) so violations and insurance can
+// never disagree about who is a vendor.
+function insDirectoryRoster_() {
+  var today = new Date().getTime();
+  return vioDirectoryRoster_().map(function (r) {
+    return {
+      market: r.market === 'NNV' ? 'Northern Nevada' : 'Las Vegas',
+      dba: r.dba, owner: r.owner, email: r.email, vendor_no: r.vendor_no,
+      status: r.status,
+      gl: insExpiryState_(r.gl_exp, today), wc: insExpiryState_(r.wc_exp, today)
+    };
+  });
+}
 
 // Vendor numbers arrive with and without leading zeros depending on whether a
 // sheet or an export produced them. Compare on the digits alone.
@@ -178,39 +191,40 @@ function insVno_(v) {
   return String(v == null ? '' : v).replace(/[^0-9]/g, '').replace(/^0+/, '');
 }
 
-// Accepts rows of {vno, gl, wc} and writes the two expiry cells for each match.
-// Reports anything it could not match rather than guessing.
+// Column number of a header on a directory tab, read from the tab's own header
+// row so a column added or moved in the Sheet cannot silently mis-map.
+function insVdCol_(sh, name, cache) {
+  var id = sh.getSheetId();
+  if (!cache[id]) {
+    cache[id] = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (h) { return vdStr_(h); });
+  }
+  var i = cache[id].indexOf(name);
+  return i < 0 ? 0 : i + 1;
+}
+
+// Accepts rows of {vno, dba, gl, wc, hide} (a Business Central export) and writes
+// gl_exp / wc_exp on the matching Vendor Directory row. Reports anything it could
+// not match rather than guessing. This is the only writer of those two columns
+// besides the directory editors themselves.
 function insExp_(data) {
   var rows = data.rows || [];
   if (!rows.length) return _json({ ok: false, error: 'No rows' });
-  var ss = insSS_();
-  var sh = ss.getSheetByName(INS_TABS.ROSTER);
-  if (!sh) return _json({ ok: false, error: 'No Roster tab' });
-
-  sh.getRange(1, INS_ROSTER_GL_COL).setValue('gl_exp').setFontWeight('bold')
-    .setBackground('#2D2A26').setFontColor('#FFFFFF');
-  sh.getRange(1, INS_ROSTER_WC_COL).setValue('wc_exp').setFontWeight('bold')
-    .setBackground('#2D2A26').setFontColor('#FFFFFF');
-
-  var vals = sh.getDataRange().getValues();
-  var rowByVno = {}, rowByDba = {};
-  for (var i = 1; i < vals.length; i++) {
-    var v = insVno_(vals[i][5]);
-    if (v) rowByVno[v] = i + 1;
-    var d = String(vals[i][1] || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase();
-    if (d) rowByDba[d] = i + 1;
-  }
-
+  var byVno = {}, byDba = {};
+  vdAllRows_(vdSS_()).forEach(function (r) {
+    var v = insVno_(r.bc_vendor_no);
+    if (v && !byVno[v]) byVno[v] = r;
+    var d = vdStr_(r.dba_name).toLowerCase();
+    if (d && !byDba[d]) byDba[d] = r;
+  });
+  var heads = {};
   var wrote = 0, missed = [];
   rows.forEach(function (r) {
-    var target = rowByVno[insVno_(r.vno)] ||
-      rowByDba[String(r.dba || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase()];
-    if (!target) { missed.push(String(r.dba || r.vno || '?')); return; }
-    sh.getRange(target, INS_ROSTER_GL_COL).setValue(String(r.gl || ''));
-    sh.getRange(target, INS_ROSTER_WC_COL).setValue(String(r.wc || ''));
-    if (r.hide === true || String(r.hide).toUpperCase() === 'TRUE') {
-      sh.getRange(target, 9).setValue('TRUE');
-    }
+    var t = byVno[insVno_(r.vno)] || byDba[vdStr_(r.dba).toLowerCase()];
+    if (!t) { missed.push(String(r.dba || r.vno || '?')); return; }
+    var cGl = insVdCol_(t._sheet, 'gl_exp', heads), cWc = insVdCol_(t._sheet, 'wc_exp', heads), cHide = insVdCol_(t._sheet, 'hide', heads);
+    if (cGl) t._sheet.getRange(t._row, cGl).setValue(String(r.gl || ''));
+    if (cWc) t._sheet.getRange(t._row, cWc).setValue(String(r.wc || ''));
+    if (cHide && (r.hide === true || String(r.hide).toUpperCase() === 'TRUE')) t._sheet.getRange(t._row, cHide).setValue(true);
     wrote++;
   });
   return _json({ ok: true, updated: wrote, unmatched: missed });
@@ -221,7 +235,11 @@ function insExp_(data) {
 function insExpiryState_(raw, todayMs) {
   var s = String(raw == null ? '' : raw).trim();
   if (!s) return { state: 'unknown', label: '' };
-  var d = s instanceof Date ? s : new Date(s);
+  var d;
+  var ymd = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);          // vdStr_ output; parse as a local date, not UTC
+  if (s instanceof Date) d = s;
+  else if (ymd) d = new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]));
+  else d = new Date(s);
   if (isNaN(d.getTime())) return { state: 'unknown', label: '' };
   if (d.getFullYear() >= 2900) return { state: 'none', label: '' };
   var days = Math.floor((d.getTime() - todayMs) / 86400000);
@@ -236,25 +254,7 @@ function insRoster_(data) {
   var ss = insSS_();
   var cfg = insConfig_(ss);
 
-  var roster = [];
-  var today = new Date().getTime();
-  var rsh = ss.getSheetByName(INS_TABS.ROSTER);
-  if (rsh) {
-    var rv = rsh.getDataRange().getValues();
-    for (var i = 1; i < rv.length; i++) {
-      if (!rv[i][1]) continue;                                    // no dba
-      if (String(rv[i][8]).toUpperCase() === 'TRUE') continue;     // hide
-      var mk = String(rv[i][0]).trim().toUpperCase() === 'NNV' ? 'Northern Nevada' : 'Las Vegas';
-      var gl = insExpiryState_(rv[i][INS_ROSTER_GL_COL - 1], today);
-      var wc = insExpiryState_(rv[i][INS_ROSTER_WC_COL - 1], today);
-      roster.push({
-        market: mk, dba: String(rv[i][1]), owner: String(rv[i][2] || ''),
-        email: String(rv[i][3] || ''), vendor_no: String(rv[i][5] || ''),
-        status: String(rv[i][7] || ''),
-        gl: gl, wc: wc
-      });
-    }
-  }
+  var roster = insDirectoryRoster_();
 
   var issuers = [];
   var ish = ss.getSheetByName(INS_TABS.ISSUERS);
