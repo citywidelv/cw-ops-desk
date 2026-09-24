@@ -40,6 +40,7 @@ var CW_BOOKS = {
   alerts:        { prop: 'ALERTS_SHEET_ID',   name: 'CW Hub Alerts',                family: 'sol' },
   accountfsm:    { prop: 'AF_SHEET_ID',       name: 'CW Account FSM Assignments',   family: 'sol' },
   buildingsheets:{ prop: 'BS_SHEET_ID',       name: 'CW Building Information Sheets', family: 'sol' },   // written by the CW Building Sheets satellite script
+  calcsaves:     { prop: 'CALC_SHEET_ID',     name: 'CW Calculator Saved Work',     family: 'sol' },   // saved work from the landscape / pressure / restaurant / porter calculators
   // -------- vendor family (default: CW Vendor Directory, VD_SHEET_ID)
   vendors:       { prop: 'VD_SHEET_ID',       name: 'CW Vendor Directory',          family: 'vd' },
   onboarding:    { prop: 'OB_SHEET_ID',       name: 'CW Vendor Onboarding',         family: 'vd' },
@@ -73,6 +74,7 @@ var CW_TAB_BOOK = {
   'Alert Status': 'alerts',
   'Account FSM': 'accountfsm', 'Account FSM Log': 'accountfsm', 'Alert Assign': 'accountfsm',
   'Building Sheets': 'buildingsheets', 'Building Sheets History': 'buildingsheets',
+  'Calc Saves': 'calcsaves',
   'Onboarding': 'onboarding', 'Onboarding Checklist': 'onboarding', 'Onboarding Log': 'onboarding', 'BC Requests': 'onboarding',
   'Background checks Las Vegas': 'bgchecks', 'Background checks Northern Nevada': 'bgchecks', 'BC Notices': 'bgchecks',
   'Do Not Email': 'dne',
@@ -167,6 +169,7 @@ var CW_BOOK_FOLDERS = {
   supplies: '128BpsJS7i6Qm6Nje9QxPJ68FFO-TWUlH', envirox: '128BpsJS7i6Qm6Nje9QxPJ68FFO-TWUlH',
   nightinsp: '1IzeOC_3M7VNB2UKlLjScMeBavuxrfeia', nightroute: '1IzeOC_3M7VNB2UKlLjScMeBavuxrfeia'
 };
+CW_BOOK_FOLDERS.calcsaves = '1mTMTTN361dwRCNNnt9At0XKqKl58aReL';   // Pricing and Calculators
 var CW_ARCHIVE_FOLDER = '1F5SE18kg0Orbwo85N688Oi4HCFp3KVxC';
 
 function cwBookTabs_(key) {
@@ -232,7 +235,7 @@ function cwBooksVerify() {
 function cwBooksArchiveOld() {
   var props = PropertiesService.getScriptProperties();
   var report = [];
-  var extra = { sol: ['Supply Orders', 'ARCHIVE Supply Orders', 'ARCHIVE EnvirOx Catalog', 'ARCHIVE EnvirOx Orders', 'Calc Saves', 'Turn Quotes', 'Vendor Directory'],
+  var extra = { sol: ['Supply Orders', 'ARCHIVE Supply Orders', 'ARCHIVE EnvirOx Catalog', 'ARCHIVE EnvirOx Orders', 'Turn Quotes', 'Vendor Directory'],
                 sup: ['Inventory Items', 'Inventory Counts', 'Inventory Lines'] };
   Object.keys(CW_FAMILY).forEach(function (family) {
     var srcId = CW_FAMILY[family].fallback();
