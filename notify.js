@@ -84,7 +84,7 @@
     "hvac": ["hvac"],
     "plumbing": ["plumbing"],
     "electrical": ["electrical"],
-    "junk removal": ["waste"],
+    "junk removal": ["junk-removal", "waste"],
     "water / flood": ["restoration"],
     "security": ["security"]
   };
