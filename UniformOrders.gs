@@ -1,5 +1,5 @@
 // ============================================================
-// UniformOrders.gs  (CW Solicitations project)  Build 2026-09-24
+// UniformOrders.gs  (CW Solicitations project)  Build 2026-09-24b (need_by always yyyy-MM-dd)
 // ------------------------------------------------------------
 // One list of every uniform that still has to be ordered, for the Admin Hub
 // page cw-admin-hub/uniform-orders.html. Two sources, read live on every call:
@@ -157,7 +157,7 @@ function uoEmpRows_() {
       key: id, row: r._row,
       when: uoIso_(when), when_nice: uoNice_(when),
       name: uoStr_(r['requester']), email: uoStr_(r['email']).toLowerCase(),
-      need_by: uoStr_(r['need_by']), reason: uoStr_(r['reason']), notes: uoStr_(r['notes']),
+      need_by: uoDay_(r['need_by']), reason: uoStr_(r['reason']), notes: uoStr_(r['notes']),
       lines: lines, other: 0,
       uniform_total: uoNum_(r['est_total']), total: uoNum_(r['est_total']),
       ordered: ordered, picked: false, status: status || 'New',
@@ -271,6 +271,15 @@ function uoDate_(v) {
   if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
   var s = uoStr_(v); if (!s) return null;
   var d = new Date(s); return isNaN(d.getTime()) ? null : d;
+}
+// A need-by cell may hold a Date (Sheets converted it) or the text the page sent ("2026-09-18").
+function uoDay_(v) {
+  if (v instanceof Date && !isNaN(v.getTime())) return Utilities.formatDate(v, UO_TZ, 'yyyy-MM-dd');
+  var s = uoStr_(v);
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) return m[0];
+  var d = new Date(s);
+  return isNaN(d.getTime()) ? s : Utilities.formatDate(d, UO_TZ, 'yyyy-MM-dd');
 }
 function uoIso_(d) { return d ? Utilities.formatDate(d, UO_TZ, "yyyy-MM-dd'T'HH:mm:ss") : ''; }
 function uoNice_(d) { return d ? Utilities.formatDate(d, UO_TZ, 'MMM d, yyyy h:mm a') : ''; }
