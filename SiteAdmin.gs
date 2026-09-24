@@ -60,7 +60,7 @@ var SA_HUBS = {
 // ss: function returning the Spreadsheet. tab: the tab name. mode: 'table' (one
 // record per row, header row 1) or 'kv' (key / value rows). locked: keys or
 // columns the generic editor may not write. types: input hints per column.
-function saSolSS_() { return SpreadsheetApp.openById(SHEET_ID); }
+function saSolSS_() { return cwSS_(SA_LOG_TAB); }   // CW Site Admin workbook (Books.gs); SendConfig routes to CW Email Digest
 function saSurfaces_() {
   return [
     { key: 'vio_dropdowns', group: 'Violation Notices', label: 'Finding dropdowns', ss: vioSS_, tab: 'Dropdowns', mode: 'table',

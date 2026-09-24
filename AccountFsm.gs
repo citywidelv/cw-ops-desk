@@ -47,7 +47,7 @@ var AF_STOP = {};
  'pkwy hwy cir pl ter trl lp loop n s e w ne nw se sw pmb all main account accounts').split(' ').forEach(function (w) { AF_STOP[w] = 1; });
 
 // ------------------------------------------------------------ plumbing -----
-function afSS_() { return SpreadsheetApp.openById(SHEET_ID); }
+function afSS_() { return cwSS_(AF_TAB); }   // CW Account FSM Assignments workbook (Books.gs)
 function afTab_(ss, name, head) {
   var sh = ss.getSheetByName(name);
   if (!sh) {

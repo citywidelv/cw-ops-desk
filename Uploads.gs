@@ -65,7 +65,7 @@ function docFolder_() {
 }
 
 function docSheet_() {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_(DOC_TAB);   // CW Vendor Document Uploads workbook (Books.gs)
   var sh = ss.getSheetByName(DOC_TAB);
   if (!sh) sh = ss.insertSheet(DOC_TAB);
   var have = sh.getLastColumn() ? sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0] : [];
@@ -172,11 +172,13 @@ function handleDocUpload(data) {
     names.join(', '), links.join('\n'), 'pending'];
   var at = _nextRow(sh);
   sh.getRange(at, 1, 1, DOC_HEADERS.length).setValues([row]);
+  // Sep 19 2026: tell the onboarding desk the document came in (Onboarding.gs, marks the item Received).
+  try { if (typeof obUploadHook_ === 'function') obUploadHook_({ company: company, doc_type: docType, coverage: coverage, region: data.region, email: email, first: first, last: last, links: links.join('\n') }); } catch (obErr) {}
 
   // ---- Mail last, and never fatal.
   var mailStatus = [];
   try {
-    MailApp.sendEmail({
+    cwMail_('coiupload_int', {
       to: region.compliance,
       replyTo: email,
       name: DOC_SENDER,
@@ -194,7 +196,7 @@ function handleDocUpload(data) {
   }
 
   try {
-    MailApp.sendEmail({
+    cwMail_('coiupload_conf', {
       to: email,
       replyTo: region.compliance,
       name: DOC_SENDER,

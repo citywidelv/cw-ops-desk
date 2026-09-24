@@ -105,9 +105,10 @@ function insDispatch(data) {
 // Shares the CW Violation Notices spreadsheet, because the IC Roster and Issuers
 // already live there. Insurance writes ONLY to its own two tabs.
 function insSS_() {
-  var id = PropertiesService.getScriptProperties().getProperty('VIO_SHEET_ID');
-  if (!id) throw new Error('No VIO_SHEET_ID script property. Run vio_setup once first.');
-  return SpreadsheetApp.openById(id);
+  // CW Insurance Requests workbook, via the compliance router in Books.gs.
+  // Roster and Issuers still come from CW Violation Notices; the router
+  // sends those tab names there. getUrl() answers for the insurance book.
+  return cwRouter_('vio', 'insurance');
 }
 
 function insSetup_(data) {

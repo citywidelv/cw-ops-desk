@@ -98,13 +98,9 @@ function niMarket_(raw) {
   return (s === 'nnv' || s.indexOf('northern') === 0 || s === 'reno') ? 'nnv' : 'lv';
 }
 function niSS_() {
-  var props = PropertiesService.getScriptProperties();
-  var id = props.getProperty(NI_PROP);
-  if (id) { try { return SpreadsheetApp.openById(id); } catch (e) {} }
-  var ss = SpreadsheetApp.create('CW Night Inspections');
-  props.setProperty(NI_PROP, ss.getId());
-  try { ss.addEditor(NI_EDITOR); } catch (e) {}
-  return ss;
+  // Router over the night ops family (Books.gs): CW Night Inspections, with
+  // Routes, AccountChecks and RouteConfig answered by CW Night Route Out.
+  return cwRouter_('ni');
 }
 function niTab_(ss, name, headers) {
   name = name || NI_TAB; headers = headers || NI_HEADERS;
@@ -283,11 +279,12 @@ function niContext_(data) {
   // the night manager ticks who was there and only types a name that is new.
   try {
     if (typeof acRows_ === 'function') {
+      var rh = AC_ROS_HEAD, g = function (x, f) { return Array.isArray(x) ? x[rh.indexOf(f)] : x[f]; };
       acRows_(AC_ROS, AC_ROS_HEAD).forEach(function (x) {
-        var st = String(x.status || '');
+        var st = String(g(x, 'status') || '');
         if (/removed/i.test(st)) return;
-        var n = (String(x.cleaner_first || '') + ' ' + String(x.cleaner_last || '')).trim();
-        var acct = String(x.account_matched || x.account_raw || '').toLowerCase().trim();
+        var n = (String(g(x, 'cleaner_first') || '') + ' ' + String(g(x, 'cleaner_last') || '')).trim();
+        var acct = String(g(x, 'account_matched') || g(x, 'account_raw') || '').toLowerCase().trim();
         if (n && acct) niRosterAdd_(out.roster, acct, n);
       });
     }

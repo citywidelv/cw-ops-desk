@@ -121,7 +121,7 @@ var VIO_SENDER = {
 };
 function vioSender_(market) { return VIO_SENDER[market] || VIO_SENDER['Las Vegas']; }
 var VIO_LOGO = 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
-var VIO_BG_LINK = 'https://form.asana.com/?k=FRCnQmbTGjAVPieFt4bnWQ&d=13140959242873';
+var VIO_BG_LINK = 'https://citywidelv.github.io/cw-vendor-hub/background-check.html';   // Sep 19 2026: native page, Asana form retired
 var VIO_HUB_PAPERWORK = 'https://citywidelv.github.io/cw-vendor-hub/new-vendors.html';
 var VIO_SHOP_URL = 'https://citywidelv.github.io/cw-vendor-hub/shop/';
 var VIO_APPROVE_URL = 'https://citywidelv.github.io/cw-ops-desk/violation-approve.html';
@@ -164,9 +164,9 @@ function vioDdSync_(data) {
 }
 
 function vioSS_() {
-  var id = PropertiesService.getScriptProperties().getProperty('VIO_SHEET_ID');
-  if (!id) throw new Error('Run vio_setup first (no VIO_SHEET_ID)');
-  return SpreadsheetApp.openById(id);
+  // Router over the compliance family (Books.gs): CW Violation Notices, with
+  // the Insurance and InsConfig tabs answered by CW Insurance Requests.
+  return cwRouter_('vio');
 }
 
 function vioSetup_(data) {

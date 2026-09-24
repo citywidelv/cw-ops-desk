@@ -375,7 +375,7 @@ function vpLog_(ss, v, m, ob) {
 // ------------------------------------------------------------ more blocks
 
 function vpResponses_(v, m) {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var sh = ss.getSheetByName(RESP_TAB);
   if (!sh) return { rows: [] };
   var out = [];

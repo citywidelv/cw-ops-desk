@@ -103,8 +103,8 @@ function coiClean_(s) {
 }
 
 function coiSS_() {
-  // Same book as the vendor Documents tab (Uploads.gs): the CW Solicitations sheet.
-  return SpreadsheetApp.openById(SHEET_ID);
+  // CW COI Requests workbook, via the registry in Books.gs.
+  return cwSS_(COI_TAB);
 }
 
 function coiSheet_() {

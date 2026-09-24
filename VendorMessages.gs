@@ -121,7 +121,7 @@ function vmSend_(d) {
 
   var status = errs.length ? (sent ? 'partial' : 'failed') : 'sent';
   try {
-    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var ss = cwSS_(VM_LOG_TAB);   // CW Vendor Messages Log workbook (Books.gs)
     var log = ss.getSheetByName(VM_LOG_TAB);
     if (!log) {
       log = ss.insertSheet(VM_LOG_TAB);

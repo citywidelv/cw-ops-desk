@@ -1,7 +1,3 @@
-// ARCHIVE COPY of the live CW Solicitations Code.gs (deployment v83, Sep 5 2026).
-// The two passcode values are replaced with __REDACTED__ on purpose. NEVER load this file into
-// the editor wholesale: it would blank the passcodes. Apply targeted edits or restore the values first.
-
 // ============================================================
 // CW Solicitations v6 - postings + responses + invoices + supply orders + feed
 // Standalone project under citywideoflasvegas@gmail.com; opens the sheet by ID.
@@ -14,8 +10,8 @@
 // Run setup() once after first install; run setupInvoicing() once for the v6 tabs.
 // ============================================================
 
-var SHEET_ID = '1ymbqR7LMvA7sbgZe2Ro5o2dNiXhP08Tn9Hw1b-H5AeQ';
-var TAB = 'Solicitations';
+var SHEET_ID = '1ymbqR7LMvA7sbgZe2Ro5o2dNiXhP08Tn9Hw1b-H5AeQ';   // CW Open Opportunities (postings + responses). Every other tab moved to its own book, see Books.gs
+var TAB = 'Open Opportunities';   // renamed from Solicitations, Sep 24 2026 (see Books.gs)
 var RESP_TAB = 'Responses';
 var PASSCODE = '__REDACTED__';
 var LOGO = 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png';
@@ -29,7 +25,7 @@ var FSM_ROSTER = {
   jeremy: { name: 'Jeremy Walker',  title: 'General Manager',             region: 'Northern Nevada',             photo: 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/Franchise-Location-Uploads/Las_Vegas/IMG_3968.jpg' },
   robert: { name: 'Robert Krause',  title: 'Director of Operations',      region: 'Las Vegas',                   photo: 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/Franchise-Location-Uploads/Las_Vegas/IMG_3964.jpg' },
   josh:   { name: 'Joshua Smith',   title: 'Business Operations Manager', region: 'Las Vegas & Northern Nevada', photo: 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/Franchise-Location-Uploads/Las_Vegas/IMG_3963.jpg' },
-  tj:     { name: 'TJ Robert',      title: 'Chief Operating Officer',     region: 'Las Vegas & Northern Nevada', photo: 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/Franchise-Location-Uploads/Las_Vegas/IMG_3962.jpg' }
+  tj:     { name: 'TJ Roberts',      title: 'Chief Operating Officer',     region: 'Las Vegas & Northern Nevada', photo: 'https://emailer.emfluence.com/clients/citywide/uploadedfiles/Franchise-Location-Uploads/Las_Vegas/IMG_3962.jpg' }
 };
 
 
@@ -87,21 +83,21 @@ var SUP_HEADERS = [
 ];
 
 function setupInvoicing() {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_(INV_TAB);
   var iv = ss.getSheetByName(INV_TAB);
   if (!iv) iv = ss.insertSheet(INV_TAB);
   iv.getRange(1, 1, 1, INV_HEADERS.length).setValues([INV_HEADERS])
     .setFontWeight('bold').setBackground('#2D2A26').setFontColor('#FFFFFF');
   iv.setFrozenRows(1);
-  var sp = ss.getSheetByName(SUP_TAB);
-  if (!sp) sp = ss.insertSheet(SUP_TAB);
+  var sp = supSS_().getSheetByName(SUP_TAB);   // supplies live on their own book (Supply.gs)
+  if (!sp) sp = supSS_().insertSheet(SUP_TAB);
   sp.getRange(1, 1, 1, SUP_HEADERS.length).setValues([SUP_HEADERS])
     .setFontWeight('bold').setBackground('#E5B423').setFontColor('#2D2A26');
   sp.setFrozenRows(1);
 }
 
 function setup() {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var sh = ss.getSheetByName(TAB);
   if (!sh) { sh = ss.getSheets()[0]; sh.setName(TAB); }
   sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS])
@@ -164,7 +160,7 @@ function handlePosting(data) {
   if (!data.region || !data.type || !data.title || !data.contact_email) {
     out.error = 'Missing required fields'; return _json(out);
   }
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var sh = ss.getSheetByName(TAB);
   var prefix = data.region === 'Northern Nevada' ? 'NNV' : 'LV';
   var id = prefix + '-' +
@@ -221,7 +217,7 @@ function handleResponse(data) {
   if (!data.posting_id || !data.company || !data.contact_name || !data.email) {
     out.error = 'Missing required fields'; return _json(out);
   }
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var sh = ss.getSheetByName(TAB);
   var values = sh.getDataRange().getValues();
   var head = values[0];
@@ -328,7 +324,7 @@ function _kvRow(label, val) {
 }
 
 function _responseEmail(rid, posting, d) {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var quoteBlock = '';
   if (d.mode === 'quote' && d.quote_amount) {
     quoteBlock =
@@ -396,7 +392,7 @@ function handleInvoice(data) {
   }
   if (!lines.length) { out.error = 'No invoice lines'; return _json(out); }
 
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var iv = ss.getSheetByName(INV_TAB);
   if (!iv) { setupInvoicing(); iv = ss.getSheetByName(INV_TAB); }
   var id = 'INV-' + Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyMMddHHmm') +
@@ -542,7 +538,7 @@ function _invoicePdfHtml(id, d, lines, total) {
 }
 
 function _invoiceEmail(id, d, lines, total, forVendor) {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_(INV_TAB);
   var intro = forVendor
     ? '<h1 style="margin:0 0 4px;font-family:Verdana,Arial,sans-serif;font-size:19px;font-weight:bold;color:#D22730;">We Received Your Invoice</h1>' +
       '<p style="margin:0 0 18px;font-family:Verdana,Arial,sans-serif;font-size:13px;color:#636466;">' +
@@ -698,7 +694,7 @@ function doGet(e) {
   if (_tp.turn && typeof handleTurnGet === 'function') return handleTurnGet(_tp);
   var _calcTools = ['landscape','pressure','restaurant','porter'];
   for (var _ci = 0; _ci < _calcTools.length; _ci++) { if (_tp[_calcTools[_ci]]) return handleCalcList(_calcTools[_ci], _tp[_calcTools[_ci]]); }
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var sh = ss.getSheetByName(TAB);
   var values = sh.getDataRange().getValues();
   var head = values[0];
@@ -941,7 +937,7 @@ function _saveResponsePdf(posting, d, rid) {
 
 function handleResponsesList(data) {
   if (String(data.passcode || '') !== PASSCODE) return _json({ ok: false, error: 'Wrong passcode.' });
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var read = function (tabName, keyField) {
     var sh = ss.getSheetByName(tabName);
     if (!sh) return [];
@@ -976,7 +972,7 @@ var VENDOR_TRADES = ['Janitorial', 'Day Porter', 'Floor Care (Strip & Wax / Buff
   'Specialty (Medical / Clean Room / GMP)', 'Other'];
 
 function setupVendorDirectory() {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var sh = ss.getSheetByName(VENDOR_TAB);
   if (!sh) sh = ss.insertSheet(VENDOR_TAB);
   sh.getRange(1, 1, 1, VENDOR_HEADERS.length).setValues([VENDOR_HEADERS])
@@ -999,7 +995,7 @@ function setupVendorDirectory() {
 function _vendorEmails(trade, region) {
   var out = [];
   try {
-    var sh = SpreadsheetApp.openById(SHEET_ID).getSheetByName(VENDOR_TAB);
+    var sh = null;   // legacy 'Vendor Directory' tab was archived Sep 24 2026; the live directory is VendorDirectory.gs
     if (!sh) return out;
     var values = sh.getDataRange().getValues();
     if (values.length < 2) return out;
@@ -1099,7 +1095,7 @@ function handleInvoiceUpload(data) {
     } catch (convErr) { attach = blob; }
   }
 
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var iv = ss.getSheetByName(INV_TAB);
   if (!iv) { setupInvoicing(); iv = ss.getSheetByName(INV_TAB); }
   var id = 'INV-' + Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyMMddHHmm') +
@@ -1173,7 +1169,7 @@ function _uploadInvoiceEmail(id, d, totalStr, forVendor) {
 /* ===== Ops Wall announcements (v7, 2026-07-29) ===== */
 var ANN_TAB = 'Announcements';
 function _annSheet() {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var sh = ss.getSheetByName(ANN_TAB);
   if (!sh) {
     sh = ss.insertSheet(ANN_TAB);
@@ -1221,7 +1217,7 @@ function handleAnnouncement(data) {
 // ============================================================
 var CALC_SAVES_TAB = 'Calc Saves';
 function _calcSheet() {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var sh = ss.getSheetByName(CALC_SAVES_TAB);
   if (!sh) { sh = ss.insertSheet(CALC_SAVES_TAB); sh.getRange(1, 1, 1, 6).setValues([['tool', 'id', 'user', 'name', 'ts', 'payload']]); }
   return sh;
@@ -1333,44 +1329,48 @@ function handleEnviroxOrder(data) {
     Number(data.total) || 0, data.min_met ? 'YES' : 'NO', itemsTxt, String(data.notes || ''),
     String(data.region || 'Las Vegas')]);
 
+  var eoxTd = 'padding:6px 8px;border-bottom:1px solid #ddd;';
+  var eoxTh = 'text-align:left;background:#2D2A26;color:#fff;padding:6px 8px;font-size:11px;';
   var rowsHtml = items.map(function (i) {
-    return '<tr><td style="padding:5px 8px;border-bottom:1px solid #eee">' + _esc(i.sku) + '</td>' +
-      '<td style="padding:5px 8px;border-bottom:1px solid #eee">' + _esc(i.name) + '</td>' +
-      '<td style="padding:5px 8px;border-bottom:1px solid #eee;text-align:right">' + Number(i.qty) + '</td>' +
-      '<td style="padding:5px 8px;border-bottom:1px solid #eee;text-align:right">' +
-      (i.free ? 'No charge' : '$' + (Number(i.price) * Number(i.qty)).toFixed(2)) + '</td></tr>';
+    return '<tr><td style="' + eoxTd + 'white-space:nowrap">' + _esc(i.sku) + '</td>' +
+      '<td style="' + eoxTd + '">' + _esc(i.name) + '</td>' +
+      '<td style="' + eoxTd + 'white-space:nowrap">' + _esc(i.uom || '') + '</td>' +
+      '<td style="' + eoxTd + 'text-align:right;font-weight:bold">' + Number(i.qty) + '</td></tr>';
   }).join('');
-  var minMet = !!data.min_met;
-  var html = '<div style="font-family:Verdana,Geneva,sans-serif;font-size:13px;color:#2D2A26;max-width:640px">' +
-    '<img src="' + LOGO + '" alt="City Wide Facility Solutions" height="38" style="height:38px;width:auto"><br><br>' +
-    '<h2 style="font-size:17px;margin:0 0 4px">EnvirOx order ' + id + ' is ready to send</h2>' +
-    '<p style="color:#636466;margin:0 0 14px">Logged from the Ops Desk EnvirOx Order Guide by ' + _esc(data.requester) + '.</p>' +
+  var eoxNow = new Date();
+  var eoxPo = String(data.po || '').trim() ||
+    Utilities.formatDate(eoxNow, 'America/Los_Angeles', 'M.d.yy');
+  var eoxCust = String(data.custno || 'CWLASVEGAS');
+  var eoxShipName = String(data.ship_name || 'City Wide Facility Solutions - ' + (data.region || 'Las Vegas'));
+  var eoxShipAddr = data.ship_addr ? (_esc(data.ship_addr) + '<br>' + _esc(data.ship_city || '')) : _esc(data.ship_to || '');
+  var eoxLbl = 'font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#636466;display:block;margin-bottom:2px';
+  var eoxCell = 'border:1px solid #ccc;padding:8px 10px;vertical-align:top;font-size:13px';
+  var html = '<div style="font-family:Verdana,Geneva,sans-serif;font-size:13px;color:#2D2A26;max-width:680px">' +
+    '<p style="margin:0 0 12px">Hello EnvirOx team,</p>' +
+    '<p style="margin:0 0 16px">Please process the purchase order below for City Wide Facility Solutions.</p>' +
+    '<table style="border-collapse:collapse;width:100%;margin-bottom:16px">' +
+    '<tr><td style="' + eoxCell + '"><span style="' + eoxLbl + '">Customer name</span>' + _esc(eoxShipName) + '</td>' +
+    '<td style="' + eoxCell + '"><span style="' + eoxLbl + '">Customer No.</span><b>' + _esc(eoxCust) + '</b></td>' +
+    '<td style="' + eoxCell + '"><span style="' + eoxLbl + '">Purchase order</span><b>' + _esc(eoxPo) + '</b></td></tr>' +
+    '<tr><td style="' + eoxCell + '"><span style="' + eoxLbl + '">Ship to</span>' + _esc(eoxShipName) + '<br>' + eoxShipAddr +
+      (data.ship_phone ? '<br>Phone ' + _esc(data.ship_phone) : '') + '</td>' +
+    '<td style="' + eoxCell + '"><span style="' + eoxLbl + '">Shipping</span>R&amp;L Carriers<br>Truck with a liftgate</td>' +
+    '<td style="' + eoxCell + '"><span style="' + eoxLbl + '">Delivery window</span>Monday to Friday<br>11 AM to 5 PM</td></tr>' +
+    '<tr><td colspan="3" style="' + eoxCell + '"><span style="' + eoxLbl + '">Ordered by</span>' + _esc(data.requester) +
+      (data.phone ? ' &middot; ' + _esc(data.phone) : '') + (data.email ? ' &middot; ' + _esc(data.email) : '') + '</td></tr>' +
+    '</table>' +
     '<table style="border-collapse:collapse;width:100%;font-size:12.5px">' +
-    '<tr><th style="text-align:left;background:#2D2A26;color:#fff;padding:6px 8px">Item</th>' +
-    '<th style="text-align:left;background:#2D2A26;color:#fff;padding:6px 8px">Description</th>' +
-    '<th style="text-align:right;background:#2D2A26;color:#fff;padding:6px 8px">Qty</th>' +
-    '<th style="text-align:right;background:#2D2A26;color:#fff;padding:6px 8px">Ext</th></tr>' + rowsHtml +
-    '<tr><td colspan="3" style="padding:7px 8px;font-weight:bold;border-top:2px solid #2D2A26">Total &middot; ' +
-    (Number(data.chem_lbs) || 0) + ' lbs chemical</td>' +
-    '<td style="padding:7px 8px;font-weight:bold;text-align:right;border-top:2px solid #2D2A26">$' +
-    (Number(data.total) || 0).toFixed(2) + '</td></tr></table>' +
-    '<p style="margin:14px 0;padding:10px 14px;border-radius:6px;font-weight:bold;' +
-    (minMet ? 'background:#EDF7EF;color:#1E7B34">250 lb chemical minimum met - freight prepaid.'
-            : 'background:#FBEAEB;color:#B01F27">UNDER the 250 lb minimum - EnvirOx adds freight below 250 lbs.') + '</p>' +
-    (data.po ? '<p style="margin:0 0 4px"><b>PO:</b> ' + _esc(data.po) + '</p>' : '') +
-    (data.notes ? '<p style="margin:0 0 14px"><b>Notes:</b> ' + _esc(data.notes) + '</p>' : '') +
-    '<div style="border:2px solid #D22730;border-radius:6px;padding:10px 14px;margin-top:6px">' +
-    '<b style="color:#D22730;text-transform:uppercase;font-size:11px;letter-spacing:.08em">Send it in</b><br>' +
-    'Attach the PDF order sheet (or forward this email) to <b>orders@enviroxclean.com</b>, ' +
-    'or call <b>1-800-281-9604</b>, or fax <b>217-442-2568</b>.<br>' +
-    'Customer No. <b>' + _esc(data.custno || 'CWLASVEGAS') + '</b> &middot; 1% 20 / Net 30 &middot; R&amp;L Carriers, truck with liftgate, M-F 11 AM-5 PM.<br>' +
-    'Ship to: ' + _esc(data.ship_to || '3215 W Charleston Blvd, Suite 130, Las Vegas, NV 89102') + '.</div>' +
-    '<p style="color:#636466;font-size:11px;margin-top:14px">City Wide Facility Solutions &middot; Las Vegas &middot; GoCityWide.com</p></div>';
+    '<tr><th style="' + eoxTh + '">Item #</th><th style="' + eoxTh + '">Description</th>' +
+    '<th style="' + eoxTh + '">U of M</th><th style="' + eoxTh + 'text-align:right">Qty</th></tr>' + rowsHtml + '</table>' +
+    (data.notes ? '<p style="margin:14px 0 0"><b>Notes:</b> ' + _esc(data.notes) + '</p>' : '') +
+    '<p style="margin:16px 0 0">Please reply to confirm the order and the ship date. Thank you.</p>' +
+    '<p style="margin:14px 0 0">' + _esc(data.requester) + '<br>City Wide Facility Solutions' +
+      (data.region ? ' &middot; ' + _esc(data.region) : '') + '</p></div>';
   try {
     cwMail_('envirox', {
       to: String(data.email),
       cc: (REGION_EMAIL[String(data.region || 'Las Vegas')] || 'lvservicecall@gocitywide.com'),
-      subject: 'EnvirOx order ' + id + ' (' + String(data.region || 'Las Vegas') + ') - ready to send to EnvirOx',
+      subject: 'Purchase Order ' + eoxPo + ' | City Wide Facility Solutions | Customer No. ' + eoxCust,
       htmlBody: html
     });
   } catch (e) {}
@@ -2517,10 +2517,24 @@ function doPost(e){
   try { d = JSON.parse(e.postData.contents); } catch(err){ d = null; }
   if (d && d.kind && String(d.kind).indexOf('vio_') === 0) return vioDispatch(d);
   if (d && String(d.kind||"").indexOf('ins_') === 0) return insDispatch(d);
+  if (d && d.kind === 'vd_eval') return obDispatch(d);                       // Sep 19 2026: Vendor Evaluation page -> Onboarding.gs
+  if (d && String(d.kind||'').indexOf('ob_') === 0) return obDispatch(d);   // Sep 19 2026: onboarding desk + background check requests
   if (d && String(d.kind||"").indexOf('vd_') === 0) return vdDispatch(d);
+  if (d && String(d.kind||'').indexOf('rec_') === 0) return recDispatch(d);
       if (d && String(d.kind||'').indexOf('cleaner_') === 0) return acDispatch(String(d.kind), d);
   if (d && String(d.kind||'').indexOf('audit_') === 0) return audDispatch(d);
     if (d && String(d.kind||'').indexOf('staff_') === 0) return staffDispatch(d);
+if (d && String(d.kind||'').indexOf('alerts_') === 0) return alDispatch(d);
+if (d && String(d.kind||'').indexOf('vm_') === 0) return vmDispatch(d);
+  if (d && String(d.kind||'').indexOf('sa_') === 0) return saDispatch(d);      // Site Admin hub (SiteAdmin.gs), Sep 13 2026
+  if (d && String(d.kind||'').indexOf('inv_') === 0) return invDispatch(d);
+  if (d && String(d.kind||'').indexOf('ni_') === 0) return niDispatch(d);
+  if (d && String(d.kind||'').indexOf('dne_') === 0) return dneDispatch(d);   // Sep 17 2026: do not email list (DoNotEmail.gs)
+  if (d && String(d.kind||'').indexOf('adr_') === 0) return adrDispatch(d);   // Sep 19 2026: Ops Admin Desk records (AdminRecords.gs)
+  if (d && String(d.kind||'').indexOf('vp_') === 0) return vpDispatch(d);   // Vendor Profile (VendorProfile.gs, read only)
+  if (d && String(d.kind||'').indexOf('vev_') === 0) return vevDispatch(d);   // VendorEval.gs, Sep 22 2026
+  if (d && String(d.kind||'').indexOf('vs_') === 0) return vsDispatch(d);   // VendorSelf.gs, Sep 23 2026
+  if (d && String(d.kind||'').indexOf('uo_') === 0) return uoDispatch(d);   // Uniform Orders (uo_ block at the end of AdminRecords.gs), Sep 24 2026
   return doPostBase(e);
 }
 
@@ -2567,7 +2581,7 @@ var CW_TAG_LABEL = {
 
 function cwSendCfg_() {
   try {
-    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var ss = cwSS_();
     var sh = ss.getSheetByName('SendConfig');
     var cfg = {};
     if (sh) {
@@ -2634,7 +2648,7 @@ function cwMail_(tag, opts) {
 }
 
 function cwDigestSheet_() {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var sh = ss.getSheetByName('Digest');
   if (!sh) { sh = ss.insertSheet('Digest'); sh.appendRow(CW_DIGEST_HEAD); sh.setFrozenRows(1); }
   else {
@@ -2970,7 +2984,7 @@ function cwDigestStatus() {
 }
 function cwQuotaSetup() {
   cwDigestSheet_();
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var s = ss.getSheetByName('SendConfig');
   if (!s) { s = ss.insertSheet('SendConfig'); s.appendRow(['tag', 'mode']); }
   var have = {}; var v = s.getDataRange().getValues();
@@ -2984,13 +2998,13 @@ function cwQuotaSetup() {
   return 'SendConfig rows added: ' + (added.join(', ') || 'none') + '. Existing rows left as they were.';
 }
 function cwDigestOn() {
-  var ss = SpreadsheetApp.openById(SHEET_ID); var sh = ss.getSheetByName('SendConfig'); var v = sh.getDataRange().getValues(); var out = [];
+  var ss = cwSS_(); var sh = ss.getSheetByName('SendConfig'); var v = sh.getDataRange().getValues(); var out = [];
   var want = ['posting', 'response', 'cleaner', 'work_ticket', 'uniform_int'];
   for (var i = 1; i < v.length; i++) { var tag = String(v[i][0]).trim(); if (want.indexOf(tag) >= 0 && String(v[i][1]) !== 'digest') { sh.getRange(i + 1, 2).setValue('digest'); out.push(tag + '->digest'); } }
   Logger.log(out.join(',') || 'already on'); return out.join(',') || 'already on';
 }
 function cwDigestOff() {
-  var ss = SpreadsheetApp.openById(SHEET_ID); var sh = ss.getSheetByName('SendConfig'); var v = sh.getDataRange().getValues(); var out = [];
+  var ss = cwSS_(); var sh = ss.getSheetByName('SendConfig'); var v = sh.getDataRange().getValues(); var out = [];
   var want = ['posting', 'response', 'cleaner', 'work_ticket', 'uniform_int'];
   for (var i = 1; i < v.length; i++) { var tag = String(v[i][0]).trim(); if (want.indexOf(tag) >= 0) { sh.getRange(i + 1, 2).setValue('send'); out.push(tag + '->send'); } }
   Logger.log(out.join(',')); return out.join(',');
@@ -3004,7 +3018,7 @@ function cwDigestSelfTest(to) {
   cwQueueDigest_('posting', { to: to, subject: 'ZZ SELFTEST posting', body: 'selftest', digest: { title: 'ZZ SELFTEST posting - Night clean, Spring Valley', id: 'LV-TEST', region: 'Las Vegas',
     fields: [['Posting', 'LV-TEST'], ['Type', 'recurring'], ['Pay', '$1,200 per month'], ['Posted by', 'Ops Hub']], links: [['Live board', BOARD_URL]] } }, 'daily');
   cwQueueDigest_('response', { to: to, subject: 'ZZ SELFTEST response', body: 'selftest', digest: { title: 'ZZ SELFTEST interest: Sample Crew LLC for Night clean', id: 'R-TEST', region: 'Las Vegas',
-    fields: [['Contact', 'Sample Vendor <vendor@example.com> 702-555-0100'], ['Earliest start', 'Next week'], ['Crew size', '2']], links: [['Responses sheet', SpreadsheetApp.openById(SHEET_ID).getUrl()]] } }, 'daily');
+    fields: [['Contact', 'Sample Vendor <vendor@example.com> 702-555-0100'], ['Earliest start', 'Next week'], ['Crew size', '2']], links: [['Responses sheet', cwSS_().getUrl()]] } }, 'daily');
   var rows = cwRows_(sh).filter(function (r) { return !r.sent && r.cadence === 'daily' && r.to.toLowerCase() === String(to).toLowerCase() && /ZZ SELFTEST/.test(r.subject); });
   var when = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'EEE MMM d h:mm a');
   cwSend_({ to: to, name: CW_DIGEST_SENDER, subject: 'City Wide digest SELF-TEST - ' + when + ' (' + rows.length + ' items)',
@@ -3024,7 +3038,7 @@ function handleInvoiceMailLog(data){
     var month=String(data.service_month||'').trim();
     var total=Number(String(data.total||'').replace(/[$,\s]/g,''));
     if(!company || email.indexOf('@')<1 || !region || !month || !total || isNaN(total)){ out.error='Missing required fields'; return _json(out); }
-    var ss=SpreadsheetApp.openById(SHEET_ID);
+    var ss=cwSS_();
     var sh=ss.getSheetByName('Invoices'); if(!sh){ setupInvoicing(); sh=ss.getSheetByName('Invoices'); }
     var stamp=Utilities.formatDate(new Date(),'America/Los_Angeles','yyMMddHHmm');
     var id='IM-'+stamp+'-'+Math.random().toString(36).slice(2,5).toUpperCase();

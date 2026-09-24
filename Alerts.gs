@@ -102,7 +102,7 @@ function alRows_(sh) {
   return out;
 }
 function alSheet_() {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_(AL_TAB);   // CW Hub Alerts workbook (Books.gs)
   var sh = ss.getSheetByName(AL_TAB);
   if (!sh) {
     sh = ss.insertSheet(AL_TAB);
@@ -162,7 +162,7 @@ function alAccounts_() {
   // Postings are a second source: account_name -> the posting FSM, and the posting id
   // itself (vendors sometimes type the posting id into the account box).
   try {
-    alRows_(SpreadsheetApp.openById(SHEET_ID).getSheetByName(TAB)).forEach(function (p) {
+    alRows_(cwSS_().getSheetByName(TAB)).forEach(function (p) {
       var fsm = alFsmKey_(p.fsm) || alFsmKey_(p.contact_name);
       if (!fsm) return;
       var norms = [alNorm_(p.account_name), alNorm_(p.id)].filter(function (x) { return x.length >= 4; });
@@ -195,7 +195,7 @@ function alMatch_(text, region, accounts) {
 // Solicitations row, which is what takes it off the vendor board.
 function alPostings_(statusMap) {
   var items = [];
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var sh = ss.getSheetByName(TAB);
   if (!sh) return items;
   alRows_(sh).forEach(function (p) {
@@ -233,7 +233,7 @@ function alPostings_(statusMap) {
   return items;
 }
 function alPostingFilled_(id, flag) {
-  var sh = SpreadsheetApp.openById(SHEET_ID).getSheetByName(TAB);
+  var sh = cwSS_().getSheetByName(TAB);
   if (!sh) return false;
   var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(alStr_);
   var cId = head.indexOf('id') + 1, cFilled = head.indexOf('filled') + 1;
@@ -245,7 +245,7 @@ function alPostingFilled_(id, flag) {
   return false;
 }
 function alResponses_(statusMap, toClose) {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ss = cwSS_();
   var posts = {};
   alRows_(ss.getSheetByName(TAB)).forEach(function (p) {
     var id = alStr_(p.id);
@@ -412,7 +412,7 @@ function alList_(d) {
   var items = alPostings_(map).concat(alResponses_(map, toClose)).concat(alSupply_(accounts, idx)).concat(alShop_(accounts, idx)).concat(alNight_());
   // Reassignments made on the hub (Alert Assign tab). Replies follow their posting.
   var asg = {};
-  try { asg = afAssignMap_(afTab_(SpreadsheetApp.openById(SHEET_ID), AF_ASSIGN_TAB, AF_ASSIGN_HEAD)); } catch (e) { asg = {}; }
+  try { asg = afAssignMap_(afTab_(cwSS_(), AF_ASSIGN_TAB, AF_ASSIGN_HEAD)); } catch (e) { asg = {}; }
   items.forEach(function (it) {
     it.auto_fsm = it.fsm || '';
     var a = asg[it.key] || (it.type === 'response' && it.pid ? asg['post:' + it.pid] : null);
@@ -483,7 +483,7 @@ function alSet_(d) {
 // Every reply to one posting, newest data straight from the Responses tab.
 function alRepliesFor_(pid) {
   var out = [];
-  var sh = SpreadsheetApp.openById(SHEET_ID).getSheetByName(RESP_TAB);
+  var sh = cwSS_().getSheetByName(RESP_TAB);
   if (!sh) return out;
   alRows_(sh).forEach(function (r) {
     var rid = alStr_(r.response_id);

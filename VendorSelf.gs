@@ -929,7 +929,7 @@ function vsFeedAudits_(since) {
     });
 }
 function vsFeedResponses_(since) {
-  var sh = SpreadsheetApp.openById(SHEET_ID).getSheetByName(RESP_TAB);
+  var sh = cwSS_().getSheetByName(RESP_TAB);
   if (!sh) return [];
   return vsRead_(sh, ['response_id', 'received', 'posting_id', 'posting_title', 'region', 'mode', 'company', 'contact_name', 'email', 'phone']).rows
     .filter(function (r) { return r.response_id && vsRecent_(r.received, since); })

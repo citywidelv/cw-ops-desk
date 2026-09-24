@@ -614,16 +614,30 @@ function obVendorEval_(data) {
   var janitorial = vdSlugs_(hit.service_types || clean.service_types).indexOf(VD_JANITORIAL) >= 0;
   var found = obEnsure_(ss, hit, janitorial ? 'JS' : 'OS', 'Vendor evaluation', 'Vendor Hub evaluation');
   obFeedDoc_(ss, found, 'eval', 'received', 'Evaluation submitted on the Vendor Hub ' + obToday_(), 'Vendor Hub evaluation');
-  // Team notice, per market, through the send config so it can be digested or muted.
+  // Record, PDF and the branded team email all live in VendorEval.gs (Sep 22 2026).
+  // Everything there is best effort: the directory row and the onboarding record
+  // above are already written, so a Drive or a mail failure must never fail the
+  // vendor's submission. If VendorEval.gs is ever removed from the project, the
+  // else branch keeps the old plain text notice going out.
+  var evalOut = { eval_id: '', pdf_url: '', error: '' };
   try {
-    var mk = OB_MARKETS[obMarketKey_(vdRegion_(region)) || 'lv'];
-    var both = vdRegion_(region) === 'Both';
-    var to = both ? OB_MARKETS.lv.compliance + ',' + OB_MARKETS.nnv.compliance : mk.compliance;
-    var lines = ['Vendor evaluation received (' + action + ')', '', 'Company: ' + dba, 'Contact: ' + vdStr_(clean.contact_name) + ', ' + vdStr_(clean.phone) + ', ' + vdStr_(clean.email),
-      'Region: ' + vdRegion_(region), 'Services: ' + vdStr_(clean.trade_raw || clean.service_types), 'Directory id: ' + vid, '',
-      'Onboarding desk: ' + OB_DESK_URL + '#' + encodeURIComponent(vid)];
-    cwMail_('vd_eval', { to: to, name: mk.sender, replyTo: mk.compliance, subject: 'New vendor evaluation: ' + dba + ' (' + vdRegion_(region) + ')', body: lines.join('\n') });
-  } catch (me) {}
+    if (typeof vevOnSubmit_ === 'function') {
+      evalOut = vevOnSubmit_(clean, action, vdRegion_(region), vid);
+      if (evalOut.pdf_url) {
+        try { obFeedDoc_(ss, found, 'eval', 'received', 'Evaluation PDF: ' + evalOut.pdf_url, 'Vendor Hub evaluation'); } catch (fe) {}
+      }
+    } else {
+      var mk = OB_MARKETS[obMarketKey_(vdRegion_(region)) || 'lv'];
+      var both = vdRegion_(region) === 'Both';
+      var to = both ? OB_MARKETS.lv.compliance + ',' + OB_MARKETS.nnv.compliance : mk.compliance;
+      var lines = ['Vendor evaluation received (' + action + ')', '', 'Company: ' + dba,
+        'Contact: ' + vdStr_(clean.contact_name) + ', ' + vdStr_(clean.phone) + ', ' + vdStr_(clean.email),
+        'Region: ' + vdRegion_(region), 'Services: ' + vdStr_(clean.trade_raw || clean.service_types),
+        'Directory id: ' + vid, '', 'Onboarding desk: ' + OB_DESK_URL + '#' + encodeURIComponent(vid)];
+      cwMail_('vd_eval', { to: to, name: mk.sender, replyTo: mk.compliance,
+        subject: 'New vendor evaluation: ' + dba + ' (' + vdRegion_(region) + ')', body: lines.join('\n') });
+    }
+  } catch (me) { evalOut.error = String(me && me.message || me); }
   return vdOut_({ ok: true, vendor_id: vid, action: action });
 }
 

@@ -238,9 +238,60 @@ function audContext_(data) {
     });
   }
 
+  // Live roster from the Account Cleaner Tracker: people each vendor has
+  // reported through cleaner-roster.html on the Vendor Hub, grouped per
+  // building, matched to directory vendors by company name. Read-only here;
+  // audit_submit writes removals back to the tracker as confirmed events.
+  var tracker = {};
+  try {
+    var ros = acRows_(AC_ROS, AC_ROS_HEAD).filter(function (r) {
+      var st = String(r.status || '');
+      return st === 'Active' || st === 'Pending Removal' || st === 'Needs Review';
+    });
+    if (ros.length) {
+      var byVk = {};
+      ros.forEach(function (r) {
+        var vk = String(r.vendor_key || '');
+        if (!byVk[vk]) byVk[vk] = [];
+        byVk[vk].push(r);
+      });
+      vendors.forEach(function (v) {
+        var mine = [];
+        Object.keys(byVk).forEach(function (vk) {
+          var sample = String(byVk[vk][0].company_matched || '');
+          var hit = vk === acKey_(v.dba_name || '') || (v.legal_name && vk === acKey_(v.legal_name)) ||
+            vk === 'RAW:' + acKey_(v.dba_name || '') || (v.legal_name && vk === 'RAW:' + acKey_(v.legal_name));
+          if (!hit && sample) {
+            hit = acScore_(sample, v.dba_name || '') >= AC_AUTO ||
+              (v.legal_name && acScore_(sample, v.legal_name) >= AC_AUTO);
+          }
+          if (hit) mine = mine.concat(byVk[vk]);
+        });
+        if (!mine.length) return;
+        var accts = {};
+        mine.forEach(function (r) {
+          var an = String(r.account_matched || r.account_raw || 'Building not matched yet');
+          if (!accts[an]) accts[an] = [];
+          accts[an].push({
+            name: (String(r.cleaner_first || '') + ' ' + String(r.cleaner_last || '')).trim(),
+            first: String(r.cleaner_first || ''), last: String(r.cleaner_last || ''),
+            cleaner_key: String(r.cleaner_key || ''), vendor_key: String(r.vendor_key || ''),
+            company: String(r.company_matched || ''),
+            account_matched: String(r.account_matched || ''), account_raw: String(r.account_raw || ''),
+            status: String(r.status || ''), background_check: String(r.background_check || ''),
+            age_confirmed: String(r.age_confirmed || ''), role: String(r.role || '')
+          });
+        });
+        tracker[v.vendor_id] = Object.keys(accts).sort().map(function (an) {
+          return { account: an, people: accts[an] };
+        });
+      });
+    }
+  } catch (eTrk) {}
+
   return audOut_({
     ok: true, market: mkt, market_name: audMarketName_(mkt), vendors: vendors,
-    accounts: accounts, accounts_source: accounts_source, previous: prev,
+    accounts: accounts, accounts_source: accounts_source, previous: prev, tracker: tracker,
     submitters: audSubmitters_(), roles: AUD_ROLES, days: AUD_DAYS, today: audToday_(),
     rule: audRuleText_()
   });
@@ -358,7 +409,40 @@ function audSubmit_(data) {
     vs.getRange(vr, col.updated).setValue(audToday_());
   }
 
-  return audOut_({ ok: true, audit_id: id, result: result, fails: fails, findings: findings,
+  // ---- roster removals: vendor-reported people the auditor took off a
+  // building go back to the Account Cleaner Tracker as confirmed remove
+  // events (Events is the record; the Roster is rebuilt from it), so the
+  // Cleaners page, vendors.html, and the vendor's roster agree with the audit.
+  var removals = Array.isArray(p.roster_removals) ? p.roster_removals : [];
+  var removedCount = 0, removalErr = '';
+  if (removals.length && p.test) removalErr = 'Test run: roster removals were not written.';
+  if (removals.length && !p.test) {
+    try {
+      var evSh = acTab_(AC_EV, AC_EV_HEAD);
+      removals.forEach(function (x) {
+        x = x || {};
+        if (!String(x.cleaner_key || '') || !String(x.vendor_key || '')) return;
+        acAppend_(evSh, AC_EV_HEAD, {
+          event_id: 'ACE-' + acRand_(6), received: acStamp_(),
+          submission_id: id, action: 'remove',
+          company_raw: String(x.company || ''), company_matched: String(x.company || ''),
+          vendor_key: String(x.vendor_key || ''),
+          submitter_name: vdStr_(p.submitted_by),
+          cleaner_first: String(x.first || ''), cleaner_last: String(x.last || ''),
+          cleaner_key: String(x.cleaner_key || ''),
+          account_raw: String(x.account_raw || ''), account_matched: String(x.account_matched || ''),
+          match_confidence: 'fsm',
+          last_day: date, removal_reason: 'Removed during quarterly audit ' + id,
+          status: 'Removed', reviewed_by: vdStr_(p.submitted_by), reviewed_at: acStamp_(),
+          region: audMarketName_(mkt), source: 'quarterly audit'
+        });
+        removedCount++;
+      });
+      if (removedCount) acRebuild_();
+    } catch (eRem) { removalErr = String(eRem && eRem.message ? eRem.message : eRem); }
+  }
+
+  return audOut_({ ok: true, audit_id: id, result: result, fails: fails, findings: findings, roster_removed: removedCount, roster_error: removalErr,
                    next_due: nextDue, pdf_url: rec.pdf_url, pdf_name: rec.pdf_name,
                    pdf_error: pdfErr, test: isTest, people: people, from_cleared: fromCleared,
                    sheet_url: ss.getUrl() });

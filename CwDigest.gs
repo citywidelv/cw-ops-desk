@@ -8,7 +8,7 @@
 //   CW Solicitations. Attachments always send now. Any failure = plain send.
 //   The handler must write its own sheet row BEFORE calling this.
 // ============================================================
-var CW_SOL_SHEET_ID = '1ymbqR7LMvA7sbgZe2Ro5o2dNiXhP08Tn9Hw1b-H5AeQ';
+var CW_SOL_SHEET_ID = '1k9KdXS1jVtUcZLZ2ItQlRF9D5F63IneyqbqywSfgxvQ';   // CW Email Digest workbook (SendConfig + Digest tabs), split out of CW Solicitations Sep 24 2026
 
 function cwRemoteMode_(tag) {
   try {

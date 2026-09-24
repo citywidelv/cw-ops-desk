@@ -44,11 +44,11 @@ window.CW_NAV = {
     },
     {
      "label": "Work Tickets Sheet",
-     "href": "https://docs.google.com/spreadsheets/d/17awrIV6X-Ugaxkw0VLDIH8WVpJ51Ux_5ntNxHu2tzBg/edit#gid=0"
+     "href": "https://docs.google.com/spreadsheets/d/17awrIV6X-Ugaxkw0VLDIH8WVpJ51Ux_5ntNxHu2tzBg/edit"
     },
     {
      "label": "Snow Reports Sheet",
-     "href": "https://docs.google.com/spreadsheets/d/17awrIV6X-Ugaxkw0VLDIH8WVpJ51Ux_5ntNxHu2tzBg/edit#gid=129546338"
+     "href": "https://docs.google.com/spreadsheets/d/1hoeWUmO4l881SbrPfC28M-R0uLeslT3i48nqDv4VXAs/edit"
     }
    ]
   },
@@ -106,7 +106,7 @@ window.CW_NAV = {
       },
       {
        "label": "Vendor Directory (Sheet)",
-       "href": "https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit#gid=1052522802"
+       "href": "https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit"
       }
      ]
     },
@@ -127,7 +127,7 @@ window.CW_NAV = {
       },
       {
        "label": "Audit Log (Sheet)",
-       "href": "https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit#gid=1687889006"
+       "href": "https://docs.google.com/spreadsheets/d/1O7G0aNUXKpgoebaSIfYJlJiIoCJ7pbMcMJq9derYgb4/edit"
       }
      ]
     },
@@ -196,7 +196,7 @@ window.CW_NAV = {
       },
       {
        "label": "Violation Log (Sheet)",
-       "href": "https://docs.google.com/spreadsheets/d/16Hf_lY_N8n3hPq4WDpPmXtyEs4Gdn-KV54-OUQUa-NI/edit#gid=1631177301"
+       "href": "https://docs.google.com/spreadsheets/d/16Hf_lY_N8n3hPq4WDpPmXtyEs4Gdn-KV54-OUQUa-NI/edit"
       }
      ]
     },
@@ -209,7 +209,7 @@ window.CW_NAV = {
       },
       {
        "label": "Insurance Request Log (Sheet)",
-       "href": "https://docs.google.com/spreadsheets/d/16Hf_lY_N8n3hPq4WDpPmXtyEs4Gdn-KV54-OUQUa-NI/edit#gid=65207254"
+       "href": "https://docs.google.com/spreadsheets/d/1o6PT9fbieaANh7gtt5egYLf_RCjILZPp4D7NWDwVio8/edit"
       },
       {
        "label": "Vendor Upload Page",
@@ -237,11 +237,11 @@ window.CW_NAV = {
       },
       {
        "label": "Background Checks on File (Las Vegas Sheet)",
-       "href": "https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit#gid=12628813"
+       "href": "https://docs.google.com/spreadsheets/d/1a_Usbs1FIzaZPnbUpc8vqFg2XV2_QjTAKtqVNPxBPh8/edit"
       },
       {
        "label": "Background Checks on File (Northern Nevada Sheet)",
-       "href": "https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit#gid=448859233"
+       "href": "https://docs.google.com/spreadsheets/d/1a_Usbs1FIzaZPnbUpc8vqFg2XV2_QjTAKtqVNPxBPh8/edit"
       },
       {
        "label": "Vendor Background Check Request (Vendor Hub)",

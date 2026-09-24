@@ -226,14 +226,10 @@ function vdDispatch(data) {
 }
 
 function vdSS_() {
-  var props = PropertiesService.getScriptProperties();
-  var id = props.getProperty(VD_PROP);
-  if (id) {
-    try { return SpreadsheetApp.openById(id); } catch (e) {}
-  }
-  var ss = SpreadsheetApp.create('CW Vendor Directory');
-  props.setProperty(VD_PROP, ss.getId());
-  return ss;
+  // Router over the vendor family of workbooks (Books.gs): the directory
+  // itself plus Onboarding, Background Checks, Do Not Email and Audits,
+  // each its own file. Tab names decide which file answers.
+  return cwRouter_('vd');
 }
 
 function vdTab_(ss, name, headers, color) {
