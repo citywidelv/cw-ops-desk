@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
-<!-- build 2026-09-24b: Jotform submissions on the hub. Every Jotform still in use syncs to a Google Sheet on the company Google account; forms.html lists them with counts and form-view.html?f=<slug> shows one form. Menu: Team & Admin > Form Submissions cascade, Jotform hub views under Night Ops > Night Manager Inspection and Work Tickets (CCCNV, Handyman). Alerts card gained client work requests (type workreq, CCCNV) and the workdone / review types, all read from the Feeds tab of CW Jotform Feeds (JotformFeeds.gs, kinds jf_*).
+<!-- build 2026-09-25-menus: Jotform submissions on the hub. Every Jotform still in use syncs to a Google Sheet on the company Google account; forms.html lists them with counts and form-view.html?f=<slug> shows one form. Menu: Team & Admin > Form Submissions cascade, Jotform hub views under Night Ops > Night Manager Inspection and Work Tickets (CCCNV, Handyman). Alerts card gained client work requests (type workreq, CCCNV) and the workdone / review types, all read from the Feeds tab of CW Jotform Feeds (JotformFeeds.gs, kinds jf_*).
 build 2026-09-24: Ops asked for the Exhibit A request link back, so Vendors now carries an Exhibit A cascade (Create an Exhibit A, Request an Exhibit A Asana form, the Exhibit A Requests board) and the quick row has the Exhibit A Request chip again. Vendor Evaluation Form now points at the native Vendor Hub page (the Jotform never fed the directory). Nav: any tall dropdown lists its section headings as side cascades and every panel is kept on screen by CWNav.place (flip left, shift up, scroll).
 build 2026-09-11b: hub cleanup per TJ. Removed: Request a Walkthrough Email (postings.html
 does it here now), the four Asana vendor packet forms, Request an Exhibit A (LV) (create-exhibit-a.html
@@ -84,7 +84,7 @@ gap:7px;white-space:nowrap;cursor:pointer}
 .nbtn svg{opacity:.9;flex:none}
 .nbtn .caret{font-size:8px;opacity:.8}
 .nbtn:hover,.nbtn.open{background:var(--red)}
-.nmenu{display:none;position:absolute;top:100%;left:0;min-width:250px;max-width:320px;background:#fff;
+.nmenu{display:none;position:absolute;top:100%;left:0;width:max-content;min-width:250px;max-width:360px;background:#fff;
 border:1px solid var(--border);border-top:3px solid var(--red);border-radius:0 0 10px 10px;
 box-shadow:var(--shadow-lift);padding:6px 0;z-index:70}
 .nmenu.show{display:block}
@@ -92,13 +92,15 @@ box-shadow:var(--shadow-lift);padding:6px 0;z-index:70}
 color:var(--black);text-decoration:none;padding:10px 16px;min-height:40px}
 .nmenu a:hover{background:var(--light);color:var(--red)}
 .nmenu a svg{color:var(--red);flex:none}
+.nmenu a .tag{margin-left:auto;padding-left:12px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);flex:none}
+.nmenu a:hover .tag{color:var(--red)}
 .nmenu .ghead{font-weight:700;color:var(--grey);font-size:12px;padding:9px 16px 3px;
 text-transform:uppercase;letter-spacing:.08em}
 .nmenu .ghead:not(:first-child){border-top:1px solid var(--border);margin-top:5px}
 .nsub{position:relative}
 .nsub>a.subbtn{justify-content:space-between}
 .nsub>a.subbtn::after{content:"\25B8";color:var(--grey);font-size:10px;margin-left:10px}
-.nsubmenu{display:none;position:absolute;left:100%;top:-7px;min-width:240px;background:#fff;
+.nsubmenu{display:none;position:absolute;left:100%;top:-7px;width:max-content;min-width:250px;max-width:360px;background:#fff;
 border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lift);
 padding:6px 0;z-index:80}
 .nsubmenu.show{display:block}
@@ -331,6 +333,26 @@ status buttons. Type scale 12 / 13 / 15 / 17, 4px spacing grid, radius 6 / 11 / 
 .anew h3{font-size:15px}
 .anew h3::after{content:"";display:block;width:34px;height:3px;background:var(--red);border-radius:2px;margin-top:8px}
 .anew p{font-size:13px;color:var(--black);margin-top:8px;max-width:74ch}
+/* Sep 25 2026 menu cleanup notice */
+.anew .nkick{display:inline-flex;align-items:center;gap:8px;background:var(--red);color:#fff;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border-radius:18px;padding:5px 12px;margin-bottom:10px}
+.anew .nkick .dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px rgba(255,255,255,.25)}
+.anew .nhead{font-size:20px;font-weight:700;color:var(--black);line-height:1.2;margin-top:2px}
+.anew .nhead em{font-style:normal;color:var(--red)}
+.anew .ngrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:14px}
+.anew .ncard{background:#fff;border:1px solid var(--border);border-left:4px solid var(--red);border-radius:10px;padding:12px 14px}
+.anew .ncard h4{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--red);margin-bottom:6px}
+.anew .ncard ul{list-style:none;margin:0;padding:0}
+.anew .ncard li{font-size:13px;color:var(--black);padding:4px 0;border-top:1px solid var(--light)}
+.anew .ncard li:first-child{border-top:none}
+.anew .ncard li b{color:var(--black)}
+.anew .ncard li .to{color:var(--grey)}
+.anew .ncard li .to::before{content:"\2192";margin:0 6px;color:var(--red);font-weight:700}
+.anew .nsearch{margin-top:14px;background:var(--black);color:#fff;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.anew .nsearch b{color:var(--gold)}
+.anew .nsearch kbd{display:inline-block;background:#3d3934;color:#fff;border-radius:5px;padding:2px 8px;font-family:inherit;font-weight:700;font-size:12px}
+.anew .nsearch p{color:#e6e4e1;margin:0;font-size:13px;max-width:none}
+.anew > p{max-width:none}
+.anew .nchip{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);border:1px solid var(--border);border-radius:4px;padding:1px 6px;margin-left:4px;vertical-align:1px}
 @media(max-width:640px){
 .ahead .awho{margin-left:0;width:100%}
 .ahead select{font-size:16px;max-width:none;flex:1}
@@ -501,7 +523,7 @@ color:var(--grey);text-decoration:none}
 .nav-in{flex-wrap:nowrap;overflow-x:auto;padding:0 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .nav-in::-webkit-scrollbar{display:none}
 .nbtn{padding:0 10px;font-size:12px;gap:5px}
-.nmenu{position:fixed;left:10px;right:10px;max-width:none;border-radius:10px;
+.nmenu{position:fixed;left:10px;right:10px;width:auto;max-width:none;border-radius:10px;
 border-top:3px solid var(--red);max-height:65vh;overflow-y:auto;z-index:120}
 .nmenu.portal{position:fixed}
 .nsubmenu{position:static;border:none;box-shadow:none;padding:0 0 4px 14px;display:none}
@@ -648,11 +670,32 @@ search box to jump straight to what you need.</p>
 <div id="albody"><div class="aempty">Loading&hellip;</div></div>
 <div class="astatus" id="alstatus"></div>
 <div class="anew">
-<h3>What's new</h3>
-<p>Vendor replies to your postings, building supply reports, and shop orders used to land in the service inbox and get lost. They now show up here, under the name of the FSM they belong to. Your open postings show here too. Mark one filled and it comes off the vendor board, and its replies clear with it.</p>
-<p>Pick your name once. This computer remembers it and opens your list first. Everyone else's list sits below yours, closed, with a count. Each posting shows the account name, then every vendor reply under it with what they quoted. Use Email or Call on a reply to reach that vendor, then click Responded to or Not a fit. When the building is covered, Mark filled on the posting clears all of its replies at once.</p>
-<p>When you have answered the vendor, placed the order, processed the shop order, or filled the posting, click the button on that line. It clears for the whole team at the same time, so nobody works the same item twice. Clicked the wrong one? Use Undo.</p>
-<p>Nothing is deleted. The emails still go out and the details stay in the sheets. An item nobody clears drops off after 45 days. A supply or shop order we could not tie to an account shows under "No FSM matched", and anyone can clear those.</p>
+<div class="nkick"><span class="dot"></span>What's new &middot; September 25</div>
+<div class="nhead">The menus got a haircut. <em>Everything is still here.</em> It is just listed once.</div>
+<p>171 menu rows became about 95. No page was removed or moved. If something you used is not where it was, it is in one of the places below, or one search away.</p>
+<div class="ngrid">
+<div class="ncard"><h4>What changed at the top</h4><ul>
+<li><b>Opportunities</b> is its own menu now. Post, Active Postings, Vendor Responses, Live Board and Edit a Posting in one place.</li>
+<li><b>Work Tickets</b> moved under <b>Accounts &amp; Buildings</b>, next to building sheets and account changes.</li>
+<li><b>Vendor Profile</b> is under Vendors. Everything about one vendor on one page.</li>
+<li>Labels are short. A small chip on the right tells you where a link goes<span class="nchip">Admin</span><span class="nchip">Vendor Hub</span><span class="nchip">Jotform</span></li>
+</ul></div>
+<div class="ncard"><h4>Where things moved</h4><ul>
+<li><b>Vendor Resources</b> (25 links) <span class="to">Vendors &gt; Vendor Hub. Every page is a tile on the Vendor Hub home</span></li>
+<li><b>Form Submissions</b> list <span class="to">Team &amp; Admin &gt; Form Submissions. One page, every form, with counts</span></li>
+<li><b>Active Vendors</b> by type <span class="to">Vendors &gt; Directory &gt; your market. Pick Janitorial, Other Services or Prospects on the page</span></li>
+<li><b>Google Sheet links</b> <span class="to">Admin Hub &gt; Ops Admin Desk. All 23 books in one list</span></li>
+<li><b>Office Inventory</b> actions <span class="to">Team &amp; Admin &gt; Office Inventory. Count, receive and issue are buttons on the page</span></li>
+<li><b>Brady, Staples, HD Supply</b> <span class="to">Admin Hub &gt; Team &amp; Admin &gt; Ordering, and the Team Portal</span></li>
+</ul></div>
+<div class="ncard"><h4>Use the other hubs</h4><ul>
+<li><b>Vendor Hub</b> is for anything a vendor does. Invoices, uploads, the shop, guides, the wall. Send vendors there and go there to see what they see.</li>
+<li><b>Admin Hub</b> is the back office. Records one at a time, onboarding, background check results, uniform orders, every sheet.</li>
+<li><b>Team Portal</b> is the front door. Team apps, CRM, ordering and the Team Wall live there for every role.</li>
+<li><b>Sales Hub</b> has the calculators and the Building Survey for the sales team.</li>
+</ul></div>
+</div>
+<div class="nsearch"><p><b>Fastest way to anything is the search box at the top.</b> Type one word. Audit, exhibit, invite, COI, route. It searches every menu label and shows you the path, so you never have to open a dropdown to find a tool. On a computer, press <kbd>/</kbd> from anywhere on this page to jump to it.</p></div>
 </div>
 </section>
 </div>
@@ -693,14 +736,14 @@ search box to jump straight to what you need.</p>
 </section>
 <aside class="helper">
 <h3>Finding your way around</h3>
-<p>Every tool, form, and calculator now lives in the menus above. Grouped the way we work:</p>
+<p>Every tool, form, and calculator lives in the menus above, listed once, in the group where you would look for it:</p>
 <ul>
-<li><span>Work Tickets</span> &nbsp;maintenance, snow, CCCNV, 7-Eleven</li>
-<li><span>Vendors</span> &nbsp;directory, invites, opportunities, audits, violations, insurance, background checks, Exhibit A</li>
-<li><span>Accounts &amp; Buildings</span> &nbsp;building sheets, COI requests, maps, survey</li>
+<li><span>Opportunities</span> &nbsp;post, active postings, responses, the live board</li>
+<li><span>Vendors</span> &nbsp;email, profile, directory, invites, Exhibit A, violations, audits, insurance, clearance, Vendor of the Month, the Vendor Hub</li>
+<li><span>Accounts &amp; Buildings</span> &nbsp;survey, building sheets, work tickets, account changes, COI requests, maps</li>
 <li><span>Pricing &amp; Bids</span> &nbsp;every calculator</li>
-<li><span>Night Ops</span> &nbsp;inspections &amp; route outs</li>
-<li><span>Team &amp; Admin</span> &nbsp;CRM, billing, team apps, ordering</li>
+<li><span>Night Ops</span> &nbsp;inspections, route outs, the AI tool</li>
+<li><span>Team &amp; Admin</span> &nbsp;Power BI, CRM and billing, team apps, form submissions, inventory</li>
 </ul>
 <div class="keys"><b>/</b>jumps to search from anywhere</div>
 </aside>
@@ -754,255 +797,567 @@ function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace
 /* ---------- Nav: cascading menu tree. EVERY hub tool must be reachable here. ---------- */
 var VS = "https://citywidelv.github.io/cw-vendor-hub/";
 var MENU = [
-{ label:"Work Tickets", icon:"sheet", items:[
-{label:"Maintenance Work Ticket", href:"work-order.html"},
-{ghead:"Snow & Ice"},
-{label:"Snow Service Report", href:"snow-report.html"},
-{ghead:"7-Eleven"},
-{label:"Handteq Point (7-Eleven maintenance app)", href:"https://point.handteq.com/development/app/output2/seveneleven/web/gray.0.7.0"},
-{ghead:"CCCNV (Comprehensive Cancer)"},
-{label:"CCCNV Work Requests (hub view)", href:"form-view.html?f=cccnv_req", tag:"New"},
-{label:"CCCNV Work Request form (Jotform)", href:"https://form.jotform.com/252935932465163"},
-{ghead:"Handyman"},
-{label:"Completed Work Orders (hub view)", href:"form-view.html?f=handyman_wo", tag:"New"},
-{label:"Handyman Work Order form (Jotform)", href:"https://form.jotform.com/240175011302033"},
-{ghead:"Tracking"},
-{label:"Work Tickets Sheet", href:"https://docs.google.com/spreadsheets/d/17awrIV6X-Ugaxkw0VLDIH8WVpJ51Ux_5ntNxHu2tzBg/edit"},
-{label:"Snow Reports Sheet", href:"https://docs.google.com/spreadsheets/d/1hoeWUmO4l881SbrPfC28M-R0uLeslT3i48nqDv4VXAs/edit"}
-]},
-{ label:"Vendors", icon:"clip", items:[
-{label:"Vendor Email (one place to send)", href:"vendor-email.html"},
-{sub:"Active Vendors", items:[
-{ghead:"Las Vegas"},
-{label:"Janitorial", href:"vendors.html#/lv/janitorial"},
-{label:"Other Services", href:"vendors.html#/lv/other"},
-{label:"Prospects", href:"vendors.html#/lv/prospects"},
-{ghead:"Northern Nevada"},
-{label:"Janitorial", href:"vendors.html#/nnv/janitorial"},
-{label:"Other Services", href:"vendors.html#/nnv/other"},
-{label:"Prospects", href:"vendors.html#/nnv/prospects"},
-{ghead:"Maintain"},
-{label:"Add a Vendor", href:"vendor-add.html"},
-{label:"Do Not Email or Remove a Vendor", href:"vendor-dne.html"},
-{label:"Vendor Directory (Sheet)", href:"https://docs.google.com/spreadsheets/d/1kHRyeQzDsi-bnfE5YpD_KPV17GeD5aJ_5vrDQGU_s-0/edit"}
-]},
-{sub:"Quarterly Audits", items:[
-{label:"Submit a Vendor Audit", href:"vendor-audit.html"},
-{label:"Audits Due (Las Vegas)", href:"vendors.html#/lv/janitorial/audit"},
-{label:"Audits Due (Northern Nevada)", href:"vendors.html#/nnv/janitorial/audit"},
-{label:"Audit Log (Sheet)", href:"https://docs.google.com/spreadsheets/d/1O7G0aNUXKpgoebaSIfYJlJiIoCJ7pbMcMJq9derYgb4/edit"}
-]},
-{sub:"Opportunities", items:[
-{label:"Post an Opportunity", href:"post.html"},
-{label:"Active Postings (Email Vendors)", href:"postings.html"},
-{label:"Live Board", href:VS+"opportunities.html"},
-{label:"Vendor Responses", href:"responses.html"},
-{ghead:"Tracking"},
-{label:"Cleaner Roster", href:"cleaners.html"},
-  {label:"Edit Active Postings", href:"https://citywidelv.github.io/cw-admin-hub/records.html?s=postings&f=Open"}
-  ]},
-  {sub:"Vendor of the Month", items:[
-    {label:"Nominate a Vendor or G.O.A.T.", href:"nominate.html"},
-    {label:"The Wall (Vendor Hub)", href:VS+"#recognition"},
-    {ghead:"Admin Hub"},
-    {label:"Add a Vendor of the Month", href:"https://citywidelv.github.io/cw-admin-hub/recognition.html#add"},
-    {label:"Nominations & Plates", href:"https://citywidelv.github.io/cw-admin-hub/recognition.html"}
-    ]},
-  {sub:"Violations", items:[
-    {label:"Issue a Violation Notice", href:"violations.html"},
-    {label:"Violation Log (Sheet)", href:"https://docs.google.com/spreadsheets/d/16Hf_lY_N8n3hPq4WDpPmXtyEs4Gdn-KV54-OUQUa-NI/edit"}
-    ]},
-  {sub:"Insurance", items:[
-    {label:"Request COIs from Vendors", href:"insurance.html"},
-    {label:"Insurance Request Log (Sheet)", href:"https://docs.google.com/spreadsheets/d/1o6PT9fbieaANh7gtt5egYLf_RCjILZPp4D7NWDwVio8/edit"},
-    {label:"Vendor Upload Page", href:VS+"upload.html"},
-    {ghead:"Broker Portal"},
-    {label:"InsurLink (Vertafore)", href:"https://insurlink.vertafore.com/end-insured/2260313c6a34459c8a098ede23d21fb7/2094911/overview"}
-    ]},
-  {sub:"Background Checks", items:[
-    {label:"Record Clearance Results (Admin Hub)", href:"https://citywidelv.github.io/cw-admin-hub/background-checks.html"},
-    {label:"Send Background Check Notices", href:"bc-notices.html"},
-    {label:"Background Checks on File (Las Vegas Sheet)", href:"https://docs.google.com/spreadsheets/d/1a_Usbs1FIzaZPnbUpc8vqFg2XV2_QjTAKtqVNPxBPh8/edit"},
-    {label:"Background Checks on File (Northern Nevada Sheet)", href:"https://docs.google.com/spreadsheets/d/1a_Usbs1FIzaZPnbUpc8vqFg2XV2_QjTAKtqVNPxBPh8/edit"},
-    {label:"Vendor Background Check Request (Vendor Hub)", href:"https://citywidelv.github.io/cw-vendor-hub/background-check.html"},
-    {label:"Verified First (portal)", href:"https://portal.verifiedfirst.com/#/dashboard"}
-    ]},
-{sub:"Invite a New Vendor", items:[
-{label:"Invite for Las Vegas", href:"vendor-invite.html?region=lv"},
-{label:"Invite for Northern Nevada", href:"vendor-invite.html?region=nnv"},
-{label:"New Vendor Onboarding Status", href:"https://citywidelv.github.io/cw-admin-hub/onboarding.html", tag:"Admin Hub"},
-{ghead:"Where the invite takes them"},
-{label:"New Vendor Steps (Vendor Hub)", href:VS+"new-vendors.html"},
-{label:"Vendor Evaluation Form (Vendor Hub)", href:VS+"vendor-evaluation.html"},
-{ghead:"Then"},
-{label:"Prospects (Las Vegas)", href:"vendors.html#/lv/prospects"},
-{label:"Prospects (Northern Nevada)", href:"vendors.html#/nnv/prospects"},
-{label:"Add a Vendor by Hand", href:"vendor-add.html"}
-]},
-{sub:"Exhibit A", items:[
-{label:"Create an Exhibit A", href:"create-exhibit-a.html"},
-{label:"Request an Exhibit A (Asana form)", href:"https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873"},
-{label:"Exhibit A Requests board", href:"https://app.asana.com/1/13140959242873/project/1211502025570262", tag:"Asana"}
-]},
-{sub:"Vendor Resources", items:[
-{label:"Resource Home", href:VS},
-{label:"New Vendor Steps", href:VS+"new-vendors.html"},
-{label:"Open Opportunities Board", href:VS+"opportunities.html"},
-{ghead:"Guides"},
-{label:"All Crew Guides", href:VS+"#guides"},
-{label:"Workloading and Crew Sizing", href:VS+"workloading.html"},
-{label:"New Building Planner", href:VS+"planner.html"},
-{label:"Choosing Your Equipment", href:VS+"equipment.html"},
-{label:"Color Coding System", href:VS+"color-coding.html"},
-{label:"Medical Facility Cleaning", href:VS+"medical.html"},
-{label:"Clean Room Cleaning", href:VS+"cleanroom.html"},
-{label:"GMP and Food Facility Cleaning", href:VS+"gmp.html"},
-{ghead:"Ordering"},
-{label:"Vendor Shop", href:VS+"shop/"},
-{label:"Starter Kit Builder", href:VS+"kit-builder.html"},
-{label:"Report Supplies Needed", href:VS+"building-supplies.html"},
-{ghead:"Vendor Paperwork"},
-{label:"Submit an Invoice", href:VS+"invoice.html"},
-{label:"Upload Documents", href:VS+"upload.html"},
-{label:"Update Vendor Profile", href:VS+"profile-update.html"},
-{label:"Cleaner Roster", href:VS+"cleaner-roster.html"},
-{label:"Card Authorization", href:VS+"card-authorization.html"},
-{ghead:"Vendor Reporting"},
-{label:"Work Order", href:VS+"work-order.html"},
-{label:"Snow Service Report", href:VS+"snow-report.html"},
-{label:"Nominate a Vendor or G.O.A.T.", href:VS+"nominate.html"}
-]}
-]},
-{ label:"Accounts & Buildings", icon:"map", items:[
-{sub:"Account Changes (ACT & Ledger)", items:[
-{label:"Log an Account Change", href:"act-entry.html"},
-{label:"Log a Ledger Change", href:"act-entry.html?doc=ledger"},
-{label:"ACT and Ledger Documents (Admin Hub)", href:"https://citywidelv.github.io/cw-admin-hub/act-document.html"},
-{label:"Accounting Queue (Admin Hub)", href:"https://citywidelv.github.io/cw-admin-hub/accounting-queue.html"},
-{ghead:"Directory"},
-{label:"Account Directory (Admin Hub)", href:"https://citywidelv.github.io/cw-admin-hub/accounts.html"}
-]},
-{sub:"Building Info Sheets (DBIS)", items:[
-{label:"Sheet Library", href:"building-sheets.html"},
-{label:"New / Update a Sheet", href:"building-sheet.html"}
-]},
-{sub:"Customer COI Requests", items:[
-{label:"Request a COI for a Customer", href:"coi-request.html"},
-{label:"COI Request Log (Admin Hub)", href:"https://citywidelv.github.io/cw-admin-hub/coi-log.html"}
-]},
-{label:"Building Survey", href:"https://citywidelv.github.io/BuildingSurvey/"},
-{sub:"Accounts Map", items:[
-{label:"Las Vegas Accounts Map", href:"https://www.google.com/maps/d/viewer?mid=1ewhUmSrFCo0--ALiJP0O1pLTbH0qlk4"},
-{label:"Northern Nevada Accounts Map", href:"https://www.google.com/maps/d/viewer?mid=1_o8DPUf6zH9kiAcZuNEOCAbZLq93nnc"}
-]}
-]},
-{ label:"Pricing & Bids", icon:"margin", items:[
-{sub:"Bid Calculators", items:[
-{label:"OS Pricing Tool", href:"os-pricing.html"},
-{label:"Apartment Turns", href:"https://citywidelv.github.io/apartment-turns/"},
-{label:"Waxable Floors", href:"https://citywidelv.github.io/strip-and-wax-calculator/"},
-{label:"Carpet Cleaning", href:"https://citywidelv.github.io/Carpet-Cleaning/"},
-{label:"Window Cleaning", href:"https://citywidelv.github.io/windowcleaningcalculator/"},
-{label:"Pressure Washing", href:"https://citywidelv.github.io/powerwashing/"},
-{label:"Post-Construction Clean", href:"https://citywidelv.github.io/post-construction-clean/"},
-{label:"Restaurant Cleaning", href:"https://citywidelv.github.io/restaurants/"},
-{label:"Landscaping Maintenance", href:"https://citywidelv.github.io/landscapingmaintenance/"},
-{label:"Exterior Porter", href:"https://citywidelv.github.io/porter-exterior/"}
-]},
-{sub:"Business Numbers", items:[
-{label:"Margin Calculator", href:"https://citywidelv.github.io/margincalculator/"},
-{label:"Revenue Retention (TRR)", href:"https://citywidelv.github.io/retentioncalculator/"}
-]}
-]},
-{ label:"Night Ops", icon:"clock", items:[
-{sub:"Night Manager Inspection", items:[
-{label:"Night Inspection (new page)", href:"night-inspection.html", tag:"New"},
-{label:"Night Inspection Recaps (FSM view)", href:"night-inspections.html"},
-{label:"Night Inspection Jotform (old form)", href:"https://form.jotform.com/233486327771060"},
-{ghead:"Jotform submissions"},
-{label:"Las Vegas inspections (hub view)", href:"form-view.html?f=ni_lv", tag:"New"},
-{label:"Northern Nevada inspections (hub view)", href:"form-view.html?f=ni_nnv", tag:"New"},
-{label:"Night Manager supply orders (hub view)", href:"form-view.html?f=nm_supply"}
-]},
-{sub:"Nightly Route Outs", items:[
-{label:"Route Out (new page)", href:"night-route.html", tag:"New"},
-{label:"Route Out Tonight (FSM view)", href:"night-route.html#status"},
-{label:"Las Vegas Route Out (old form)", href:"https://form.jotform.com/241440730763149"},
-{label:"Las Vegas Route Out Submissions (old form)", href:"https://www.jotform.com/tables/241440730763149"},
-{label:"Northern Nevada Route Out (old form)", href:"https://form.jotform.com/team/253234894174059/nnv-night-manager-route-out"}
-]},
-{label:"Night Manager AI Tool", href:"https://chatgpt.com/g/g-681233262c3c81918605de9bd3edf7be-city-wide-night-manager-tool"}
-]},
-{ label:"Team & Admin", icon:"home", items:[
-{sub:"Power BI Reports", items:[
-{label:"FSM reports and targets", href:"powerbi.html#fsm"},
-{label:"Director of Operations reports", href:"powerbi.html#director"},
-{ghead:"Open Power BI"},
-{label:"All eleven apps", href:"https://app.powerbi.com/home?experience=power-bi"},
-{label:"Operations Dashboard explainer (Vimeo)", href:"https://vimeo.com/1072632984/313ecdd885"}
-]},
-{sub:"CRM & Billing", items:[
-{label:"Open CW Sales CRM", href:"https://gocitywide.crm.dynamics.com/main.aspx"},
-{label:"Create a Supply Invoice", href:"https://supplysales.powerappsportals.com/SignIn?ReturnUrl=%2FCustomer-Select%2F"},
-{label:"Request a Supply Item", href:"https://form.jotform.com/tjroberts/supply-item-request-for-field-sales"},
-{label:"Create an Extra Charge", href:"https://apps.powerapps.com/play/e/58e2128b-deac-e675-8cd1-7d879ca63711/a/a052bc89-2125-4efd-88e5-682f1d2dbcd0?tenantId=3b214a92-dd33-4a9c-a070-43f6783d144c&hint=a842db25-40d4-46c0-b151-6ad085ee7345&sourcetime=1756059511414&source=portal"}
-]},
-{sub:"Team", items:[
-{label:"Admin Hub (Business Operations)", href:"https://citywidelv.github.io/cw-admin-hub/"},
-{label:"Asana", href:"https://app.asana.com/"},
-{label:"Employee Uniforms", href:"uniforms.html"},
-{label:"ADP TotalSource", href:"https://workforcenow.adp.com/"},
-{label:"Order CW Merch", href:"https://cwlv.printful.me/"},
-{label:"Team Emails by Position (Admin Hub)", href:"https://citywidelv.github.io/cw-admin-hub/team-emails.html"}
-]},
-{sub:"Form Submissions", items:[
-{label:"All forms (submission counts)", href:"forms.html", tag:"New"},
-{ghead:"Most used"},
-{label:"Night inspections, Las Vegas", href:"form-view.html?f=ni_lv"},
-{label:"Night inspections, Northern Nevada", href:"form-view.html?f=ni_nnv"},
-{label:"CCCNV work requests", href:"form-view.html?f=cccnv_req"},
-{label:"Handyman work orders", href:"form-view.html?f=handyman_wo"},
-{ghead:"Site checklists"},
-{label:"Arroweye porter check-in / out", href:"form-view.html?f=arroweye"},
-{label:"Ken's Foods end of shift", href:"form-view.html?f=kens_shift"},
-{label:"Ken's Foods area cleaning", href:"form-view.html?f=kens_area"},
-{label:"Infinity Hospice IPU checklist", href:"form-view.html?f=infinity"},
-{label:"Southridge HOA porter recap", href:"form-view.html?f=southridge"},
-{ghead:"Client feedback"},
-{label:"Sand's Kitchen feedback", href:"form-view.html?f=sands"},
-{label:"Stile Aesthetic feedback", href:"form-view.html?f=stile"},
-{ghead:"Jotform"},
-{label:"My Forms (Jotform)", href:"https://www.jotform.com/myforms/"}
-]},
-{sub:"Team Apps", items:[
-{label:"Slack", href:"https://slack.com/signin"},
-{label:"Microsoft Bookings", href:"https://bookings.cloud.microsoft/bookings/homepage"},
-{label:"Jotform", href:"https://www.jotform.com/myforms/"},
-{label:"ZoomInfo", href:"https://app.zoominfo.com/"},
-{label:"CW Score Cloud", href:"https://cwfscorecloud.gocitywide.com/login"},
-{label:"City Wide YOU (Training)", href:"https://gocitywide.docebosaas.com/pages/19/city-wide-you"}
-]},
-{sub:"Office Inventory", items:[
-{label:"Inventory on hand", href:"inventory-onhand.html"},
-{label:"Count the inventory", href:"inventory.html"},
-{ghead:"Movement"},
-{label:"Receive new inventory", href:"inventory-move.html#receive"},
-{label:"Comp or issue inventory", href:"inventory-move.html#issue"},
-{label:"Enter sales", href:"inventory-move.html#sale"},
-{ghead:"Tracking"},
-{label:"Exception report", href:"inventory-onhand.html#exceptions"}
-]},
-{sub:"Supplier Ordering", items:[
-{label:"Order More EnvirOx", href:"envirox.html"},
-{ghead:"Supply Distributors"},
-{label:"Brady Industries", href:"https://www.bradyindustries.com/"},
-{label:"Staples Advantage", href:"https://www.staplesadvantage.com/"},
-{label:"HD Supply Solutions", href:"https://hdsupplysolutions.com/"},
-{ghead:"Marketplaces"},
-{label:"Amazon Business", href:"https://www.amazon.com/business"},
-{label:"City Wide Company Store", href:"https://shopcitywide.mybrightsites.com/"}
-]}
-]}
+ {
+  "label": "Opportunities",
+  "icon": "board",
+  "items": [
+   {
+    "label": "Post an Opportunity",
+    "href": "post.html"
+   },
+   {
+    "label": "Active Postings",
+    "href": "postings.html"
+   },
+   {
+    "label": "Vendor Responses",
+    "href": "responses.html"
+   },
+   {
+    "label": "Live Board",
+    "href": "https://citywidelv.github.io/cw-vendor-hub/opportunities.html",
+    "tag": "Vendor Hub"
+   },
+   {
+    "label": "Edit a Posting",
+    "href": "https://citywidelv.github.io/cw-admin-hub/records.html?s=postings&f=Open",
+    "tag": "Admin"
+   }
+  ]
+ },
+ {
+  "label": "Vendors",
+  "icon": "clip",
+  "items": [
+   {
+    "label": "Vendor Email",
+    "href": "vendor-email.html"
+   },
+   {
+    "label": "Vendor Profile",
+    "href": "https://citywidelv.github.io/cw-admin-hub/vendor-profile.html",
+    "tag": "Admin"
+   },
+   {
+    "sub": "Directory",
+    "items": [
+     {
+      "label": "Las Vegas",
+      "href": "vendors.html#/lv"
+     },
+     {
+      "label": "Northern Nevada",
+      "href": "vendors.html#/nnv"
+     },
+     {
+      "label": "Add a Vendor",
+      "href": "vendor-add.html"
+     },
+     {
+      "label": "Do Not Email or Remove",
+      "href": "vendor-dne.html"
+     }
+    ]
+   },
+   {
+    "sub": "Invite and Onboard",
+    "items": [
+     {
+      "label": "Invite for Las Vegas",
+      "href": "vendor-invite.html?region=lv"
+     },
+     {
+      "label": "Invite for Northern Nevada",
+      "href": "vendor-invite.html?region=nnv"
+     },
+     {
+      "label": "Onboarding Status",
+      "href": "https://citywidelv.github.io/cw-admin-hub/onboarding.html",
+      "tag": "Admin"
+     },
+     {
+      "label": "New Vendor Steps",
+      "href": "https://citywidelv.github.io/cw-vendor-hub/new-vendors.html",
+      "tag": "Vendor Hub"
+     },
+     {
+      "label": "Evaluation Form",
+      "href": "https://citywidelv.github.io/cw-vendor-hub/vendor-evaluation.html",
+      "tag": "Vendor Hub"
+     }
+    ]
+   },
+   {
+    "sub": "Exhibit A",
+    "items": [
+     {
+      "label": "Create an Exhibit A",
+      "href": "create-exhibit-a.html"
+     },
+     {
+      "label": "Request an Exhibit A",
+      "href": "https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873",
+      "tag": "Asana"
+     },
+     {
+      "label": "Exhibit A Requests",
+      "href": "https://app.asana.com/1/13140959242873/project/1211502025570262",
+      "tag": "Asana"
+     }
+    ]
+   },
+   {
+    "sub": "Violations and Audits",
+    "items": [
+     {
+      "label": "Issue a Violation Notice",
+      "href": "violations.html"
+     },
+     {
+      "label": "Submit a Vendor Audit",
+      "href": "vendor-audit.html"
+     },
+     {
+      "label": "Audits Due, Las Vegas",
+      "href": "vendors.html#/lv/janitorial/audit"
+     },
+     {
+      "label": "Audits Due, Northern Nevada",
+      "href": "vendors.html#/nnv/janitorial/audit"
+     }
+    ]
+   },
+   {
+    "sub": "Insurance and Clearance",
+    "items": [
+     {
+      "label": "Request COIs from Vendors",
+      "href": "insurance.html"
+     },
+     {
+      "label": "Background Check Notices",
+      "href": "bc-notices.html"
+     },
+     {
+      "label": "Record Clearance Results",
+      "href": "https://citywidelv.github.io/cw-admin-hub/background-checks.html",
+      "tag": "Admin"
+     },
+     {
+      "label": "Verified First",
+      "href": "https://portal.verifiedfirst.com/#/dashboard",
+      "tag": "Site"
+     },
+     {
+      "label": "InsurLink",
+      "href": "https://insurlink.vertafore.com/end-insured/2260313c6a34459c8a098ede23d21fb7/2094911/overview",
+      "tag": "Site"
+     }
+    ]
+   },
+   {
+    "sub": "Vendor of the Month",
+    "items": [
+     {
+      "label": "Nominate a Vendor or G.O.A.T.",
+      "href": "nominate.html"
+     },
+     {
+      "label": "The Wall",
+      "href": "https://citywidelv.github.io/cw-vendor-hub/#recognition",
+      "tag": "Vendor Hub"
+     },
+     {
+      "label": "Add a Vendor of the Month",
+      "href": "https://citywidelv.github.io/cw-admin-hub/recognition.html#add",
+      "tag": "Admin"
+     },
+     {
+      "label": "Winners and Plates",
+      "href": "https://citywidelv.github.io/cw-admin-hub/recognition.html",
+      "tag": "Admin"
+     }
+    ]
+   },
+   {
+    "label": "Cleaner Roster",
+    "href": "cleaners.html"
+   },
+   {
+    "label": "Vendor Hub",
+    "href": "https://citywidelv.github.io/cw-vendor-hub/",
+    "tag": "Vendor Hub"
+   }
+  ]
+ },
+ {
+  "label": "Accounts & Buildings",
+  "icon": "map",
+  "items": [
+   {
+    "label": "Building Survey",
+    "href": "https://citywidelv.github.io/BuildingSurvey/"
+   },
+   {
+    "sub": "Building Info Sheets",
+    "items": [
+     {
+      "label": "Sheet Library",
+      "href": "building-sheets.html"
+     },
+     {
+      "label": "New or Update a Sheet",
+      "href": "building-sheet.html"
+     }
+    ]
+   },
+   {
+    "sub": "Work Tickets",
+    "items": [
+     {
+      "label": "Maintenance Work Ticket",
+      "href": "work-order.html"
+     },
+     {
+      "label": "Snow Service Report",
+      "href": "snow-report.html"
+     },
+     {
+      "label": "CCCNV Work Requests",
+      "href": "form-view.html?f=cccnv_req"
+     },
+     {
+      "label": "CCCNV Request Form",
+      "href": "https://form.jotform.com/252935932465163",
+      "tag": "Jotform"
+     },
+     {
+      "label": "Handyman Work Orders",
+      "href": "form-view.html?f=handyman_wo"
+     },
+     {
+      "label": "Handyman Order Form",
+      "href": "https://form.jotform.com/240175011302033",
+      "tag": "Jotform"
+     },
+     {
+      "label": "7-Eleven Handteq Point",
+      "href": "https://point.handteq.com/development/app/output2/seveneleven/web/gray.0.7.0",
+      "tag": "Site"
+     }
+    ]
+   },
+   {
+    "sub": "Account Changes",
+    "items": [
+     {
+      "label": "Log an Account Change",
+      "href": "act-entry.html"
+     },
+     {
+      "label": "Log a Ledger Change",
+      "href": "act-entry.html?doc=ledger"
+     },
+     {
+      "label": "ACT and Ledger Documents",
+      "href": "https://citywidelv.github.io/cw-admin-hub/act-document.html",
+      "tag": "Admin"
+     },
+     {
+      "label": "Accounting Queue",
+      "href": "https://citywidelv.github.io/cw-admin-hub/accounting-queue.html",
+      "tag": "Admin"
+     },
+     {
+      "label": "Account Directory",
+      "href": "https://citywidelv.github.io/cw-admin-hub/accounts.html",
+      "tag": "Admin"
+     }
+    ]
+   },
+   {
+    "sub": "Customer COIs",
+    "items": [
+     {
+      "label": "Request a COI for a Customer",
+      "href": "coi-request.html"
+     },
+     {
+      "label": "COI Request Log",
+      "href": "https://citywidelv.github.io/cw-admin-hub/coi-log.html",
+      "tag": "Admin"
+     }
+    ]
+   },
+   {
+    "sub": "Accounts Map",
+    "items": [
+     {
+      "label": "Las Vegas",
+      "href": "https://www.google.com/maps/d/viewer?mid=1ewhUmSrFCo0--ALiJP0O1pLTbH0qlk4"
+     },
+     {
+      "label": "Northern Nevada",
+      "href": "https://www.google.com/maps/d/viewer?mid=1_o8DPUf6zH9kiAcZuNEOCAbZLq93nnc"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "label": "Pricing & Bids",
+  "icon": "margin",
+  "items": [
+   {
+    "sub": "Bid Calculators",
+    "items": [
+     {
+      "label": "OS Pricing Tool",
+      "href": "os-pricing.html"
+     },
+     {
+      "label": "Apartment Turns",
+      "href": "https://citywidelv.github.io/apartment-turns/"
+     },
+     {
+      "label": "Waxable Floors",
+      "href": "https://citywidelv.github.io/strip-and-wax-calculator/"
+     },
+     {
+      "label": "Carpet Cleaning",
+      "href": "https://citywidelv.github.io/Carpet-Cleaning/"
+     },
+     {
+      "label": "Window Cleaning",
+      "href": "https://citywidelv.github.io/windowcleaningcalculator/"
+     },
+     {
+      "label": "Pressure Washing",
+      "href": "https://citywidelv.github.io/powerwashing/"
+     },
+     {
+      "label": "Post-Construction Clean",
+      "href": "https://citywidelv.github.io/post-construction-clean/"
+     },
+     {
+      "label": "Restaurant Cleaning",
+      "href": "https://citywidelv.github.io/restaurants/"
+     },
+     {
+      "label": "Landscaping Maintenance",
+      "href": "https://citywidelv.github.io/landscapingmaintenance/"
+     },
+     {
+      "label": "Exterior Porter",
+      "href": "https://citywidelv.github.io/porter-exterior/"
+     }
+    ]
+   },
+   {
+    "sub": "Business Numbers",
+    "items": [
+     {
+      "label": "Margin Calculator",
+      "href": "https://citywidelv.github.io/margincalculator/"
+     },
+     {
+      "label": "Revenue Retention (TRR)",
+      "href": "https://citywidelv.github.io/retentioncalculator/"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "label": "Night Ops",
+  "icon": "clock",
+  "items": [
+   {
+    "sub": "Night Inspection",
+    "items": [
+     {
+      "label": "Night Inspection Form",
+      "href": "https://form.jotform.com/233486327771060",
+      "tag": "Jotform"
+     },
+     {
+      "label": "Night Inspection Page",
+      "href": "night-inspection.html",
+      "tag": "New"
+     },
+     {
+      "label": "Inspection Recaps",
+      "href": "night-inspections.html"
+     },
+     {
+      "label": "Inspections, Las Vegas",
+      "href": "form-view.html?f=ni_lv"
+     },
+     {
+      "label": "Inspections, Northern Nevada",
+      "href": "form-view.html?f=ni_nnv"
+     }
+    ]
+   },
+   {
+    "sub": "Route Out",
+    "items": [
+     {
+      "label": "Route Out",
+      "href": "night-route.html",
+      "tag": "New"
+     },
+     {
+      "label": "Route Out Tonight",
+      "href": "night-route.html#status"
+     },
+     {
+      "label": "Route Out Form",
+      "href": "https://form.jotform.com/241440730763149",
+      "tag": "Jotform"
+     },
+     {
+      "label": "Route Out Form, NNV",
+      "href": "https://form.jotform.com/team/253234894174059/nnv-night-manager-route-out",
+      "tag": "Jotform"
+     }
+    ]
+   },
+   {
+    "label": "Night Manager AI Tool",
+    "href": "https://chatgpt.com/g/g-681233262c3c81918605de9bd3edf7be-city-wide-night-manager-tool",
+    "tag": "Site"
+   }
+  ]
+ },
+ {
+  "label": "Team & Admin",
+  "icon": "home",
+  "items": [
+   {
+    "sub": "Power BI",
+    "items": [
+     {
+      "label": "FSM Reports and Targets",
+      "href": "powerbi.html#fsm"
+     },
+     {
+      "label": "Director Reports",
+      "href": "powerbi.html#director"
+     },
+     {
+      "label": "Open Power BI",
+      "href": "https://app.powerbi.com/home?experience=power-bi",
+      "tag": "Site"
+     },
+     {
+      "label": "Dashboard Explainer",
+      "href": "https://vimeo.com/1072632984/313ecdd885",
+      "tag": "Vimeo"
+     }
+    ]
+   },
+   {
+    "sub": "CRM and Billing",
+    "items": [
+     {
+      "label": "CW Sales CRM",
+      "href": "https://gocitywide.crm.dynamics.com/main.aspx",
+      "tag": "Site"
+     },
+     {
+      "label": "Create a Supply Invoice",
+      "href": "https://supplysales.powerappsportals.com/SignIn?ReturnUrl=%2FCustomer-Select%2F",
+      "tag": "Site"
+     },
+     {
+      "label": "Request a Supply Item",
+      "href": "https://form.jotform.com/tjroberts/supply-item-request-for-field-sales",
+      "tag": "Jotform"
+     },
+     {
+      "label": "Create an Extra Charge",
+      "href": "https://apps.powerapps.com/play/e/58e2128b-deac-e675-8cd1-7d879ca63711/a/a052bc89-2125-4efd-88e5-682f1d2dbcd0?tenantId=3b214a92-dd33-4a9c-a070-43f6783d144c&hint=a842db25-40d4-46c0-b151-6ad085ee7345&sourcetime=1756059511414&source=portal",
+      "tag": "Site"
+     }
+    ]
+   },
+   {
+    "sub": "Team",
+    "items": [
+     {
+      "label": "Admin Hub",
+      "href": "https://citywidelv.github.io/cw-admin-hub/"
+     },
+     {
+      "label": "Asana",
+      "href": "https://app.asana.com/",
+      "tag": "Site"
+     },
+     {
+      "label": "Employee Uniforms",
+      "href": "uniforms.html"
+     },
+     {
+      "label": "ADP TotalSource",
+      "href": "https://workforcenow.adp.com/",
+      "tag": "Site"
+     },
+     {
+      "label": "Order CW Merch",
+      "href": "https://cwlv.printful.me/",
+      "tag": "Site"
+     },
+     {
+      "label": "Team Emails by Position",
+      "href": "https://citywidelv.github.io/cw-admin-hub/team-emails.html",
+      "tag": "Admin"
+     }
+    ]
+   },
+   {
+    "sub": "Team Apps",
+    "items": [
+     {
+      "label": "Slack",
+      "href": "https://slack.com/signin"
+     },
+     {
+      "label": "Microsoft Bookings",
+      "href": "https://bookings.cloud.microsoft/bookings/homepage"
+     },
+     {
+      "label": "Jotform",
+      "href": "https://www.jotform.com/myforms/"
+     },
+     {
+      "label": "ZoomInfo",
+      "href": "https://app.zoominfo.com/"
+     },
+     {
+      "label": "CW Score Cloud",
+      "href": "https://cwfscorecloud.gocitywide.com/login"
+     },
+     {
+      "label": "City Wide YOU",
+      "href": "https://gocitywide.docebosaas.com/pages/19/city-wide-you"
+     }
+    ]
+   },
+   {
+    "label": "Form Submissions",
+    "href": "forms.html"
+   },
+   {
+    "label": "Office Inventory",
+    "href": "inventory-onhand.html"
+   },
+   {
+    "label": "Order More EnvirOx",
+    "href": "envirox.html"
+   }
+  ]
+ }
 ];
 /* Site Admin (2026-09-13): nav.js publishes window.CW_NAV; the MENU above stays as the fallback. */
 if(window.CWNav){ var __m = CWNav.menuFor("ops"); if(__m) MENU = __m; }
@@ -1015,7 +1370,7 @@ if(it.ghead){ out += '<div class="ghead">' + esc(it.ghead) + '</div>'; }
 else if(it.sub){
 out += '<div class="nsub"><a class="subbtn" href="#" data-sub="1">' + esc(it.sub) + '</a>' +
 '<div class="nsubmenu">' + items(it.items, depth + 1) + '</div></div>';
-} else { out += menuLink(it.label, it.href, null); }
+} else { out += menuLink(it.label, it.href, null, it.tag); }
 });
 return out;
 }
@@ -1055,9 +1410,10 @@ if(isPhoneNav()) portalOpen(dd, btn); else dd.style.top = "";
 };
 window.addEventListener("resize", closeMenus);
 }
-function menuLink(label, href, icon){
+function menuLink(label, href, icon, tag){
 var tgt = (/^https?:/.test(href) && href.indexOf("citywidelv.github.io")<0) ? ' target="_blank" rel="noopener"' : '';
-return '<a href="' + esc(href) + '"' + tgt + '>' + (icon ? iconSvg(icon, 14) : '') + esc(label) + '</a>';
+/* Sep 25 2026: the destination hub or outside app is a small chip on the right (Admin, Vendor Hub, Jotform, Asana, Site, New), never words in the label. Same look as the Admin Hub. */
+return '<a href="' + esc(href) + '"' + tgt + '>' + (icon ? iconSvg(icon, 14) : '') + esc(label) + (tag ? '<span class="tag">' + esc(tag) + '</span>' : '') + '</a>';
 }
 function closeMenus(){
 document.querySelectorAll(".nmenu.show").forEach(function(d){ d.classList.remove("show"); d.style.top = ""; d.style.maxHeight = ""; d.classList.remove("flip", "scroll"); if(d._home) portalClose(d); });
@@ -1088,18 +1444,68 @@ document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeMe
 
 /* ---------- Most Used quick bar (TJ-approved picks, July 2026) ---------- */
 var QUICK = [
-{ label:"Post an Opportunity", href:"post.html", icon:"plus", primary:true },
-{ label:"Active Postings", href:"postings.html", icon:"mail" },
-{ label:"Live Board", href:"https://citywidelv.github.io/cw-vendor-hub/opportunities.html", icon:"board", pill:true },
-{ label:"Nominate a Vendor / G.O.A.T.", href:"nominate.html", icon:"plus" },
-{ label:"Create an Exhibit A", href:"create-exhibit-a.html", icon:"clip" },
-{ label:"Exhibit A Request", href:"https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873", icon:"clip" },
-{ label:"Vendor Email", href:"vendor-email.html", icon:"mail" },
-{ label:"Invite a New Vendor", href:"vendor-invite.html", icon:"mail" },
-{ label:"Night Inspection", href:"https://form.jotform.com/233486327771060", icon:"clip" },
-{ label:"CW Sales CRM", href:"https://gocitywide.crm.dynamics.com/main.aspx", icon:"work" },
-{ label:"Margin Calculator", href:"https://citywidelv.github.io/margincalculator/", icon:"margin" },
-{ label:"Vendor Resources", href:"https://citywidelv.github.io/cw-vendor-hub/", icon:"home" }
+ {
+  "label": "Post an Opportunity",
+  "href": "post.html",
+  "icon": "plus",
+  "primary": true
+ },
+ {
+  "label": "Active Postings",
+  "href": "postings.html",
+  "icon": "mail"
+ },
+ {
+  "label": "Live Board",
+  "href": "https://citywidelv.github.io/cw-vendor-hub/opportunities.html",
+  "icon": "board",
+  "pill": true
+ },
+ {
+  "label": "Nominate a Vendor / G.O.A.T.",
+  "href": "nominate.html",
+  "icon": "plus"
+ },
+ {
+  "label": "Create an Exhibit A",
+  "href": "create-exhibit-a.html",
+  "icon": "clip"
+ },
+ {
+  "label": "Exhibit A Request",
+  "href": "https://form.asana.com/?k=Ch8IqpDXjkcNqdqvjV5-oA&d=13140959242873",
+  "icon": "clip"
+ },
+ {
+  "label": "Vendor Email",
+  "href": "vendor-email.html",
+  "icon": "mail"
+ },
+ {
+  "label": "Invite a New Vendor",
+  "href": "vendor-invite.html",
+  "icon": "mail"
+ },
+ {
+  "label": "Night Inspection",
+  "href": "https://form.jotform.com/233486327771060",
+  "icon": "clip"
+ },
+ {
+  "label": "CW Sales CRM",
+  "href": "https://gocitywide.crm.dynamics.com/main.aspx",
+  "icon": "work"
+ },
+ {
+  "label": "Margin Calculator",
+  "href": "https://citywidelv.github.io/margincalculator/",
+  "icon": "margin"
+ },
+ {
+  "label": "Vendor Hub",
+  "href": "https://citywidelv.github.io/cw-vendor-hub/",
+  "icon": "home"
+ }
 ];
 if(window.CWNav){ var __q = CWNav.quickFor("ops"); if(__q) QUICK = __q; }
 
