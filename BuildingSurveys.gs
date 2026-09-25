@@ -366,7 +366,7 @@ function bsvParseArea_(label, text, idx) {
   return a;
 }
 
-function bsvParseLegacyTab_(sh) {
+function bsvParseLegacyTab_(sh, savedDate) {
   var v = sh.getDataRange().getValues();
   var fd = {}, areas = [], requests = [], section = '', savedText = '';
   for (var i = 0; i < v.length; i++) {
@@ -394,9 +394,11 @@ function bsvParseLegacyTab_(sh) {
   }
   var dens = { 'Dense': 'Heavy Use', 'Average': 'Normal', 'Light': 'Light Use' };
   if (dens[fd.density]) fd.density = dens[fd.density];
-  var saved = new Date();
-  var sm = savedText.match(/Saved (.+)$/);
-  if (sm) { var dt = new Date(sm[1].replace(/ at /, ' ')); if (!isNaN(dt.getTime())) saved = dt; }
+  var saved = null;
+  if (savedDate instanceof Date && !isNaN(savedDate.getTime())) saved = savedDate;
+  if (!saved) { var sm = savedText.match(/Saved (.+)$/); if (sm) { var dt = new Date(sm[1].replace(/ at /, ' ')); if (!isNaN(dt.getTime())) saved = dt; } }
+  if (!saved && fd.surveyDate) { var d2 = new Date(fd.surveyDate + 'T19:00:00Z'); if (!isNaN(d2.getTime())) saved = d2; }
+  if (!saved) saved = new Date();
   var tab = sh.getName();
   var s = { id: bsvLegacyId_(tab), formData: fd, areas: areas, requests: requests, step: 4,
     updatedAt: saved.toISOString(), companyName: fd.companyName || tab, surveyor: fd.surveyor || '', surveyorEmail: fd.surveyorEmail || '',
@@ -408,11 +410,28 @@ function bsvImportLegacy_(d) {
   var ss = SpreadsheetApp.openById(String(d.sheetId || BSV_LEGACY_SHEET_ID));
   var dry = !!d.dry;
   var out = [];
+  // The Log tab holds the real save time per tab (Saved, Client, Prepared By, Sheet Tab, Source).
+  var dates = {};
+  var log = ss.getSheetByName('Log');
+  if (log) {
+    var lv = log.getDataRange().getValues();
+    for (var i = 1; i < lv.length; i++) { if (lv[i][3] && lv[i][0] instanceof Date) dates[String(lv[i][3]).trim()] = lv[i][0]; }
+  }
+  var parsed = [];
   ss.getSheets().forEach(function (sh) {
     if (sh.getName() === 'Log') return;
-    var s = bsvParseLegacyTab_(sh);
+    var s = bsvParseLegacyTab_(sh, dates[sh.getName().trim()]);
     if (!s.areas.length && !s.formData.companyName) return;
-    var info = { tab: sh.getName(), id: s.id, company: s.companyName, areas: s.areas.length, typed: s.areas.filter(function (a) { return a.type; }).length,
+    parsed.push(s);
+  });
+  // A save made before the walk (no rooms) is dropped when the same company has a walked copy.
+  parsed = parsed.filter(function (s) {
+    if (s.areas.length) return true;
+    var co = String(s.formData.companyName || '').trim().toLowerCase();
+    return !parsed.some(function (o) { return o !== s && o.areas.length && String(o.formData.companyName || '').trim().toLowerCase() === co; });
+  });
+  parsed.forEach(function (s) {
+    var info = { tab: s.legacy.tab, id: s.id, company: s.companyName, areas: s.areas.length, typed: s.areas.filter(function (a) { return a.type; }).length,
       sqft: s.areas.reduce(function (t, a) { return t + (Number(a.sqft) || 0); }, 0), fixtures: s.areas.reduce(function (t, a) { return t + a.toilets + a.urinals + a.sinks; }, 0),
       requests: s.requests.length, fields: Object.keys(s.formData).length, updatedAt: s.updatedAt };
     if (!dry) bsvUpsert_(s);
