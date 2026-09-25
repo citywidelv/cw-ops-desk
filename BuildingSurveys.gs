@@ -336,8 +336,11 @@ function bsvParseArea_(label, text, idx) {
     if ((m = bit.match(/^\((\d+(?:\.\d+)?)\s*[xX]\s*(\d+(?:\.\d+)?)\)$/))) { a.len = m[1]; a.wid = m[2]; a.dims = m[1] + 'x' + m[2]; return; }
     if ((m = bit.match(/^(\d+)T\/(\d+)U\/(\d+)S/))) { a.toilets = Number(m[1]); a.urinals = Number(m[2]); a.sinks = Number(m[3]); return; }
     if (bit === 'FLEX') { a.flex = true; return; }
-    if (/^(NOT CLEANED|DEEP CLEAN|SPOT CLEAN|FLOORS ONLY|CLEAN ROOM)$/.test(bit)) { a.cleanLevel = bit === 'NOT CLEANED' ? 'Not Cleaned' : bit.charAt(0) + bit.slice(1).toLowerCase().replace(/ (\w)/g, function (x, c) { return ' ' + c.toUpperCase(); }); return; }
-    if ((m = bit.match(/^(\d+) trash/))) { a.trash = Number(m[1]); return; }
+    if (/^NOT CLEANED/.test(bit)) { a.cleanLevel = 'Not Cleaned'; return; }
+    if (/^(DEEP CLEAN|SPOT CLEAN|FLOORS ONLY|CLEAN ROOM)$/.test(bit)) { a.cleanLevel = bit.charAt(0) + bit.slice(1).toLowerCase().replace(/ (\w)/g, function (x, c) { return ' ' + c.toUpperCase(); }); return; }
+    if ((m = bit.match(/^(\d+) min through$/))) { a.walkThru = Number(m[1]); return; }
+    if ((m = bit.match(/^(\d+) (?:extra )?trash(?: \((.+)\))?$/))) { a.trash = Number(m[1]); a.trashSize = m[2] || ''; return; }
+    if ((m = bit.match(/^walk to next (\d+) min$/))) { a.walkNext = m[1]; return; }
     // floors: "Carpet 60%/VCT 40%" or "Ceramic" or "Carpet/VCT"
     var floorBits = bit.split('/');
     var ok = true, types = [], split = {};
@@ -410,6 +413,19 @@ function bsvImportLegacy_(d) {
   var ss = SpreadsheetApp.openById(String(d.sheetId || BSV_LEGACY_SHEET_ID));
   var dry = !!d.dry;
   var out = [];
+  // House rule: every hub subject gets its own book and folder under My Drive > Team Portal.
+  // Park the survey folder next to the old results sheet (Pricing and Calculators) if it is not there.
+  var moved = '';
+  if (!dry) {
+    try {
+      var parents = DriveApp.getFileById(ss.getId()).getParents();
+      if (parents.hasNext()) {
+        var target = parents.next(), f = bsvFolder_(), here = false, fp = f.getParents();
+        while (fp.hasNext()) { if (fp.next().getId() === target.getId()) here = true; }
+        if (!here) { f.moveTo(target); moved = target.getName(); }
+      }
+    } catch (e) { moved = 'move failed: ' + String(e && e.message || e); }
+  }
   // The Log tab holds the real save time per tab (Saved, Client, Prepared By, Sheet Tab, Source).
   var dates = {};
   var log = ss.getSheetByName('Log');
@@ -437,5 +453,5 @@ function bsvImportLegacy_(d) {
     if (!dry) bsvUpsert_(s);
     out.push(info);
   });
-  return bsvOut_({ ok: true, dry: dry, imported: out });
+  return bsvOut_({ ok: true, dry: dry, imported: out, folderMovedTo: moved });
 }
