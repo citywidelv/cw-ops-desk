@@ -11,6 +11,7 @@
  *   bs_save       -> upsert one survey (index row + JSON file)
  *   bs_photo_put  -> store one photo (JPEG, base64) in the survey folder
  *   bs_photo_get  -> read one photo back (base64)
+ *   bs_delete     -> remove one survey (index row, JSON file and its photos go to Drive trash)
  *
  * Storage is self-provisioning, same pattern as Inventory.gs: the first save creates
  * the "CW Building Surveys" spreadsheet (index) and Drive folder (JSON + photos) and
@@ -41,6 +42,7 @@ function bsvDispatch(d) {
     if (kind === 'bs_save') return bsvSave_(d);
     if (kind === 'bs_photo_put') return bsvPhotoPut_(d);
     if (kind === 'bs_photo_get') return bsvPhotoGet_(d);
+    if (kind === 'bs_delete') return bsvDelete_(d);
     return bsvOut_({ ok: false, error: 'Unknown bs kind' });
   } catch (err) {
     return bsvOut_({ ok: false, error: String(err && err.message || err) });
@@ -225,4 +227,27 @@ function bsvPhotoGet_(d) {
   if (!file || file.isTrashed()) return bsvOut_({ ok: false, error: 'Photo not found' });
   var blob = file.getBlob();
   return bsvOut_({ ok: true, data: 'data:image/jpeg;base64,' + Utilities.base64Encode(blob.getBytes()) });
+}
+
+function bsvDelete_(d) {
+  var id = String(d.id || '');
+  if (!/^survey_[\w-]{1,40}$/.test(id)) return bsvOut_({ ok: false, error: 'Bad survey id' });
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var sh = bsvSheet_();
+    var r = bsvFindRow_(sh, id);
+    if (!r) return bsvOut_({ ok: false, error: 'Survey not found' });
+    var fileId = String(sh.getRange(r, BSV_HEADERS.indexOf('json_file') + 1).getValue() || '');
+    if (fileId) { try { DriveApp.getFileById(fileId).setTrashed(true); } catch (e) {} }
+    var photos = 0;
+    try {
+      var it = bsvFolder_().searchFiles("title contains 'bsv_" + id + "_'");
+      while (it.hasNext()) { it.next().setTrashed(true); photos++; }
+    } catch (e2) {}
+    sh.deleteRow(r);
+  } finally {
+    lock.releaseLock();
+  }
+  return bsvOut_({ ok: true, id: id, photos: photos });
 }
