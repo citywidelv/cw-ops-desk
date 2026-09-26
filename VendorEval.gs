@@ -59,10 +59,11 @@ var VEV_HEADERS = [
 ];
 
 // The ten yes / no questions, in the order the form asks them, with the wording
-// the vendor read. "want" is the answer that does not raise a flag. The four
-// that carry real weight for the packet are marked heavy: no workers comp, no
-// general liability, no background checks and no I-9 collection are the ones
-// that decide whether this vendor can be onboarded at all.
+// the vendor read. Sep 26 2026 (TJ): these answers are for our records only.
+// The evaluation is the first step and every answer gets talked through at the
+// orientation meeting, so a No never blocks a vendor, never raises an alert and
+// is never shown in red. "want" and "heavy" are kept only so the Evaluations tab
+// still lists the No answers in its flags column as a plain record.
 var VEV_YN = [
   { key: 'background_checks',  q: 'Do you run background checks on crew members?',        want: 'Yes', heavy: true },
   { key: 'sut_paid',           q: 'Do you pay state unemployment tax?',                   want: 'Yes', heavy: false },
@@ -269,8 +270,7 @@ function vevPdf_(rec) {
   function ans(q) {
     var a = vevStr_(v[q.key]);
     if (!a) return '<span class="mut">not answered</span>';
-    if (!q.want) return '<b class="neutral">' + e(a) + '</b>';
-    return a === q.want ? '<b class="ok">' + e(a) + '</b>' : '<b class="bad">' + e(a) + '</b>';
+    return '<b class="neutral">' + e(a) + '</b>';
   }
   function row(k, val) {
     return '<tr><td class="k">' + e(k) + '</td><td>' + (vevStr_(val) ? e(val) : '<span class="mut">not given</span>') + '</td></tr>';
@@ -297,8 +297,7 @@ function vevPdf_(rec) {
 
   var ynHtml = VEV_YN.map(function (q) {
     var a = vevStr_(v[q.key]);
-    var bad = q.want && a && a !== q.want;
-    return '<tr' + (bad && q.heavy ? ' class="flagrow"' : '') + '><td>' + e(q.q) + '</td><td class="a">' + ans(q) + '</td></tr>';
+    return '<tr><td>' + e(q.q) + '</td><td class="a">' + ans(q) + '</td></tr>';
   }).join('');
 
   var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>'
@@ -338,11 +337,6 @@ function vevPdf_(rec) {
     + '<p class="sub">' + e(rec.eval_id) + ' &middot; submitted ' + e(rec.received)
     + ' &middot; directory id ' + e(rec.vendor_id || 'none') + ' &middot; ' + e(vevActionLabel_(rec.action)) + '</p>'
 
-    + (rec.flags.length
-        ? '<div class="box flag"><b>' + rec.flags.length + (rec.flags.length === 1 ? ' answer needs' : ' answers need') + ' a look before this vendor is onboarded</b><ul class="f">'
-          + rec.flags.map(function (f) { return '<li>' + e(f.q) + ' <b>' + e(f.a) + '</b>' + (f.heavy ? ' (blocks the packet)' : '') + '</li>'; }).join('')
-          + '</ul></div>'
-        : '<div class="box clean"><b>Every operating question came back the way we want it.</b> Nothing on this form blocks the packet.</div>')
 
     + '<h2>The business</h2><table class="meta">'
     + row('Business name (DBA)', v.dba_name)
@@ -398,12 +392,11 @@ function vevEmailHtml_(rec) {
   }
   function ynRow(q) {
     var a = vevStr_(v[q.key]);
-    var bad = q.want && a && a !== q.want;
-    var colour = !a ? '#9a9896' : (!q.want ? '#2D2A26' : (a === q.want ? '#0AA6A9' : '#D22730'));
+    var colour = !a ? '#9a9896' : '#2D2A26';
     return '<tr><td style="' + F + 'font-size:13px;color:#2D2A26;padding:7px 12px 7px 0;border-bottom:1px solid #F0F0F0;'
-      + (bad && q.heavy ? 'background:#FCEEEF;' : '') + '">' + e(q.q) + '</td>'
+      + '">' + e(q.q) + '</td>'
       + '<td style="' + F + 'font-size:13px;font-weight:bold;color:' + colour + ';padding:7px 0;width:92px;text-align:right;'
-      + 'border-bottom:1px solid #F0F0F0;' + (bad && q.heavy ? 'background:#FCEEEF;' : '') + '">'
+      + 'border-bottom:1px solid #F0F0F0;' + '">'
       + (a ? e(a) : 'no answer') + '</td></tr>';
   }
 
@@ -435,21 +428,7 @@ function vevEmailHtml_(rec) {
   }
   var refs = ref(1) + ref(2);
 
-  var flagBox = rec.flags.length
-    ? '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 20px;"><tr>'
-      + '<td style="background:#FCEEEF;border-left:4px solid #D22730;border-radius:0 6px 6px 0;padding:13px 16px;">'
-      + '<div style="' + F + 'font-size:13px;font-weight:bold;color:#2D2A26;margin-bottom:6px;">'
-      + rec.flags.length + (rec.flags.length === 1 ? ' answer needs' : ' answers need') + ' a look before this vendor is onboarded</div>'
-      + '<ul style="margin:0;padding:0 0 0 18px;">'
-      + rec.flags.map(function (f) {
-          return '<li style="' + F + 'font-size:13px;color:#2D2A26;margin:3px 0;line-height:1.5;">' + e(f.q)
-            + ' <b>' + e(f.a) + '</b>' + (f.heavy ? ' <span style="color:#D22730;font-weight:bold;">(blocks the packet)</span>' : '') + '</li>';
-        }).join('')
-      + '</ul></td></tr></table>'
-    : '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 20px;"><tr>'
-      + '<td style="background:#F1FAFA;border-left:4px solid #0AA6A9;border-radius:0 6px 6px 0;padding:13px 16px;'
-      + F + 'font-size:13px;color:#2D2A26;"><b>Every operating question came back the way we want it.</b> '
-      + 'Nothing on this form blocks the packet.</td></tr></table>';
+  var flagBox = '';   // Sep 26 2026: no needs-a-look box. Answers are a record for orientation.
 
   return '<!DOCTYPE html><html><head><meta charset="utf-8">'
     + '<meta name="viewport" content="width=device-width,initial-scale=1"></head>'
@@ -534,13 +513,6 @@ function vevEmailText_(rec) {
   L.push(rec.market + ' | ' + rec.eval_id + ' | submitted ' + rec.received + ' | directory id ' + (rec.vendor_id || 'none'));
   L.push(vevActionLabel_(rec.action));
   L.push('');
-  if (rec.flags.length) {
-    L.push('NEEDS A LOOK:');
-    rec.flags.forEach(function (f) { L.push('  - ' + f.q + ' ' + f.a + (f.heavy ? '  (blocks the packet)' : '')); });
-  } else {
-    L.push('Every operating question came back the way we want it.');
-  }
-  L.push('');
   L.push('WHO TO CALL');
   L.push('  Contact: ' + vevStr_(v.contact_name));
   L.push('  Mobile: ' + vevStr_(v.phone) + (vevStr_(v.business_phone) ? '   Business: ' + vevStr_(v.business_phone) : ''));
@@ -602,8 +574,7 @@ function vevOnSubmit_(clean, action, region, vendorId) {
       var mk = vevMarketEmails_(rec.market);
       var opts = {
         to: mk.to, name: mk.name, replyTo: mk.reply,
-        subject: 'Vendor evaluation: ' + vevStr_(clean.dba_name) + ' (' + rec.market + ')'
-          + (rec.heavy.length ? ' - ' + rec.heavy.length + ' to check' : ''),
+        subject: 'Vendor evaluation: ' + vevStr_(clean.dba_name) + ' (' + rec.market + ')',
         htmlBody: vevEmailHtml_(rec),
         body: vevEmailText_(rec)
       };
