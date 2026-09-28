@@ -204,7 +204,7 @@ textarea{min-height:260px;line-height:1.55;resize:vertical}
 </div>
 
 <div class="card"><h2>2. Who gets it? <span class="lk" style="cursor:default" id="pickCount">0 picked</span></h2>
-<p class="hint">From the live Vendor Directory. Do Not Contact vendors, hidden vendors and anyone on the <a href="vendor-dne.html">do not email list</a> are never listed. Vendors without an email show greyed out. Everyone you pick goes in BCC; they never see each other.</p>
+<p class="hint">From the live Vendor Directory. Do Not Contact vendors, hidden vendors and anyone on the <a href="vendor-dne.html">do not email list</a> or marked Email needs update are never listed. Vendors without an email show greyed out. Everyone you pick goes in BCC; they never see each other.</p>
 <div class="tools">
   <input type="text" id="search" placeholder="Search by company, owner or email" autocomplete="off">
   <label class="chk"><input type="checkbox" id="showProspects"> Show prospects</label>
@@ -247,7 +247,7 @@ textarea{min-height:260px;line-height:1.55;resize:vertical}
 </div>
 <div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
 
-<script src="notify.js?v=20260922a"></script>
+<script src="notify.js?v=20260928a"></script>
 <script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 (function(){
@@ -403,9 +403,9 @@ function loadDirectory(){
     if(!r || r.ok === false){ if(r && /passcode/i.test(r.error || "")){ CWAuth.locked("ops", r.error); return; } throw new Error((r && r.error) || "Could not load the directory."); }
     DIR = r; TYPES = {}; (r.types || []).forEach(function(t){ TYPES[t.slug] = t.name; });
     var dne = [];
-    VENDORS = (r.vendors || []).filter(function(v){ if(v.dne){ dne.push(v); return false; } return v.status !== "Do Not Contact" && v.status !== "Inactive"; });
+    VENDORS = (r.vendors || []).filter(function(v){ if(v.dne || /\S/.test(String(v.email_status || ""))){ dne.push(v); return false; } return v.status !== "Do Not Contact" && v.status !== "Inactive"; });
     VENDORS.forEach(function(v){ v._email = String(v.email || "").trim().toLowerCase(); v._ok = emailOk(v._email); });
-    note("dneNote", dne.length ? dne.length + " vendor" + (dne.length === 1 ? " is" : "s are") + " on the do not email list and not shown: " + dne.slice(0, 12).map(function(v){ return esc(v.dba_name); }).join(", ") + (dne.length > 12 ? ", and more" : "") + '. <a href="vendor-dne.html">Manage the list</a>.' : "");
+    note("dneNote", dne.length ? dne.length + " vendor" + (dne.length === 1 ? " is" : "s are") + " on the do not email list or need an email update, and are not shown: " + dne.slice(0, 12).map(function(v){ return esc(v.dba_name) + (v.dne ? "" : " (email needs update)"); }).join(", ") + (dne.length > 12 ? ", and more" : "") + '. <a href="vendor-dne.html">Manage the list</a>.' : "");
     if(PREPICK){ var pv = VENDORS.filter(function(v){ return v.vendor_id === PREPICK; })[0]; if(pv && pv._ok){ SEL[pv._email] = true; OPEN[pv.regions[0]] = true; GOPEN[pv.regions[0] + ":" + groupKey(pv)] = true; if(pv.prospect) $("showProspects").checked = true; } else if(pv) note("dneNote", esc(pv.dba_name) + " has no usable email address on the directory, so they cannot be picked."); }
     buildPicker(); autoSender(); preview();
   }).catch(function(e){ $("picker").innerHTML = '<div class="msg err show">' + esc(e.message) + ' <button class="btn ghost sm" type="button" onclick="location.reload()">Reload</button></div>'; });

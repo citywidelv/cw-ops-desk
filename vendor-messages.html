@@ -309,7 +309,7 @@ function boot(){
     }
     DATA = r;
     (r.types||[]).forEach(function(t){ TYPES[t.slug] = t.name; });
-    VENDORS = (r.vendors||[]).filter(function(v){ return v.status !== 'Do Not Contact' && !v.dne; });
+    VENDORS = (r.vendors||[]).filter(function(v){ return v.status !== 'Do Not Contact' && !v.dne && !/\S/.test(String(v.email_status||'')); });
     VENDORS.forEach(function(v){ v._email = String(v.email||'').trim().toLowerCase(); v._ok = emailOk(v._email); });
     if(q && q.ok){ QUOTA = q.quota_left; }
     else if(q && q.error && /kind/i.test(q.error)){ el('gmailWarn').innerHTML = 'The Gmail sender is not switched on for this script yet, so only Outlook works right now.'; el('gmailWarn').style.display='block'; }

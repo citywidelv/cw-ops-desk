@@ -247,6 +247,8 @@
       var rec = { id: v.vendor_id, name: str(v.dba_name), email: em, status: st, live: !!v.live,
                   slugs: (v.slugs || []).slice() };
       if (v.dne) { dne.push(rec); return; }   // Sep 17 2026: on the do not email list (vendor-dne.html)
+      // Sep 28 2026: email bounced, held until the profile clears "Email needs update".
+      if (/\S/.test(str(v.email_status))) { rec.hold = true; dne.push(rec); return; }
       if (!validEmail(em)) { noEmail.push(rec); return; }
       vendors.push(rec);
       var matched = slugs.length && rec.slugs.some(function (s) { return slugs.indexOf(s) >= 0; });
@@ -350,8 +352,8 @@
     pick.types.forEach(function (g) { h += groupHtml("t-" + g.slug, g.label, g.rows, !isProject, "", sentMap); });
     h += '</div>';
     if (pick.dne && pick.dne.length) {
-      h += '<div class="msg" style="margin-top:10px">On the do not email list (left out): ' +
-        esc(pick.dne.map(function (v) { return v.name; }).join(", ")) + '. <a href="vendor-dne.html">Change the list</a></div>';
+      h += '<div class="msg" style="margin-top:10px">Left out (do not email list or email needs update): ' +
+        esc(pick.dne.map(function (v) { return v.name + (v.hold ? " (email needs update)" : ""); }).join(", ")) + '. <a href="vendor-dne.html">Change the list</a></div>';
     }
     if (pick.noEmail.length) {
       h += '<div class="msg" style="margin-top:10px">No email on file (cannot be included): ' +
