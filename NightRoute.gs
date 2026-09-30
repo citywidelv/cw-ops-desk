@@ -18,11 +18,20 @@
  *      the stop row so the FSM sees a direct reply.
  *
  * Kinds (routed from niDispatch on the shared ni_ prefix)
- *   ni_route_setup   create tabs, seed config, install the 4:00 PM trigger
+ *   ni_route_setup   create tabs, seed config
  *   ni_route_list    stops for a night, plus standing checklists
- *   ni_route_save    upsert tonight's stops for one FSM + night manager
+ *   ni_route_save    upsert tonight's stops for one FSM + night manager (a draft)
  *   ni_route_checks  save a building's standing checklist
- *   ni_route_send    build and send the route email (trigger or Send now)
+ *   ni_route_send    email one FSM's route to their night manager, now
+ *
+ * Send model (changed Sep 30 2026, TJ's call)
+ *   Nothing goes to a night manager unless the FSM sends it. Saving is a
+ *   private draft: it sits on the sheet with sent_at blank, the FSM page shows
+ *   it, the night inspection page does not (ni_context asks for sent_only).
+ *   Sending stamps sent_at on every stop of that FSM's route and emails it
+ *   right then, whatever the time. There is no timed 4:00 PM send any more
+ *   and no empty "nothing assigned" email. niRouteDaily is kept as a no-op
+ *   so a leftover trigger does nothing.
  *
  * Rows are upserted by stop_id and retired by status, never deleted, so an
  * answered stop survives an FSM edit.
@@ -50,13 +59,13 @@ var NR_OPEN = ['Assigned'];
 // Config lives in a tab so ops can change recipients and send time without a
 // deploy. These are only the first-run defaults.
 var NR_CFG_DEFAULTS = [
-  ['send_hour', '16', 'Hour of the day the route email goes out, 0-23, Pacific. 16 = 4:00 PM.'],
+  ['send_hour', '16', 'Not used since Sep 30 2026. Routes send when the FSM sends them, not on a timer.'],
   ['lv_to', 'cwlv_nm@gocitywide.com', 'Las Vegas night managers. Comma separated.'],
   ['lv_cc', 'lvservicecall@gocitywide.com', 'Las Vegas copy.'],
   ['nnv_to', '', 'Northern Nevada night managers. Blank = every active Night Manager on the Staff tab for that market.'],
   ['nnv_cc', 'rnservicecall@gocitywide.com', 'Northern Nevada copy.'],
   ['cc_fsm', 'TRUE', 'TRUE also copies the FSM who wrote each route.'],
-  ['send_empty', 'TRUE', 'TRUE sends the message even when no route was written, so silence is never ambiguous.'],
+  ['send_empty', 'FALSE', 'Not used since Sep 30 2026. Nothing sends unless an FSM sends a route.'],
   ['hub_url', 'https://citywidelv.github.io/cw-ops-desk/night-inspection.html', 'Where the email points the night manager.']
 ];
 
@@ -136,33 +145,22 @@ function nrWrite_(sh, head, rowNum, obj) {
 
 function nrSetup_(data) {
   nrTab_(); nrChkTab_(); nrCfgTab_();
-  // The trigger needs the script.scriptapp scope. If the project has never been
-  // authorized for it, create the tabs anyway and report the miss rather than
-  // failing the whole setup.
-  var t;
-  try { t = nrInstallTrigger(); } catch (e) { t = { error: String(e && e.message || e) }; }
-  return niOut_({ ok: true, tabs: [NR_TAB, NR_CHK_TAB, NR_CFG_TAB], trigger: t, sheet_url: niSS_().getUrl() });
+  return niOut_({ ok: true, tabs: [NR_TAB, NR_CHK_TAB, NR_CFG_TAB], trigger: 'none (routes send when the FSM sends them)', sheet_url: niSS_().getUrl() });
 }
 
-/** One daily trigger at the configured hour. Replaces any earlier copy. */
-function nrInstallTrigger() {
-  var hour = Number(nrCfg_().send_hour || 16);
-  if (isNaN(hour) || hour < 0 || hour > 23) hour = 16;
+/** Removes any leftover daily trigger. Needs the script.scriptapp scope. */
+function nrRemoveTrigger() {
   var killed = 0;
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === NR_TRIGGER) { ScriptApp.deleteTrigger(t); killed++; }
   });
-  ScriptApp.newTrigger(NR_TRIGGER).timeBased().atHour(hour).nearMinute(0).everyDays(1).inTimezone(NI_TZ).create();
-  return { hour: hour, replaced: killed };
+  return { removed: killed };
 }
 
-/** Time-driven entry point. Sends both markets. */
+/** Old time-driven entry point. Kept as a no-op so a leftover trigger sends
+ *  nothing. Routes go out only when an FSM sends them (nrSend_). */
 function niRouteDaily() {
-  ['lv', 'nnv'].forEach(function (m) {
-    try { nrSendMarket_(m, nrNightDate_(), false); } catch (e) {
-      console.error('route send ' + m + ': ' + (e && e.message || e));
-    }
-  });
+  console.log('niRouteDaily: retired Sep 30 2026, nothing sent. Routes send when the FSM sends them.');
 }
 
 // ------------------------------------------------------------------- list --
@@ -171,12 +169,15 @@ function niRouteDaily() {
  * Everything the FSM page and the night inspection page need about a night.
  *   stops   the route for that night, newest edit wins, retired rows dropped
  *   checks  every building's standing checklist for the market
+ * sent_only:true (what ni_context passes for the night manager page) drops
+ * stops the FSM has saved but not sent. Drafts are the FSM's alone.
  */
 function nrList_(data) {
   var mkt = niMarket_(data.market);
   var region = NI_MARKETS[mkt];
   var date = niStr_(data.report_date) || nrNightDate_();
   var wantFsm = niStr_(data.fsm), wantNm = niStr_(data.nm_name);
+  var sentOnly = data.sent_only === true || String(data.sent_only).toUpperCase() === 'TRUE';
   var out = { ok: true, market: mkt, region: region, report_date: date, stops: [], checks: {}, warnings: [] };
 
   try {
@@ -185,13 +186,15 @@ function nrList_(data) {
       if (r.status === 'Removed') return;
       if (wantFsm && r.fsm !== wantFsm) return;
       if (wantNm && r.nm_name !== wantNm) return;
+      if (sentOnly && !r.sent_at) return;
       out.stops.push({
         route_id: r.route_id, stop_id: r.stop_id, fsm: r.fsm, nm_name: r.nm_name,
         account_id: r.account_id, account_name: r.account_name,
         reason: r.reason, priority: r.priority, instructions: r.instructions,
         check_items: r.check_items ? r.check_items.split('\n').filter(String) : [],
         status: r.status || 'Assigned', inspection_id: r.inspection_id,
-        check_answers: r.check_answers, nm_note: r.nm_note, answered_at: r.answered_at
+        check_answers: r.check_answers, nm_note: r.nm_note, answered_at: r.answered_at,
+        sent_at: r.sent_at
       });
     });
   } catch (e) { out.warnings.push('stops: ' + e.message); }
@@ -353,11 +356,66 @@ function nrChecks_(data) {
 
 // ------------------------------------------------------------------- send --
 
+/**
+ * The FSM pressed Send. Emails that FSM's route for that night manager and
+ * stamps sent_at on its stops, which is what makes it visible on the night
+ * inspection page. With no fsm in the payload it falls back to the old
+ * market-wide manual send, so nothing that still calls it that way breaks.
+ */
 function nrSend_(data) {
   var mkt = niMarket_(data.market);
   var date = niStr_(data.report_date) || nrNightDate_();
-  var res = nrSendMarket_(mkt, date, true);
-  return niOut_(res);
+  var fsm = niStr_(data.fsm), nm = niStr_(data.nm_name);
+  if (!fsm) return niOut_(nrSendMarket_(mkt, date, true));
+  if (!nm) return niOut_({ ok: false, error: 'Pick the night manager first.' });
+  return niOut_(nrSendRoute_(mkt, date, fsm, nm, niStr_(data.nm_email)));
+}
+
+function nrSendRoute_(mkt, date, fsm, nm, nmEmail) {
+  var cfg = nrCfg_();
+  var region = NI_MARKETS[mkt];
+  var sh = nrTab_(), rd = nrRows_(sh), head = rd.head;
+  var stops = rd.rows.filter(function (r) {
+    return r.market === region && nrDate_(r.report_date) === date && r.status !== 'Removed' && r.fsm === fsm && r.nm_name === nm;
+  });
+  if (!stops.length) return { ok: false, error: 'Nothing saved for ' + nm + ' on ' + date + '. Save the route first.' };
+
+  var to = nrRecipients_(mkt, cfg);
+  nmEmail = nmEmail || stops[0].nm_email || '';
+  if (nmEmail && to.indexOf(nmEmail) < 0) to.push(nmEmail);
+  if (!to.length) return { ok: false, error: 'No recipients configured for ' + region + '. Set ' + mkt + '_to on the RouteConfig tab.' };
+
+  var cc = nrList2_(cfg[mkt + '_cc']);
+  if (nrTrue_(cfg.cc_fsm)) stops.forEach(function (r) { if (r.fsm_email && cc.indexOf(r.fsm_email) < 0) cc.push(r.fsm_email); });
+
+  var again = stops.every(function (r) { return !!r.sent_at; });
+  var byNm = {}; byNm[nm] = stops;
+  var pretty = Utilities.formatDate(new Date(date.replace(/-/g, '/') + ' 12:00:00'), NI_TZ, 'EEEE, MMMM d');
+  var hub = cfg.hub_url || 'https://citywidelv.github.io/cw-ops-desk/night-inspection.html';
+  var subject = (again ? 'Updated route for ' : 'Route for ') + nm + '  ' + pretty + '  ' + (mkt === 'nnv' ? 'Northern Nevada' : 'Las Vegas')
+    + '  (' + stops.length + ' stop' + (stops.length === 1 ? '' : 's') + ', from ' + fsm + ')';
+
+  var html = nrHtml_([nm], byNm, pretty, region, hub, stops.length, again ? fsm + ' updated this route. It replaces the one sent earlier.' : '');
+  var text = nrText_([nm], byNm, pretty, region, hub, stops.length, again ? fsm + ' updated this route. It replaces the one sent earlier.' : '');
+
+  var opts = {
+    to: to.join(','), subject: subject, body: text, htmlBody: html,
+    name: 'City Wide ' + (mkt === 'nnv' ? 'NNV' : 'LV') + ' Night Ops',
+    replyTo: NI_SERVICE[mkt]
+  };
+  if (cc.length) opts.cc = cc.join(',');
+
+  try {
+    if (typeof cwMail_ === 'function') cwMail_('ni_route', opts); else cwSend_(opts);
+  } catch (e) {
+    return { ok: false, error: 'Mail failed: ' + (e && e.message || e) };
+  }
+
+  var stamp = Utilities.formatDate(new Date(), NI_TZ, 'yyyy-MM-dd HH:mm');
+  var cSent = head.indexOf('sent_at') + 1;
+  if (cSent > 0) stops.forEach(function (r) { try { sh.getRange(r._row, cSent).setValue(stamp); } catch (e) {} });
+
+  return { ok: true, sent: true, updated: again, market: region, report_date: date, fsm: fsm, nm_name: nm, stops: stops.length, to: to, cc: cc, subject: subject, sent_at: stamp };
 }
 
 function nrRecipients_(mkt, cfg) {
@@ -394,7 +452,8 @@ function nrSendMarket_(mkt, date, manual) {
   var cc = nrList2_(cfg[mkt + '_cc']);
   if (nrTrue_(cfg.cc_fsm)) stops.forEach(function (r) { if (r.fsm_email && cc.indexOf(r.fsm_email) < 0) cc.push(r.fsm_email); });
 
-  if (!stops.length && !nrTrue_(cfg.send_empty) && !manual) return { ok: true, sent: false, reason: 'No route written and send_empty is FALSE.' };
+  // Nothing goes out unless a route was written. No empty emails, ever.
+  if (!stops.length) return { ok: false, sent: false, error: 'No route written for ' + region + ' on ' + date + '. Nothing sent.' };
 
   var byNm = {}, nmOrder = [];
   stops.forEach(function (r) {
@@ -431,14 +490,15 @@ function nrSendMarket_(mkt, date, manual) {
   return { ok: true, sent: true, market: region, report_date: date, stops: stops.length, to: to, cc: cc, subject: subject };
 }
 
-function nrHtml_(nmOrder, byNm, pretty, region, hub, count) {
+function nrHtml_(nmOrder, byNm, pretty, region, hub, count, note) {
   var RED = '#D22730', BLACK = '#2D2A26', GREY = '#636466', LINE = '#E5E5E5';
   var F = "Verdana,Geneva,Tahoma,sans-serif";
   var h = '<div style="font-family:' + F + ';color:' + BLACK + ';max-width:640px;margin:0 auto;padding:0 4px">';
   h += '<div style="border-top:4px solid ' + RED + ';padding-top:14px">'
     + '<div style="font-size:12px;font-weight:bold;letter-spacing:.08em;text-transform:uppercase;color:' + GREY + '">City Wide ' + niEsc_(region) + '  Night Ops</div>'
-    + '<div style="font-size:21px;font-weight:bold;margin-top:4px">Tonight\'s route</div>'
+    + '<div style="font-size:21px;font-weight:bold;margin-top:4px">' + (note ? 'Updated route' : 'Tonight\'s route') + '</div>'
     + '<div style="font-size:15px;color:' + GREY + ';margin-top:2px">' + niEsc_(pretty) + '</div></div>';
+  if (note) h += '<div style="margin-top:14px;padding:10px 14px;border-left:4px solid ' + RED + ';background:#fdf3f3;font-size:14px;line-height:1.5">' + niEsc_(note) + '</div>';
 
   if (!count) {
     h += '<p style="font-size:15px;line-height:1.6;margin:18px 0">No stops were assigned tonight. Work your normal route and file a recap for every building you visit.</p>';
@@ -474,8 +534,9 @@ function nrHtml_(nmOrder, byNm, pretty, region, hub, count) {
   return h;
 }
 
-function nrText_(nmOrder, byNm, pretty, region, hub, count) {
-  var t = 'CITY WIDE ' + region.toUpperCase() + ' NIGHT OPS\nTonight\'s route  ' + pretty + '\n\n';
+function nrText_(nmOrder, byNm, pretty, region, hub, count, note) {
+  var t = 'CITY WIDE ' + region.toUpperCase() + ' NIGHT OPS\n' + (note ? 'Updated route' : 'Tonight\'s route') + '  ' + pretty + '\n\n';
+  if (note) t += note + '\n\n';
   if (!count) {
     t += 'No stops were assigned tonight. Work your normal route and file a recap for every building you visit.\n\n';
   } else {

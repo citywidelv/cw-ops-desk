@@ -293,14 +293,15 @@ function niContext_(data) {
   // Tonight's route from the FSMs, plus every standing per-building checklist.
   // The page filters the stops once the night manager picks their name. A
   // recap filed after midnight still answers the route written the afternoon
-  // before, which is what nrNightDate_ handles.
+  // before, which is what nrNightDate_ handles. sent_only: a route the FSM
+  // saved but has not sent is a private draft and stays off this page.
   out.route_date = '';
   out.route = [];
   out.account_checks = {};
   try {
     if (typeof nrNightDate_ === 'function') {
       out.route_date = nrNightDate_();
-      var rl = JSON.parse(nrList_({ market: mkt, report_date: out.route_date }).getContent());
+      var rl = JSON.parse(nrList_({ market: mkt, report_date: out.route_date, sent_only: true }).getContent());
       if (rl && rl.ok) { out.route = rl.stops || []; out.account_checks = rl.checks || {}; }
     }
   } catch (e) { out.warnings.push('route: ' + e.message); }
