@@ -15,8 +15,10 @@
 //   Folder "CW Vendor Recruiting"  (script property RQ_FOLDER_ID)
 //   Tabs   Touches  one row per call, email, text, visit, invite or reply logged
 //          Log      every directory field this module changed, old and new value
+//          Priority one row per vendor: level (High / Medium / Low), reason, note,
+//                   who set it and when. Anyone with the team passcode can set it.
 //          Config   key / value: quiet_days, nudge_days, resend_days, touch_types,
-//                   outcomes. Ops edits this tab; no deploy needed.
+//                   outcomes, priority_reasons. Ops edits this tab; no deploy needed.
 //
 // Kinds (team passcode):
 //   rq_list    {}  -> {ok, vendors, intake, touches, config, types, fetched}
@@ -27,6 +29,8 @@
 //   rq_touch   {vendor_id, vendor, market, type, outcome, note, next, who}
 //                  -> {ok, touch}. Appends a Touches row. Stamps the directory
 //                     outreach date when the touch went to the vendor.
+//   rq_priority {vendor_id, vendor, market, level, reason, note, who}
+//                  -> {ok, priority}. Upserts the Priority row. Level '' clears it.
 //   rq_set     {vendor_id, field, value, who} -> {ok, from, to}
 //                     Whitelisted directory fields only: status, email_status,
 //                     email_note. Written by the live header row, so the two
@@ -42,9 +46,12 @@ var RQ_EDITOR = 'tjroberts@gocitywide.com';
 var RQ_TAB_TOUCH = 'Touches';
 var RQ_TAB_LOG = 'Log';
 var RQ_TAB_CFG = 'Config';
+var RQ_TAB_PRI = 'Priority';
 
 var RQ_TOUCH_HEADERS = ['touch_id', 'when', 'vendor_id', 'vendor', 'market', 'type', 'outcome', 'note', 'next_followup', 'who'];
 var RQ_LOG_HEADERS = ['when', 'who', 'vendor_id', 'vendor', 'field', 'from', 'to'];
+var RQ_PRI_HEADERS = ['vendor_id', 'vendor', 'market', 'level', 'reason', 'note', 'set_by', 'set_at'];
+var RQ_PRI_LEVELS = ['High', 'Medium', 'Low'];
 var RQ_CFG_HEADERS = ['key', 'value', 'hint'];
 var RQ_CFG_SEED = [
   ['quiet_days', '30', 'No activity for this many days moves a vendor to Gone quiet.'],
@@ -52,7 +59,8 @@ var RQ_CFG_SEED = [
   ['resend_days', '14', 'Days after an invite with no reply before the queue suggests resending it.'],
   ['due_soon_days', '3', 'A follow-up due within this many days shows as due soon.'],
   ['touch_types', 'Call, Email, Text, Visit, Invite sent, Reply received, Orientation booked, Other', 'Touch types on the Log a touch form.'],
-  ['outcomes', 'No answer, Left voicemail, Spoke with them, They replied, Scheduled orientation, Sent paperwork, Not interested, Wrong number or email', 'Outcomes on the Log a touch form.']
+  ['outcomes', 'No answer, Left voicemail, Spoke with them, They replied, Scheduled orientation, Sent paperwork, Not interested, Wrong number or email', 'Outcomes on the Log a touch form.'],
+  ['priority_reasons', 'Almost set up, We really want to work with them, Already working in an account, We really need their paperwork, A client asked for them, Hard-to-find trade', 'Reasons on the Set priority form.']
 ];
 
 // Directory fields rq_set may write. Nothing else, ever.
@@ -73,6 +81,7 @@ function rqDispatch(data) {
     if (kind === 'rq_list') return rqList_(data);
     if (kind === 'rq_touch') return rqTouch_(data);
     if (kind === 'rq_set') return rqSet_(data);
+    if (kind === 'rq_priority') return rqPriority_(data);
     if (kind === 'rq_setup') return rqSetup_(data);
     return vdOut_({ ok: false, error: 'Unknown rq kind' });
   } catch (e) {
@@ -165,14 +174,20 @@ function rqConfig_(ss) {
   }
   var cfg = {};
   RQ_CFG_SEED.forEach(function (s) { cfg[s[0]] = s[1]; });
-  rows.forEach(function (r) { if (r.key) cfg[r.key] = r.value; });
+  var have = {};
+  rows.forEach(function (r) { if (r.key) { cfg[r.key] = r.value; have[r.key] = 1; } });
+  // A key this version knows that the tab does not have yet is appended so ops can edit it.
+  var missing = RQ_CFG_SEED.filter(function (s) { return !have[s[0]]; });
+  if (missing.length) { try { sh.getRange(sh.getLastRow() + 1, 1, missing.length, RQ_CFG_HEADERS.length).setValues(missing); } catch (e) {} }
   return {
     quiet_days: Number(cfg.quiet_days) || 30,
     nudge_days: Number(cfg.nudge_days) || 7,
     resend_days: Number(cfg.resend_days) || 14,
     due_soon_days: Number(cfg.due_soon_days) || 3,
     touch_types: rqList_split_(cfg.touch_types),
-    outcomes: rqList_split_(cfg.outcomes)
+    outcomes: rqList_split_(cfg.outcomes),
+    priority_reasons: rqList_split_(cfg.priority_reasons),
+    priority_levels: RQ_PRI_LEVELS
   };
 }
 function rqList_split_(s) { return String(s || '').split(',').map(function (x) { return x.trim(); }).filter(function (x) { return x; }); }
@@ -181,6 +196,7 @@ function rqSetup_(data) {
   var ss = rqBook_();
   rqTab_(ss, RQ_TAB_TOUCH, RQ_TOUCH_HEADERS, '#D22730');
   rqTab_(ss, RQ_TAB_LOG, RQ_LOG_HEADERS, '#636466');
+  rqTab_(ss, RQ_TAB_PRI, RQ_PRI_HEADERS, '#B5780A');
   rqConfig_(ss);
   return vdOut_({ ok: true, url: ss.getUrl(), id: ss.getId(), folder: rqFolder_().getId() });
 }
@@ -256,6 +272,16 @@ function rqList_(data) {
     touches[k] = touches[k].slice(0, 5);
   });
 
+  // Priority, one row per vendor.
+  var priorities = {};
+  var psh = rqTab_(book, RQ_TAB_PRI, RQ_PRI_HEADERS, '#B5780A');
+  rqRows_(psh).rows.forEach(function (r) {
+    var vid = vdStr_(r.vendor_id);
+    if (!vid || !vdStr_(r.level)) return;
+    delete r._row;
+    priorities[vid] = r;
+  });
+
   var types = [];
   try {
     var tsh2 = ss.getSheetByName(VD_TABS.TYPES);
@@ -266,7 +292,7 @@ function rqList_(data) {
     }
   } catch (e2) {}
 
-  return vdOut_({ ok: true, vendors: vendors, intake: intake, touches: touches, config: rqConfig_(book), types: types,
+  return vdOut_({ ok: true, vendors: vendors, intake: intake, touches: touches, priorities: priorities, config: rqConfig_(book), types: types,
                   book: book.getUrl(), fetched: new Date().toISOString() });
 }
 
@@ -295,6 +321,41 @@ function rqTouch_(data) {
     try { rqDirSet_(vid, 'outreach', rqToday_(), who, false); } catch (e3) {}
   }
   return vdOut_({ ok: true, touch: t });
+}
+
+// ------------------------------------------------------------ priority ----
+
+function rqPriority_(data) {
+  var vid = vdStr_(data.vendor_id);
+  if (!vid) return vdOut_({ ok: false, error: 'No vendor id.' });
+  var level = vdStr_(data.level);
+  if (level && RQ_PRI_LEVELS.indexOf(level) < 0) return vdOut_({ ok: false, error: 'Priority must be High, Medium or Low.' });
+  var who = vdStr_(data.who) || 'Admin Hub';
+  var book = rqBook_();
+  var sh = rqTab_(book, RQ_TAB_PRI, RQ_PRI_HEADERS, '#B5780A');
+  var rr = rqRows_(sh);
+  var hit = rr.rows.filter(function (r) { return r.vendor_id === vid; })[0] || null;
+  var p = {
+    vendor_id: vid, vendor: vdStr_(data.vendor) || (hit ? hit.vendor : ''), market: vdStr_(data.market) || (hit ? hit.market : ''),
+    level: level, reason: vdStr_(data.reason).slice(0, 200), note: vdStr_(data.note).slice(0, 1000), set_by: who, set_at: rqNow_()
+  };
+  var from = hit ? (hit.level + (hit.reason ? ' (' + hit.reason + ')' : '')) : '';
+  var to = level ? (level + (p.reason ? ' (' + p.reason + ')' : '')) : '';
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(8000); } catch (e) {}
+  try {
+    if (hit) {
+      var row = RQ_PRI_HEADERS.map(function (h) { return p[h] == null ? '' : String(p[h]); });
+      sh.getRange(hit._row, 1, 1, RQ_PRI_HEADERS.length).setValues([row]);
+    } else if (level) {
+      rqAppend_(sh, RQ_PRI_HEADERS, p);
+    }
+  } finally { try { lock.releaseLock(); } catch (e2) {} }
+  try {
+    rqAppend_(rqTab_(book, RQ_TAB_LOG, RQ_LOG_HEADERS, '#636466'), RQ_LOG_HEADERS,
+      { when: p.set_at, who: who, vendor_id: vid, vendor: p.vendor, field: 'priority', from: from, to: to });
+  } catch (e3) {}
+  return vdOut_({ ok: true, priority: level ? p : null });
 }
 
 // ------------------------------------------------------------ set ---------
