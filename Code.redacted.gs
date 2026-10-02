@@ -2603,6 +2603,10 @@ function cwSend_(a, b, c, d) {
   var obj = a && typeof a === 'object';
   var o = obj ? a : (d || {});
   var to = obj ? a.to : a, subject = obj ? a.subject : b, body = obj ? a.body : c;
+  if (!o.htmlBody) {
+    if (obj) cwAutoHtml_(o);
+    else { var tmpH = { body: body, name: o.name, digest: o.digest }; cwAutoHtml_(tmpH); if (tmpH.htmlBody) o.htmlBody = tmpH.htmlBody; }
+  }
   var from = '', via = '';
   try {
     var props = PropertiesService.getScriptProperties();
@@ -2619,6 +2623,127 @@ function cwSend_(a, b, c, d) {
     if (CW_ALIASES_.indexOf(from) >= 0) opt.from = from;
   } catch (e2) {}
   return GmailApp.sendEmail(String(to || ''), String(subject || ''), String(body || ''), opt);
+}
+
+// ------------------------------------------------ HTML for every send -----
+// Oct 2 2026: no email leaves this project as plain text. cwSend_ calls
+// cwAutoHtml_ when a handler passes a body (or a digest card) without an
+// htmlBody, and wraps it in the same brand shell the digests use. Handlers
+// that build their own htmlBody are untouched. The plain body still goes
+// out as the text alternative.
+var CW_HTML_F = 'font-family:Verdana,Arial,sans-serif;';
+function cwEscT_(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+// Escape text, then turn bare URLs and email addresses into links.
+function cwLinkify_(s) {
+  var F = CW_HTML_F;
+  var t = cwEscT_(s);
+  t = t.replace(/(https?:\/\/[^\s<>"']+[^\s<>"'.,;:!?)])/g, function (u) {
+    return '<a href="' + u + '" style="color:#D22730;text-decoration:underline;word-break:break-all;">' + u + '</a>';
+  });
+  t = t.replace(/(^|[\s(,:])([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g, function (m, pre, e) {
+    return pre + '<a href="mailto:' + e + '" style="color:#2d2a26;text-decoration:underline;">' + e + '</a>';
+  });
+  return t;
+}
+// The brand shell: logo, dark label bar, content, footer. label = the bar text,
+// sub = grey text in the bar (region, date), inner = HTML for the body area.
+function cwShell_(label, sub, inner, footnote) {
+  var F = CW_HTML_F;
+  return '' +
+    '<table bgcolor="#f4f4f4" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td align="center" style="padding:20px 0;">' +
+    '<table bgcolor="#ffffff" border="0" cellpadding="0" cellspacing="0" width="680" style="max-width:680px;">' +
+    '<tr><td style="padding:24px 30px 0;"><img src="' + LOGO + '" height="38" alt="City Wide Facility Solutions" style="display:block;border:0;height:38px;width:auto;"></td></tr>' +
+    '<tr><td style="padding:18px 30px 0;"><div style="background:#2d2a26;color:#ffffff;' + F + 'font-size:15px;font-weight:bold;padding:12px 16px;letter-spacing:0.5px;">' +
+    cwEscT_(String(label || '').toUpperCase()) + (sub ? ' <span style="font-weight:normal;color:#cfcdca;">&middot; ' + cwEscT_(sub) + '</span>' : '') + '</div></td></tr>' +
+    '<tr><td style="padding:18px 30px 30px;">' + inner +
+    '<p style="margin:26px 0 0;' + F + 'font-size:11px;line-height:1.6;color:#999999;">' + cwEscT_(footnote || 'Sent by the City Wide Nevada team platform. GoCityWide.com') + '</p>' +
+    '</td></tr></table></td></tr></table>';
+}
+// A red button.
+function cwButton_(label, url) {
+  if (!url) return '';
+  return '<table border="0" cellpadding="0" cellspacing="0" style="margin:16px 0 0;"><tr><td bgcolor="#D22730" style="border-radius:6px;">' +
+    '<a href="' + String(url).replace(/"/g, '') + '" style="display:inline-block;padding:11px 20px;' + CW_HTML_F + 'font-size:13px;font-weight:bold;color:#ffffff;text-decoration:none;">' + cwEscT_(label) + ' &rarr;</a></td></tr></table>';
+}
+// Two-column facts table from [[label, value], ...]; blank values are skipped.
+function cwFacts_(pairs) {
+  var F = CW_HTML_F;
+  var rows = (pairs || []).filter(function (p) { return p && p[1] !== undefined && p[1] !== null && String(p[1]) !== ''; }).map(function (p) {
+    return '<tr><td width="1%" style="padding:5px 14px 5px 0;' + F + 'font-size:11px;color:#636466;white-space:nowrap;vertical-align:top;">' + cwEscT_(p[0]) + '</td>' +
+      '<td style="padding:5px 0;' + F + 'font-size:13px;color:#2d2a26;line-height:1.45;">' + cwLinkify_(String(p[1])) + '</td></tr>';
+  }).join('');
+  return rows ? '<table border="0" cellpadding="0" cellspacing="0" width="100%">' + rows + '</table>' : '';
+}
+// Grid table from a header array and row arrays.
+function cwGrid_(head, rows) {
+  var F = CW_HTML_F;
+  var th = head.map(function (h) {
+    return '<th align="left" style="padding:7px 10px;' + F + 'font-size:10px;font-weight:bold;color:#636466;text-transform:uppercase;letter-spacing:0.05em;background:#F5F5F5;border-bottom:1px solid #E5E5E5;">' + cwEscT_(h) + '</th>';
+  }).join('');
+  var tr = rows.map(function (r) {
+    return '<tr>' + r.map(function (c) {
+      return '<td style="padding:8px 10px;' + F + 'font-size:12px;color:#2d2a26;border-bottom:1px solid #EEEEEE;vertical-align:top;line-height:1.4;">' + cwLinkify_(String(c == null ? '' : c)) + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+  return '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #E5E5E5;border-radius:6px;border-collapse:separate;">' +
+    '<tr>' + th + '</tr>' + tr + '</table>';
+}
+// The accent card the digests use for one item, from the same digest shape:
+// { title, fields:[[label,value]], links:[[label,url]], region }
+function cwDigestCard_(d) {
+  var F = CW_HTML_F;
+  d = d || {};
+  var links = (d.links || []).filter(function (l) { return l && l[1]; }).map(function (l) {
+    return '<a href="' + String(l[1]).replace(/"/g, '') + '" style="' + F + 'font-size:12px;font-weight:bold;color:#D22730;text-decoration:none;margin-right:16px;">' + cwEscT_(l[0]) + ' &rarr;</a>';
+  }).join('');
+  return '<div style="border:1px solid #E5E5E5;border-left:4px solid #D22730;border-radius:0 6px 6px 0;padding:14px 16px;">' +
+    '<p style="margin:0 0 8px;' + F + 'font-size:14px;font-weight:bold;color:#2d2a26;">' + cwEscT_(d.title || '') +
+    (d.region ? '<span style="font-weight:normal;color:#999999;font-size:11px;margin-left:8px;">' + cwEscT_(d.region) + '</span>' : '') + '</p>' +
+    cwFacts_(d.fields) + (links ? '<p style="margin:10px 0 0;">' + links + '</p>' : '') + '</div>';
+}
+// Plain text to HTML. Blank lines split paragraphs. A run of "1. ..." or "- ..."
+// lines becomes a list. A run of "Label: value" lines becomes a facts table. The
+// first line is the lead if it is short and has no colon. URLs become links.
+function cwPlainHtml_(text) {
+  var F = CW_HTML_F;
+  var paras = String(text || '').replace(/\r/g, '').split(/\n\s*\n/).map(function (p) { return p.replace(/^\n+|\n+$/g, ''); }).filter(Boolean);
+  var out = [];
+  paras.forEach(function (p, idx) {
+    var lines = p.split('\n');
+    var isNum = lines.length && lines.every(function (l) { return /^\s*\d+[.)]\s+/.test(l); });
+    var isBul = lines.length && lines.every(function (l) { return /^\s*[-*•]\s+/.test(l); });
+    var isKv = lines.length > 1 && lines.every(function (l) { return /^[A-Za-z][A-Za-z0-9 ()\/&'-]{1,40}:\s+\S/.test(l); });
+    if (isNum || isBul) {
+      var items = lines.map(function (l) { return '<li style="margin:0 0 6px;' + F + 'font-size:13px;color:#2d2a26;line-height:1.45;">' + cwLinkify_(l.replace(/^\s*(\d+[.)]|[-*•])\s+/, '')) + '</li>'; }).join('');
+      out.push('<' + (isNum ? 'ol' : 'ul') + ' style="margin:0 0 14px;padding-left:22px;">' + items + '</' + (isNum ? 'ol' : 'ul') + '>');
+    } else if (isKv) {
+      out.push('<div style="margin:0 0 14px;">' + cwFacts_(lines.map(function (l) { var i = l.indexOf(':'); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; })) + '</div>');
+    } else if (idx === 0 && lines.length === 1 && p.length <= 140) {
+      out.push('<p style="margin:0 0 14px;' + F + 'font-size:15px;font-weight:bold;color:#2d2a26;line-height:1.4;">' + cwLinkify_(p) + '</p>');
+    } else {
+      out.push('<p style="margin:0 0 14px;' + F + 'font-size:13px;color:#2d2a26;line-height:1.55;">' + lines.map(cwLinkify_).join('<br>') + '</p>');
+    }
+  });
+  return out.join('');
+}
+// Called by cwSend_. Fills opts.htmlBody when a handler did not. Never throws.
+function cwAutoHtml_(o) {
+  try {
+    if (!o || o.htmlBody) return;
+    var label = o.name ? String(o.name).replace(/^City Wide\s+(?=\S)/i, '') : 'City Wide Nevada';
+    var stamp = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'EEE, MMM d h:mm a');
+    var inner = '';
+    if (o.digest && typeof o.digest === 'object') {
+      inner = cwDigestCard_(o.digest);
+      if (o.body && !(o.digest.fields || []).length) inner += '<div style="margin-top:14px;">' + cwPlainHtml_(o.body) + '</div>';
+    } else if (o.body) {
+      inner = cwPlainHtml_(o.body);
+    }
+    if (!inner) return;
+    o.htmlBody = cwShell_(label, stamp, inner);
+  } catch (e) {}
 }
 
 // Run from the editor once: grants the Gmail permission and sends one test to TJ the same way every notice goes out.

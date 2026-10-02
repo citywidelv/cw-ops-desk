@@ -784,7 +784,9 @@ function obBcRequest_(data) {
   }
   // Team notice.
   try {
-    var lines = [(reports.length ? 'Vendor-run background report to review' : needsCheck ? 'Background check request' : 'Name badge request') + ' from ' + company + (m.v ? ' (' + m.v.vendor_id + (m.how === 'picked' ? ', picked by the vendor' : ', matched by name') + ')' : ' (NOT on the vendor directory yet)'), '',
+    var kindLabel = reports.length ? 'Vendor-run background report to review' : needsCheck ? 'Background check request' : 'Name badge request';
+    var matchNote = m.v ? '(' + m.v.vendor_id + (m.how === 'picked' ? ', picked by the vendor' : ', matched by name') + ')' : '(NOT on the vendor directory yet)';
+    var lines = [kindLabel + ' from ' + company + ' ' + matchNote, '',
       'Request: ' + rtype, 'Region: ' + mk.name, 'Submitted by: ' + subBy + ', ' + subMail, ''];
     if (reports.length) lines.push('Reports (also attached): ' + reports.join('; '), '');
     people.forEach(function (p, i) {
@@ -794,10 +796,57 @@ function obBcRequest_(data) {
     });
     lines.push('', 'Open the onboarding desk: ' + OB_DESK_URL + '#bc');
     var mail = { to: mk.compliance, name: mk.sender, replyTo: subMail, subject: (reports.length ? 'Review a vendor-run background report: ' : needsCheck ? 'Background check: ' : 'Name badge: ') + company + ' (' + people.length + ')', body: lines.join('\n') };
+    try { mail.htmlBody = obBcRequestHtml_(kindLabel, company, m, mk, rtype, subBy, subMail, people, reports); } catch (he) {}
     if (attachments.length) mail.attachments = attachments;
     cwMail_('ob_bc_request', mail);
   } catch (me) {}
   return vdOut_({ ok: true, ids: ids, matched: !!m.v, how: m.how || '', reports: reports.length, upsert: upsert });
+}
+
+// The branded team email for a Vendor Hub background check / name badge request.
+// Uses the shared shell in Code.gs (cwShell_, cwFacts_, cwGrid_, cwButton_).
+function obBcRequestHtml_(kindLabel, company, m, mk, rtype, subBy, subMail, people, reports) {
+  var F = CW_HTML_F;
+  var newCo = !m.v;
+  var who = m.v ? m.v.dba_name + ' (' + m.v.vendor_id + ')' : company;
+  var matched = m.v ? (m.how === 'picked' ? 'The vendor picked this company from the directory.' : 'Matched to the directory by name.') : '';
+  var facts = cwFacts_([
+    ['Company', who],
+    ['Request', rtype],
+    ['Region', mk.name],
+    ['Submitted by', subBy + ', ' + subMail],
+    ['People', String(people.length)]
+  ]);
+  var warn = newCo
+    ? '<div style="margin:0 0 14px;padding:10px 14px;background:#FFF3F3;border-left:4px solid #D22730;' + F + 'font-size:12px;color:#2d2a26;line-height:1.5;"><b>Not on the vendor directory yet.</b> The company name did not match a directory record. Attach this request to the right vendor on the desk.</div>'
+    : (matched ? '<p style="margin:0 0 14px;' + F + 'font-size:12px;color:#636466;">' + cwEscT_(matched) + '</p>' : '');
+  var rows = people.map(function (p, i) {
+    var nm = [vdStr_(p.first), vdStr_(p.middle), vdStr_(p.last)].filter(function (x) { return x; }).join(' ');
+    if (vdStr_(p.preferred)) nm += ' (goes by ' + vdStr_(p.preferred) + ')';
+    return [String(i + 1), nm, vdStr_(p.email), vdStr_(p.mobile), vdStr_(p.client_account), p._report ? 'Report attached' : ''];
+  });
+  var hasAcct = rows.some(function (r) { return r[4]; }), hasRep = rows.some(function (r) { return r[5]; });
+  var head = ['#', 'Name', 'Email', 'Mobile'];
+  if (hasAcct) head.push('Account');
+  if (hasRep) head.push('Report');
+  rows = rows.map(function (r) { var o = r.slice(0, 4); if (hasAcct) o.push(r[4]); if (hasRep) o.push(r[5]); return o; });
+  var grid = '<h2 style="margin:18px 0 8px;' + F + 'font-size:12px;font-weight:bold;color:#2d2a26;text-transform:uppercase;letter-spacing:0.05em;">People</h2>' + cwGrid_(head, rows);
+  var reps = reports.length
+    ? '<h2 style="margin:18px 0 8px;' + F + 'font-size:12px;font-weight:bold;color:#2d2a26;text-transform:uppercase;letter-spacing:0.05em;">Vendor-run reports</h2>' +
+      '<p style="margin:0;' + F + 'font-size:12px;color:#2d2a26;line-height:1.6;">' + reports.map(function (r) { return cwLinkify_(r); }).join('<br>') + '</p>' +
+      '<p style="margin:6px 0 0;' + F + 'font-size:11px;color:#636466;">Also attached to this email. Save it to the vendor folder, then mark the person Clear or Not clear on the desk.</p>'
+    : '';
+  var next = obBcNextText_(rtype, reports.length);
+  var inner = '<p style="margin:0 0 12px;' + F + 'font-size:15px;font-weight:bold;color:#2d2a26;">' + cwEscT_(kindLabel) + ' from ' + cwEscT_(company) + '</p>' +
+    warn + facts + grid + reps +
+    '<p style="margin:16px 0 0;' + F + 'font-size:12px;color:#636466;line-height:1.5;">' + cwEscT_(next) + '</p>' +
+    cwButton_('Open the onboarding desk', OB_DESK_URL + '#bc');
+  return cwShell_(kindLabel, mk.name, inner, 'Sent by the City Wide Nevada team platform from the Vendor Hub background check page. Reply goes to the person who submitted it. GoCityWide.com');
+}
+function obBcNextText_(rtype, reportCount) {
+  if (reportCount) return 'Next step: review the attached report, file it, and record the result on the desk.';
+  if (rtype === OB_REQ_TYPES[0]) return 'Next step: send the consent form through Verified First, then record the result on the desk when it comes back.';
+  return 'Next step: order the name badge and mark it on the desk.';
 }
 
 // Admin: {req_id, status?, sent?, badge?, notes?, vendor_id?, who}

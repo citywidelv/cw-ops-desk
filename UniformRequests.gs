@@ -314,7 +314,21 @@ function clean_(s) {
 }
 
 function alert_(subject, body) {
-  try { MailApp.sendEmail(ALERT_EMAIL, '[CW Uniform Sync] ' + subject, body, { name: 'CW Uniform Sync' }); } catch (e) {}
+  // Oct 2 2026: HTML like every other platform email. Plain body stays as the text part.
+  try {
+    var F = 'font-family:Verdana,Arial,sans-serif;';
+    var esc = function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+    var paras = String(body || '').split(/\n\s*\n/).filter(Boolean).map(function (p) {
+      return '<p style="margin:0 0 14px;' + F + 'font-size:13px;color:#2d2a26;line-height:1.55;">' + esc(p).replace(/\n/g, '<br>') + '</p>';
+    }).join('');
+    var html = '<table bgcolor="#f4f4f4" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td align="center" style="padding:20px 0;">' +
+      '<table bgcolor="#ffffff" border="0" cellpadding="0" cellspacing="0" width="680" style="max-width:680px;">' +
+      '<tr><td style="padding:24px 30px 0;"><img src="' + LOGO + '" height="38" alt="City Wide Facility Solutions" style="display:block;border:0;height:38px;width:auto;"></td></tr>' +
+      '<tr><td style="padding:18px 30px 0;"><div style="background:#2d2a26;color:#ffffff;' + F + 'font-size:15px;font-weight:bold;padding:12px 16px;letter-spacing:0.5px;">UNIFORM SYNC</div></td></tr>' +
+      '<tr><td style="padding:18px 30px 30px;"><p style="margin:0 0 14px;' + F + 'font-size:15px;font-weight:bold;color:#2d2a26;">' + esc(subject) + '</p>' + paras +
+      '<p style="margin:26px 0 0;' + F + 'font-size:11px;line-height:1.6;color:#999999;">Sent by the City Wide Nevada team platform (nightly Bennett uniform sync). GoCityWide.com</p></td></tr></table></td></tr></table>';
+    MailApp.sendEmail(ALERT_EMAIL, '[CW Uniform Sync] ' + subject, body, { name: 'CW Uniform Sync', htmlBody: html });
+  } catch (e) {}
 }
 
 
