@@ -582,6 +582,14 @@ function handleInvSave(data) {
   }
   invRebuildOnHand_();
 
+  // The count sets the vendor shop's stock for the day it is submitted.
+  var shop = null;
+  if (reg.name === INV_SHOP_REGION) {
+    try {
+      shop = invPushShopStock_(lines.map(function (l) { return String(l.sku || ''); }), false);
+    } catch (eShop) { shop = { ok: false, error: String(eShop) }; }
+  }
+
   var reorder = data.reorder || [];
   var orderUnits = 0;
   reorder.forEach(function (r) { orderUnits += invNum_(r.order); });
@@ -604,7 +612,95 @@ function handleInvSave(data) {
   } catch (e) {}
 
   return invJson_({ ok: true, id: id, variance_lines: flagged, units_to_order: orderUnits,
-    exceptions: excRows.length });
+    exceptions: excRows.length, shop: shop });
+}
+
+/* ------------------------------------------------- vendor shop stock sync --
+   Every submitted Las Vegas count writes the new on hand into stock_qty on the
+   CW Vendor Shop Catalog (Sheet1), so the shop's In Stock / Out of Stock badge
+   matches the shelf on the day of the count. The count is the source of truth
+   and overwrites whatever the shop sheet held.
+
+   Matching lives on the Items tab of CW Inventory, column shop_sku: the sku the
+   shop catalog uses for that item. Blank means the item is not sold in the shop.
+   The column is created and filled with the known matches on first run; edit it
+   there, no deploy needed. Apparel is pushed as the total across sizes and colors.
+   Only items on the count are pushed, so an item nobody counted is never zeroed. */
+var INV_SHOP_BOOK_ID = '1p0CJVr6UJnYTBvAF3-VPBA_6uBHG9BLlByryXLwlOTw';   // CW Vendor Shop Catalog
+var INV_SHOP_TAB     = 'Sheet1';
+var INV_SHOP_REGION  = 'Las Vegas';
+var INV_SHOP_DEFAULTS = {
+  'A-112-02H':  'A-112-02H',
+  'A8-112L':    '8-550',      // green light duty bottle
+  'A8-112H':    '890109',     // red heavy duty bottle
+  '122-06Q-EA': '122-06Q',
+  '138-12Q-EA': '138-12Q',
+  'UNI-VEST':   'UNI-VEST',
+  'UNI-APRON':  'UNI-APRON'
+};
+
+/* {inventory sku: shop sku} from the Items tab, creating the column if missing. */
+function invShopMap_() {
+  var sh = invSheet_(INV_ITEM_TAB, INV_ITEM_HEADERS, '#2D2A26');
+  var lastCol = Math.max(sh.getLastColumn(), INV_ITEM_HEADERS.length);
+  var head = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) { return String(h).trim(); });
+  var col = head.indexOf('shop_sku') + 1;
+  var n = sh.getLastRow() - 1;
+  if (!col) {
+    col = lastCol + 1;
+    sh.getRange(1, col).setValue('shop_sku').setFontWeight('bold')
+      .setBackground('#2D2A26').setFontColor('#FFFFFF');
+    if (n > 0) {
+      var skus = sh.getRange(2, 1, n, 1).getValues();
+      sh.getRange(2, col, n, 1).setValues(skus.map(function (r) {
+        return [INV_SHOP_DEFAULTS[String(r[0])] || ''];
+      }));
+    }
+  }
+  var map = {};
+  if (n > 0) {
+    var a = sh.getRange(2, 1, n, 1).getValues();
+    var b = sh.getRange(2, col, n, 1).getValues();
+    for (var i = 0; i < n; i++) {
+      var s = String(a[i][0]).trim(), t = String(b[i][0]).trim();
+      if (s && t) map[s] = t;
+    }
+  }
+  return map;
+}
+
+/* Push on hand for the given skus (all mapped skus when none given).
+   dryRun returns what would be written without writing. */
+function invPushShopStock_(skus, dryRun) {
+  var map = invShopMap_();
+  var want = {};
+  (skus && skus.length ? skus : Object.keys(map)).forEach(function (s) {
+    s = String(s || ''); if (map[s]) want[s] = true;
+  });
+  var totals = {};                       // shop sku -> on hand
+  invSnapshot_(INV_SHOP_REGION).rows.forEach(function (r) {
+    if (!want[r.sku]) return;
+    var t = map[r.sku];
+    totals[t] = (totals[t] || 0) + invNum_(r.on_hand);
+  });
+
+  var sh = SpreadsheetApp.openById(INV_SHOP_BOOK_ID).getSheetByName(INV_SHOP_TAB);
+  var vals = sh.getDataRange().getValues();
+  var head = vals[0].map(function (h) { return String(h).trim(); });
+  var cSku = head.indexOf('sku'), cQty = head.indexOf('stock_qty'), cId = head.indexOf('id');
+  if (cSku < 0 || cQty < 0) return { ok: false, error: 'shop catalog missing sku or stock_qty column' };
+
+  var changes = [];
+  for (var i = 1; i < vals.length; i++) {
+    var t = String(vals[i][cSku]).trim();
+    if (!t || !(t in totals)) continue;
+    var qty = Math.max(0, Math.round(totals[t]));
+    var was = vals[i][cQty];
+    changes.push({ row: i + 1, id: cId >= 0 ? String(vals[i][cId]) : '', sku: t, was: was, now: qty });
+    if (!dryRun && String(was) !== String(qty)) sh.getRange(i + 1, cQty + 1).setValue(qty);
+  }
+  return { ok: true, region: INV_SHOP_REGION, dry_run: !!dryRun, updated: changes.length,
+    changes: changes };
 }
 
 /* A one line movement summary per variant inside a count window. */
