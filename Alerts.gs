@@ -359,7 +359,7 @@ function alShop_(accounts, idx) {
     items.push({
       key: key, type: 'shop',
       fsm: acct.fsm,
-      region: acct.region,
+      region: acct.region || alStr_(r['Region']),   // Oct 2 2026: shop checkout now records the market (ShopOrders.gs)
       when: alIso_(when), when_nice: alNice_(when),
       from: alStr_(r['Vendor Name']) + (alStr_(r['Company']) ? ' (' + alStr_(r['Company']) + ')' : ''),
       about: (alStr_(r['Primary Account']) || 'No account given') + (acct.name && alNorm_(acct.name) !== alNorm_(r['Primary Account']) ? ' (matched to ' + acct.name + ')' : ''),
