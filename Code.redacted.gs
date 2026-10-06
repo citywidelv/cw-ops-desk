@@ -2599,9 +2599,33 @@ function cwMode_(tag) { var cfg = cwSendCfg_(); if (cfg[tag]) return cfg[tag]; r
 // was not reaching gocitywide.com (no bounce, just gone). MAIL_VIA=mailapp or a blank
 // MAIL_FROM falls back to plain MailApp. Takes the MailApp object form or (to, subject, body, options).
 var CW_ALIASES_ = null;
+// Oct 6 2026, TJ: anything about vendors reaches Angel (ops admin / IC recruiter) directly.
+// A team notice addressed To a compliance inbox is sent To Angel with the inbox and any
+// existing cc kept on cc. A notice that only cc's a compliance inbox gets Angel on cc too.
+// Mail To vendors themselves is untouched. Every module sends through cwSend_, so this is
+// the one place for the rule.
+var CW_VENDOR_ADMIN = 'Angel.Nieves@gocitywide.com';
+function cwVendorRoute_(o) {
+  try {
+    var split = function (s) { return String(s || '').split(/[,;]+/).map(function (x) { return x.trim(); }).filter(Boolean); };
+    var isComp = function (a) { return /compliance@gocitywide\.com$/i.test(a); };
+    var isAngel = function (a) { return a.toLowerCase() === CW_VENDOR_ADMIN.toLowerCase(); };
+    var to = split(o.to), cc = split(o.cc);
+    if (to.some(isAngel) || cc.some(isAngel)) return;
+    if (to.some(isComp)) {
+      var seen = {}, rest = [];
+      to.concat(cc).forEach(function (a) { var k = a.toLowerCase(); if (seen[k]) return; seen[k] = 1; rest.push(a); });
+      o.to = CW_VENDOR_ADMIN; o.cc = rest.join(',');
+    } else if (cc.some(isComp)) {
+      o.cc = [CW_VENDOR_ADMIN].concat(cc).join(',');
+    }
+  } catch (e) {}
+}
+
 function cwSend_(a, b, c, d) {
   var obj = a && typeof a === 'object';
   var o = obj ? a : (d || {});
+  if (obj) cwVendorRoute_(a); else { var rt = { to: a, cc: o.cc }; cwVendorRoute_(rt); a = rt.to; if (rt.cc) o.cc = rt.cc; }
   var to = obj ? a.to : a, subject = obj ? a.subject : b, body = obj ? a.body : c;
   if (!o.htmlBody) {
     if (obj) cwAutoHtml_(o);

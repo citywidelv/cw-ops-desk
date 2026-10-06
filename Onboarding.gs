@@ -27,6 +27,8 @@
 //   ob_bc_update      request-level fields: sent date, badge, notes, status
 //   ob_import_asana   pull the five Asana boards through the ASANA_PAT property
 //   ob_bc_request     NO PASSCODE. Vendor Hub background-check.html submits here.
+//   ob_account_suggest NO PASSCODE. Optional building picker on that page: the customer
+//                     list (Account FSM tab), same rule, at most three, name and city only.
 //   ob_vendor_suggest NO PASSCODE. Company name picker on that page: at most three
 //                     matches, and only once most of the name is typed (house rule).
 //   vd_eval           NO PASSCODE. Vendor Hub vendor-evaluation.html submits here.
@@ -149,6 +151,7 @@ function obDispatch(data) {
     if (kind === 'vd_eval') return obVendorEval_(data);
     if (kind === 'ob_bc_request') return obBcRequest_(data);
     if (kind === 'ob_vendor_suggest') return obVendorSuggest_(data);
+    if (kind === 'ob_account_suggest') return obAccountSuggest_(data);
     if ((data.passcode || '') === '' || (data.passcode || '') !== vdPass_()) {
       return vdOut_({ ok: false, error: 'Wrong passcode.' });
     }
@@ -671,6 +674,51 @@ function obVendorSuggest_(data) {
   return vdOut_({ ok: true, matches: out.slice(0, 3).map(function (m) { return { vendor_id: m.vendor_id, name: m.name, contact: m.contact }; }) });
 }
 
+// The optional building picker on the same page. Reads the customer list AccountFsm.gs
+// keeps (the CRM export), region first, and only returns a name once the typed text
+// covers 60% of it, or is a whole leading word of six letters or more ("arroweye" finds
+// Arroweye Solutions). At most three, name and city only.
+function obAccountSuggest_(data) {
+  var mk = obMarketKey_(data.market);
+  var q = obNorm_(data.q);
+  if (!mk || q.length < 4) return vdOut_({ ok: true, matches: [] });
+  var region = mk === 'nnv' ? 'Northern Nevada' : 'Las Vegas';
+  var rows = [];
+  try { rows = afRead_(afSS_()).rows; } catch (e) { return vdOut_({ ok: true, matches: [] }); }
+  var out = [];
+  rows.forEach(function (r) {
+    var name = vdStr_(r.name);
+    if (!name) return;
+    var reg = vdStr_(r.region) || afRegion_(r);
+    if (reg !== region) return;
+    var names = [name].concat(afAliases_(r)).map(obNorm_).filter(Boolean);
+    var best = 0;
+    names.forEach(function (n) {
+      if (n === q) best = Math.max(best, 3);
+      else if (n.indexOf(q) === 0 && (q.length >= 0.6 * n.length || (q.length >= 6 && n.charAt(q.length) === ' '))) best = Math.max(best, 2);
+      else if (n.indexOf(q) >= 0 && q.length >= 0.6 * n.length) best = Math.max(best, 1);
+    });
+    if (best) out.push({ score: best, id: vdStr_(r.crm_id), name: name, city: vdStr_(r.city) });
+  });
+  out.sort(function (a, b) { return b.score - a.score || a.name.localeCompare(b.name); });
+  return vdOut_({ ok: true, matches: out.slice(0, 3).map(function (m) { return { id: m.id, name: m.name, city: m.city }; }) });
+}
+
+// Clients whose crews need more than the standard check (Oct 6 2026, from the Arroweye
+// Agency Attestation City Wide signs). The Vendor Hub page carries the same list for the
+// vendor-facing banner; this copy drives the team email and the check_type on the
+// Background Checks tab. Add a client here and on background-check.html together.
+var OB_SPECIAL = [{ re: /arrow\s*eye/i, client: 'Arroweye', check_type: 'Arroweye: 7-year criminal + financial + attestation',
+  items: ['7-year criminal background check through Verified First: no felony or misdemeanor convictions for theft, fraud, drugs, violence, embezzlement or other financial crimes; no active warrant; not on probation',
+          'Financial background check through Verified First: credit history, no more than one bankruptcy on file',
+          'Agency Attestation letter to Arroweye for each person, signed by the COO, naming Verified First as the provider and the case handler, before the person starts in the building'] }];
+function obSpecial_(text) {
+  text = vdStr_(text);
+  if (!text) return null;
+  for (var i = 0; i < OB_SPECIAL.length; i++) if (OB_SPECIAL[i].re.test(text)) return OB_SPECIAL[i];
+  return null;
+}
+
 // Store a vendor-run report in the compliance uploads folder (Uploads.gs owns it).
 // Returns { link, name } or throws with a plain message.
 function obStoreReport_(rid, company, person, f) {
@@ -706,6 +754,9 @@ function obBcRequest_(data) {
   var subBy = vdStr_(data.submitted_by).slice(0, 120), subMail = vdStr_(data.submitter_email).slice(0, 160);
   if (subMail.indexOf('@') < 1) return vdOut_({ ok: false, error: 'Your email is required so we can reach you.' });
   var needsCheck = rtype === OB_REQ_TYPES[0];
+  var building = vdStr_(data.building).slice(0, 160) || vdStr_((people[0] || {}).client_account).slice(0, 160);
+  if (building) people.forEach(function (p) { if (p && !vdStr_(p.client_account)) p.client_account = building; });
+  var sp = obSpecial_(building);
   for (var i = 0; i < people.length; i++) {
     var p = people[i] || {};
     if (!vdStr_(p.first) || !vdStr_(p.last)) return vdOut_({ ok: false, error: 'Person ' + (i + 1) + ' needs a first and last name.' });
@@ -754,14 +805,14 @@ function obBcRequest_(data) {
       email: vdStr_(p.email).slice(0, 160), mobile: vdStr_(p.mobile).slice(0, 40), notify: vdStr_(p.notify).slice(0, 160),
       client_account: vdStr_(p.client_account).slice(0, 160), submitted_by: subBy, submitter_email: subMail,
       source: 'Vendor Hub', asana_gid: '', asana_done: '', status: hasReport ? 'Review report' : needsCheck ? 'New' : 'Badge only', sent: '',
-      badge: 'Needed', notes: hasReport ? 'Vendor ran the check on their own platform and attached the report.' : '', updated: obNow_(), updated_by: 'Vendor Hub', dupe_of: '',
+      badge: 'Needed', notes: (sp && (needsCheck || hasReport) ? sp.client.toUpperCase() + ' SPECIAL CHECK: ' + sp.check_type + '. ' : '') + (hasReport ? 'Vendor ran the check on their own platform and attached the report.' : ''), updated: obNow_(), updated_by: 'Vendor Hub', dupe_of: '',
       report_link: hasReport ? p._report.link : '', report_name: hasReport ? p._report.name : '', matched_how: m.how || ''
     };
     obAppend_(reqSh, head, req);
     ids.push(rid);
     if (needsCheck || hasReport) {
       bcRows.push({ market: mk.key, vendor_id: m.v ? m.v.vendor_id : '', vendor: m.v ? m.v.dba_name : company,
-        roster_company_as_typed: m.v ? '' : company, first_name: first, last_name: last, status: 'Pending', check_type: 'Standard',
+        roster_company_as_typed: m.v ? '' : company, first_name: first, last_name: last, status: 'Pending', check_type: sp ? sp.check_type : 'Standard',
         source: hasReport ? 'Vendor submitted' : 'City Wide',
         notes: (hasReport ? 'Vendor-run report attached on the Vendor Hub ' + obToday_() + ' (' + rid + '). Review it, save it to the vendor folder, then mark Clear or Not clear. ' + p._report.link
                           : 'Requested on the Vendor Hub ' + obToday_() + ' (' + rid + ').') });
@@ -785,9 +836,12 @@ function obBcRequest_(data) {
   // Team notice.
   try {
     var kindLabel = reports.length ? 'Vendor-run background report to review' : needsCheck ? 'Background check request' : 'Name badge request';
+    var spOn = !!(sp && (needsCheck || reports.length));
     var matchNote = m.v ? '(' + m.v.vendor_id + (m.how === 'picked' ? ', picked by the vendor' : ', matched by name') + ')' : '(NOT on the vendor directory yet)';
     var lines = [kindLabel + ' from ' + company + ' ' + matchNote, '',
       'Request: ' + rtype, 'Region: ' + mk.name, 'Submitted by: ' + subBy + ', ' + subMail, ''];
+    if (building) lines.push('Building: ' + building, '');
+    if (spOn) { lines.push(sp.client.toUpperCase() + ' SPECIAL CHECK. This is not the standard check. Every person needs:'); sp.items.forEach(function (it) { lines.push('  - ' + it); }); lines.push(reports.length ? 'The vendor attached their own report. It does not meet the attestation, which names Verified First. Run the check through Verified First.' : '', ''); }
     if (reports.length) lines.push('Reports (also attached): ' + reports.join('; '), '');
     people.forEach(function (p, i) {
       lines.push((i + 1) + '. ' + [vdStr_(p.first), vdStr_(p.middle), vdStr_(p.last)].filter(function (x) { return x; }).join(' ') +
@@ -795,8 +849,8 @@ function obBcRequest_(data) {
         (vdStr_(p.mobile) ? ', ' + vdStr_(p.mobile) : '') + (vdStr_(p.client_account) ? ', for ' + vdStr_(p.client_account) : ''));
     });
     lines.push('', 'Open the onboarding desk: ' + OB_DESK_URL + '#bc');
-    var mail = { to: mk.compliance, name: mk.sender, replyTo: subMail, subject: (reports.length ? 'Review a vendor-run background report: ' : needsCheck ? 'Background check: ' : 'Name badge: ') + company + ' (' + people.length + ')', body: lines.join('\n') };
-    try { mail.htmlBody = obBcRequestHtml_(kindLabel, company, m, mk, rtype, subBy, subMail, people, reports); } catch (he) {}
+    var mail = { to: mk.compliance, name: mk.sender, replyTo: subMail, subject: (spOn ? sp.client.toUpperCase() + ' SPECIAL CHECK - ' : '') + (reports.length ? 'Review a vendor-run background report: ' : needsCheck ? 'Background check: ' : 'Name badge: ') + company + ' (' + people.length + ')', body: lines.join('\n') };
+    try { mail.htmlBody = obBcRequestHtml_(kindLabel, company, m, mk, rtype, subBy, subMail, people, reports, spOn ? sp : null); } catch (he) {}
     if (attachments.length) mail.attachments = attachments;
     cwMail_('ob_bc_request', mail);
   } catch (me) {}
@@ -805,8 +859,11 @@ function obBcRequest_(data) {
 
 // The branded team email for a Vendor Hub background check / name badge request.
 // Uses the shared shell in Code.gs (cwShell_, cwFacts_, cwGrid_, cwButton_).
-function obBcRequestHtml_(kindLabel, company, m, mk, rtype, subBy, subMail, people, reports) {
+function obBcRequestHtml_(kindLabel, company, m, mk, rtype, subBy, subMail, people, reports, sp) {
   var F = CW_HTML_F;
+  var spBlock = sp
+    ? '<div style="margin:0 0 14px;padding:14px 16px;background:#D22730;color:#ffffff;border-radius:8px;' + F + 'font-size:13px;line-height:1.5;"><div style="font-size:11px;font-weight:bold;letter-spacing:0.1em;text-transform:uppercase;">' + cwEscT_(sp.client) + ' special check</div><div style="font-size:15px;font-weight:bold;margin:4px 0 8px;">This is not the standard check. Every person needs:</div><ul style="margin:0 0 0 18px;padding:0;">' + sp.items.map(function (it) { return '<li style="margin:0 0 4px;">' + cwEscT_(it) + '</li>'; }).join('') + '</ul>' + (reports.length ? '<div style="margin-top:8px;font-weight:bold;">The vendor attached their own report. It does not meet the attestation, which names Verified First. Run the check through Verified First.</div>' : '') + '</div>'
+    : '';
   var newCo = !m.v;
   var who = m.v ? m.v.dba_name + ' (' + m.v.vendor_id + ')' : company;
   var matched = m.v ? (m.how === 'picked' ? 'The vendor picked this company from the directory.' : 'Matched to the directory by name.') : '';
@@ -838,7 +895,7 @@ function obBcRequestHtml_(kindLabel, company, m, mk, rtype, subBy, subMail, peop
     : '';
   var next = obBcNextText_(rtype, reports.length);
   var inner = '<p style="margin:0 0 12px;' + F + 'font-size:15px;font-weight:bold;color:#2d2a26;">' + cwEscT_(kindLabel) + ' from ' + cwEscT_(company) + '</p>' +
-    warn + facts + grid + reps +
+    spBlock + warn + facts + grid + reps +
     '<p style="margin:16px 0 0;' + F + 'font-size:12px;color:#636466;line-height:1.5;">' + cwEscT_(next) + '</p>' +
     cwButton_('Open the onboarding desk', OB_DESK_URL + '#bc');
   return cwShell_(kindLabel, mk.name, inner, 'Sent by the City Wide Nevada team platform from the Vendor Hub background check page. Reply goes to the person who submitted it. GoCityWide.com');
