@@ -184,7 +184,7 @@ function nidJfRows_(market, key, keep) {
     var score = g(NID_JQ.score).replace(/[^0-9.]/g, '');
     var reason = j.title || g('Report Type');
     var sub = g(NID_JQ.sub);
-    var r = { _src: 'jotform', _id: j.id, _ts: j.ts || e.ts || 0, _timeKnown: !!sub, _link: NID_FORMS + NID_JF_SLUG[key],
+    var r = { _src: 'jotform', _id: j.id, _ts: j.ts || e.ts || 0, _timeKnown: !!sub, _link: NID_FORMS + NID_JF_SLUG[key] + '&raw=1#' + encodeURIComponent(j.id),
       inspection_id: 'Jotform ' + j.id, report_date: g(NID_JQ.date) || String(j.when || '').slice(0, 10),
       nm_name: j.who, account_name: j.where || 'Building not given', vendor_name: g(NID_JQ.vendor), reason: reason, score: score,
       fsm_action_needed: /^yes/i.test(g(NID_JQ.fsmAsk)) ? 'Yes' : 'No', fsm_action_note: g(NID_JQ.fsmNote),

@@ -174,6 +174,11 @@ Array.prototype.forEach.call(document.querySelectorAll("[data-d]"), function(b){
 $("q").addEventListener("input", render);
 
 SLUG = param("f");
+// Oct 8 2026: the Night Manager Inspection Jotforms (LV and NNV) open the merged recap page, so hub
+// and Jotform recaps show together for both markets. ?raw=1 (or a #submission link) keeps this
+// Jotform-only view, which the merged page links to for the full submission.
+var NI_MERGED = { ni_lv:"lv", ni_nnv:"nnv" };
+if (NI_MERGED[SLUG] && param("raw") !== "1" && !location.hash){ location.replace("night-inspections.html?m=" + NI_MERGED[SLUG]); return; }
 HIT = location.hash ? decodeURIComponent(location.hash.slice(1)) : "";
 if (HIT) DAYS = 0;
 if (HIT) Array.prototype.forEach.call(document.querySelectorAll("[data-d]"), function(x){ x.classList.toggle("on", x.getAttribute("data-d") === "0"); });
