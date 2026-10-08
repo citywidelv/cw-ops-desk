@@ -203,7 +203,7 @@ function render(){
     var photos = (r.photo_links||"").split("\n").filter(String);
     html += '<div class="card" data-i="' + i + '"><div class="row">'
       + '<div class="score' + (sc===null ? ' na' : sc < 8 ? ' low' : '') + '">' + (sc===null ? 'no<br>score' : sc + '<small>of 10</small>') + '</div>'
-      + '<div class="main"><b>' + esc(r.account_name) + '</b><div class="meta">' + esc(r.nm_name) + ' &middot; ' + esc(r.reason) + (r.vendor_name ? ' &middot; ' + esc(r.vendor_name) : '') + (r.arrival ? ' &middot; ' + esc(r.arrival) + (r.departure ? ' to ' + esc(r.departure) : '') : '') + (r.fsm ? ' &middot; FSM ' + esc(r.fsm) : '') + (r._src === "jotform" ? ' <span class="flag src">Jotform</span>' : '') + '</div>'
+      + '<div class="main"><b>' + esc(r.account_name) + '</b><div class="meta">' + esc(r.nm_name) + ' &middot; ' + esc(r.reason) + (r.vendor_name ? ' &middot; ' + esc(r.vendor_name) : '') + (r.arrival ? ' &middot; ' + esc(clock(r.arrival)) + (r.departure ? ' to ' + esc(clock(r.departure)) : '') : '') + (r.fsm ? ' &middot; FSM ' + esc(r.fsm) : '') + (r._src === "jotform" ? ' <span class="flag src">Jotform</span>' : '') + '</div>'
       + (flags ? '<div class="flags">' + flags + '</div>' : '') + '</div>'
       + '<div class="links">' + (r._src === "jotform" ? '<a href="form-view.html?f=' + esc(r._slug) + '&raw=1#' + encodeURIComponent(r._jf ? r._jf.id : '') + '">Jotform</a>' : '') + (r.pdf_url ? '<a class="pdf" href="' + esc(r.pdf_url) + '" target="_blank" rel="noopener">PDF</a>' : '') + (photos.length && r._src !== "jotform" ? '<a href="' + esc(r.photo_folder_url || photos[0]) + '" target="_blank" rel="noopener">' + photos.length + ' photo' + (photos.length>1?'s':'') + '</a>' : '') + '</div>'
       + '</div><div class="det">' + (r._src === "jotform" ? detailJf(r, photos) : detail(r, photos)) + '</div></div>';
@@ -241,6 +241,14 @@ function detailJf(r, photos){
   if (r.summary) t += '<div class="sum">' + esc(r.summary) + '</div>';
   if (photos.length) t += '<div class="thumbs">' + photos.map(function(u, i){ return '<a class="lnk" href="' + esc(u) + '" target="_blank" rel="noopener">Photo ' + (i + 1) + '</a>'; }).join("") + '</div>';
   return t;
+}
+// Sheets turns a typed "18:40" into a time value that reads back as "1899-12-30 18:40". Show it as a clock time.
+function clock(s){
+  s = String(s == null ? "" : s).trim();
+  var m = s.match(/^(?:1899-12-(?:29|30|31)[ T])?(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!m) return s;
+  var h = +m[1], ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
+  return h + ":" + m[2] + " " + ap;
 }
 function niceDay(d){ if (!d) return ""; d = String(d).slice(0,10); var p = d.split("-"); var dt = new Date(Number(p[0]), Number(p[1])-1, Number(p[2])); return dt.toLocaleDateString("en-US", { weekday:"long", month:"short", day:"numeric" }); }
 
