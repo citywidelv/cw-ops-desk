@@ -53,6 +53,9 @@ h1{font-size:20px;margin-bottom:4px}
 .thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .thumbs a{display:block;width:120px;height:120px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#eee}
 .thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+.flag.src{background:#fff;border:1px solid var(--border);color:var(--grey)}
+.jfnote{font-size:12px;color:var(--grey);margin:-6px 0 12px}
+.thumbs a.lnk{width:auto;height:auto;padding:8px 12px;font-size:12px;font-weight:700;color:var(--black);text-decoration:none;background:#fff}
 .empty{text-align:center;color:var(--grey);padding:40px 10px}
 .gatebox{max-width:380px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
 .hidden{display:none!important}
@@ -72,7 +75,7 @@ h1{font-size:20px;margin-bottom:4px}
 <div id="gate" class="gatebox hidden"><b>Open this from the Ops Hub</b><p class="sub">This page uses the Ops Hub session on this device.</p><a href="index.html">&larr; Ops Hub</a></div>
 <div id="app" class="hidden">
 <h1>Night inspection recaps</h1>
-<div class="sub">Newest first. Tap a row for the details, the PDF has everything with the photos in it. <a href="night-inspection.html">File a new recap</a>.</div>
+<div class="sub">Newest first. Recaps filed on the hub and on the Jotform both show here. Tap a row for the details. Hub recaps carry a PDF with the photos in it. <a href="night-inspection.html">File a new recap</a>.</div>
 <div class="tools">
 <button class="chip on" data-m="lv" type="button">Las Vegas</button><button class="chip" data-m="nnv" type="button">Northern Nevada</button>
 <select id="nm"><option value="">All night managers</option></select>
@@ -80,6 +83,7 @@ h1{font-size:20px;margin-bottom:4px}
 <button class="chip red" id="flagsOnly" type="button">Needs attention only</button>
 <input type="search" id="q" placeholder="Search building, company, name">
 </div>
+<div class="jfnote" id="jfNote"></div>
 <div id="list"><div class="empty">Loading...</div></div>
 <div class="sub" id="sheetLink" style="margin-top:14px"></div>
 </div>
@@ -92,6 +96,11 @@ h1{font-size:20px;margin-bottom:4px}
 "use strict";
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var PASS = "", MKT = "lv", ROWS = [], FLAGS_ONLY = false;
+// Oct 8 2026: Jotform recaps (Feeds slugs ni_lv / ni_nnv, read through jf_list) are merged
+// into this page so the FSMs have one place to look whichever form the night manager used.
+var HUB_ROWS = [], JF_ROWS = [], JF_STATE = "", LOADSEQ = 0, STAFF = null;
+var JF_SLUG = { lv:"ni_lv", nnv:"ni_nnv" }, JF_DAYS = 30;
+var JQ = { score:"Rate the Quality of the Clean based on what you see tonight", fsmAsk:"Any actions needed by the FSM tomorrow morning?", fsmNote:"FSM Follow-up needed", resolved:"Were all issues resolved before you left", why:"Why wasn't it resolved prior to you leaving, what is the plan for resolution?", how:"How was the issue Resolved", uniform:"Is the crew all in uniform?", supplies:"Do we need to order supplies for the account or for the vendor?", times:"Arrival and Departure Times", vendor:"Vendor", fsmEmail:"FSM Email", date:"Date", sub:"Submission Date" };
 var FLAG = { standards_failed:["Standard not met","hot"], low_score:["Low score","hot"], complaint:["Complaint","hot"], unresolved:["Unresolved","hot"], fsm_action:["FSM action","hot"], crew_unverified:["Crew not background checked","mid"], uniform:["Uniform","mid"], supplies:["Supplies",""], unmatched_vendor:["Company not in directory",""], unmatched_account:["Building not in directory",""] };
 function $(id){ return document.getElementById(id); }
 function esc(s){ var d=document.createElement("div"); d.textContent=String(s==null?"":s); return d.innerHTML; }
@@ -99,14 +108,76 @@ function post(body){ body.passcode = PASS; return fetch(WEBHOOK, { method:"POST"
 function driveId(u){ var m = String(u||"").match(/\/d\/([^\/]+)/); return m ? m[1] : ""; }
 
 function load(){
-  $("list").innerHTML = '<div class="empty">Loading...</div>';
-  post({ kind:"ni_list", market: MKT, limit: 200 }).then(function(r){
+  var seq = ++LOADSEQ, mkt = MKT;
+  HUB_ROWS = []; JF_ROWS = []; JF_STATE = "loading"; ROWS = [];
+  $("list").innerHTML = '<div class="empty">Loading...</div>'; jfNote();
+  loadJf(seq, mkt);
+  post({ kind:"ni_list", market: mkt, limit: 200 }).then(function(r){
+    if (seq !== LOADSEQ) return;
     if (!r || !r.ok){ if (r && CWAuth.isPassError(r.error)) return CWAuth.locked("ops", r.error); $("list").innerHTML = '<div class="empty">' + esc((r && r.error) || "Could not load.") + '</div>'; return; }
-    ROWS = r.rows || [];
-    if (r.sheet_url) $("sheetLink").innerHTML = 'Every recap is also a row on the <a href="' + esc(r.sheet_url) + '" target="_blank" rel="noopener">CW Night Inspections sheet</a>.';
-    fillSel("nm", "nm_name"); fillSel("fsm", "fsm");
-    render();
-  }).catch(function(){ $("list").innerHTML = '<div class="empty">Could not reach the server.</div>'; });
+    HUB_ROWS = (r.rows || []).map(function(x){ x._src = "hub"; x._ts = hubTs(x.submitted_at); return x; });
+    if (r.sheet_url) $("sheetLink").innerHTML = 'Every hub recap is also a row on the <a href="' + esc(r.sheet_url) + '" target="_blank" rel="noopener">CW Night Inspections sheet</a>. Jotform recaps open in full under Form Submissions.';
+    merge();
+  }).catch(function(){ if (seq === LOADSEQ) $("list").innerHTML = '<div class="empty">Could not reach the server.</div>'; });
+}
+function merge(){
+  ROWS = HUB_ROWS.concat(JF_ROWS).sort(function(a, b){
+    var da = String(a.report_date||"").slice(0,10), db = String(b.report_date||"").slice(0,10);
+    if (da !== db) return da < db ? 1 : -1;
+    return (b._ts||0) - (a._ts||0);
+  });
+  fillSel("nm", "nm_name"); fillSel("fsm", "fsm");
+  render(); jfNote();
+}
+function jfNote(){
+  var n = JF_ROWS.length;
+  $("jfNote").textContent = JF_STATE === "loading" ? "Loading Jotform recaps..." : JF_STATE === "err" ? "Jotform recaps could not load. Hub recaps are shown." : JF_STATE === "ok" ? "Includes " + n + " Jotform recap" + (n===1?"":"s") + " from the last " + JF_DAYS + " days." : "";
+}
+function hubTs(s){ var m = String(s||"").match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})/); return m ? new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5]).getTime() : 0; }
+// Staff tab, cached 12 hours, so a Jotform FSM email shows as a name.
+function staff(){
+  if (STAFF) return Promise.resolve(STAFF);
+  try { var c = JSON.parse(localStorage.getItem("cwStaffList") || "null"); if (c && c.t > Date.now() - 432e5){ STAFF = c.s; return Promise.resolve(STAFF); } } catch (e) {}
+  return post({ kind:"staff_list" }).then(function(r){ STAFF = (r && r.ok && r.staff) || []; try { localStorage.setItem("cwStaffList", JSON.stringify({ t: Date.now(), s: STAFF })); } catch (e) {} return STAFF; }).catch(function(){ STAFF = []; return STAFF; });
+}
+function nameFor(email){
+  email = String(email||"").trim().toLowerCase(); if (!email) return "";
+  var hit = (STAFF||[]).filter(function(p){ return String(p.email||"").trim().toLowerCase() === email; })[0];
+  if (hit) return String(hit.name).replace(/\s+/g, " ").trim();
+  return email.split("@")[0].split(/[._]/).map(function(w){ return w.charAt(0).toUpperCase() + w.slice(1); }).join(" ");
+}
+function loadJf(seq, mkt){
+  Promise.all([post({ kind:"jf_list", slug: JF_SLUG[mkt], days: JF_DAYS, limit: 400 }), staff()]).then(function(res){
+    if (seq !== LOADSEQ) return;
+    var r = res[0];
+    if (!r || !r.ok){ JF_STATE = "err"; jfNote(); return; }
+    JF_ROWS = (r.rows || []).map(function(j){ return fromJf(j, mkt); });
+    JF_STATE = "ok";
+    merge();
+  }).catch(function(){ if (seq === LOADSEQ){ JF_STATE = "err"; jfNote(); } });
+}
+// One Jotform submission in the hub row shape, flags computed the same way the hub computes them.
+function fromJf(j, mkt){
+  var f = j.fields || {}, g = function(k){ return String(f[k] || "").trim(); };
+  var score = g(JQ.score).replace(/[^0-9.]/g, "");
+  var reason = j.title || g("Report Type");
+  var o = { _src:"jotform", _jf: j, _ts: j.ts || 0, _slug: JF_SLUG[mkt],
+    inspection_id: "Jotform " + j.id, submitted_at: g(JQ.sub) || j.when_nice || "", report_date: g(JQ.date) || String(j.when||"").slice(0,10),
+    nm_name: j.who, account_name: j.where || "Building not given", vendor_name: g(JQ.vendor), fsm: nameFor(g(JQ.fsmEmail) || j.fsm),
+    reason: reason, arrival: g(JQ.times), departure: "", score: score,
+    fsm_action_needed: /^yes/i.test(g(JQ.fsmAsk)) ? "Yes" : "No", fsm_action_note: g(JQ.fsmNote),
+    complaint_flag: /complaint/i.test(reason) ? "TRUE" : "FALSE",
+    issues_resolved: g(JQ.resolved), issue_remaining: g(JQ.why),
+    summary: g("Summary") || j.summary || "", photo_links: (j.photos || []).join("\n"), pdf_url: "" };
+  var fl = [];
+  if (score !== "" && Number(score) < 8) fl.push("low_score");
+  if (o.complaint_flag === "TRUE") fl.push("complaint");
+  if (/^no/i.test(o.issues_resolved)) fl.push("unresolved");
+  if (o.fsm_action_needed === "Yes") fl.push("fsm_action");
+  if (/^no/i.test(g(JQ.uniform))) fl.push("uniform");
+  if (/^yes/i.test(g(JQ.supplies))) fl.push("supplies");
+  o.flags = fl.join(",");
+  return o;
 }
 function fillSel(id, key){
   var sel = $(id), cur = sel.value, seen = {};
@@ -119,7 +190,7 @@ function render(){
     if (nm && r.nm_name !== nm) return false;
     if (fsm && r.fsm !== fsm) return false;
     if (FLAGS_ONLY && !/low_score|complaint|unresolved|fsm_action|crew_unverified|standards_failed/.test(r.flags||"")) return false;
-    if (q && (r.account_name + " " + r.vendor_name + " " + r.nm_name + " " + r.summary).toLowerCase().indexOf(q) < 0) return false;
+    if (q && (r.account_name + " " + r.vendor_name + " " + r.nm_name + " " + r.fsm + " " + r.reason + " " + r.summary).toLowerCase().indexOf(q) < 0) return false;
     return true;
   });
   if (!rows.length){ $("list").innerHTML = '<div class="empty">Nothing here yet.</div>'; return; }
@@ -132,10 +203,10 @@ function render(){
     var photos = (r.photo_links||"").split("\n").filter(String);
     html += '<div class="card" data-i="' + i + '"><div class="row">'
       + '<div class="score' + (sc===null ? ' na' : sc < 8 ? ' low' : '') + '">' + (sc===null ? 'no<br>score' : sc + '<small>of 10</small>') + '</div>'
-      + '<div class="main"><b>' + esc(r.account_name) + '</b><div class="meta">' + esc(r.nm_name) + ' &middot; ' + esc(r.reason) + (r.vendor_name ? ' &middot; ' + esc(r.vendor_name) : '') + (r.arrival ? ' &middot; ' + esc(r.arrival) + (r.departure ? ' to ' + esc(r.departure) : '') : '') + (r.fsm ? ' &middot; FSM ' + esc(r.fsm) : '') + '</div>'
+      + '<div class="main"><b>' + esc(r.account_name) + '</b><div class="meta">' + esc(r.nm_name) + ' &middot; ' + esc(r.reason) + (r.vendor_name ? ' &middot; ' + esc(r.vendor_name) : '') + (r.arrival ? ' &middot; ' + esc(r.arrival) + (r.departure ? ' to ' + esc(r.departure) : '') : '') + (r.fsm ? ' &middot; FSM ' + esc(r.fsm) : '') + (r._src === "jotform" ? ' <span class="flag src">Jotform</span>' : '') + '</div>'
       + (flags ? '<div class="flags">' + flags + '</div>' : '') + '</div>'
-      + '<div class="links">' + (r.pdf_url ? '<a class="pdf" href="' + esc(r.pdf_url) + '" target="_blank" rel="noopener">PDF</a>' : '') + (photos.length ? '<a href="' + esc(r.photo_folder_url || photos[0]) + '" target="_blank" rel="noopener">' + photos.length + ' photo' + (photos.length>1?'s':'') + '</a>' : '') + '</div>'
-      + '</div><div class="det">' + detail(r, photos) + '</div></div>';
+      + '<div class="links">' + (r._src === "jotform" ? '<a href="form-view.html?f=' + esc(r._slug) + '">Jotform</a>' : '') + (r.pdf_url ? '<a class="pdf" href="' + esc(r.pdf_url) + '" target="_blank" rel="noopener">PDF</a>' : '') + (photos.length && r._src !== "jotform" ? '<a href="' + esc(r.photo_folder_url || photos[0]) + '" target="_blank" rel="noopener">' + photos.length + ' photo' + (photos.length>1?'s':'') + '</a>' : '') + '</div>'
+      + '</div><div class="det">' + (r._src === "jotform" ? detailJf(r, photos) : detail(r, photos)) + '</div></div>';
   });
   $("list").innerHTML = html;
   Array.prototype.forEach.call(document.querySelectorAll(".row"), function(el){ el.addEventListener("click", function(e){ if (e.target.closest("a")) return; el.parentNode.classList.toggle("open"); }); });
@@ -163,12 +234,29 @@ function detail(r, photos){
   if (photos.length) t += '<div class="thumbs">' + photos.map(function(u){ var id = driveId(u); return '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + (id ? '<img loading="lazy" src="https://drive.google.com/thumbnail?id=' + esc(id) + '&sz=w240" alt="">' : '') + '</a>'; }).join("") + '</div>';
   return t;
 }
+function detailJf(r, photos){
+  var f = (r._jf && r._jf.fields) || {}, skip = { "Name - First Name":1, "Name - Last Name":1, "Summary":1, "Submission Date":1, "Email":1 };
+  var t = '<table>' + Object.keys(f).filter(function(k){ return !skip[k] && String(f[k]).trim(); }).map(function(k){ return '<tr><th>' + esc(k) + '</th><td>' + esc(f[k]) + '</td></tr>'; }).join("")
+    + '<tr><th>Filed</th><td>' + esc((r.submitted_at || r.report_date) + " - " + r.inspection_id) + '</td></tr></table>';
+  if (r.summary) t += '<div class="sum">' + esc(r.summary) + '</div>';
+  if (photos.length) t += '<div class="thumbs">' + photos.map(function(u, i){ return '<a class="lnk" href="' + esc(u) + '" target="_blank" rel="noopener">Photo ' + (i + 1) + '</a>'; }).join("") + '</div>';
+  return t;
+}
 function niceDay(d){ if (!d) return ""; d = String(d).slice(0,10); var p = d.split("-"); var dt = new Date(Number(p[0]), Number(p[1])-1, Number(p[2])); return dt.toLocaleDateString("en-US", { weekday:"long", month:"short", day:"numeric" }); }
 
 Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(b){ b.addEventListener("click", function(){ MKT = b.getAttribute("data-m"); Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(x){ x.classList.toggle("on", x===b); }); load(); }); });
 $("flagsOnly").addEventListener("click", function(){ FLAGS_ONLY = !FLAGS_ONLY; this.classList.toggle("on", FLAGS_ONLY); render(); });
 $("q").addEventListener("input", render); $("nm").addEventListener("change", render); $("fsm").addEventListener("change", render);
 
+// Deep links from the 7am roll-up email: ?m=lv|nnv picks the market, ?attn=1 opens on
+// Needs attention only, ?q= prefills the search box.
+try {
+  var QS = new URLSearchParams(location.search);
+  var qm = String(QS.get("m") || "").toLowerCase();
+  if (qm === "lv" || qm === "nnv"){ MKT = qm; Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(x){ x.classList.toggle("on", x.getAttribute("data-m") === qm); }); }
+  if (QS.get("attn") === "1"){ FLAGS_ONLY = true; $("flagsOnly").classList.add("on"); }
+  if (QS.get("q")) $("q").value = QS.get("q");
+} catch (e) {}
 PASS = CWAuth.require({hub:"ops"});
 if (PASS){ document.getElementById("app").classList.remove("hidden"); load(); }
 })();
