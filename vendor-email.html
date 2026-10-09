@@ -11,7 +11,7 @@ then the rest of the screen is that tool. Nothing here invents a new send path:
 
   New opportunity        the Email Vendors panel from Active Postings (notify.js,
                          kind vm_queue on CW Vendor Sender). One Schedule and Send,
-                         staggered by the script, everyone in BCC.
+                         staggered by the script, one email per vendor.
   Message to vendors     the pre-written messages (uniforms, audit, invoices,
                          insurance, crew list, background checks, holiday, custom).
                          Vendor picker from the live directory (vd_list), counts
@@ -22,7 +22,9 @@ then the rest of the screen is that tool. Nothing here invents a new send path:
   Insurance reminders    insurance.html embedded (ins_send).
 
 The embedded pages get ?embed=1, which hides their own header and footer.
-Rules that hold everywhere here: vendors are always in BCC, never To or CC.
+Rules that hold everywhere here: each vendor gets their own email, To that vendor
+only, replies to the office mailbox. Nothing internal on To or CC. Vendors never
+see each other. The mail-app backup is the one place BCC is still used.
 The do not email list is honored by the script on every marketing send.
 Deep links: ?type=message|opportunity|violation|invite|bc|insurance
             ?vendor=V-042 (pre-picks that vendor for a message)
@@ -204,7 +206,7 @@ textarea{min-height:260px;line-height:1.55;resize:vertical}
 </div>
 
 <div class="card"><h2>2. Who gets it? <span class="lk" style="cursor:default" id="pickCount">0 picked</span></h2>
-<p class="hint">From the live Vendor Directory. Do Not Contact vendors, hidden vendors and anyone on the <a href="vendor-dne.html">do not email list</a> or marked Email needs update are never listed. Vendors without an email show greyed out. Everyone you pick goes in BCC; they never see each other.</p>
+<p class="hint">From the live Vendor Directory. Do Not Contact vendors, hidden vendors and anyone on the <a href="vendor-dne.html">do not email list</a> or marked Email needs update are never listed. Vendors without an email show greyed out. Everyone you pick gets their own email; they never see each other.</p>
 <div class="tools">
   <input type="text" id="search" placeholder="Search by company, owner or email" autocomplete="off">
   <label class="chk"><input type="checkbox" id="showProspects"> Show prospects</label>
@@ -234,7 +236,7 @@ textarea{min-height:260px;line-height:1.55;resize:vertical}
 <div class="mailtos" id="mailtos" style="margin-top:10px"></div>
 </div>
 
-<div class="sendbar" id="sendbar"><span class="cnt"><b id="barCount">0</b> vendors in BCC</span><span class="grow"></span><span class="hint" style="margin:0" id="barNote"></span><a class="btn sm" href="#sendCard">Go to send</a></div>
+<div class="sendbar" id="sendbar"><span class="cnt"><b id="barCount">0</b> vendors picked</span><span class="grow"></span><span class="hint" style="margin:0" id="barNote"></span><a class="btn sm" href="#sendCard">Go to send</a></div>
 </div>
 
 <!-- ============ EMBEDDED TOOLS ============ -->
@@ -519,7 +521,7 @@ $("sendBtn").addEventListener("click", function(){
   var emails = selectedEmails(), test = $("testMode").checked, testTo = $("testTo").value.trim();
   if(test && !emailOk(testTo)){ note("sendErr", "Type the address the test copy should go to.", "err"); return; }
   if(!test && !emails.length){ note("sendErr", "Pick at least one vendor.", "err"); return; }
-  if(!test && !confirm("Schedule this message to " + emails.length + " vendor" + (emails.length === 1 ? "" : "s") + " in BCC?")) return;
+  if(!test && !confirm("Schedule this message to " + emails.length + " vendor" + (emails.length === 1 ? "" : "s") + ", one email each?")) return;
   var btn = $("sendBtn"); btn.classList.add("busy");
   var payload = { sender:$("sender").value, reply_to:currentReply(), template:"msg:" + TPL + ":" + stamp(), subject:filled($("subj").value).trim(), body:filled($("body").value), by:$("by").value.trim() };
   if(test){ payload.kind = "vm_send"; payload.to = emails.length && emails.length <= BATCH_MAX ? emails : [testTo]; payload.test = true; payload.test_to = testTo; }

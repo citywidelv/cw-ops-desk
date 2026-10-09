@@ -1,4 +1,4 @@
-/* CW Ops Hub: Email Vendors panel (build 2026-09-21a: Open in mail app fallback beside Schedule and Send)
+/* CW Ops Hub: Email Vendors panel (build 2026-10-09a: one email per vendor, nothing internal on To or CC)
    Shared by post.html (right after a posting goes live) and postings.html
    (any open posting). Pulls the live Vendor Directory (vd_list), matches
    vendors to the posting's region and trade, and sends a short branded HTML
@@ -11,8 +11,11 @@
    because mail apps cap how long a mailto link can be. Plain text, no logo,
    and nothing is logged on the hub, so the Emailed tags do not update.
 
-   Rule from TJ: vendors are ALWAYS blind copied. The To line is the office
-   mailbox. No path here puts a vendor in To or CC. Do not add one.
+   Rule from TJ (Oct 1 2026): the hub sender emails each vendor on their own,
+   To that vendor only, replies to the office mailbox. No internal address is
+   ever on To or CC, so the service inbox does not get a copy of every batch.
+   Only the mail-app fallback still uses BCC, because that is the sender's own
+   mail app. Vendors never see each other on any path.
 
    The email is deliberately short: a new opportunity, the trade, the industry,
    the area of town, and one red button to the posting. No pay, no size.
@@ -27,8 +30,8 @@
    unchecking them anywhere flips every copy, and the BCC list is deduped.
 
    One click, any size list: the page posts vm_queue with everyone checked and
-   the script works through the list on a timer, 20 vendors per email every 10
-   minutes, inside the day's Gmail allowance (VendorMessages.gs, Queue section).
+   the script works through the list on a timer, 20 vendors every 10 minutes,
+   one email each, inside the day's Gmail allowance (CW Vendor Sender, Queue section).
    Who already got a posting comes back from vm_queue_status, so the "Emailed"
    and "Scheduled" tags are shared by the whole team, and the server refuses to
    queue the same vendor twice for one posting.
@@ -334,7 +337,7 @@
     var h = '<h3>Email vendors about this posting</h3>' +
       '<div class="sub"><b>1.</b> Check the vendors who should hear about this job. Nobody is checked to start. ' +
       '<b>2.</b> Look over the email. <b>3.</b> Click Schedule and Send once. The hub sends it for you as ' + esc(sender.name) +
-      ', 20 vendors at a time every 10 minutes, every vendor on BCC so nobody sees anybody else. You can close the page. ' +
+      ', 20 vendors every 10 minutes, each vendor gets their own email so nobody sees anybody else, and nothing internal is copied. You can close the page. ' +
       'If the hub sender is down, use <b>Open in mail app</b> instead and send it from Outlook yourself.</div>' +
       '<div class="qstat hidden"></div>' +
       '<div class="tools"><input type="search" placeholder="Find a vendor&hellip;"></div>';
@@ -452,8 +455,8 @@
       armed = false; sendBtn.textContent = "Schedule and Send"; cancelBtn.classList.add("hidden");
     }
     function preview() {
-      q(".mailpv .env").innerHTML = '<div><b>From</b> ' + esc(sender.name) + '</div><div><b>To</b> ' + esc(sender.reply) +
-        '</div><div><b>BCC</b> ' + selected().length + ' vendor' + (selected().length === 1 ? '' : 's') + ', each one hidden from the others</div>' +
+      q(".mailpv .env").innerHTML = '<div><b>From</b> ' + esc(sender.name) + '</div><div><b>To</b> ' + selected().length + ' vendor' + (selected().length === 1 ? '' : 's') +
+        ', one email each, nobody sees anybody else</div><div><b>Replies to</b> ' + esc(sender.reply) + '</div>' +
         '<div><b>Subject</b> ' + (esc(q(".ed-subj").value.trim()) || "(no subject yet)") + '</div>';
       q(".mailpv .bd").innerHTML = q(".ed-body").value.trim() ? renderBody(q(".ed-body").value) : '<p style="color:#636466">Nothing written yet.</p>';
     }

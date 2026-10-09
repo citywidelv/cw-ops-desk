@@ -176,7 +176,7 @@ table.rt td{padding:6px 8px;border-bottom:1px solid #f0f0f0;}
 
   <div class="card">
     <h2><span class="n">2</span>Pick the vendors <span class="badge" id="selPill" style="background:#eee;color:var(--grey);">0 picked</span></h2>
-    <p class="sub">From the Vendor Directory. Do Not Contact vendors and anyone on the <a href="vendor-dne.html">do not email list</a> are never listed. Vendors without an email address show greyed out and cannot be picked. Every vendor you pick goes in BCC. They never see each other.</p>
+    <p class="sub">From the Vendor Directory. Do Not Contact vendors and anyone on the <a href="vendor-dne.html">do not email list</a> are never listed. Vendors without an email address show greyed out and cannot be picked. Every vendor you pick gets their own email. They never see each other.</p>
     <div class="tools">
       <input type="text" id="search" placeholder="Search by company, contact, or email" autocomplete="off">
       <label class="chk"><input type="checkbox" id="showProspects"> Show prospects</label>
@@ -230,7 +230,7 @@ table.rt td{padding:6px 8px;border-bottom:1px solid #f0f0f0;}
 </div>
 
 <div class="sendbar" id="sendbar" style="display:none;"><div class="in">
-  <span class="cnt"><b id="barCount">0</b> vendors in BCC</span>
+  <span class="cnt"><b id="barCount">0</b> vendors picked</span>
   <div class="via" role="tablist" aria-label="Send through">
     <button type="button" id="viaGmail" class="on" onclick="setVia('gmail')">Gmail</button>
     <button type="button" id="viaOutlook" onclick="setVia('outlook')">Outlook</button>
@@ -385,8 +385,8 @@ function preview(){
   var s = SENDERS[el('sender').value], n = selectedVendors().length;
   el('senderHint').textContent = 'Replies go to ' + currentReply() + '.';
   el('envHead').innerHTML = '<div><b>From</b> ' + esc(s.name) + ' &lt;citywideoflasvegas@gmail.com&gt;</div>' +
-    '<div><b>To</b> ' + esc(currentReply()) + '</div>' +
-    '<div><b>BCC</b> <span class="bcc">' + n + ' vendor' + (n===1?'':'s') + '</span>' + (n ? ', each one hidden from the others' : '') + '</div>' +
+    '<div><b>To</b> <span class="bcc">' + n + ' vendor' + (n===1?'':'s') + '</span>' + (n ? ', one email each, nobody sees anybody else' : '') + '</div>' +
+    '<div><b>Replies to</b> ' + esc(currentReply()) + '</div>' +
     '<div><b>Subject</b> ' + (el('subj').value.trim() ? esc(el('subj').value).replace(/\{[a-z_]+\}/gi, function(x){ return '<span class="ph">' + x + '</span>'; }) : '<span style="color:#8c1a20;">(no subject yet)</span>') + '</div>';
   el('envBody').innerHTML = el('body').value.trim() ? renderBody(el('body').value) : '<p class="empty">Nothing written yet.</p>';
   el('envFoot').innerHTML = esc(s.foot).replace(/\n/g,'<br>') + '<br>Replies go to ' + esc(currentReply()) + '<br>' + esc(DNE_FOOTER);

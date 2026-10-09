@@ -120,11 +120,13 @@ function vsBook_() {
 // supplies reminders, audit scheduling, invoice reminders, custom notes, and
 // so on. The page picks the vendors from the Vendor Directory (vd_list) and the
 // wording; this side sends from the platform Gmail with the chosen display
-// name, every vendor on BCC, and logs a row per batch on the Vendor Messages
+// name, one email per vendor, and logs a row per batch on the Vendor Messages
 // tab of the CW Solicitations book.
 //
-// Rule from TJ: vendors are ALWAYS blind copied. They must never see each other.
-// The To line is the office mailbox the replies go to, never a vendor.
+// Rule from TJ: vendors must never see each other, and no internal address
+// (service inbox, distribution list) is ever on To or CC. Since Oct 9 2026 every
+// vendor gets their own email, To that vendor only. Replies go to the office
+// mailbox through Reply-To.
 //
 // POST {kind:'vm_quota', passcode}                        -> {ok, quota_left, senders, reply_to}
 // POST {kind:'vm_send',  passcode, sender:'lv'|'nnv'|'both', reply_to, template,
@@ -208,8 +210,9 @@ function vmSend_(d) {
   }
 
   var chunks = [];
-  for (var i = 0; i < to.length; i += VM_CHUNK) chunks.push(to.slice(i, i + VM_CHUNK));
-  var need = test ? chunks.length : to.length + chunks.length;   // BCC addresses plus the To line per message
+  if (test) { for (var i = 0; i < to.length; i += VM_CHUNK) chunks.push(to.slice(i, i + VM_CHUNK)); }
+  else { to.forEach(function (em) { chunks.push([em]); }); }   // live: one email per vendor, To that vendor only
+  var need = test ? chunks.length : to.length;
   var quota = vmQuotaLeft_();
   if (quota >= 0 && quota < need) {
     return _json({ ok: false, error: 'Only ' + quota + ' sends left on today\'s shared Gmail quota, and this batch needs ' + need +
@@ -220,21 +223,20 @@ function vmSend_(d) {
   var stamp = Utilities.formatDate(now, 'America/Los_Angeles', 'yyyy-MM-dd HH:mm');
   var batchId = 'VM-' + Utilities.formatDate(now, 'America/Los_Angeles', 'yyMMdd') + '-' + Math.random().toString(36).slice(2, 5).toUpperCase();
   var html = vmHtml_(body, sender, test, to.length);
-  var plain = (test ? 'TEST. Live send would have gone to ' + to.length + ' vendors on BCC.\n\n' : '') + body + '\n\n' + vmFooterText_(sender);
+  var plain = (test ? 'TEST. Live send would have gone to ' + to.length + ' vendors, one email each.\n\n' : '') + body + '\n\n' + vmFooterText_(sender);
 
   var sent = 0, errs = [];
   chunks.forEach(function (c, n) {
     try {
       var opts = {
-        to: test ? testTo : replyTo,
+        to: test ? testTo : c[0],
         replyTo: replyTo,
         name: sender.name,
         subject: (test ? '[TEST ' + to.length + ' vendors] ' : '') + subject,
         htmlBody: html,
         body: plain
       };
-      if (!test) opts.bcc = c.join(',');
-      MailApp.sendEmail(opts);
+      cwGmail_(opts);
       sent += test ? 0 : c.length;
     } catch (e) { errs.push('Chunk ' + (n + 1) + ': ' + String(e && e.message || e)); }
   });
@@ -293,7 +295,7 @@ function vmHtml_(text, sender, test, count) {
     }
     return '<p style="margin:0 0 14px;">' + vmLinkify_(lines.map(vmEsc_).join('<br>')) + '</p>';
   }).join('');
-  var banner = test ? '<div style="background:#fff6d8;border:1px solid #E5B423;padding:10px 14px;font-size:12px;margin:0 0 14px;">TEST. The live send would go to ' + count + ' vendors, each on BCC.</div>' : '';
+  var banner = test ? '<div style="background:#fff6d8;border:1px solid #E5B423;padding:10px 14px;font-size:12px;margin:0 0 14px;">TEST. The live send would go to ' + count + ' vendors, one email each.</div>' : '';
   var foot = vmFooterText_(sender).split('\n').map(vmEsc_).join('<br>');
   return '<div style="background:#f4f5f7;padding:24px 12px;font-family:Verdana,Geneva,Tahoma,sans-serif;color:#2D2A26;font-size:14px;line-height:1.55;">' +
     '<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;">' +
@@ -324,8 +326,8 @@ function vmSelfTest() {
 //
 // One click on the page, any size list. The page posts vm_queue with everyone
 // picked; this side writes one row per vendor on the Vendor Message Queue tab
-// and a timed trigger (vmDrain) works through it: one email of up to VM_CHUNK
-// vendors on BCC every 10 minutes, 7am to 7pm Pacific, never letting the day's
+// and a timed trigger (vmDrain) works through it: up to VM_CHUNK vendors every
+// 10 minutes, one email each, 7am to 7pm Pacific, never letting the day's
 // shared Gmail quota fall below VM_RESERVE so violation and insurance notices
 // can still go out. What does not fit today goes tomorrow. Nobody has to come
 // back and click again.
@@ -363,7 +365,7 @@ function vmRows_(sh) {
   var last = sh.getLastRow();
   return last < 2 ? [] : sh.getRange(2, 1, last - 1, sh.getLastColumn()).getValues();
 }
-function vmPerDay_() { var u = VM_DAILY - VM_RESERVE; return Math.max(0, u - Math.ceil(u / (VM_CHUNK + 1))); }
+function vmPerDay_() { return Math.max(0, VM_DAILY - VM_RESERVE); }
 function vmDay_(d) { try { return Utilities.formatDate(new Date(d), VM_TZ, 'MMM d'); } catch (e) { return ''; } }
 
 function vmEnsureTrigger_() {
@@ -439,7 +441,7 @@ function vmPending_() {
 // Timed trigger entry point.
 function vmDrain() { vmDrainOnce_(false); }
 
-// Sends at most one email (up to VM_CHUNK vendors on BCC) from the oldest batch.
+// Sends up to VM_CHUNK vendors from the oldest batch, one email per vendor.
 function vmDrainOnce_(fromPage) {
   var out = { sent: 0, note: '' };
   var hour = Number(Utilities.formatDate(new Date(), VM_TZ, 'H'));
@@ -458,7 +460,7 @@ function vmDrainOnce_(fromPage) {
     if (!pick.length) { vmDropTrigger_(); out.note = 'Queue is empty.'; return out; }
     var quota = vmQuotaLeft_();
     if (quota >= 0) {
-      var room = quota - VM_RESERVE - 1;      // one for the To line
+      var room = quota - VM_RESERVE;
       if (room < 1) { out.note = 'Today\'s sends are used up. The rest go out tomorrow.'; return out; }
       if (pick.length > room) pick = pick.slice(0, room);
     }
@@ -488,17 +490,25 @@ function vmDrainOnce_(fromPage) {
     var replyTo = vmEmailOk_(meta[4]) ? String(meta[4]) : sender.reply;
     var subject = String(meta[6]), body = String(meta[7]);
     var emails = pick.map(function (ix) { return String(rows[ix][3]); });
-    var status = 'sent', err = '';
-    try {
-      MailApp.sendEmail({ to: replyTo, replyTo: replyTo, name: sender.name, subject: subject,
-        htmlBody: vmHtml_(body, sender, false, emails.length), body: body + '\n\n' + vmFooterText_(sender), bcc: emails.join(',') });
-      out.sent = emails.length;
-    } catch (e) { status = 'failed'; err = String(e && e.message || e); out.note = err; }
-    mark(status, err);
+    // Oct 9 2026: one email per vendor, To that vendor only. Nothing internal on
+    // To or CC, so the service inbox no longer gets a copy of every batch.
+    var html = vmHtml_(body, sender, false, 1), plain = body + '\n\n' + vmFooterText_(sender);
+    var sentN = 0, failN = 0, err = '';
+    pick.forEach(function (ix) {
+      var em = String(rows[ix][3]), st = 'sent', er = '';
+      try {
+        cwGmail_({ to: em, replyTo: replyTo, name: sender.name, subject: subject, htmlBody: html, body: plain });
+        sentN++;
+      } catch (e) { st = 'failed'; er = String(e && e.message || e); failN++; if (!err) err = er; }
+      q.getRange(ix + 2, 5, 1, 3).setValues([[st, stamp, er]]);
+    });
+    out.sent = sentN;
+    var status = failN ? (sentN ? 'partial' : 'failed') : 'sent';
+    if (err) out.note = err;
     try {
       var log = vmTab_(ss, VM_LOG_TAB, VM_LOG_HEAD);
       log.appendRow([Utilities.formatDate(stamp, VM_TZ, 'yyyy-MM-dd HH:mm'), false, batchId, String(meta[2]), sender.name, replyTo,
-        String(meta[5]), subject, status === 'sent' ? emails.length : 0, emails.join(', '), status, err]);
+        String(meta[5]), subject, sentN, emails.join(', '), status, err]);
     } catch (e2) {}
     return out;
   } catch (e) { out.note = String(e && e.message || e); return out; }
