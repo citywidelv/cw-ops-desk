@@ -84,6 +84,7 @@ function doPost(e) {
       return jsonOut({ ok: true, wo_id: 'WT-RECEIVED' });
     }
     if (data.kind === 'snow_report') return jsonOut(handleSnowReport(data));
+    if (data.kind === 'wo_lookup') return jsonOut(handleLookup(data));   // property picker (Lookup.gs)
     if (data.kind !== 'work_order') throw new Error('Unknown kind');
     out = handleWorkOrder(data);
   } catch (err) {

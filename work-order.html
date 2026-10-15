@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Maintenance Work Ticket | City Wide Facility Solutions</title>
+<!-- build 2026-10-15-sites: three-way property chooser before the form (KWP / Comprehensive
+     Cancer Centers / all other properties). KWP stores and CCCNV branches come from the customer
+     directory (CW Account FSM Assignments, synced from the CRM export) and fill the address; other
+     accounts fill from a typeahead. Anything not in the directory can still be typed in by hand.
+     The Ops Hub copy reads alerts_acct_list from the main backend with the team passcode; the
+     Vendor Hub copy reads kind wo_lookup on the Work Tickets script (limited, vendor-safe).
+     Nothing is fetched until a site is chosen. Deep link: ?site=kwp | cccnv | other -->
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
@@ -54,6 +61,31 @@ padding:11px 14px;cursor:pointer;background:#fff}
 .radio-item .rs{font-size:11px;color:var(--grey)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
 @media(max-width:620px){.grid2{grid-template-columns:1fr}}
+/* site chooser */
+.choose{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:6px}
+@media(max-width:620px){.choose{grid-template-columns:1fr}}
+.choice{font-family:inherit;text-align:left;background:#fff;border:2px solid var(--border);border-radius:12px;
+padding:18px 16px;cursor:pointer;color:var(--black);min-height:96px;display:flex;flex-direction:column;gap:4px}
+.choice:hover,.choice:focus-visible{border-color:var(--red);background:#fdf3f3;outline:none}
+.choice .ct{font-size:15px;font-weight:700;line-height:1.3}
+.choice .cs{font-size:11px;color:var(--grey)}
+.sitebadge{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:700;background:var(--light);
+border:1px solid var(--border);border-radius:14px;padding:5px 12px;margin-left:auto}
+.sitebadge a{font-size:11px;font-weight:700;color:var(--red);text-decoration:none}
+.sitebadge a:hover{text-decoration:underline}
+.sitebox[hidden]{display:none}
+a.alt{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;color:var(--red);text-decoration:none}
+a.alt:hover{text-decoration:underline}
+.sugwrap{position:relative}
+.sugg{position:absolute;left:0;right:0;top:100%;z-index:5;background:#fff;border:1.5px solid var(--border);border-top:none;
+border-radius:0 0 10px 10px;box-shadow:var(--shadow);max-height:260px;overflow:auto;display:none}
+.sugg.on{display:block}
+.sugg div{padding:9px 12px;cursor:pointer;border-top:1px solid var(--light)}
+.sugg div:hover,.sugg div.sel{background:#fdf3f3}
+.sugg .sn{font-size:13px;font-weight:700}
+.sugg .sa{font-size:11px;color:var(--grey)}
+.sugg .none{cursor:default;color:var(--grey);font-size:12px}
+.filled{border-color:var(--teal)!important}
 .photo-drop{border:2px dashed var(--border);border-radius:12px;padding:22px;text-align:center;cursor:pointer;background:#fff}
 .photo-drop:hover{border-color:var(--red)}
 .photo-drop .big{font-size:14px;font-weight:700}
@@ -112,7 +144,19 @@ customer can be billed correctly.</p>
 </div>
 </section>
 
-<main class="wrap" id="formzone">
+<main class="wrap">
+
+<div class="card" id="chooser">
+<h2>Where did you do the work?</h2>
+<p class="hint" style="margin-top:-6px">Pick one. The property list and address fill in on the next step.</p>
+<div class="choose">
+<button type="button" class="choice" data-site="kwp"><span class="ct">KWP</span><span class="cs">7-Eleven stores managed by KWP Nevada</span></button>
+<button type="button" class="choice" data-site="cccnv"><span class="ct">Comprehensive Cancer Centers</span><span class="cs">Any CCCNV location</span></button>
+<button type="button" class="choice" data-site="other"><span class="ct">All other properties</span><span class="cs">Any other customer account</span></button>
+</div>
+</div>
+
+<div id="formzone" hidden>
 
 <div class="card">
 <h2><span class="num">1</span>Who is submitting this ticket?</h2>
@@ -137,11 +181,43 @@ customer can be billed correctly.</p>
 </div>
 
 <div class="card">
-<h2><span class="num">2</span>Where did you do the work?</h2>
-<label class="f">Property name <span class="req">*</span></label>
-<input type="text" id="property" placeholder="Business or building name">
+<h2><span class="num">2</span>Where did you do the work?
+<span class="sitebadge"><span id="siteName"></span><a href="#" id="siteChange">Change</a></span></h2>
+
+<div class="sitebox" id="siteKwp" hidden>
+<label class="f">Which KWP store? <span class="req">*</span></label>
+<select id="kwpSel"><option value="">Loading the store list...</option></select>
+<div class="hint">Pick the store and the address fills in below.</div>
+<a href="#" class="alt" id="kwpManual">Store not in the list? Enter it yourself</a>
+<div id="kwpMan" hidden>
+<label class="f">Store number <span class="req">*</span></label>
+<input type="text" id="kwpStore" inputmode="numeric" placeholder="Example: 34007">
+</div>
+</div>
+
+<div class="sitebox" id="siteCcc" hidden>
+<label class="f">Which Comprehensive Cancer Centers location? <span class="req">*</span></label>
+<select id="cccSel"><option value="">Loading the location list...</option></select>
+<div class="hint">Pick the location and the address fills in below.</div>
+<a href="#" class="alt" id="cccManual">Location not in the list? Enter it yourself</a>
+<div id="cccMan" hidden>
+<label class="f">Location name <span class="req">*</span></label>
+<input type="text" id="cccName" placeholder="Example: Horizon Ridge">
+</div>
+</div>
+
+<div class="sitebox" id="siteOther" hidden>
+<label class="f">Property name or customer account <span class="req">*</span></label>
+<div class="sugwrap">
+<input type="text" id="property" autocomplete="off" placeholder="Start typing the property or customer name">
+<div class="sugg" id="sugg"></div>
+</div>
+<div class="hint" id="otherHint">Pick a match to fill in the address. If the property is not in the list, type the name and the address yourself.</div>
+</div>
+
 <label class="f">Full address <span class="req">*</span></label>
 <input type="text" id="address" placeholder="Street, suite, city, state, zip">
+<div class="hint" id="addrHint"></div>
 </div>
 
 <div class="card">
@@ -264,6 +340,8 @@ customer can be billed correctly.</p>
 <button id="send">Submit Work Ticket</button>
 <span id="err"></span>
 </div>
+
+</div><!-- /formzone -->
 </main>
 
 <div class="wrap" style="padding-top:0">
@@ -272,7 +350,7 @@ customer can be billed correctly.</p>
 <h2>Work ticket submitted</h2>
 <p>The operations team has your time, materials, and photos. Keep this number if you need to follow up.</p>
 <div class="woid" id="woid"></div><br>
-<a href="work-order.html">Submit another work ticket</a>
+<a href="work-order.html" id="again">Submit another work ticket</a>
 </div>
 </div>
 
@@ -307,26 +385,236 @@ var TASKS=["Touch-up painting (scuffs, marks on walls)","Door hardware adjustmen
 var photos=[];
 var receipts=[];
 var hoursTouched=false;
+var fromVendor=false;
+
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 
 // Vendors arriving from the Vendor Resource Center should not see a path back
 // to the internal Ops Hub. Their links carry ?src=vendor; referrer is a fallback.
 (function(){
-var fromVendor=/[?&]src=vendor/.test(location.search)||/cw-vendor-(shop|hub)/.test(document.referrer||"");
+fromVendor=/[?&]src=vendor/.test(location.search)||/cw-vendor-(shop|hub)/.test(document.referrer||"");
 if(fromVendor){
 var back=document.querySelector(".head a.back");
 if(back)back.style.display="none";
-var again=document.querySelector("#done a");
-if(again)again.setAttribute("href","work-order.html?src=vendor");
 }
 })();
-
 // populate task list, default date to today
 (function(){
-var dl=document.getElementById("taskList");
+var dl=$("taskList");
 TASKS.forEach(function(t){var o=document.createElement("option");o.value=t;dl.appendChild(o);});
 var d=new Date();
 var mm=("0"+(d.getMonth()+1)).slice(-2),dd=("0"+d.getDate()).slice(-2);
-document.getElementById("dateOfWork").value=d.getFullYear()+"-"+mm+"-"+dd;
+$("dateOfWork").value=d.getFullYear()+"-"+mm+"-"+dd;
+})();
+
+// ===================== property directory =====================
+// Row shape used by every picker: {label, name, address, store?}
+var SITE="";            // kwp | cccnv | other
+var SITE_LABEL={kwp:"KWP",cccnv:"Comprehensive Cancer Centers",other:"All other properties"};
+var PICKED=null;        // the row chosen from a list, if any
+var manual={kwp:false,cccnv:false};
+
+function norm(s){return String(s||"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9 ]+/g," ").replace(/\s+/g," ").trim();}
+function titleCase(s){return String(s||"").toLowerCase().replace(/\b\w/g,function(c){return c.toUpperCase();});}
+function zip5(z){var m=/(\d{5})/.exec(String(z||""));return m?m[1]:"";}
+// Street line only. Some CRM rows carry the whole address in address1.
+function streetOf(r){
+var a1=String(r.addr||"").trim();
+if(a1.indexOf(",")>0&&norm(a1).indexOf(norm(r.city))>0)a1=a1.split(",")[0].trim();
+return [a1,String(r.addr2||"").trim()].filter(String).join(" ");
+}
+function addressOf(r){
+var z=zip5(r.zip);
+var st=r.state?String(r.state).toUpperCase():(z.indexOf("89")===0?"NV":"");
+var tail=[titleCase(r.city),[st,z].filter(String).join(" ")].filter(String).join(", ");
+return [streetOf(r),tail].filter(String).join(", ");
+}
+// KWP (7-Eleven) stores. CRM names look like "KWP - 29384-1100 S Las Vegas BLVD ... Real Estate(v), Ltd."
+function kwpRows(all){
+var out=[];
+all.forEach(function(r){
+if(!/^\s*KWP\b/i.test(r.name))return;
+var m=/KWP\D*(\d{4,6})/i.exec(r.name);var store=m?m[1]:"";
+var street=streetOf(r);
+out.push({store:store,label:(store?"Store "+store+" - ":"")+[street,titleCase(r.city)].filter(String).join(", "),
+name:"KWP"+(store?" Store "+store:"")+" - "+street,address:addressOf(r)});
+});
+out.sort(function(a,b){return (a.store||"zzz")<(b.store||"zzz")?-1:1;});
+return out;
+}
+// Comprehensive Cancer Centers branches. Skips the parent and the Special Billing duplicates.
+function cccRows(all){
+var out=[],seen={};
+all.forEach(function(r){
+if(!/comprehensive cancer/i.test(r.name)||/special billing/i.test(r.name))return;
+var m=/comprehensive cancer centers?\s*-\s*(.+)$/i.exec(r.name);if(!m)return;
+var branch=m[1].trim(),key=norm(branch);if(seen[key])return;seen[key]=1;
+out.push({label:branch,name:"Comprehensive Cancer Centers - "+branch,address:addressOf(r)});
+});
+out.sort(function(a,b){return a.label.toLowerCase()<b.label.toLowerCase()?-1:1;});
+return out;
+}
+// Ops Hub copy: the whole directory comes from the main backend (alerts_acct_list, team
+// passcode), cached in this browser for 12 hours, and every picker filters it locally.
+var DIR_KEY="cwWtDirectory";
+var dirPromise=null;
+function loadDirectory(){
+if(dirPromise)return dirPromise;
+try{var c=JSON.parse(localStorage.getItem(DIR_KEY)||"null");
+if(c&&c.at&&Date.now()-c.at<12*3600*1000&&c.rows&&c.rows.length){dirPromise=Promise.resolve(c.rows);return dirPromise;}}catch(e){}
+var pass=(window.CWAuth&&CWAuth.get())||"";
+var url=(window.CWAuth&&CWAuth.WEBHOOK)||"";
+dirPromise=fetch(url,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({kind:"alerts_acct_list",passcode:pass})})
+.then(function(r){return r.json();})
+.then(function(j){
+if(!j||!j.ok||!j.accounts)throw new Error((j&&j.error)||"no directory");
+var rows=j.accounts.filter(function(a){return a.in_last!==false;}).map(function(a){
+return {name:a.name,addr:a.addr,city:a.city,zip:a.zip,aliases:a.aliases||[]};});
+try{localStorage.setItem(DIR_KEY,JSON.stringify({at:Date.now(),rows:rows}));}catch(e){}
+return rows;
+})
+.catch(function(e){dirPromise=null;throw e;});
+return dirPromise;
+}
+function loadGroup(g){return loadDirectory().then(function(all){return g==="kwp"?kwpRows(all):cccRows(all);});}
+// Local typeahead over the whole directory: 2+ characters, any word start, top 8.
+function searchAccounts(q){
+var nq=norm(q);if(nq.length<2)return Promise.resolve([]);
+return loadDirectory().then(function(all){
+var out=[];
+all.forEach(function(r){
+var names=[r.name].concat(r.aliases||[]);
+for(var i=0;i<names.length;i++){var n=norm(names[i]);
+if(n.indexOf(nq)===0||n.indexOf(" "+nq)>=0||(nq.length>=4&&n.indexOf(nq)>=0)){out.push({label:r.name,name:r.name,address:addressOf(r)});break;}}
+});
+out.sort(function(a,b){var an=norm(a.name).indexOf(nq)===0?0:1,bn=norm(b.name).indexOf(nq)===0?0:1;
+return an!==bn?an-bn:(a.name.toLowerCase()<b.name.toLowerCase()?-1:1);});
+return out.slice(0,8);
+});
+}
+var SEARCH_MIN=2;
+// ===================== site chooser =====================
+function showSite(site,push){
+if(!SITE_LABEL[site])return;
+SITE=site;PICKED=null;
+$("chooser").hidden=true;$("formzone").hidden=false;
+$("siteName").textContent=SITE_LABEL[site];
+$("siteKwp").hidden=site!=="kwp";$("siteCcc").hidden=site!=="cccnv";$("siteOther").hidden=site!=="other";
+$("address").value="";$("address").classList.remove("filled");$("addrHint").textContent="";
+$("property").value="";
+if(push){try{var u=new URL(location.href);u.searchParams.set("site",site);history.replaceState(null,"",u.toString());}catch(e){}}
+if(manual.kwp)setManual("kwp",false);if(manual.cccnv)setManual("cccnv",false);
+$("kwpStore").value="";$("cccName").value="";$("kwpSel").value="";$("cccSel").value="";
+if(site==="kwp")fillSelect("kwp","kwpSel","store");
+if(site==="cccnv")fillSelect("cccnv","cccSel","location");
+if(site==="other")setTimeout(function(){$("property").focus();},50);
+window.scrollTo({top:0,behavior:"smooth"});
+}
+function backToChooser(){
+SITE="";PICKED=null;
+$("formzone").hidden=true;$("chooser").hidden=false;
+try{var u=new URL(location.href);u.searchParams.delete("site");history.replaceState(null,"",u.toString());}catch(e){}
+window.scrollTo({top:0,behavior:"smooth"});
+}
+document.querySelectorAll(".choice").forEach(function(b){b.addEventListener("click",function(){showSite(b.getAttribute("data-site"),true);});});
+$("siteChange").addEventListener("click",function(e){e.preventDefault();backToChooser();});
+
+var LISTS={};
+function fillSelect(group,selId,word){
+var sel=$(selId);
+if(LISTS[group]){render(LISTS[group]);return;}
+sel.innerHTML='<option value="">Loading the '+word+' list...</option>';
+loadGroup(group).then(function(rows){LISTS[group]=rows;render(rows);}).catch(function(){
+sel.innerHTML='<option value="">Could not load the list. Enter the '+word+' yourself.</option>';
+setManual(group,true);
+});
+function render(rows){
+sel.innerHTML='<option value="">Select the '+word+'...</option>';
+rows.forEach(function(r,i){var o=document.createElement("option");o.value=String(i);o.textContent=r.label;sel.appendChild(o);});
+if(!rows.length){sel.innerHTML='<option value="">No '+word+'s in the directory yet. Enter it yourself.</option>';setManual(group,true);}
+}
+}
+function setManual(group,on){
+manual[group]=on;
+var man=group==="kwp"?$("kwpMan"):$("cccMan"),sel=group==="kwp"?$("kwpSel"):$("cccSel"),link=group==="kwp"?$("kwpManual"):$("cccManual");
+man.hidden=!on;sel.style.display=on?"none":"";
+link.textContent=on?"Back to the list":(group==="kwp"?"Store not in the list? Enter it yourself":"Location not in the list? Enter it yourself");
+if(on){PICKED=null;sel.value="";$("address").value="";$("address").classList.remove("filled");$("addrHint").textContent="Type the full address.";}
+else{$("addrHint").textContent="";}
+}
+$("kwpManual").addEventListener("click",function(e){e.preventDefault();setManual("kwp",!manual.kwp);if(manual.kwp)$("kwpStore").focus();});
+$("cccManual").addEventListener("click",function(e){e.preventDefault();setManual("cccnv",!manual.cccnv);if(manual.cccnv)$("cccName").focus();});
+function pick(r){
+PICKED=r;
+$("address").value=r.address||"";
+$("address").classList.toggle("filled",!!r.address);
+$("addrHint").textContent=r.address?"Filled from the customer directory. Correct it if the building has moved.":"No address on file. Type it in.";
+}
+$("kwpSel").addEventListener("change",function(){var r=LISTS.kwp&&LISTS.kwp[this.value];if(r)pick(r);else{PICKED=null;$("address").value="";$("address").classList.remove("filled");}});
+$("cccSel").addEventListener("change",function(){var r=LISTS.cccnv&&LISTS.cccnv[this.value];if(r)pick(r);else{PICKED=null;$("address").value="";$("address").classList.remove("filled");}});
+$("address").addEventListener("input",function(){this.classList.remove("filled");});
+
+// typeahead for all other properties
+(function(){
+var inp=$("property"),box=$("sugg"),timer=null,rows=[],cur=-1,seq=0;
+function close(){box.classList.remove("on");box.innerHTML="";rows=[];cur=-1;}
+function show(list,q){
+rows=list;cur=-1;box.innerHTML="";
+if(!list.length){
+if(norm(q).replace(/\s/g,"").length>=SEARCH_MIN)box.innerHTML='<div class="none">No match yet. Keep typing, or enter the name and address yourself.</div>';
+else{close();return;}
+}
+list.forEach(function(r,i){var d=document.createElement("div");d.setAttribute("data-i",String(i));
+d.innerHTML='<div class="sn">'+esc(r.label)+'</div><div class="sa">'+esc(r.address)+'</div>';
+d.addEventListener("mousedown",function(e){e.preventDefault();choose(i);});box.appendChild(d);});
+box.classList.add("on");
+}
+function choose(i){var r=rows[i];if(!r)return;inp.value=r.name;pick(r);close();$("address").focus();}
+inp.addEventListener("input",function(){
+PICKED=null;
+if(timer)clearTimeout(timer);
+var q=inp.value,my=++seq;
+if(norm(q).replace(/\s/g,"").length<SEARCH_MIN){close();return;}
+timer=setTimeout(function(){searchAccounts(q).then(function(list){if(my===seq)show(list,q);}).catch(function(){if(my===seq)close();});},250);
+});
+inp.addEventListener("keydown",function(e){
+if(!box.classList.contains("on"))return;
+var items=box.querySelectorAll("div[data-i]");
+if(e.key==="ArrowDown"){e.preventDefault();cur=Math.min(cur+1,items.length-1);}
+else if(e.key==="ArrowUp"){e.preventDefault();cur=Math.max(cur-1,0);}
+else if(e.key==="Enter"){if(cur>=0){e.preventDefault();choose(cur);}return;}
+else if(e.key==="Escape"){close();return;}
+else return;
+items.forEach(function(d,i){d.classList.toggle("sel",i===cur);});
+});
+inp.addEventListener("blur",function(){setTimeout(close,150);});
+})();
+
+// Resolve the property name and address the form will submit.
+function resolveProperty(){
+if(SITE==="kwp"){
+if(manual.kwp){var st=$("kwpStore").value.trim().replace(/\D/g,"");if(!st)return {error:"Enter the KWP store number."};
+var a=$("address").value.trim();if(!a)return {error:"Enter the store address."};
+return {name:"KWP Store "+st+" - "+a.split(",")[0].trim(),address:a};}
+if(!PICKED)return {error:"Pick the KWP store, or enter it yourself."};
+return {name:PICKED.name,address:$("address").value.trim()};
+}
+if(SITE==="cccnv"){
+if(manual.cccnv){var nm=$("cccName").value.trim();if(!nm)return {error:"Enter the Comprehensive Cancer Centers location name."};
+return {name:"Comprehensive Cancer Centers - "+nm,address:$("address").value.trim()};}
+if(!PICKED)return {error:"Pick the Comprehensive Cancer Centers location, or enter it yourself."};
+return {name:PICKED.name,address:$("address").value.trim()};
+}
+return {name:$("property").value.trim(),address:$("address").value.trim()};
+}
+
+// deep link ?site=kwp|cccnv|other skips the chooser; "Submit another" goes back to it
+(function(){
+var m=/[?&]site=(kwp|cccnv|other)\b/.exec(location.search);
+if(m)showSite(m[1],false);
+var again=$("again");
+if(again)again.setAttribute("href","work-order.html"+(fromVendor?"?src=vendor":""));
 })();
 
 // radio highlight + conditional sections
@@ -341,30 +629,30 @@ if(fn)fn(r.value);
 var checked=document.querySelector("#"+listId+" input:checked");
 if(checked)checked.closest(".radio-item").classList.add("on");
 }
-wireRadios("matList",function(v){document.getElementById("matWrap").style.display=(v==="Yes")?"block":"none";});
+wireRadios("matList",function(v){$("matWrap").style.display=(v==="Yes")?"block":"none";});
 wireRadios("statusList");
-wireRadios("chkList",function(v){document.getElementById("chkWrap").style.display=(v==="Yes")?"block":"none";});
+wireRadios("chkList",function(v){$("chkWrap").style.display=(v==="Yes")?"block":"none";});
 
 // auto-calc labor hours = (end - start) x techs, editable
 function calcHours(){
 if(hoursTouched)return;
-var s=document.getElementById("startTime").value,e=document.getElementById("endTime").value;
+var s=$("startTime").value,e=$("endTime").value;
 if(!s||!e)return;
 var sm=s.split(":"),em=e.split(":");
 var mins=(parseInt(em[0],10)*60+parseInt(em[1],10))-(parseInt(sm[0],10)*60+parseInt(sm[1],10));
 if(mins<=0)return;
-var techs=parseInt(document.getElementById("techs").value,10)||1;
+var techs=parseInt($("techs").value,10)||1;
 var h=Math.round((mins/60)*techs*4)/4;
-document.getElementById("hours").value=h;
+$("hours").value=h;
 }
-document.getElementById("startTime").addEventListener("change",calcHours);
-document.getElementById("endTime").addEventListener("change",calcHours);
-document.getElementById("techs").addEventListener("change",calcHours);
-document.getElementById("hours").addEventListener("input",function(){hoursTouched=true;});
+$("startTime").addEventListener("change",calcHours);
+$("endTime").addEventListener("change",calcHours);
+$("techs").addEventListener("change",calcHours);
+$("hours").addEventListener("input",function(){hoursTouched=true;});
 
 // photo + receipt pipelines
 function wireUploader(dropId,fileId,thumbsId,store,max){
-var drop=document.getElementById(dropId),file=document.getElementById(fileId);
+var drop=$(dropId),file=$(fileId);
 drop.addEventListener("click",function(){file.click();});
 file.addEventListener("change",function(){addFiles(Array.from(file.files));file.value="";});
 drop.addEventListener("dragover",function(e){e.preventDefault();});
@@ -379,7 +667,7 @@ renderThumbs();
 });
 }
 function renderThumbs(){
-var t=document.getElementById(thumbsId);t.innerHTML="";
+var t=$(thumbsId);t.innerHTML="";
 store.forEach(function(p,i){
 var d=document.createElement("div");d.className="thumb";
 var im=document.createElement("img");im.src=p.data;d.appendChild(im);
@@ -404,15 +692,17 @@ rd.readAsDataURL(f);
 wireUploader("drop","file","thumbs",photos,8);
 wireUploader("rdrop","rfile","rthumbs",receipts,6);
 
-document.getElementById("send").addEventListener("click",function(){
-var err=document.getElementById("err");err.textContent="";
-function val(id){return document.getElementById(id).value.trim();}
-var name=val("name"),email=val("email"),property=val("property"),address=val("address"),
+$("send").addEventListener("click",function(){
+var err=$("err");err.textContent="";
+function val(id){return $(id).value.trim();}
+var name=val("name"),email=val("email"),
 dateOfWork=val("dateOfWork"),requestedBy=val("requestedBy"),desc=val("desc"),hours=val("hours");
 if(!name){err.textContent="Add your name.";return;}
 if(!email||email.indexOf("@")<1){err.textContent="Add a valid email.";return;}
-if(!property){err.textContent="Enter the property name.";return;}
-if(!address){err.textContent="Enter the property address.";return;}
+var prop=resolveProperty();
+if(prop.error){err.textContent=prop.error;return;}
+if(!prop.name){err.textContent="Enter the property name.";return;}
+if(!prop.address){err.textContent="Enter the property address.";return;}
 if(!dateOfWork){err.textContent="Add the date the work was done.";return;}
 if(!requestedBy){err.textContent="Tell us who at City Wide requested this work.";return;}
 if(!desc){err.textContent="Describe the work performed.";return;}
@@ -426,10 +716,11 @@ if(!receipts.length){err.textContent="Add at least one receipt photo so ops can 
 var chk=document.querySelector('input[name="chk"]:checked').value;
 var payload={
 kind:"work_order",
-website:document.getElementById("website").value,
+website:$("website").value,
 name:name, company:val("company"),
 email:email, phone:val("phone"),
-property_name:property, address:address,
+property_name:prop.name, address:prop.address,
+property_group:SITE_LABEL[SITE]||"",
 date_of_work:dateOfWork, requested_by:requestedBy,
 task_type:val("task"), description:desc,
 start_time:val("startTime"), end_time:val("endTime"),
@@ -439,20 +730,20 @@ materials_cost:(mat==="Yes")?val("matCost"):"",
 work_status:document.querySelector('input[name="wstatus"]:checked').value,
 client_checked:chk,
 checked_by:(chk==="Yes")?val("checkedBy"):"",
-client_feedback:(chk==="Yes")?document.getElementById("feedback").value:"",
+client_feedback:(chk==="Yes")?$("feedback").value:"",
 billing_notes:val("billing"),
 photos:photos, receipts:receipts
 };
-var btn=document.getElementById("send");
+var btn=$("send");
 btn.disabled=true;btn.textContent="Submitting...";
 fetch(WEBHOOK,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)})
 .then(function(r){return r.json();})
 .then(function(j){
 btn.disabled=false;btn.textContent="Submit Work Ticket";
 if(j&&j.ok){
-document.getElementById("formzone").style.display="none";
-document.getElementById("done").style.display="block";
-document.getElementById("woid").textContent=j.wo_id||"Received";
+$("formzone").hidden=true;
+$("done").style.display="block";
+$("woid").textContent=j.wo_id||"Received";
 window.scrollTo({top:0,behavior:"smooth"});
 }else{
 err.textContent=(j&&j.error)?j.error:"Could not submit. Check the fields and try again.";
