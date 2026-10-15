@@ -81,6 +81,8 @@ function wtLinks_(v) { return alStr_(v).split(/\n+/).map(alStr_).filter(function
 function wtNum_(v) { var n = parseFloat(alStr_(v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? '' : n; }
 // "Oct 14, 2026" / "Oct 14, 2026 3:02 PM" as the satellite writes them, or a real Date
 function wtDate_(v) { return alDate_(v); }
+// Sheets hands back real Date objects for cells it recognised as dates or times; show them the way the form wrote them.
+function wtText_(v, fmt) { return (v instanceof Date && !isNaN(v.getTime())) ? Utilities.formatDate(v, AL_TZ, fmt) : alStr_(v); }
 
 // One row -> one ticket object the page renders.
 function wtRow_(vals, col, rowNo) {
@@ -101,9 +103,9 @@ function wtRow_(vals, col, rowNo) {
     name: alStr_(g('Submitted By')), company: alStr_(g('Company')), email: alStr_(g('Email')), phone: alStr_(g('Phone')),
     property: alStr_(g('Property')), address: alStr_(g('Address')),
     group: alStr_(g('Property Group')), account: alStr_(g('Account')),
-    date: alStr_(g('Date of Work')), requested_by: alStr_(g('Requested By')),
+    date: wtText_(g('Date of Work'), 'MMM d, yyyy'), requested_by: alStr_(g('Requested By')),
     task: alStr_(g('Task Type')), desc: alStr_(g('Work Performed')),
-    start: alStr_(g('Start')), end: alStr_(g('End')), techs: alStr_(g('Techs')), hours: alStr_(g('Labor Hours')),
+    start: wtText_(g('Start'), 'h:mm a'), end: wtText_(g('End'), 'h:mm a'), techs: alStr_(g('Techs')), hours: alStr_(g('Labor Hours')),
     mat: alStr_(g('Materials Purchased')), mat_desc: alStr_(g('Materials List')), mat_cost: wtNum_(g('Materials Cost')),
     receipts: wtLinks_(g('Receipt Links')), photos: wtLinks_(g('Photo Links')),
     work_status: alStr_(g('Work Status')), client_checked: alStr_(g('Client Checked')),

@@ -1666,6 +1666,9 @@ AL.busy = true;
 if(manual) alSay("Refreshing...");
 alPost({ kind:"alerts_list", fresh: manual ? 1 : 0 }).then(function(r){
 AL.busy = false;
+/* Oct 15 2026: a reply with no roster is not an alerts list (seen once: the public feed came
+back instead). Keep what is on screen rather than drawing it. */
+if(r && r.ok && !r.roster){ alSay("Alerts did not refresh. Trying again shortly."); return; }
 if(!r || !r.ok){
 if(r && r.error && CWAuth.isPassError(r.error)){ CWAuth.locked("ops", r.error); return; }
 alSay('<span class="err">Could not load alerts. ' + esc((r && r.error) || "Check your connection and try Refresh.") + '</span>');
