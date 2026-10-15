@@ -206,6 +206,8 @@ function handleWorkOrder(d) {
   [13, 19, 29].forEach(function (c) { sh.getRange(2, c).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP); });
   [22, 28].forEach(function (c) { sh.getRange(2, c).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP); });
   sh.getRange(2, 1).insertCheckboxes();
+  // Oct 15 2026: owner (FSM) and account from the customer directory, for the billing queue (Lookup.gs)
+  try { wtStamp_(sh, { group: clean(d.property_group, 40), property: t.property, address: t.address }); } catch (serr) { sh.getRange(2, HEADERS.length).setValue('OWNER STAMP FAILED: ' + serr); }
   // Re-anchor the teal Billed rule: inserting a row at the top pushes the old
   // rule range down, which would leave every new row 2 uncovered.
   var tealRule = SpreadsheetApp.newConditionalFormatRule()

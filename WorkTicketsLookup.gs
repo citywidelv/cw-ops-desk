@@ -43,7 +43,7 @@ function lkRows_() {
   var last = sh.getLastRow();
   if (last < 2) return [];
   var head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(lkStr_);
-  var want = ['name', 'region', 'address1', 'address2', 'city', 'state', 'zip', 'aliases', 'in_last_import'];
+  var want = ['name', 'region', 'address1', 'address2', 'city', 'state', 'zip', 'aliases', 'in_last_import', 'fsm'];
   var col = {};
   want.forEach(function (h) { col[h] = head.indexOf(h); });
   if (col.name < 0) throw new Error('Directory has no name column');
@@ -129,4 +129,51 @@ function handleLookup(d) {
   if (group === 'kwp') return { ok: true, group: group, items: lkKwp_(rows) };
   if (group === 'cccnv') return { ok: true, group: group, items: lkCccnv_(rows) };
   return { ok: true, items: lkSearch_(rows, lkStr_(d.q).slice(0, 80)) };
+}
+
+// ------------------------------------------------------------ owner stamp -----
+// Oct 15 2026: who owns this ticket, for the billing queue (cw-ops-desk/work-tickets.html,
+// WorkTicketsHub.gs on the main backend). Exact directory name first, then the KWP store
+// number, then the street line. Nothing is written when there is no clean match; the
+// main backend tries a fuzzy match later and the page has a Reassign button.
+var WT_EXTRA = ['FSM', 'Account', 'Property Group', 'Billed By', 'Billed At', 'Billing Ref', 'Assigned By', 'Assigned At'];
+function lkOwner_(property, address) {
+  var rows = lkRows_();
+  var np = lkNorm_(property);
+  if (!np) return null;
+  var hit = null;
+  rows.forEach(function (r) { if (!hit && lkNorm_(r.name) === np) hit = r; });
+  if (!hit) {
+    var m = /^kwp\D*(\d{4,6})/i.exec(property);
+    if (m) rows.forEach(function (r) { if (!hit && /^\s*KWP\b/i.test(lkStr_(r.name)) && (lkStr_(r.name).indexOf(m[1]) >= 0)) hit = r; });
+  }
+  if (!hit && address) {
+    var street = lkNorm_(String(address).split(',')[0]);
+    if (street.length >= 6) rows.forEach(function (r) { if (!hit && lkNorm_(lkStreet_(r)) === street) hit = r; });
+  }
+  if (!hit || !lkStr_(hit.fsm)) return null;
+  return { fsm: lkStr_(hit.fsm).toLowerCase(), name: lkStr_(hit.name) };
+}
+// Writes owner, account and property group onto the ticket row just inserted at row 2.
+// Appends the billing-queue columns to the header the first time.
+function wtStamp_(sh, info) {
+  var lastC = Math.max(sh.getLastColumn(), 1);
+  var head = sh.getRange(1, 1, 1, lastC).getValues()[0].map(lkStr_);
+  var missing = WT_EXTRA.filter(function (h) { return head.indexOf(h) < 0; });
+  if (missing.length) {
+    var need = head.length + missing.length;
+    if (sh.getMaxColumns() < need) sh.insertColumnsAfter(sh.getMaxColumns(), need - sh.getMaxColumns());
+    sh.getRange(1, head.length + 1, 1, missing.length).setValues([missing])
+      .setFontWeight('bold').setFontColor('#FFFFFF').setBackground(RED).setVerticalAlignment('middle').setWrap(false);
+    head = head.concat(missing);
+  }
+  var col = {};
+  head.forEach(function (h, i) { if (h && col[h] === undefined) col[h] = i + 1; });
+  if (col['Property Group']) sh.getRange(2, col['Property Group']).setValue(lkStr_(info.group));
+  var m = lkOwner_(info.property, info.address);
+  if (m) {
+    sh.getRange(2, col['FSM']).setValue(m.fsm);
+    sh.getRange(2, col['Account']).setValue(m.name);
+  }
+  return m;
 }

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
+<!-- build 2026-10-15-queue: Work tickets billing queue (work-tickets.html, WorkTicketsHub.gs wt_ kinds). The Alerts card shows one "N work tickets to bill" line per FSM (type ticket, no status buttons, Mark all skips it) linking to the queue; menu Accounts & Buildings > Work Tickets > Tickets to Bill. -->
 <!-- build 2026-09-25-menus: Jotform submissions on the hub. Every Jotform still in use syncs to a Google Sheet on the company Google account; forms.html lists them with counts and form-view.html?f=<slug> shows one form. Menu: Team & Admin > Form Submissions cascade, Jotform hub views under Night Ops > Night Manager Inspection and Work Tickets (CCCNV, Handyman). Alerts card gained client work requests (type workreq, CCCNV) and the workdone / review types, all read from the Feeds tab of CW Jotform Feeds (JotformFeeds.gs, kinds jf_*).
 build 2026-09-24: Ops asked for the Exhibit A request link back, so Vendors now carries an Exhibit A cascade (Create an Exhibit A, Request an Exhibit A Asana form, the Exhibit A Requests board) and the quick row has the Exhibit A Request chip again. Vendor Evaluation Form now points at the native Vendor Hub page (the Jotform never fed the directory). Nav: any tall dropdown lists its section headings as side cascades and every panel is kept on screen by CWNav.place (flip left, shift up, scroll).
 build 2026-09-11b: hub cleanup per TJ. Removed: Request a Walkthrough Email (postings.html
@@ -206,7 +207,7 @@ status buttons. Type scale 12 / 13 / 15 / 17, 4px spacing grid, radius 6 / 11 / 
 .alegend{display:flex;flex-wrap:wrap;gap:8px 20px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--light);font-size:12px;color:var(--grey)}
 .alegend span{display:inline-flex;align-items:center;gap:6px}
 .alegend i{display:inline-block;width:10px;height:10px;border-radius:2px;flex:none}
-.alegend i.posting{background:var(--gold)}.alegend i.response{background:var(--red)}.alegend i.supply{background:var(--black)}.alegend i.shop{background:var(--grey)}.alegend i.night{background:var(--red-dark)}.alegend i.workreq{background:#7a1f7a}.alegend i.workdone{background:#1d8f4e}.alegend i.review{background:#1f5fa8}
+.alegend i.posting{background:var(--gold)}.alegend i.response{background:var(--red)}.alegend i.supply{background:var(--black)}.alegend i.shop{background:var(--grey)}.alegend i.night{background:var(--red-dark)}.alegend i.workreq{background:#7a1f7a}.alegend i.workdone{background:#1d8f4e}.alegend i.review{background:#1f5fa8}.alegend i.ticket{background:var(--teal)}
 /* loading skeleton, the shape of a group header and one posting block */
 .askel{padding:0 20px 16px}
 .skel{background:linear-gradient(90deg,#EFEFEF 25%,#F7F7F7 37%,#EFEFEF 63%);background-size:400% 100%;animation:alsk 1.4s ease infinite;border-radius:6px;display:block}
@@ -245,7 +246,7 @@ status buttons. Type scale 12 / 13 / 15 / 17, 4px spacing grid, radius 6 / 11 / 
 .ablk.supply .bhead{border-left-color:var(--black)}
 .ablk.shop .bhead{border-left-color:var(--grey)}
 .ablk.night .bhead{border-left-color:var(--red-dark)}
-.ablk.workreq .bhead{border-left-color:#7a1f7a}.ablk.workdone .bhead{border-left-color:#1d8f4e}.ablk.review .bhead{border-left-color:#1f5fa8}
+.ablk.workreq .bhead{border-left-color:#7a1f7a}.ablk.workdone .bhead{border-left-color:#1d8f4e}.ablk.review .bhead{border-left-color:#1f5fa8}.ablk.ticket .bhead{border-left-color:var(--teal)}
 .ablk.response .bhead{border-left-color:var(--red)}
 .bkind{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);line-height:1.3;margin-bottom:4px}
 .btitle{font-size:17px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
@@ -1015,6 +1016,11 @@ var MENU = [
     "sub": "Work Tickets",
     "items": [
      {
+      "label": "Tickets to Bill",
+      "href": "work-tickets.html",
+      "tag": "Queue"
+     },
+     {
       "label": "Maintenance Work Ticket",
       "href": "work-order.html"
      },
@@ -1720,13 +1726,13 @@ function alRender(){
 var me = alWho();
 var groups = alGroups();
 var total = 0;
-groups.forEach(function(g){ total += g.open.length; });
+groups.forEach(function(g){ total += alWeight(g.open); });
 var cnt = document.getElementById("alcount");
 cnt.textContent = total + " open";
 cnt.classList.toggle("zero", !total);
 document.getElementById("alwho").classList.toggle("need", !me);
 var html = me ? "" : '<div class="aneed">Pick your name in the top right of this card first. Then the buttons on each line will work.</div>';
-html += '<div class="alegend"><span><i class="posting"></i>Open posting, replies listed under it</span><span><i class="response"></i>Vendor reply</span><span><i class="supply"></i>Supplies needed</span><span><i class="shop"></i>Shop order</span><span><i class="night"></i>Night manager</span><span><i class="workreq"></i>Client work request</span></div>';
+html += '<div class="alegend"><span><i class="posting"></i>Open posting, replies listed under it</span><span><i class="response"></i>Vendor reply</span><span><i class="supply"></i>Supplies needed</span><span><i class="shop"></i>Shop order</span><span><i class="night"></i>Night manager</span><span><i class="workreq"></i>Client work request</span><span><i class="ticket"></i>Work tickets to bill</span></div>';
 if(!groups.length){
 html += '<div class="aempty"><b>Nothing waiting.</b>Vendor replies, supply reports and shop orders will show up here.' + (me ? '' : ' Pick your name above so your list opens first.') + '</div>';
 }
@@ -1738,25 +1744,29 @@ html += '<div class="agroup' + (isOpen ? ' open' : '') + (mine ? ' mine' : '') +
 '<button class="agh" type="button" data-toggle="' + esc(g.key) + '"><span class="caret">&#9654;</span>' +
 '<span><span class="gname">' + esc(g.name) + (mine ? ' (you)' : '') + '</span><span class="gsub">' + esc(g.sub) + '</span></span>' +
 '<span class="gmix">' + mix.map(function(m){ return '<span>' + esc(m) + '</span>'; }).join('') +
-'<span class="gn' + (g.open.length ? '' : ' zero') + '">' + g.open.length + '</span></span></button>' +
+'<span class="gn' + (g.open.length ? '' : ' zero') + '">' + alWeight(g.open) + '</span></span></button>' +
 '<div class="agitems">';
 if(!g.open.length) html += '<div class="aempty">All clear.</div>';
 alNest(g.open).forEach(function(n){ html += alBlock(n.it, n.kids); });
 html += '<div class="agfoot">' +
 (g.done.length ? '<button class="showdone" type="button" data-done="' + esc(g.key) + '">' + (AL.showDone[g.key] ? 'Hide' : 'Show') + ' ' + g.done.length + ' handled in the last 7 days</button>' : '<span></span>') +
-(g.open.length > 1 ? '<button class="markall" type="button" data-markall="' + esc(g.key) + '">Mark all ' + g.open.length + ' as handled</button>' : '') +
+(alHandleable(g.open) > 1 ? '<button class="markall" type="button" data-markall="' + esc(g.key) + '">Mark all ' + alHandleable(g.open) + ' as handled</button>' : '') +
 '</div>';
 if(g.done.length){ html += '<div class="adonelist">'; g.done.forEach(function(it){ html += alBlock(it, []); }); html += '</div>'; }
 html += '</div></div>';
 });
 document.getElementById("albody").innerHTML = html;
 }
+/* Items Mark all can clear. Work ticket lines are billed on their own page, never here. */
+function alHandleable(list){ return list.filter(function(it){ return it.type !== "ticket"; }).length; }
+/* What the counts show: a work ticket line counts as the number of tickets behind it. */
+function alWeight(list){ var n = 0; list.forEach(function(it){ n += it.type === "ticket" ? (it.count || 1) : 1; }); return n; }
 /* Count line for a group header: "2 postings, 5 replies, 1 supply report". */
 function alMix(list){
 var c = {};
-list.forEach(function(it){ c[it.type] = (c[it.type] || 0) + 1; });
-var words = { posting:["posting","postings"], response:["reply","replies"], supply:["supply report","supply reports"], shop:["shop order","shop orders"], night:["night report","night reports"], workreq:["work request","work requests"], workdone:["completed work order","completed work orders"], review:["form to review","forms to review"] };
-return ["posting","response","supply","shop","night","workreq","workdone","review"].filter(function(t){ return c[t]; }).map(function(t){ return c[t] + " " + words[t][c[t] === 1 ? 0 : 1]; });
+list.forEach(function(it){ c[it.type] = (c[it.type] || 0) + (it.type === "ticket" ? (it.count || 1) : 1); });
+var words = { posting:["posting","postings"], response:["reply","replies"], supply:["supply report","supply reports"], shop:["shop order","shop orders"], night:["night report","night reports"], workreq:["work request","work requests"], workdone:["completed work order","completed work orders"], review:["form to review","forms to review"], ticket:["work ticket to bill","work tickets to bill"] };
+return ["posting","response","supply","shop","night","workreq","workdone","review","ticket"].filter(function(t){ return c[t]; }).map(function(t){ return c[t] + " " + words[t][c[t] === 1 ? 0 : 1]; });
 }
 function alNest(list){
 var posts = {}, order = [], loose = [];
@@ -1787,7 +1797,7 @@ out.push('<a class="aact" href="tel:' + esc(digits) + '">' + AL_ICON.phone + 'Ca
 }
 if(it.link){
 var lbl = it.type === "response" ? (/responses\.html/.test(it.link) ? "Open reply" : (/^Quoted\s/.test(it.summary || "") ? "Open quote" : "Open PDF"))
-: it.type === "posting" ? "Open replies page" : it.type === "night" ? "Open report" : (it.type === "workreq" || it.type === "workdone" || it.type === "review") ? "Open submission" : "Open sheet";
+: it.type === "posting" ? "Open replies page" : it.type === "ticket" ? "Open the billing queue" : it.type === "night" ? "Open report" : (it.type === "workreq" || it.type === "workdone" || it.type === "review") ? "Open submission" : "Open sheet";
 out.push('<a class="aact" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + AL_ICON.open + esc(lbl) + '</a>');
 }
 return out;
@@ -1799,6 +1809,7 @@ return '<div class="adone">' + esc(it.status) + ' by ' + esc(it.by || "someone")
 '<button class="undo" type="button" data-undo="' + esc(it.key) + '">Undo</button></div>';
 }
 var opts = AL.statuses[it.type] || ["Handled"];
+if(it.type === "ticket") return '<span class="bhint">Billed on the queue page, by name.</span>';
 return opts.map(function(s, i){
 return '<button class="abtn' + (i === 0 ? ' main' : '') + '" type="button" data-key="' + esc(it.key) + '" data-status="' + esc(s) + '">' + esc(s) + '</button>';
 }).join('');
@@ -1810,9 +1821,12 @@ return '<div class="acts">' + (c.length ? '<span class="cgrp">' + c.join('') + '
 /* One block. The headline is always the thing the FSM thinks in: the account or building.
 Who it came from sits underneath. */
 function alBlock(it, kids){
-var kind = { response:"Vendor reply", supply:"Supplies needed", shop:"Shop order", posting:"Open posting", night:"Night manager report", workreq:"Client work request", workdone:"Completed work order", review:"Form submission" }[it.type] || it.type;
+var kind = { response:"Vendor reply", supply:"Supplies needed", shop:"Shop order", posting:"Open posting", night:"Night manager report", workreq:"Client work request", workdone:"Completed work order", review:"Form submission", ticket:"Work tickets to bill" }[it.type] || it.type;
 var title, sub, intl = '';
-if(it.type === "posting"){
+if(it.type === "ticket"){
+title = it.about;
+sub = 'Newest from <b>' + esc(it.from) + '</b>. Open the queue, create the work order in CRM, then mark each one billed with your name.';
+} else if(it.type === "posting"){
 title = it.internal || it.from;
 sub = it.internal ? 'Posted to vendors as <b>' + esc(it.from) + '</b>' : '';
 } else if(it.type === "response"){
@@ -1870,7 +1884,7 @@ return html + '</div>';
 /* Who this alert is with, how we know, and the Reassign button. Replies follow their posting. */
 function alFsmName(k){ var f = AL.roster.filter(function(x){ return x.key === k; })[0]; return f ? f.name : ""; }
 function alOwn(it){
-if(it.type === "response") return "";
+if(it.type === "response" || it.type === "ticket") return "";
 var bits = [];
 if(it.assigned){
 bits.push('With <b>' + esc(alFsmName(it.fsm) || "someone") + '</b>, reassigned by ' + esc(it.assigned_by || "someone") + (it.assigned_nice ? ' ' + esc(it.assigned_nice) : ''));
@@ -2037,7 +2051,7 @@ var gk = t.getAttribute("data-markall");
 var grp = alGroups().filter(function(x){ return x.key === gk; })[0];
 if(!grp) return;
 var byType = {};
-grp.open.forEach(function(it){ (byType[it.type] = byType[it.type] || []).push(it.key); });
+grp.open.forEach(function(it){ if(it.type === "ticket") return; (byType[it.type] = byType[it.type] || []).push(it.key); });
 Object.keys(byType).forEach(function(tp){ alMark(byType[tp], (AL.statuses[tp] || ["Handled"])[0], t); });
 }
 }

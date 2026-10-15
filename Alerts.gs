@@ -48,7 +48,8 @@ var AL_STATUS = {
   // Sep 24 2026: Jotform feeds (JotformFeeds.gs) whose Feeds row carries an alert value
   workreq: ['Scheduled', 'Dispatched', 'Done', 'Not ours'],
   workdone: ['Reviewed'],
-  review: ['Reviewed']
+  review: ['Reviewed'],
+  ticket: []   // Oct 15 2026: work ticket billing queue summary (WorkTicketsHub.gs); check-off happens on work-tickets.html
 };
 var AL_JF_TYPES = { workreq: 1, workdone: 1, review: 1 };
 var AL_FILL_CLOSE = 'Posting filled';   // reply status written when its posting is filled
@@ -417,6 +418,8 @@ function alList_(d) {
   var items = alPostings_(map).concat(alResponses_(map, toClose)).concat(alSupply_(accounts, idx)).concat(alShop_(accounts, idx)).concat(alNight_());
   // Jotform feeds flagged for alerts (client work requests and the like), JotformFeeds.gs
   if (typeof jfAlertItems_ === 'function') { try { items = items.concat(jfAlertItems_(accounts, idx)); } catch (e) { /* feeds unavailable: the rest of the list still renders */ } }
+  // Oct 15 2026: one line per FSM for work tickets waiting to be billed (WorkTicketsHub.gs)
+  if (typeof wtAlertItems_ === 'function') { try { items = items.concat(wtAlertItems_()); } catch (e) { /* queue unavailable: the rest still renders */ } }
   // Reassignments made on the hub (Alert Assign tab). Replies follow their posting.
   var asg = {};
   try { asg = afAssignMap_(afTab_(cwSS_(), AF_ASSIGN_TAB, AF_ASSIGN_HEAD)); } catch (e) { asg = {}; }
