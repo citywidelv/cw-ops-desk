@@ -57,6 +57,17 @@ padding:11px 14px;cursor:pointer;background:#fff}
 .radio-item:hover{border-color:var(--red)}
 .radio-item.on{border-color:var(--red);background:#fdf3f3}
 .radio-item input{margin-top:3px;accent-color:var(--red)}
+/* Oct 18 2026: the supplies question has no default. The crew must pick Yes or No, and Yes
+   cannot send without a receipt photo. The card and the receipt box turn red until that is done. */
+.radio-row.big .radio-item{min-width:120px;padding:14px 18px}
+.radio-row.big .radio-item .rt{font-size:15px}
+.card.need{border-color:var(--red);box-shadow:0 0 0 3px rgba(210,39,48,.14)}
+.need-note{display:none;font-size:12.5px;font-weight:700;color:var(--red);margin-top:8px}
+.card.need .need-note{display:block}
+.photo-drop.need{border-color:var(--red);background:#fdf3f3}
+.photo-drop.ok{border-color:var(--teal);border-style:solid}
+.photo-drop .cam{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;font-size:14px;font-weight:700;color:#fff;background:var(--black);border-radius:8px;padding:12px 20px}
+.photo-drop.need .cam{background:var(--red)}
 .radio-item .rt{font-size:13px;font-weight:700}
 .radio-item .rs{font-size:11px;color:var(--grey)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
@@ -262,23 +273,27 @@ customer can be billed correctly.</p>
 </div>
 </div>
 
-<div class="card">
+<div class="card" id="matCard">
 <h2><span class="num">5</span>Materials and supplies</h2>
-<label class="f">Did you purchase any supplies or materials for this job? <span class="req">*</span></label>
-<div class="radio-row" id="matList">
-<label class="radio-item"><input type="radio" name="mat" value="No" checked><span><span class="rt">No</span></span></label>
-<label class="radio-item"><input type="radio" name="mat" value="Yes"><span><span class="rt">Yes</span></span></label>
+<label class="f">Did you buy any supplies or materials for this job? <span class="req">*</span></label>
+<div class="hint" style="margin:0 0 8px">Pick one. The ticket will not send without an answer.</div>
+<div class="radio-row big" id="matList">
+<label class="radio-item"><input type="radio" name="mat" value="No"><span><span class="rt">No</span><br><span class="rs">Labor only</span></span></label>
+<label class="radio-item"><input type="radio" name="mat" value="Yes"><span><span class="rt">Yes</span><br><span class="rs">I have the receipt</span></span></label>
 </div>
+<div class="need-note" id="matNeed">Tell us if you bought supplies. Yes or No.</div>
 <div id="matWrap" style="display:none">
 <label class="f">What did you purchase? <span class="req">*</span></label>
 <textarea id="matDesc" style="min-height:60px" placeholder="Example: 2 gallons paint, 1 tube caulk, door closer"></textarea>
 <label class="f">Total cost of materials <span class="req">*</span></label>
 <input type="number" id="matCost" min="0" step="0.01" placeholder="Example: 84.50">
-<label class="f">Receipt photos <span class="req">*</span></label>
-<div class="photo-drop" id="rdrop">
-<div class="big">Tap to add receipt photos</div>
-<div class="sm">Up to 6. Ops needs these to bill the customer for materials.</div>
+<label class="f">Receipt photo <span class="req">*</span></label>
+<div class="photo-drop need" id="rdrop">
+<div class="big">Take a photo of every receipt</div>
+<div class="sm">Required when you bought supplies. The ticket will not send without it. Up to 6 photos.</div>
+<span class="cam" id="rcam">&#128247; Add receipt photo</span>
 </div>
+<div class="need-note" id="rNeed" style="display:none">Add a photo of the receipt before you submit.</div>
 <input type="file" id="rfile" accept="image/*" multiple style="display:none">
 <div class="thumbs" id="rthumbs"></div>
 </div>
@@ -629,7 +644,18 @@ if(fn)fn(r.value);
 var checked=document.querySelector("#"+listId+" input:checked");
 if(checked)checked.closest(".radio-item").classList.add("on");
 }
-wireRadios("matList",function(v){$("matWrap").style.display=(v==="Yes")?"block":"none";});
+wireRadios("matList",function(v){
+$("matWrap").style.display=(v==="Yes")?"block":"none";
+$("matCard").classList.remove("need");
+if(v==="Yes")receiptState();
+});
+// The receipt box is red until a photo is in, then teal. Also updates the count on the button.
+function receiptState(){
+var d=$("rdrop"),n=receipts.length;
+d.classList.toggle("need",n===0);d.classList.toggle("ok",n>0);
+$("rcam").innerHTML=n?"&#128247; Add another receipt ("+n+" added)":"&#128247; Add receipt photo";
+if(n)$("rNeed").style.display="none";
+}
 wireRadios("statusList");
 wireRadios("chkList",function(v){$("chkWrap").style.display=(v==="Yes")?"block":"none";});
 
@@ -675,6 +701,7 @@ var b=document.createElement("button");b.textContent="×";
 b.onclick=function(){store.splice(i,1);renderThumbs();};
 d.appendChild(b);t.appendChild(d);
 });
+if(store===receipts)receiptState();
 }
 }
 function compress(f,cb){
@@ -707,11 +734,14 @@ if(!dateOfWork){err.textContent="Add the date the work was done.";return;}
 if(!requestedBy){err.textContent="Tell us who at City Wide requested this work.";return;}
 if(!desc){err.textContent="Describe the work performed.";return;}
 if(!hours||parseFloat(hours)<=0){err.textContent="Add the total labor hours so ops can bill.";return;}
-var mat=document.querySelector('input[name="mat"]:checked').value;
+var matPick=document.querySelector('input[name="mat"]:checked');
+function goTo(id){var el=$(id);if(el&&el.scrollIntoView)el.scrollIntoView({behavior:"smooth",block:"center"});}
+if(!matPick){err.textContent="Tell us if you bought supplies for this job. Yes or No.";$("matCard").classList.add("need");goTo("matCard");return;}
+var mat=matPick.value;
 if(mat==="Yes"){
-if(!val("matDesc")){err.textContent="List the materials you purchased.";return;}
-if(!val("matCost")){err.textContent="Add the total cost of materials.";return;}
-if(!receipts.length){err.textContent="Add at least one receipt photo so ops can bill the materials.";return;}
+if(!val("matDesc")){err.textContent="List the materials you bought.";goTo("matDesc");return;}
+if(!val("matCost")){err.textContent="Add the total cost of materials.";goTo("matCost");return;}
+if(!receipts.length){err.textContent="Add a photo of the receipt. Ops cannot bill the materials without it.";$("rdrop").classList.add("need");$("rNeed").style.display="block";goTo("rdrop");return;}
 }
 var chk=document.querySelector('input[name="chk"]:checked').value;
 var payload={
