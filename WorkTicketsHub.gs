@@ -108,6 +108,7 @@ function wtRow_(vals, col, rowNo) {
     start: wtText_(g('Start'), 'h:mm a'), end: wtText_(g('End'), 'h:mm a'), techs: alStr_(g('Techs')), hours: alStr_(g('Labor Hours')),
     mat: alStr_(g('Materials Purchased')), mat_desc: alStr_(g('Materials List')), mat_cost: wtNum_(g('Materials Cost')),
     receipts: wtLinks_(g('Receipt Links')), photos: wtLinks_(g('Photo Links')),
+    pdf: alStr_(g('PDF Link')),   // Oct 18 2026: the full ticket PDF built by the satellite
     work_status: alStr_(g('Work Status')), client_checked: alStr_(g('Client Checked')),
     checked_by: alStr_(g('Checked By')), feedback: alStr_(g('Client Feedback')),
     billing_notes: alStr_(g('Billing Notes')), notes: alStr_(g('Notes')),
@@ -250,38 +251,38 @@ function wtAssign_(d) {
 }
 
 // ------------------------------------------------------------ alerts card -----
-// One line per owner on the Ops Hub Alerts card: "3 work tickets to bill", linking to
-// the queue. No status buttons: the check-off happens on the page, by name. The line
-// disappears on its own when the owner's queue is empty.
+// Oct 18 2026: one line PER TICKET on the Ops Hub Alerts card (was one rolled-up line per
+// FSM). Each carries the supplies answer, the receipt count and the PDF link, so the FSM
+// sees "Supplies bought: YES $84.50, 2 receipts" or "Supplies bought: NO" without opening
+// anything. No status buttons: the billed check-off still happens on work-tickets.html,
+// by name. Reassign on the card goes through wt_assign so the queue and the card agree.
 function wtAlertItems_() {
   var items = [];
   var all;
   try { all = wtAll_(); } catch (e) { return items; }
   try { wtStampOwners_(all.sh, all.h, all.tickets); } catch (e) {}
-  var by = {};
   all.tickets.forEach(function (t) {
     if (t.done) return;
     var k = t.fsm || '';
-    (by[k] = by[k] || []).push(t);
-  });
-  Object.keys(by).forEach(function (k) {
-    var list = by[k];
-    list.sort(function (a, b) { return (b.received || '').localeCompare(a.received || ''); });
-    var newest = list[0];
-    var n = list.length;
-    var props = [];
-    list.forEach(function (t) { if (props.indexOf(t.property) < 0) props.push(t.property); });
     var region = k && FSM_ROSTER[k] ? FSM_ROSTER[k].region : '';
+    var bits = [];
+    if (t.task) bits.push(t.task);
+    if (t.hours) bits.push(t.hours + (String(t.hours) === '1' ? ' hour' : ' hours'));
+    if (t.work_status) bits.push(t.work_status);
     items.push({
-      key: 'wt:' + (k || 'none'), type: 'ticket',
+      key: 'wt:' + t.id, type: 'ticket',
       fsm: k, region: /&/.test(region) ? '' : region,
-      when: newest.received, when_nice: newest.received_nice,
-      from: newest.name,
-      about: n + (n === 1 ? ' work ticket' : ' work tickets') + ' to bill',
-      summary: props.slice(0, 3).join(', ') + (props.length > 3 ? ' and ' + (props.length - 3) + ' more' : ''),
-      count: n,
-      link: 'work-tickets.html?fsm=' + (k || 'none'),
-      ref: k || 'none'
+      when: t.received, when_nice: t.received_nice,
+      from: t.name + (t.company ? ', ' + t.company : ''),
+      about: t.property,
+      summary: bits.join('. ') + (bits.length ? '.' : ''),
+      ticket: t.id, date: t.date, hours: t.hours, techs: t.techs, requested_by: t.requested_by,
+      mat: t.mat, mat_cost: t.mat_cost, mat_desc: t.mat_desc, receipts: (t.receipts || []).length,
+      pdf: t.pdf, acct_name: t.account, address: t.address,
+      email: t.email, phone: t.phone,
+      count: 1,
+      link: 'work-tickets.html?fsm=' + (k || 'none') + '#' + encodeURIComponent(t.id),
+      ref: t.id
     });
   });
   return items;

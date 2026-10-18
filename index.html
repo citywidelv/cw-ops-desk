@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
+<!-- build 2026-10-18-alerts: Alerts card redesigned. Six tiles (All alerts, Work tickets, Property supplies, Vendor supplies, Opportunity responses, Requests and reports), Mine / See all, No FSM matched always at the bottom. One row per work ticket with the supplies strip (YES with cost and receipt count, or NO) and a View full ticket PDF button (PDF Link column written by the Work Tickets script, per-ticket items from WorkTicketsHub.gs wtAlertItems_; the old rolled-up "N work tickets to bill" line still renders until that deploys). Work ticket reassigns post wt_assign. Same alerts_list / alerts_set / alerts_assign payloads. -->
 <!-- build 2026-10-15-queue: Work tickets billing queue (work-tickets.html, WorkTicketsHub.gs wt_ kinds). The Alerts card shows one "N work tickets to bill" line per FSM (type ticket, no status buttons, Mark all skips it) linking to the queue; menu Accounts & Buildings > Work Tickets > Tickets to Bill. -->
 <!-- build 2026-09-25-menus: Jotform submissions on the hub. Every Jotform still in use syncs to a Google Sheet on the company Google account; forms.html lists them with counts and form-view.html?f=<slug> shows one form. Menu: Team & Admin > Form Submissions cascade, Jotform hub views under Night Ops > Night Manager Inspection and Work Tickets (CCCNV, Handyman). Alerts card gained client work requests (type workreq, CCCNV) and the workdone / review types, all read from the Feeds tab of CW Jotform Feeds (JotformFeeds.gs, kinds jf_*).
 build 2026-09-24: Ops asked for the Exhibit A request link back, so Vendors now carries an Exhibit A cascade (Create an Exhibit A, Request an Exhibit A Asana form, the Exhibit A Requests board) and the quick row has the Exhibit A Request chip again. Vendor Evaluation Form now points at the native Vendor Hub page (the Jotform never fed the directory). Nav: any tall dropdown lists its section headings as side cascades and every panel is kept on screen by CWNav.place (flip left, shift up, scroll).
@@ -182,112 +183,132 @@ white-space:nowrap;transition:all .15s}
 .fbtn.line{border:1.5px solid var(--border);color:var(--black);background:#fff}
 .fbtn.line:hover{border-color:var(--red);color:var(--red)}
 
-/* ---------- Alerts: vendor replies, supply orders, shop orders by FSM (Sep 2026) ----------
-Redesign 2026-09-18: the account is the headline on every line, replies live inside their
-posting, and every vendor line carries Email / Call / Open quick actions beside the
-status buttons. Type scale 12 / 13 / 15 / 17, 4px spacing grid, radius 6 / 11 / 18. */
+/* ---------- Alerts: work tickets, property supplies, vendor supplies, opportunity replies,
+requests and reports, by FSM (Sep 2026, redesigned Oct 18 2026) ----------
+Oct 18 2026 redesign: six tiles across the top (All alerts, Work tickets, Property supplies,
+Vendor supplies, Opportunity responses, Requests and reports) pick the list below. Mine shows
+the signed-in FSM only, See all groups by FSM. Unmatched alerts always sit at the bottom.
+Every work ticket row carries a supplies strip (YES with cost and receipt count, or NO) and
+a View full ticket PDF button. Same alerts_list / alerts_set / alerts_assign payloads and the
+same data-* click contract; work ticket reassigns go through wt_assign so the queue agrees.
+Type scale 12 / 13 / 15 / 16, 4px spacing grid, radius 8 / 12 / 14. */
 .alerts{margin-top:18px}
-.acard{background:#fff;border:1px solid var(--border);border-radius:11px;box-shadow:var(--shadow);overflow:hidden}
+.acard{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
 .ahead{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap}
 .ahead .bar-accent{flex:none;width:18px;height:3px;background:var(--red);border-radius:2px}
 .ahead h2{font-size:17px;line-height:1.25}
 .ahead .acount{font-size:13px;font-weight:700;background:var(--red);color:#fff;border-radius:18px;padding:4px 12px;white-space:nowrap;line-height:1.3}
 .ahead .acount.zero{background:var(--grey)}
-.ahead .awho{margin-left:auto;font-size:13px;font-weight:700;color:var(--grey);display:flex;align-items:center;gap:8px}
-.ahead select{font-family:inherit;font-size:13px;border:1.5px solid var(--border);border-radius:6px;padding:8px 12px;background:var(--light);min-height:40px;max-width:220px;color:var(--black)}
-.ahead select:focus{outline:none;border-color:var(--red);background:#fff}
-.ahead select.need{border-color:var(--red);box-shadow:0 0 0 3px rgba(210,39,48,.18);background:#fff}
-.ahead .arefresh{font-family:inherit;font-size:13px;font-weight:700;color:var(--grey);border:1px solid var(--border);border-radius:18px;background:#fff;padding:0 14px;min-height:40px;cursor:pointer;transition:transform 90ms ease-out,color 120ms ease-out,border-color 120ms ease-out}
+.ahead .awho{margin-left:auto;font-size:13px;font-weight:700;color:var(--grey);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ahead select{font-family:inherit;font-size:14px;font-weight:700;border:1.5px solid var(--black);border-radius:10px;padding:0 34px 0 14px;background:#fff;min-height:44px;max-width:240px;color:var(--black);appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%232D2A26' stroke-width='2' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 12px center}
+.ahead select:focus{outline:none;border-color:var(--red)}
+.ahead select.need{border-color:var(--red);box-shadow:0 0 0 3px rgba(210,39,48,.18)}
+.aseg{display:inline-flex;border:1.5px solid var(--border);border-radius:10px;overflow:hidden}
+.aseg button{font-family:inherit;font-size:13px;font-weight:700;border:none;background:#fff;color:var(--grey);padding:0 14px;min-height:44px;cursor:pointer}
+.aseg button.on{background:var(--black);color:#fff}
+.ahead .arefresh{font-family:inherit;font-size:13px;font-weight:700;color:var(--grey);border:1.5px solid var(--border);border-radius:10px;background:#fff;padding:0 14px;min-height:44px;cursor:pointer;transition:transform 90ms ease-out,color 120ms ease-out,border-color 120ms ease-out}
 .ahead .arefresh:active{transform:scale(.97)}
 .aneed{display:block;background:#fdf8ea;border-left:4px solid var(--gold);padding:12px 20px;font-size:13px;font-weight:700;color:var(--black)}
 .anote{flex-basis:100%;font-size:12px;font-weight:700;color:var(--red);text-align:right}
-.aempty{text-align:center;color:var(--grey);font-size:13px;padding:28px 20px}
-.aempty b{display:block;color:var(--black);font-size:15px;margin-bottom:4px}
-/* legend: what the colors and buttons mean, one line, no jargon */
-.alegend{display:flex;flex-wrap:wrap;gap:8px 20px;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--light);font-size:12px;color:var(--grey)}
-.alegend span{display:inline-flex;align-items:center;gap:6px}
-.alegend i{display:inline-block;width:10px;height:10px;border-radius:2px;flex:none}
-.alegend i.posting{background:var(--gold)}.alegend i.response{background:var(--red)}.alegend i.supply{background:var(--black)}.alegend i.shop{background:var(--grey)}.alegend i.night{background:var(--red-dark)}.alegend i.workreq{background:#7a1f7a}.alegend i.workdone{background:#1d8f4e}.alegend i.review{background:#1f5fa8}.alegend i.ticket{background:var(--teal)}
-/* loading skeleton, the shape of a group header and one posting block */
+.aempty{text-align:center;color:var(--grey);font-size:13px;padding:28px 16px;border:1px dashed var(--border);border-radius:12px;margin-top:8px}
+.aempty b{display:block;color:var(--black);font-size:15px;margin-bottom:2px}
+/* tiles: one per bucket, the number first */
+.atiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;padding:16px 20px 4px}
+.atile{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;border:1.5px solid var(--border);border-radius:12px;background:#fff;padding:14px 14px 12px;min-height:104px;cursor:pointer;color:var(--black);position:relative;font-family:inherit;transition:border-color 120ms ease-out,transform 90ms ease-out}
+.atile:active{transform:scale(.985)}
+.atile .tn{font-size:30px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.atile .tl{font-size:13px;font-weight:700;line-height:1.25;margin-top:3px}
+.atile .ts{font-size:11px;color:var(--grey);line-height:1.3}
+.atile .tm{position:absolute;top:12px;right:12px;width:10px;height:10px;border-radius:50%}
+.atile.on{background:var(--black);border-color:var(--black);color:#fff}
+.atile.on .ts{color:#D9D7D2}
+.atile.zero{border-style:dashed}
+.atile.zero .tn{color:var(--grey)}
+.atile.zero.on .tn{color:#fff}
+.alead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:12px 20px 0}
+.alead h3{margin:0;font-size:15px;line-height:1.3}
+.alead span{font-size:12px;color:var(--grey)}
+.alist{padding:8px 20px 16px}
+/* loading skeleton: the tiles and two rows */
 .askel{padding:0 20px 16px}
-.skel{background:linear-gradient(90deg,#EFEFEF 25%,#F7F7F7 37%,#EFEFEF 63%);background-size:400% 100%;animation:alsk 1.4s ease infinite;border-radius:6px;display:block}
+.skel{background:linear-gradient(90deg,#EFEFEF 25%,#F7F7F7 37%,#EFEFEF 63%);background-size:400% 100%;animation:alsk 1.4s ease infinite;border-radius:8px;display:block}
 @keyframes alsk{0%{background-position:100% 50%}100%{background-position:0 50%}}
 @media(prefers-reduced-motion:reduce){.skel{animation:none;background:#EFEFEF}}
-.askel .sg{display:flex;align-items:center;gap:12px;min-height:56px;margin:0 -20px;padding:0 20px;background:#fdf8ea;border-left:4px solid var(--gold)}
-.askel .sg .skel:first-child{width:180px;height:14px}
-.askel .sg .skel:last-child{width:36px;height:24px;border-radius:18px;margin-left:auto}
-.askel .sb{border:1px solid var(--border);border-radius:11px;margin-top:12px;padding:16px 18px;border-left:5px solid var(--gold)}
+.askel .st{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;padding:16px 0 12px}
+.askel .st .skel{height:104px;border-radius:12px}
+.askel .sb{border:1px solid var(--border);border-radius:12px;margin-top:8px;padding:16px 18px}
 .askel .sb .skel{height:12px;margin-bottom:10px}
 .askel .sb .skel.t{height:16px;width:40%}
 .askel .sb .skel.w{width:70%}
 .askel .sb .skel.n{width:30%;margin-bottom:0}
-.askel .sr{display:grid;grid-template-columns:1.4fr .8fr auto;gap:16px;align-items:center;padding:12px 0 0;margin-top:12px;border-top:1px solid var(--border)}
-.askel .sr .skel{height:12px}
-.askel .sr .skel.b{height:40px;width:220px;border-radius:6px}
-/* FSM groups */
-.agroup{border-bottom:1px solid var(--border)}
-.agroup:last-child{border-bottom:none}
-.agh{width:100%;display:flex;align-items:center;gap:12px;padding:12px 20px;background:#fff;border:none;border-left:4px solid transparent;font-family:inherit;text-align:left;cursor:pointer;min-height:56px;color:var(--black)}
-.agh .caret{color:var(--grey);font-size:12px;transition:transform 120ms ease-out;flex:none;width:12px}
-.agroup.open .agh .caret{transform:rotate(90deg)}
-.agh .gname{font-size:15px;font-weight:700;line-height:1.25}
-.agh .gsub{display:block;font-size:12px;color:var(--grey);margin-top:2px}
-.agh .gmix{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
-.agh .gmix span{font-size:12px;font-weight:700;color:var(--grey);background:var(--light);border:1px solid var(--border);border-radius:18px;padding:3px 10px;white-space:nowrap;line-height:1.3}
-.agh .gn{flex:none;font-size:13px;font-weight:700;color:#fff;background:var(--red);border-radius:18px;padding:4px 12px;min-width:36px;text-align:center;line-height:1.3}
-.agh .gn.zero{background:var(--border);color:var(--grey)}
-.agroup.mine .agh{border-left-color:var(--gold);background:#fdf8ea}
-.agitems{display:none;padding:0 20px 12px}
-.agroup.open .agitems{display:block}
-/* one block per posting, supply report, shop order or night report */
-.ablk{border:1px solid var(--border);border-radius:11px;margin-top:12px;background:#fff;overflow:hidden}
-.ablk.posting{border-color:#ead9a0}
-.ablk .bhead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 20px;padding:14px 16px 14px 18px;border-left:5px solid var(--gold);align-items:start}
-.ablk.supply .bhead{border-left-color:var(--black)}
-.ablk.shop .bhead{border-left-color:var(--grey)}
-.ablk.night .bhead{border-left-color:var(--red-dark)}
-.ablk.workreq .bhead{border-left-color:#7a1f7a}.ablk.workdone .bhead{border-left-color:#1d8f4e}.ablk.review .bhead{border-left-color:#1f5fa8}.ablk.ticket .bhead{border-left-color:var(--teal)}
-.ablk.response .bhead{border-left-color:var(--red)}
-.bkind{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);line-height:1.3;margin-bottom:4px}
-.btitle{font-size:17px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
-.btitle .bint{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-left:8px;vertical-align:2px;white-space:nowrap}
-.bsub{font-size:13px;color:var(--black);margin-top:4px;overflow-wrap:anywhere}
+/* FSM section headings (See all), and the unmatched section */
+.agh{display:flex;align-items:center;gap:10px;padding:16px 0 4px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey)}
+.agh b{color:var(--black)}
+.agh .line{flex:1;height:1px;background:var(--border)}
+.agh .cnt{font-size:12px;font-weight:700;color:var(--black);background:var(--light);border-radius:12px;padding:2px 9px;text-transform:none;letter-spacing:0}
+.agh .sub{text-transform:none;letter-spacing:0;font-weight:400}
+.aunm{margin-top:18px;border-top:1px solid var(--border);padding-top:4px}
+/* one row per alert: colour stripe, main, actions */
+.ablk{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:0 16px;border:1px solid var(--border);border-radius:12px;margin-top:8px;background:#fff;overflow:hidden}
+.ablk .stripe{background:var(--border)}
+.ablk.tickets .stripe{background:var(--red)}
+.ablk.prop .stripe{background:#C8961E}
+.ablk.vend .stripe{background:#0F7C8C}
+.ablk.opp .stripe{background:#1F5FA8}
+.ablk.req .stripe{background:#7A1F7A}
+.ablk .bmain{padding:14px 0 14px 14px;min-width:0}
+.ablk .bside{padding:14px 14px 14px 0;display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:0}
+.bkind{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);line-height:1.3}
+.bkind .owner{font-weight:400;letter-spacing:0;text-transform:none}
+.btitle{font-size:16px;font-weight:700;line-height:1.3;margin-top:3px;overflow-wrap:anywhere}
+.btitle .bint{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-left:8px;vertical-align:2px;white-space:nowrap}
+.bsub{font-size:13px;color:var(--black);margin-top:3px;overflow-wrap:anywhere}
 .bsub b{font-weight:700}
-.bsum{font-size:13px;color:var(--black);margin-top:4px;overflow-wrap:anywhere}
-.bmeta{font-size:12px;color:var(--grey);margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 12px}
+.bsum{font-size:13px;color:var(--black);margin-top:3px;overflow-wrap:anywhere}
+.bmeta{font-size:12px;color:var(--grey);margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 14px}
+.bmeta b{color:var(--black)}
 .bmeta a{color:var(--grey);font-weight:700}
-.bside{display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:0}
+/* the supplies strip on every work ticket */
+.sup{display:flex;align-items:center;gap:10px;margin-top:10px;border-radius:8px;padding:9px 12px;font-size:13px;font-weight:700;line-height:1.3;max-width:560px}
+.sup svg{width:18px;height:18px;flex:none}
+.sup small{display:block;font-weight:400;font-size:12px}
+.sup.yes{background:#FFF1F1;color:#B01F27;border:1px solid #F3C8CB}
+.sup.no{background:var(--light);color:var(--black);border:1px solid var(--border)}
+.sup.missing{background:#B01F27;color:#fff;border:1px solid #B01F27}
+.sup.missing small{color:#FFD9DB}
+.sup.unk{background:#FFF8E6;color:#7A5A00;border:1px solid #EBD39A}
 .bside .bcount{font-size:13px;font-weight:700;color:var(--black);white-space:nowrap}
 .bside .bcount.zero{color:var(--grey);font-weight:400}
-.bside .bhint{font-size:12px;color:var(--grey);text-align:right;max-width:200px}
+.bside .bhint{font-size:12px;color:var(--grey);text-align:right;max-width:260px}
 /* action clusters: contact on the left (outlined, grey), status on the right (black main) */
 .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 .acts .cgrp,.acts .sgrp{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .acts .sep{width:1px;height:24px;background:var(--border);flex:none}
-.abtn,.aact{font-family:inherit;font-size:13px;font-weight:700;border-radius:6px;padding:0 14px;cursor:pointer;min-height:40px;white-space:nowrap;border:1.5px solid var(--border);background:#fff;color:var(--black);display:inline-flex;align-items:center;gap:6px;text-decoration:none;line-height:1;transition:transform 90ms ease-out,background 120ms ease-out,color 120ms ease-out,border-color 120ms ease-out}
+.abtn,.aact{font-family:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:0 14px;cursor:pointer;min-height:40px;white-space:nowrap;border:1.5px solid var(--border);background:#fff;color:var(--black);display:inline-flex;align-items:center;gap:6px;text-decoration:none;line-height:1;transition:transform 90ms ease-out,background 120ms ease-out,color 120ms ease-out,border-color 120ms ease-out}
 .aact{color:var(--grey);border-color:var(--border)}
-.aact svg{width:14px;height:14px;flex:none}
+.aact svg,.abtn svg{width:14px;height:14px;flex:none}
 .abtn.main{background:var(--black);border-color:var(--black);color:#fff}
+.abtn.red,.aact.red{background:var(--red);border-color:var(--red);color:#fff}
 .abtn:active,.aact:active{transform:scale(.97)}
 .abtn[disabled],.undo[disabled]{opacity:.5;cursor:wait}
 @media(hover:hover){
-.agh:hover{background:var(--light)}
-.agroup.mine .agh:hover{background:#faf1d6}
+.atile:hover{border-color:var(--black)}
 .ahead .arefresh:hover,.aact:hover,.abtn:hover{border-color:var(--red);color:var(--red)}
 .abtn.main:hover{background:var(--red);border-color:var(--red);color:#fff}
-.bmeta a:hover,.undo:hover,.agfoot .showdone:hover,.akidbtn:hover{color:var(--red)}
-.agfoot .markall:hover{border-color:var(--red);color:var(--red)}
+.abtn.red:hover,.aact.red:hover{background:var(--red-dark);border-color:var(--red-dark);color:#fff}
+.bmeta a:hover,.undo:hover,.afoot .showdone:hover,.akidbtn:hover,.areasb:hover{color:var(--red)}
+.afoot .markall:hover{border-color:var(--red);color:var(--red)}
 }
 /* replies inside a posting */
-.areplies{border-top:1px solid var(--border);background:#fcfbf8}
-.areplies .rhead{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--grey);padding:10px 18px 0}
-.arep{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,.8fr) auto;gap:8px 16px;align-items:center;padding:12px 18px;border-top:1px solid var(--border)}
+.areplies{grid-column:1 / -1;border-top:1px solid var(--border);background:#fcfbf8}
+.areplies .rhead{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);padding:10px 18px 0}
+.arep{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:8px 16px;align-items:center;padding:12px 14px 12px 18px;border-top:1px solid var(--border)}
 .rhead+.arep{border-top:none}
 .arep .rwho{min-width:0}
-.arep .rco{font-size:15px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
-.arep .rname{font-size:13px;color:var(--black);margin-top:2px}
+.arep .rco{font-size:14px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+.arep .rname{font-size:12px;color:var(--grey);margin-top:2px}
 .arep .rwhen{font-size:12px;color:var(--grey);margin-top:2px}
-.arep .rquote{font-size:15px;font-weight:700;color:var(--black);line-height:1.25;overflow-wrap:anywhere}
+.arep .rquote{font-size:14px;font-weight:700;color:var(--black);line-height:1.3;overflow-wrap:anywhere}
 .arep .rquote.soft{font-weight:400;color:var(--grey)}
 .arep .rquote small{display:block;font-size:12px;font-weight:400;color:var(--grey);margin-top:2px}
 .arep.done{background:var(--light)}
@@ -295,39 +316,45 @@ status buttons. Type scale 12 / 13 / 15 / 17, 4px spacing grid, radius 6 / 11 / 
 .akidbtn{display:block;width:100%;text-align:left;background:#fcfbf8;border:none;border-top:1px solid var(--border);font-family:inherit;font-size:13px;font-weight:700;color:var(--black);padding:12px 18px;cursor:pointer;min-height:44px}
 .akidbtn .caret{display:inline-block;color:var(--grey);font-size:12px;margin-right:8px;transition:transform 120ms ease-out}
 .akidbtn.open .caret{transform:rotate(90deg)}
-.akids{display:none}
-.akids.show{display:block}
-.rnone{font-size:13px;color:var(--grey);padding:12px 18px;border-top:1px solid var(--border);background:#fcfbf8}
+.rnone{grid-column:1 / -1;font-size:13px;color:var(--grey);padding:12px 18px;border-top:1px solid var(--border);background:#fcfbf8}
 /* handled state */
 .adone{font-size:13px;font-weight:700;color:var(--black);text-align:right;line-height:1.4}
 .adone small{display:block;font-size:12px;font-weight:400;color:var(--grey)}
 .undo{margin-left:8px;font-size:12px;color:var(--grey);cursor:pointer;background:none;border:none;font-family:inherit;font-weight:700;text-decoration:underline;padding:8px 0;min-height:40px}
 .ablk.done{background:var(--light)}
 .ablk.done .btitle,.ablk.done .bsub,.ablk.done .bsum{color:var(--grey)}
-.ablk.done .bhead{border-left-color:var(--border)}
-.agfoot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0 0;flex-wrap:wrap}
-.agfoot .showdone{background:none;border:none;font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);cursor:pointer;text-decoration:underline;padding:8px 0;min-height:40px}
-.agfoot .markall{font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);border:1px solid var(--border);border-radius:6px;background:#fff;padding:0 12px;min-height:40px;cursor:pointer;margin-left:auto}
-.adonelist{display:none}
-.agroup.showdone .adonelist{display:block}
+.ablk.done .stripe{background:var(--border)}
+.afoot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 20px 16px;flex-wrap:wrap;border-top:1px solid var(--border);background:#FAFAFA}
+.afoot .showdone{background:none;border:none;font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);cursor:pointer;text-decoration:underline;padding:8px 0;min-height:40px}
+.afoot .markall{font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);border:1px solid var(--border);border-radius:8px;background:#fff;padding:0 12px;min-height:40px;cursor:pointer;margin-left:auto}
+.adonelist{padding:0 20px 16px}
+.adonelist .agh{padding-top:8px}
 /* who owns it, and the reassign panel (Sep 23 2026) */
 .bown{font-size:12px;color:var(--grey);margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
 .bown b{color:var(--black)}
 .bown .warn{color:var(--red);font-weight:700}
 .areasb{font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);background:none;border:none;text-decoration:underline;cursor:pointer;padding:6px 0;min-height:32px}
-.arp{border-top:1px solid var(--border);background:#fcfbf8;padding:14px 18px 16px;display:grid;gap:12px}
+.arp{grid-column:1 / -1;border-top:1px solid var(--border);background:#fcfbf8;padding:14px 18px 16px;display:grid;gap:12px}
 .arp .rl{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);margin-bottom:6px}
 .arp .cands{display:flex;flex-wrap:wrap;gap:8px}
 .arp .cand{font-family:inherit;font-size:13px;text-align:left;border:1.5px solid var(--border);border-radius:8px;background:#fff;padding:8px 12px;cursor:pointer;min-height:40px;color:var(--black);max-width:100%}
 .arp .cand small{display:block;font-size:12px;color:var(--grey)}
 .arp .cand.on{border-color:var(--red);box-shadow:0 0 0 3px rgba(210,39,48,.14)}
-.arp input[type=search],.arp select{font-family:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:6px;padding:8px 12px;background:#fff;min-height:42px;width:100%;max-width:420px;color:var(--black)}
+.arp input[type=search],.arp select{font-family:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;background:#fff;min-height:42px;width:100%;max-width:420px;color:var(--black)}
 .arp input[type=search]:focus,.arp select:focus{outline:none;border-color:var(--red)}
 .arp .ares{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .arp .chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;cursor:pointer}
 .arp .chk input{width:18px;height:18px;margin-top:1px;flex:none;accent-color:var(--red)}
 .arp .note{font-size:12px;color:var(--grey);line-height:1.5}
 .arp .rbtns{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:900px){.atiles,.askel .st{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.atile .tm.tickets,.atile.tickets .tm{background:var(--red)}
+.atile .tm.prop{background:#C8961E}
+.atile .tm.vend{background:#0F7C8C}
+.atile .tm.opp{background:#1F5FA8}
+.atile .tm.req{background:#7A1F7A}
+.atile .tm.all{background:var(--black)}
+.atile.on .tm.all{background:#fff}
 .astatus{padding:8px 20px;font-size:12px;color:var(--grey);border-top:1px solid var(--border);min-height:32px}
 .astatus .err{color:var(--red);font-weight:700}
 .anew{border-top:3px solid var(--red);background:var(--light);padding:16px 20px 20px}
@@ -357,17 +384,16 @@ status buttons. Type scale 12 / 13 / 15 / 17, 4px spacing grid, radius 6 / 11 / 
 @media(max-width:640px){
 .ahead .awho{margin-left:0;width:100%}
 .ahead select{font-size:16px;max-width:none;flex:1}
-.agh{flex-wrap:wrap}
-.agh>span:nth-child(2){flex:1;min-width:0}
-.acts{flex-direction:column;align-items:stretch}
+.atiles,.askel .st{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding-left:14px;padding-right:14px}
+.atile{min-height:92px;padding:12px}
+.atile .tn{font-size:26px}
+.alist,.alead,.adonelist,.afoot,.askel{padding-left:14px;padding-right:14px}
+.ablk{grid-template-columns:4px minmax(0,1fr)}
+.ablk .bside{grid-column:2;padding:0 14px 14px 14px;align-items:flex-start}
+.acts{flex-direction:column;align-items:stretch;justify-content:flex-start}
 .acts .sep{display:none}
 .acts .cgrp,.acts .sgrp{justify-content:flex-start}
-.agh .gmix{margin-left:0;width:100%;justify-content:flex-start;padding-left:24px}
-.agitems{padding:0 12px 12px}
-.ablk .bhead{grid-template-columns:1fr;padding:12px 12px 12px 14px}
-.bside{align-items:flex-start}
 .bside .bhint{text-align:left;max-width:none}
-.acts{justify-content:flex-start}
 .arep{grid-template-columns:1fr;gap:8px;padding:12px}
 .adone{text-align:left}
 }
@@ -666,8 +692,9 @@ search box to jump straight to what you need.</p>
 <div class="wrap alerts" id="alerts">
 <section class="acard">
 <div class="ahead"><span class="bar-accent"></span><h2>Alerts</h2><span class="acount" id="alcount">&hellip;</span>
-<label class="awho" for="alwho">You are <select id="alwho"><option value="">Pick your name</option></select></label>
-<button class="arefresh" id="alrefresh" type="button">Refresh</button></div>
+<div class="awho"><label for="alwho">You are</label> <select id="alwho"><option value="">Pick your name</option></select>
+<span class="aseg" id="alseg"><button type="button" data-view="mine" class="on">Mine</button><button type="button" data-view="all">See all</button></span>
+<button class="arefresh" id="alrefresh" type="button">Refresh</button></div></div>
 <div id="albody"><div class="aempty">Loading&hellip;</div></div>
 <div class="astatus" id="alstatus"></div>
 <div class="anew">
@@ -1625,9 +1652,9 @@ AL.items = r.items || []; AL.roster = r.roster || []; AL.statuses = r.statuses |
 alFillWho(); alRender();
 }
 function alSkeleton(){
-var row = '<div class="sr"><span class="skel"></span><span class="skel"></span><span class="skel b"></span></div>';
-return '<div class="askel"><div class="sg"><span class="skel"></span><span class="skel"></span></div>' +
-'<div class="sb"><span class="skel t"></span><span class="skel w"></span><span class="skel n"></span>' + row + row + '</div>' +
+var tile = '<span class="skel"></span>';
+return '<div class="askel"><div class="st">' + tile + tile + tile + tile + tile + tile + '</div>' +
+'<div class="sb"><span class="skel t"></span><span class="skel w"></span><span class="skel n"></span></div>' +
 '<div class="sb"><span class="skel t"></span><span class="skel w"></span><span class="skel n"></span></div></div>';
 }
 function alPost(body){
@@ -1642,6 +1669,7 @@ function alInit(){
 var sel = document.getElementById("alwho");
 sel.addEventListener("change", function(){ alSetWho(sel.value); alRender(); });
 document.getElementById("alrefresh").addEventListener("click", function(){ alLoad(true); });
+document.getElementById("alseg").addEventListener("click", alClick);
 document.getElementById("albody").addEventListener("click", alClick);
 document.getElementById("albody").addEventListener("input", function(e){ if(e.target.hasAttribute("data-acsearch")) alSearch(e.target.value); });
 document.getElementById("albody").addEventListener("change", function(e){
@@ -1698,80 +1726,42 @@ var who = alWho();
 var f = AL.roster.filter(function(x){ return x.key === who; })[0];
 return f ? f.name : (who === "other" ? "Someone else" : "");
 }
-function alGroups(){
-var me = alWho();
-var byKey = {}, un = {};
-AL.roster.forEach(function(f){
-byKey[f.key] = { key:f.key, name:f.name, sub:f.title + (f.region ? ", " + f.region : ""), open:[], done:[] };
+/* ---------- Oct 18 2026: buckets, tiles, Mine / See all ----------
+Every alert type lands in one of five buckets. The tiles count the bucket for the current
+view (Mine or See all) and pick which list shows. Nothing about the payload changed. */
+var AL_BUCKETS = ["tickets", "prop", "vend", "opp", "req"];
+var AL_B = {
+all:     { label:"All alerts",            sub:"Everything, billing first",         empty:["All clear.", "Nothing is waiting right now."] },
+tickets: { label:"Work tickets",          sub:"Create the CRM work order, bill it", empty:["No work tickets.", "Finished tickets land here the moment a crew submits one."] },
+prop:    { label:"Property supplies",     sub:"The building needs stock",          empty:["No property supply reports.", "When a crew or night manager reports a building is out of something, it lands here."] },
+vend:    { label:"Vendor supplies",       sub:"Shop orders for their own kit",     empty:["No vendor shop orders.", "Orders vendors place on the Vendor Shop land here."] },
+opp:     { label:"Opportunity responses", sub:"Vendors replying to postings",      empty:["No replies waiting.", "Vendor replies to open postings land here."] },
+req:     { label:"Requests and reports",  sub:"Client asks, night reports, forms", empty:["Nothing to review.", "Client work requests, night manager reports and forms to review land here."] }
+};
+var AL_TYPE_BUCKET = { ticket:"tickets", workdone:"tickets", supply:"prop", shop:"vend", posting:"opp", response:"opp", night:"req", workreq:"req", review:"req" };
+var AL_KIND = { response:"Vendor reply", supply:"Property supplies", shop:"Vendor shop order", posting:"Open posting", night:"Night manager report", workreq:"Client work request", workdone:"Completed work order (form)", review:"Form to review", ticket:"Work ticket" };
+var AL_VIEWKEY = "cwAlertsView", AL_TILEKEY = "cwAlertsTile";
+function alBucket(it){ return AL_TYPE_BUCKET[it.type] || "req"; }
+function alView(){ try{ return localStorage.getItem(AL_VIEWKEY) === "all" ? "all" : "mine"; }catch(e){ return "mine"; } }
+function alTile(){ try{ var t = localStorage.getItem(AL_TILEKEY); return (t === "all" || AL_BUCKETS.indexOf(t) >= 0) ? t : "all"; }catch(e){ return "all"; } }
+function alSetView(v){ try{ localStorage.setItem(AL_VIEWKEY, v); }catch(e){} }
+function alSetTile(t){ try{ localStorage.setItem(AL_TILEKEY, t); }catch(e){} }
+/* What a line is worth on a tile: a posting counts its waiting replies, a legacy rolled-up
+ticket line counts the tickets behind it, everything else counts one. */
+function alWeight(list){
+var n = 0;
+list.forEach(function(it){
+if(it.type === "posting") return;
+n += it.type === "ticket" ? (it.count || 1) : 1;
 });
-AL.items.forEach(function(it){
-var g;
-if(it.fsm && byKey[it.fsm]) g = byKey[it.fsm];
-else {
-var rk = "un:" + (it.region || "Region unknown");
-if(!un[rk]) un[rk] = { key:rk, name:"No FSM matched", sub:(it.region || "Region unknown") + ". We could not tie these to an account. Use Reassign to send one to the right FSM.", open:[], done:[] };
-g = un[rk];
-}
-(it.status ? g.done : g.open).push(it);
-});
-var list = [];
-Object.keys(byKey).forEach(function(k){ var g = byKey[k]; if(g.open.length || g.done.length || k === me) list.push(g); });
-Object.keys(un).forEach(function(k){ list.push(un[k]); });
-list.sort(function(a, b){
-if(a.key === me) return -1;
-if(b.key === me) return 1;
-if(b.open.length !== a.open.length) return b.open.length - a.open.length;
-return a.name.localeCompare(b.name);
-});
-return list;
-}
-function alRender(){
-var me = alWho();
-var groups = alGroups();
-var total = 0;
-groups.forEach(function(g){ total += alWeight(g.open); });
-var cnt = document.getElementById("alcount");
-cnt.textContent = total + " open";
-cnt.classList.toggle("zero", !total);
-document.getElementById("alwho").classList.toggle("need", !me);
-var html = me ? "" : '<div class="aneed">Pick your name in the top right of this card first. Then the buttons on each line will work.</div>';
-html += '<div class="alegend"><span><i class="posting"></i>Open posting, replies listed under it</span><span><i class="response"></i>Vendor reply</span><span><i class="supply"></i>Supplies needed</span><span><i class="shop"></i>Shop order</span><span><i class="night"></i>Night manager</span><span><i class="workreq"></i>Client work request</span><span><i class="ticket"></i>Work tickets to bill</span></div>';
-if(!groups.length){
-html += '<div class="aempty"><b>Nothing waiting.</b>Vendor replies, supply reports and shop orders will show up here.' + (me ? '' : ' Pick your name above so your list opens first.') + '</div>';
-}
-groups.forEach(function(g){
-var isOpen = (AL.open[g.key] !== undefined) ? AL.open[g.key] : (g.key === me);
-var mine = g.key === me;
-var mix = alMix(g.open);
-html += '<div class="agroup' + (isOpen ? ' open' : '') + (mine ? ' mine' : '') + (AL.showDone[g.key] ? ' showdone' : '') + '">' +
-'<button class="agh" type="button" data-toggle="' + esc(g.key) + '"><span class="caret">&#9654;</span>' +
-'<span><span class="gname">' + esc(g.name) + (mine ? ' (you)' : '') + '</span><span class="gsub">' + esc(g.sub) + '</span></span>' +
-'<span class="gmix">' + mix.map(function(m){ return '<span>' + esc(m) + '</span>'; }).join('') +
-'<span class="gn' + (g.open.length ? '' : ' zero') + '">' + alWeight(g.open) + '</span></span></button>' +
-'<div class="agitems">';
-if(!g.open.length) html += '<div class="aempty">All clear.</div>';
-alNest(g.open).forEach(function(n){ html += alBlock(n.it, n.kids); });
-html += '<div class="agfoot">' +
-(g.done.length ? '<button class="showdone" type="button" data-done="' + esc(g.key) + '">' + (AL.showDone[g.key] ? 'Hide' : 'Show') + ' ' + g.done.length + ' handled in the last 7 days</button>' : '<span></span>') +
-(alHandleable(g.open) > 1 ? '<button class="markall" type="button" data-markall="' + esc(g.key) + '">Mark all ' + alHandleable(g.open) + ' as handled</button>' : '') +
-'</div>';
-if(g.done.length){ html += '<div class="adonelist">'; g.done.forEach(function(it){ html += alBlock(it, []); }); html += '</div>'; }
-html += '</div></div>';
-});
-document.getElementById("albody").innerHTML = html;
+return n;
 }
 /* Items Mark all can clear. Work ticket lines are billed on their own page, never here. */
-function alHandleable(list){ return list.filter(function(it){ return it.type !== "ticket"; }).length; }
-/* What the counts show: a work ticket line counts as the number of tickets behind it. */
-function alWeight(list){ var n = 0; list.forEach(function(it){ n += it.type === "ticket" ? (it.count || 1) : 1; }); return n; }
-/* Count line for a group header: "2 postings, 5 replies, 1 supply report". */
-function alMix(list){
-var c = {};
-list.forEach(function(it){ c[it.type] = (c[it.type] || 0) + (it.type === "ticket" ? (it.count || 1) : 1); });
-var words = { posting:["posting","postings"], response:["reply","replies"], supply:["supply report","supply reports"], shop:["shop order","shop orders"], night:["night report","night reports"], workreq:["work request","work requests"], workdone:["completed work order","completed work orders"], review:["form to review","forms to review"], ticket:["work ticket to bill","work tickets to bill"] };
-return ["posting","response","supply","shop","night","workreq","workdone","review","ticket"].filter(function(t){ return c[t]; }).map(function(t){ return c[t] + " " + words[t][c[t] === 1 ? 0 : 1]; });
-}
+function alHandleable(list){ return list.filter(function(it){ return it.type !== "ticket" && !it.status; }).length; }
+function alFsmName(k){ var f = AL.roster.filter(function(x){ return x.key === k; })[0]; return f ? f.name : ""; }
+function alFsmSub(k){ var f = AL.roster.filter(function(x){ return x.key === k; })[0]; return f ? (f.title + (f.region ? ", " + f.region : "")) : ""; }
 function alNest(list){
+var rank = { tickets:0, prop:1, vend:2, opp:3, req:4 };
 var posts = {}, order = [], loose = [];
 list.forEach(function(it){ if(it.type === "posting"){ posts[it.ref] = { it:it, kids:[] }; order.push(it.ref); } });
 list.forEach(function(it){
@@ -1779,17 +1769,106 @@ if(it.type === "posting") return;
 if(it.type === "response" && it.pid && posts[it.pid]) posts[it.pid].kids.push(it);
 else loose.push({ it:it, kids:[] });
 });
-return order.map(function(k){ return posts[k]; }).concat(loose);
+var out = order.map(function(k){ return posts[k]; }).concat(loose);
+out.sort(function(a, b){ var d = rank[alBucket(a.it)] - rank[alBucket(b.it)]; return d || String(b.it.when || "").localeCompare(String(a.it.when || "")); });
+return out;
+}
+/* Replies ride with their posting: when a posting is in scope its replies are too. */
+function alScope(){
+var me = alWho(), all = alView() === "all";
+var open = [], done = [];
+AL.items.forEach(function(it){
+var mine = all || it.fsm === me || !it.fsm || (!AL.roster.some(function(f){ return f.key === it.fsm; }));
+if(!mine) return;
+(it.status ? done : open).push(it);
+});
+return { open:open, done:done, all:all, me:me };
+}
+function alCounts(list){
+var c = { all:0 };
+AL_BUCKETS.forEach(function(b){ c[b] = 0; });
+var byB = {};
+list.forEach(function(it){ var b = alBucket(it); (byB[b] = byB[b] || []).push(it); });
+AL_BUCKETS.forEach(function(b){ c[b] = alWeight(byB[b] || []); c.all += c[b]; });
+return c;
+}
+function alRender(){
+var me = alWho(), sc = alScope(), tile = alTile();
+var counts = alCounts(sc.open);
+var cnt = document.getElementById("alcount");
+cnt.textContent = counts.all + " open";
+cnt.classList.toggle("zero", !counts.all);
+document.getElementById("alwho").classList.toggle("need", !me);
+document.querySelectorAll("#alseg button").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-view") === (sc.all ? "all" : "mine")); });
+var html = me ? "" : '<div class="aneed">Pick your name in the top right of this card first. Then the buttons on each line will work.</div>';
+/* tiles */
+html += '<div class="atiles">' + ["all"].concat(AL_BUCKETS).map(function(b){
+var n = counts[b];
+return '<button type="button" class="atile ' + b + (b === tile ? ' on' : '') + (n ? '' : ' zero') + '" data-tile="' + b + '"><span class="tm ' + b + '"></span><span class="tn">' + n + '</span><span class="tl">' + esc(AL_B[b].label) + '</span><span class="ts">' + esc(AL_B[b].sub) + '</span></button>';
+}).join('') + '</div>';
+/* lead line */
+var who = sc.all ? "everyone" : (alFsmName(me) || "you");
+html += '<div class="alead"><h3>' + (tile === "all" ? (sc.all ? "Every open alert, billing first" : "Everything waiting on " + esc(who) + ", billing first") : esc(AL_B[tile].label) + ", " + esc(who)) + '</h3><span>' + (tile === "all" ? "Work tickets, then supplies, then replies, then requests." : esc(AL_B[tile].sub) + ".") + '</span></div>';
+/* the list */
+var shown = sc.open.filter(function(it){ return tile === "all" || alBucket(it) === tile; });
+var rank = { tickets:0, prop:1, vend:2, opp:3, req:4 };
+shown.sort(function(a, b){ var d = rank[alBucket(a)] - rank[alBucket(b)]; return d || String(b.when || "").localeCompare(String(a.when || "")); });
+var matched = shown.filter(function(it){ return it.fsm && alFsmName(it.fsm); });
+var un = shown.filter(function(it){ return !it.fsm || !alFsmName(it.fsm); });
+html += '<div class="alist">';
+if(!matched.length && !un.length){
+html += '<div class="aempty"><b>' + esc(AL_B[tile].empty[0]) + '</b>' + esc(AL_B[tile].empty[1]) + (me ? '' : ' Pick your name above so your list shows first.') + '</div>';
+}
+if(sc.all){
+var order = AL.roster.map(function(f){ return f.key; });
+order.sort(function(a, b){ return a === me ? -1 : b === me ? 1 : 0; });
+order.forEach(function(k){
+var mine = matched.filter(function(it){ return it.fsm === k; });
+if(!mine.length) return;
+html += '<div class="agh"><b>' + esc(alFsmName(k)) + (k === me ? ' (you)' : '') + '</b><span class="cnt">' + alWeight(mine) + '</span><span class="line"></span><span class="sub">' + esc(alFsmSub(k)) + '</span></div>';
+alNest(mine).forEach(function(n){ html += alBlock(n.it, n.kids); });
+});
+} else {
+alNest(matched).forEach(function(n){ html += alBlock(n.it, n.kids); });
+}
+if(un.length){
+html += '<div class="aunm"><div class="agh"><b>No FSM matched</b><span class="cnt">' + alWeight(un) + '</span><span class="line"></span><span class="sub">Not tied to an account. Reassign sends each one to the right person.</span></div>';
+alNest(un).forEach(function(n){ html += alBlock(n.it, n.kids); });
+html += '</div>';
+}
+html += '</div>';
+/* footer: handled in the last 7 days for this view, and Mark all for what is on screen */
+var doneShown = sc.done.filter(function(it){ return tile === "all" || alBucket(it) === tile; });
+var handleable = sc.all ? 0 : alHandleable(shown);
+html += '<div class="afoot">' +
+(doneShown.length ? '<button class="showdone" type="button" data-done="1">' + (AL.showDone.on ? 'Hide' : 'Show') + ' ' + doneShown.length + ' handled in the last 7 days</button>' : '<span></span>') +
+(handleable > 1 ? '<button class="markall" type="button" data-markall="1">Mark these ' + handleable + ' as handled</button>' : '') +
+'</div>';
+if(doneShown.length && AL.showDone.on){
+html += '<div class="adonelist"><div class="agh"><b>Handled</b><span class="line"></span></div>';
+doneShown.forEach(function(it){ html += alBlock(it, []); });
+html += '</div>';
+}
+document.getElementById("albody").innerHTML = html;
 }
 var AL_ICON = {
 mail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
 phone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>',
-open:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>'
+open:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>',
+pdf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h8l5 5v15H6z"/><path d="M14 2v5h5"/><path d="M9 13h6M9 17h6"/></svg>',
+receipt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>',
+none:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>',
+warn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17v1"/></svg>'
 };
 /* Contact and open links for one item. Email carries a subject built from the vendor-facing
 title only. The internal account name never goes into a mailto. */
 function alContact(it){
 var out = [];
+if(it.type === "ticket" && it.ticket){
+if(it.pdf) out.push('<a class="aact red" href="' + esc(it.pdf) + '" target="_blank" rel="noopener">' + AL_ICON.pdf + 'View full ticket PDF</a>');
+if(it.link) out.push('<a class="aact" href="' + esc(it.link) + '">' + AL_ICON.open + 'Open in billing queue</a>');
+return out;
+}
 if(it.email){
 var subj = it.type === "response" && it.about ? "City Wide: your reply on " + it.about : "";
 out.push('<a class="aact" href="mailto:' + esc(it.email) + (subj ? '?subject=' + encodeURIComponent(subj) : '') + '">' + AL_ICON.mail + 'Email</a>');
@@ -1800,7 +1879,7 @@ out.push('<a class="aact" href="tel:' + esc(digits) + '">' + AL_ICON.phone + 'Ca
 }
 if(it.link){
 var lbl = it.type === "response" ? (/responses\.html/.test(it.link) ? "Open reply" : (/^Quoted\s/.test(it.summary || "") ? "Open quote" : "Open PDF"))
-: it.type === "posting" ? "Open replies page" : it.type === "ticket" ? "Open the billing queue" : it.type === "night" ? "Open report" : (it.type === "workreq" || it.type === "workdone" || it.type === "review") ? "Open submission" : "Open sheet";
+: it.type === "posting" ? "Open replies page" : it.type === "ticket" ? "Open the billing queue" : it.type === "night" ? "Open report" : (it.type === "workreq" || it.type === "workdone" || it.type === "review") ? "Open submission" : it.type === "supply" ? "Open report" : it.type === "shop" ? "Open order" : "Open sheet";
 out.push('<a class="aact" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + AL_ICON.open + esc(lbl) + '</a>');
 }
 return out;
@@ -1811,22 +1890,40 @@ if(it.status){
 return '<div class="adone">' + esc(it.status) + ' by ' + esc(it.by || "someone") + (it.at_nice ? '<small>' + esc(it.at_nice) + '</small>' : '') +
 '<button class="undo" type="button" data-undo="' + esc(it.key) + '">Undo</button></div>';
 }
+if(it.type === "ticket") return '';
 var opts = AL.statuses[it.type] || ["Handled"];
-if(it.type === "ticket") return '<span class="bhint">Billed on the queue page, by name.</span>';
 return opts.map(function(s, i){
 return '<button class="abtn' + (i === 0 ? ' main' : '') + '" type="button" data-key="' + esc(it.key) + '" data-status="' + esc(s) + '">' + esc(s) + '</button>';
 }).join('');
 }
 function alActs(it){
 var c = alContact(it), s = alStatusBtns(it);
-return '<div class="acts">' + (c.length ? '<span class="cgrp">' + c.join('') + '</span><span class="sep"></span>' : '') + '<span class="sgrp">' + s + '</span></div>';
+return '<div class="acts">' + (c.length ? '<span class="cgrp">' + c.join('') + '</span>' + (s ? '<span class="sep"></span>' : '') : '') + (s ? '<span class="sgrp">' + s + '</span>' : '') + '</div>';
+}
+/* The supplies strip on a work ticket. YES with cost and receipt count, NO, or the two
+states older tickets can be in (Yes with no receipt, or never answered). */
+function alSupplies(it){
+var mat = String(it.mat || "").trim().toLowerCase();
+var cost = it.mat_cost !== "" && it.mat_cost != null ? "$" + Number(it.mat_cost).toFixed(2) : "cost not given";
+var n = Number(it.receipts || 0);
+if(mat === "yes" && n > 0) return '<div class="sup yes">' + AL_ICON.receipt + '<span>Supplies bought: YES, ' + esc(cost) + '<small>' + (it.mat_desc ? esc(it.mat_desc) + '. ' : '') + n + (n === 1 ? ' receipt' : ' receipts') + ' in the PDF.</small></span></div>';
+if(mat === "yes") return '<div class="sup missing">' + AL_ICON.warn + '<span>Supplies bought: YES, ' + esc(cost) + ', NO RECEIPT<small>Get the receipt from the submitter before you bill the materials.</small></span></div>';
+if(mat === "no") return '<div class="sup no">' + AL_ICON.none + '<span>Supplies bought: NO<small>Labor only. Nothing to bill for materials.</small></span></div>';
+return '<div class="sup unk">' + AL_ICON.warn + '<span>Supplies bought: not answered<small>Submitted before the question was required. Check with the submitter.</small></span></div>';
 }
 /* One block. The headline is always the thing the FSM thinks in: the account or building.
 Who it came from sits underneath. */
 function alBlock(it, kids){
-var kind = { response:"Vendor reply", supply:"Supplies needed", shop:"Shop order", posting:"Open posting", night:"Night manager report", workreq:"Client work request", workdone:"Completed work order", review:"Form submission", ticket:"Work tickets to bill" }[it.type] || it.type;
-var title, sub, intl = '';
-if(it.type === "ticket"){
+var kind = AL_KIND[it.type] || it.type;
+var title, sub, meta = [];
+if(it.type === "ticket" && it.ticket){
+kind = "Work ticket " + it.ticket;
+title = it.about;
+sub = (it.summary ? esc(it.summary) + ' ' : '') + 'Submitted by <b>' + esc(it.from) + '</b>.';
+if(it.date) meta.push('Date of work <b>' + esc(it.date) + '</b>');
+if(it.techs) meta.push('Techs <b>' + esc(it.techs) + '</b>');
+if(it.requested_by) meta.push('Requested by <b>' + esc(it.requested_by) + '</b>');
+} else if(it.type === "ticket"){
 title = it.about;
 sub = 'Newest from <b>' + esc(it.from) + '</b>. Open the queue, create the work order in CRM, then mark each one billed with your name.';
 } else if(it.type === "posting"){
@@ -1846,27 +1943,31 @@ sub = (sm ? 'Ordered by <b>' + esc(sm[1]) + '</b>. ' : '') + 'For <b>' + esc(it.
 title = it.about || it.from;
 sub = it.about ? 'From <b>' + esc(it.from) + '</b>' : '';
 }
-var meta = [];
 if(it.region) meta.push(esc(it.region));
 if(it.when_nice) meta.push(esc(it.when_nice));
-if(it.email) meta.push(esc(it.email));
-if(it.phone) meta.push(esc(it.phone));
+if(it.type !== "ticket"){ if(it.email) meta.push(esc(it.email)); if(it.phone) meta.push(esc(it.phone)); }
+var ownerTag = alView() === "all" && it.fsm && alFsmName(it.fsm) ? '<span class="owner">&middot; ' + esc(alFsmName(it.fsm)) + '</span>' : '';
 var side;
 if(it.type === "posting" && !it.status){
 var n = kids.length;
 side = '<div class="bside"><span class="bcount' + (n ? '' : ' zero') + '">' + (n ? n + (n === 1 ? ' reply' : ' replies') + ' waiting' : 'No replies yet') + '</span>' +
 alActs(it) + '<span class="bhint">Mark filled takes it off the vendor board' + (n ? ' and clears ' + (n === 1 ? 'its reply' : 'all ' + n + ' replies') : '') + '.</span></div>';
+} else if(it.type === "ticket" && !it.status){
+side = '<div class="bside">' + alActs(it) + '<span class="bhint">Mark it billed on the queue page, by name.</span></div>';
+} else if(it.type === "supply" && !it.status){
+side = '<div class="bside">' + alActs(it) + '<span class="bhint">Ordered means City Wide buys it. Sent to client means the client buys their own.</span></div>';
 } else {
 side = '<div class="bside">' + alActs(it) + '</div>';
 }
-var html = '<div class="ablk ' + esc(it.type) + (it.status ? ' done' : '') + '">' +
-'<div class="bhead"><div><span class="bkind">' + esc(kind) + '</span>' +
+var html = '<div class="ablk ' + alBucket(it) + ' ' + esc(it.type) + (it.status ? ' done' : '') + '"><div class="stripe"></div>' +
+'<div class="bmain"><span class="bkind">' + esc(kind) + ownerTag + '</span>' +
 '<div class="btitle">' + esc(title) + (it.type === "posting" && it.internal ? '<span class="bint" title="Internal account name. Vendors never see this.">Internal</span>' : '') + '</div>' +
 (sub ? '<div class="bsub">' + sub + '</div>' : '') +
-(it.type !== "posting" && it.summary ? '<div class="bsum">' + esc(it.summary) + '</div>' : '') +
+(it.type !== "posting" && it.type !== "ticket" && it.summary ? '<div class="bsum">' + esc(it.summary) + '</div>' : '') +
 (meta.length ? '<div class="bmeta">' + meta.map(function(m){ return '<span>' + m + '</span>'; }).join('') + '</div>' : '') +
+(it.type === "ticket" && it.ticket ? alSupplies(it) : '') +
 alOwn(it) +
-'</div>' + side + '</div>' + (AL.rp && AL.rp.key === it.key ? alPanel(it) : '');
+'</div>' + side + (AL.rp && AL.rp.key === it.key ? alPanel(it) : '');
 if(it.type === "posting" && !it.status){
 if(!kids.length){
 html += '<div class="rnone">No vendor has replied yet.' + (/deadline/i.test(it.summary || '') ? ' ' + esc(it.summary.replace(/^.*?(Deadline)/, '$1')) : '') + '</div>';
@@ -1885,11 +1986,15 @@ html += '</div>';
 return html + '</div>';
 }
 /* Who this alert is with, how we know, and the Reassign button. Replies follow their posting. */
-function alFsmName(k){ var f = AL.roster.filter(function(x){ return x.key === k; })[0]; return f ? f.name : ""; }
 function alOwn(it){
-if(it.type === "response" || it.type === "ticket") return "";
+if(it.type === "response") return "";
+if(it.type === "ticket" && !it.ticket) return "";
 var bits = [];
-if(it.assigned){
+if(it.type === "ticket"){
+if(it.acct_name) bits.push('Account <b>' + esc(it.acct_name) + '</b>');
+else bits.push('<span class="warn">Not matched to an account.</span>');
+if(it.assigned_by) bits.push('Reassigned by ' + esc(it.assigned_by) + (it.assigned_nice ? ' ' + esc(it.assigned_nice) : ''));
+} else if(it.assigned){
 bits.push('With <b>' + esc(alFsmName(it.fsm) || "someone") + '</b>, reassigned by ' + esc(it.assigned_by || "someone") + (it.assigned_nice ? ' ' + esc(it.assigned_nice) : ''));
 } else if(it.type === "supply" || it.type === "shop"){
 if(it.acct_name) bits.push('Account <b>' + esc(it.acct_name) + '</b>' + (it.fsm ? '' : ', <span class="warn">no FSM on it yet</span>'));
@@ -1901,7 +2006,8 @@ if(!bits.length && !b) return "";
 return '<div class="bown">' + bits.map(function(x){ return '<span>' + x + '</span>'; }).join('') + b + '</div>';
 }
 /* The reassign panel. Supply and shop also pick or confirm the account; picking one teaches
-the hub that name, so the next report that says the same thing lands on its own. */
+the hub that name, so the next report that says the same thing lands on its own. Work
+tickets pick an FSM only and save through the queue (wt_assign). */
 function alPanel(it){
 var rp = AL.rp, acctish = it.type === "supply" || it.type === "shop";
 var h = '<div class="arp">';
@@ -1925,8 +2031,9 @@ h += '<label class="chk"><input type="checkbox" data-rfwd="1"' + (rp.fwd ? ' che
 '<div class="note">Untick it to move only this one. If it stays ticked, change CRM too. The next CRM upload keeps this choice until CRM itself changes the account.</div>';
 }
 if(it.type === "posting") h += '<div class="note">Replies to this posting move with it.</div>';
+if(it.type === "ticket") h += '<div class="note">The billing queue moves with it, so the new owner marks it billed.</div>';
 h += '<div class="rbtns"><button class="abtn main" type="button" data-rsave="' + esc(it.key) + '">Save</button><button class="abtn" type="button" data-rcancel="1">Cancel</button>' +
-(it.assigned ? '<button class="abtn" type="button" data-rclear="' + esc(it.key) + '">Undo reassign</button>' : '') + '</div></div>';
+(it.assigned && it.type !== "ticket" ? '<button class="abtn" type="button" data-rclear="' + esc(it.key) + '">Undo reassign</button>' : '') + '</div></div>';
 return h;
 }
 function alItem(key){ return AL.items.filter(function(x){ return x.key === key; })[0]; }
@@ -1985,6 +2092,24 @@ var it = alItem(key), rp = AL.rp;
 if(!it) return;
 var by = alNeedWho(btn);
 if(!by) return;
+/* Work tickets: the queue owns the FSM column, so reassign there (wt_assign) and the
+card and the queue page agree. */
+if(it.type === "ticket" && it.ticket){
+if(!rp.fsm){ alSay('<span class="err">Pick an FSM first.</span>'); return; }
+if(btn) btn.disabled = true;
+alPost({ kind:"wt_assign", ticket:it.ticket, fsm:rp.fsm, by:by }).then(function(r){
+if(btn) btn.disabled = false;
+if(!r || !r.ok){
+if(r && r.error && CWAuth.isPassError(r.error)){ CWAuth.locked("ops", r.error); return; }
+alSay('<span class="err">Could not save. ' + esc((r && r.error) || "Try again.") + '</span>'); return;
+}
+it.fsm = rp.fsm; it.assigned_by = by; it.assigned_nice = "just now";
+AL.rp = null;
+alRender(); alCacheWrite(AL);
+alSay("Saved. " + esc(it.ticket) + " is in " + esc(alFsmName(it.fsm)) + "'s queue now.");
+}).catch(function(){ if(btn) btn.disabled = false; alSay('<span class="err">Could not reach the server. Try again.</span>'); });
+return;
+}
 var body = { kind:"alerts_assign", key:key, by:by, fsm:"" };
 if(!clear){
 if(!rp.fsm && !rp.acct){ alSay('<span class="err">Pick an FSM' + (it.type === "supply" || it.type === "shop" ? ' or an account' : '') + ' first.</span>'); return; }
@@ -2031,12 +2156,10 @@ q + alActs(it) + '</div>';
 function alClick(e){
 var t = e.target.closest ? e.target.closest("button") : null;
 if(!t) return;
-if(t.hasAttribute("data-toggle")){
-var k = t.getAttribute("data-toggle"), g = t.parentElement, now = !g.classList.contains("open");
-AL.open[k] = now; g.classList.toggle("open", now); return;
-}
+if(t.hasAttribute("data-tile")){ alSetTile(t.getAttribute("data-tile")); AL.rp = null; alRender(); return; }
+if(t.hasAttribute("data-view")){ alSetView(t.getAttribute("data-view")); AL.rp = null; alRender(); return; }
 if(t.hasAttribute("data-kids")){ var kk = t.getAttribute("data-kids"); AL.showKids[kk] = !AL.showKids[kk]; alRender(); return; }
-if(t.hasAttribute("data-done")){ var k2 = t.getAttribute("data-done"); AL.showDone[k2] = !AL.showDone[k2]; alRender(); return; }
+if(t.hasAttribute("data-done")){ AL.showDone.on = !AL.showDone.on; alRender(); return; }
 if(t.hasAttribute("data-key")){ alMark([t.getAttribute("data-key")], t.getAttribute("data-status"), t); return; }
 if(t.hasAttribute("data-undo")){ alMark([t.getAttribute("data-undo")], "", t); return; }
 if(t.hasAttribute("data-reas")){ alOpenPanel(t.getAttribute("data-reas")); return; }
@@ -2050,11 +2173,13 @@ AL.rp.fsm = pf || AL.rp.fsm; AL.rp.fwd = false;
 alRender(); return;
 }
 if(t.hasAttribute("data-markall")){
-var gk = t.getAttribute("data-markall");
-var grp = alGroups().filter(function(x){ return x.key === gk; })[0];
-if(!grp) return;
+var sc = alScope(), tile = alTile();
 var byType = {};
-grp.open.forEach(function(it){ if(it.type === "ticket") return; (byType[it.type] = byType[it.type] || []).push(it.key); });
+sc.open.forEach(function(it){
+if(it.type === "ticket" || it.status) return;
+if(tile !== "all" && alBucket(it) !== tile) return;
+(byType[it.type] = byType[it.type] || []).push(it.key);
+});
 Object.keys(byType).forEach(function(tp){ alMark(byType[tp], (AL.statuses[tp] || ["Handled"])[0], t); });
 }
 }
