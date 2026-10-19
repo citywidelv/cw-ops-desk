@@ -262,12 +262,15 @@ function tally(){
   stops.sort(function(a, b){ return a.report_date < b.report_date ? -1 : 1; });
   // Match in three rounds across ALL stops, so one night manager's recap is never
   // taken by another night manager's stop at the same building:
-  //   1. the recap filed from the route card (same inspection id)
-  //   2. the same night manager at the same building that night
-  //   3. anyone at that building that night
-  // A recap on the stop's night or the morning after counts.
+  //   0. the recap filed from the route card (same inspection id)
+  //   1. the same night manager, same building, same date
+  //   2. the same night manager, same building, the morning after (filed past midnight)
+  //   3. anyone at that building, same date
+  //   4. anyone at that building, the morning after
+  // Same-date matches always win, so when an FSM sends the same building two nights
+  // running, a single recap is credited to the night it was filed for.
   var hitOf = {};
-  [0, 1, 2].forEach(function(pass){
+  [0, 1, 2, 3, 4].forEach(function(pass){
     stops.forEach(function(s, si){
       if (hitOf[si] != null) return;
       var d0 = s.report_date, d1 = addDays(d0, 1);
@@ -275,9 +278,9 @@ function tally(){
         if (used[i]) continue;
         var r = recs[i], d = String(r.report_date||"").slice(0,10);
         if (pass === 0){ if (s.inspection_id && r.inspection_id === s.inspection_id){ hitOf[si] = i; used[i] = 1; return; } continue; }
-        if (d !== d0 && d !== d1) continue;
+        if ((pass === 1 || pass === 3) ? d !== d0 : d !== d1) continue;
         if (!sameAcct(s, r)) continue;
-        if (pass === 1 && !samePerson(r.nm_name, s.nm_name)) continue;
+        if (pass <= 2 && !samePerson(r.nm_name, s.nm_name)) continue;
         hitOf[si] = i; used[i] = 1; return;
       }
     });
