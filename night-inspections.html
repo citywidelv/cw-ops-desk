@@ -57,9 +57,31 @@ h1{font-size:20px;margin-bottom:4px}
 .jfnote{font-size:12px;color:var(--grey);margin:-6px 0 12px}
 .thumbs a.lnk{width:auto;height:auto;padding:8px 12px;font-size:12px;font-weight:700;color:var(--black);text-decoration:none;background:#fff}
 .empty{text-align:center;color:var(--grey);padding:40px 10px}
+.tally{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:16px}
+.tally .th{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:4px}
+.tally .th b{font-size:15px;margin-right:auto}
+.tally .rng{display:flex;gap:6px}
+.tally .rng button{border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;font-size:12px;font-weight:700;background:#fff;cursor:pointer;font-family:inherit;color:var(--black);min-height:34px}
+.tally .rng button.on{border-color:var(--red);background:#fdf3f3;color:var(--red-dark)}
+.tally .note{font-size:12px;color:var(--grey);margin-bottom:10px}
+.tl{display:grid;grid-template-columns:minmax(120px,190px) 1fr 92px;gap:6px 12px;align-items:center}
+.tl .hd{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey)}
+.tl .hd.r{text-align:right}
+.tl .nmb{font-weight:700;font-size:14px;background:none;border:0;padding:6px 0;text-align:left;cursor:pointer;font-family:inherit;color:var(--black);min-height:34px}
+.tl .nmb.on{color:var(--red-dark);text-decoration:underline}
+.tl .bar{height:22px;border-radius:6px;background:var(--light);position:relative;overflow:hidden}
+.tl .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--ok);border-radius:6px}
+.tl .bar.lo i{background:var(--red)}
+.tl .bar.na{background:repeating-linear-gradient(45deg,#f5f5f5,#f5f5f5 6px,#ececec 6px,#ececec 12px)}
+.tl .num{text-align:right;font-size:14px;font-weight:700;white-space:nowrap}
+.tl .num small{display:block;font-size:11px;font-weight:400;color:var(--grey)}
+.tl .sep{grid-column:1/-1;border-top:1px solid var(--border);margin:2px 0}
+.tl .miss{grid-column:1/-1;font-size:12px;color:var(--grey);background:var(--light);border-radius:9px;padding:8px 10px;margin:-2px 0 4px}
+.tl .miss b{color:var(--black)}
 .gatebox{max-width:380px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
 .hidden{display:none!important}
 .foot{text-align:center;font-size:11px;color:var(--grey);padding:22px}
+@media (max-width:520px){.head .t{display:none}.tl{grid-template-columns:minmax(96px,130px) 1fr 84px;gap:6px 8px}}
 @media (max-width:640px){.row{grid-template-columns:52px 1fr}.links{grid-column:1/-1;flex-direction:row;justify-content:flex-start}.score{width:52px;height:52px;font-size:20px}.det th{width:120px}}
 </style>
 <link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
@@ -75,7 +97,9 @@ h1{font-size:20px;margin-bottom:4px}
 <div id="gate" class="gatebox hidden"><b>Open this from the Ops Hub</b><p class="sub">This page uses the Ops Hub session on this device.</p><a href="index.html">&larr; Ops Hub</a></div>
 <div id="app" class="hidden">
 <h1>Night inspection recaps</h1>
-<div class="sub">Newest first. Recaps filed on the hub and on the Jotform both show here. Tap a row for the details. Hub recaps carry a PDF with the photos in it. <a href="night-inspection.html">File a new recap</a>.</div>
+<div class="sub">The box below counts the stops each night manager was sent on the Route Out against the recaps that came back. Under it, recaps newest first. Recaps filed on the hub and on the Jotform both show here. Tap a row for the details. Hub recaps carry a PDF with the photos in it. <a href="night-inspection.html">File a new recap</a>.</div>
+<div class="tally" id="tally"><div class="th"><b>Assigned vs submitted</b><div class="rng"><button type="button" data-r="1">Last night</button><button type="button" data-r="7" class="on">7 nights</button><button type="button" data-r="30">30 nights</button></div></div>
+<div class="note" id="tallyNote">Loading route outs...</div><div class="tl" id="tallyBody"></div></div>
 <div class="tools">
 <button class="chip on" data-m="lv" type="button">Las Vegas</button><button class="chip" data-m="nnv" type="button">Northern Nevada</button>
 <select id="nm"><option value="">All night managers</option></select>
@@ -100,6 +124,11 @@ var PASS = "", MKT = "lv", ROWS = [], FLAGS_ONLY = false;
 // into this page so the FSMs have one place to look whichever form the night manager used.
 var HUB_ROWS = [], JF_ROWS = [], JF_STATE = "", LOADSEQ = 0, STAFF = null;
 var JF_SLUG = { lv:"ni_lv", nnv:"ni_nnv" }, JF_DAYS = 30;
+// Oct 19 2026: assigned vs submitted per night manager. Assigned = every stop an FSM
+// SENT on the Route Out page (night-route.html) for the nights in range. Submitted =
+// those stops with a recap behind them, hub or Jotform. Recaps filed off the route
+// show as "other".
+var STOPS = [], STOP_STATE = "", TALLY_N = 7, TALLY_OPEN = "";
 var JQ = { score:"Rate the Quality of the Clean based on what you see tonight", fsmAsk:"Any actions needed by the FSM tomorrow morning?", fsmNote:"FSM Follow-up needed", resolved:"Were all issues resolved before you left", why:"Why wasn't it resolved prior to you leaving, what is the plan for resolution?", how:"How was the issue Resolved", uniform:"Is the crew all in uniform?", supplies:"Do we need to order supplies for the account or for the vendor?", times:"Arrival and Departure Times", vendor:"Vendor", fsmEmail:"FSM Email", date:"Date", sub:"Submission Date" };
 var FLAG = { standards_failed:["Standard not met","hot"], low_score:["Low score","hot"], complaint:["Complaint","hot"], unresolved:["Unresolved","hot"], fsm_action:["FSM action","hot"], crew_unverified:["Crew not background checked","mid"], uniform:["Uniform","mid"], supplies:["Supplies",""], unmatched_vendor:["Company not in directory",""], unmatched_account:["Building not in directory",""] };
 function $(id){ return document.getElementById(id); }
@@ -112,7 +141,8 @@ function load(){
   HUB_ROWS = []; JF_ROWS = []; JF_STATE = "loading"; ROWS = [];
   $("list").innerHTML = '<div class="empty">Loading...</div>'; jfNote();
   loadJf(seq, mkt);
-  post({ kind:"ni_list", market: mkt, limit: 200 }).then(function(r){
+  loadStops(seq, mkt);
+  post({ kind:"ni_list", market: mkt, limit: 300 }).then(function(r){
     if (seq !== LOADSEQ) return;
     if (!r || !r.ok){ if (r && CWAuth.isPassError(r.error)) return CWAuth.locked("ops", r.error); $("list").innerHTML = '<div class="empty">' + esc((r && r.error) || "Could not load.") + '</div>'; return; }
     HUB_ROWS = (r.rows || []).map(function(x){ x._src = "hub"; x._ts = hubTs(x.submitted_at); return x; });
@@ -127,7 +157,7 @@ function merge(){
     return (b._ts||0) - (a._ts||0);
   });
   fillSel("nm", "nm_name"); fillSel("fsm", "fsm");
-  render(); jfNote();
+  render(); jfNote(); tally();
 }
 function jfNote(){
   var n = JF_ROWS.length;
@@ -179,15 +209,119 @@ function fromJf(j, mkt){
   o.flags = fl.join(",");
   return o;
 }
+// ---- assigned vs submitted ----
+function ymd(d){ return d.getFullYear() + "-" + ("0" + (d.getMonth()+1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+function addDays(s, n){ var p = String(s).split("-"); var d = new Date(+p[0], +p[1]-1, +p[2] + n); return ymd(d); }
+// The last completed night is yesterday's date. Tonight's route is still being worked, so it is not counted.
+function tallyRange(){ var to = addDays(ymd(new Date()), -1); return { from: addDays(to, -(TALLY_N - 1)), to: to }; }
+function loadStops(seq, mkt){
+  STOPS = []; STOP_STATE = "loading"; tally();
+  var rg = tallyRange();
+  // Always pull 30 nights so switching the range chips needs no second call.
+  post({ kind:"ni_route_tally", market: mkt, from: addDays(rg.to, -29), to: rg.to }).then(function(r){
+    if (seq !== LOADSEQ) return;
+    if (!r || !r.ok){ STOP_STATE = "err:" + ((r && r.error) || ""); tally(); return; }
+    STOPS = r.stops || []; STOP_STATE = "ok"; tally();
+  }).catch(function(){ if (seq === LOADSEQ){ STOP_STATE = "err:"; tally(); } });
+}
+function words(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(String); }
+// Same person: first names match and last initials match, or last names match.
+// Covers "Amber S." on the Jotform against "Amber Sturdivant" on the Staff tab.
+function samePerson(a, b){
+  var x = words(a), y = words(b); if (!x.length || !y.length) return false;
+  if (x.join(" ") === y.join(" ")) return true;
+  var xl = x[x.length-1], yl = y[y.length-1];
+  if (x.length > 1 && y.length > 1 && xl.length > 2 && xl === yl) return true;
+  return x[0] === y[0] && (x.length < 2 || y.length < 2 || xl.charAt(0) === yl.charAt(0));
+}
+var ACCT_STOP = { llc:1, inc:1, the:1, of:1, and:1, co:1, corp:1, company:1, ltd:1, lv:1, las:1, vegas:1 };
+function acctWords(s){ return words(s).filter(function(w){ return !ACCT_STOP[w]; }); }
+// Hub recaps carry the directory account_id. Jotform recaps are typed, so match on the name words.
+function sameAcct(stop, r){
+  if (stop.account_id && r.account_id) return stop.account_id === r.account_id;
+  var a = acctWords(stop.account_name), b = acctWords(r.account_name);
+  if (!a.length || !b.length) return false;
+  if (a.join(" ") === b.join(" ")) return true;
+  var hit = a.filter(function(w){ return b.indexOf(w) >= 0 || b.some(function(v){ return v.length > 3 && w.length > 3 && (v.indexOf(w) === 0 || w.indexOf(v) === 0); }); }).length;
+  return hit / Math.min(a.length, b.length) >= 0.6;
+}
+function tally(){
+  var note = $("tallyNote"), body = $("tallyBody");
+  Array.prototype.forEach.call(document.querySelectorAll("[data-r]"), function(b){ b.classList.toggle("on", +b.getAttribute("data-r") === TALLY_N); });
+  if (STOP_STATE === "loading"){ note.textContent = "Loading route outs..."; body.innerHTML = ""; return; }
+  if (STOP_STATE.indexOf("err") === 0){ note.textContent = "Route outs could not load. " + STOP_STATE.slice(4); body.innerHTML = ""; return; }
+  var rg = tallyRange(), fsm = $("fsm").value;
+  var stops = STOPS.filter(function(s){ return s.report_date >= rg.from && s.report_date <= rg.to && (!fsm || s.fsm === fsm); });
+  // A recap filed after midnight can carry the next day's date, so a recap on the stop's night or the morning after counts.
+  var recs = ROWS.filter(function(r){ var d = String(r.report_date||"").slice(0,10); return d >= rg.from && d <= addDays(rg.to, 1) && (!fsm || r.fsm === fsm || stops.some(function(s){ return sameAcct(s, r); })); });
+  var used = {}, by = {}, order = [];
+  function nmRow(name){
+    for (var i = 0; i < order.length; i++) if (samePerson(order[i], name)) return by[order[i]];
+    order.push(name); by[name] = { name: name, assigned: 0, done: 0, other: 0, miss: [] }; return by[name];
+  }
+  stops.sort(function(a, b){ return a.report_date < b.report_date ? -1 : 1; }).forEach(function(s){
+    var row = nmRow(s.nm_name || "No night manager named");
+    row.assigned++;
+    var d0 = s.report_date, d1 = addDays(d0, 1), hit = -1;
+    // First choice: the recap the night manager filed from the route card. Then the same
+    // night manager at the same building. Then anyone at that building that night.
+    for (var pass = 0; pass < 3 && hit < 0; pass++){
+      for (var i = 0; i < recs.length; i++){
+        if (used[i]) continue;
+        var r = recs[i], d = String(r.report_date||"").slice(0,10);
+        if (pass === 0){ if (s.inspection_id && r.inspection_id === s.inspection_id){ hit = i; break; } continue; }
+        if (d !== d0 && d !== d1) continue;
+        if (!sameAcct(s, r)) continue;
+        if (pass === 1 && !samePerson(r.nm_name, s.nm_name)) continue;
+        hit = i; break;
+      }
+    }
+    if (hit >= 0 || s.status === "Done"){ row.done++; if (hit >= 0) used[hit] = 1; }
+    else row.miss.push(s);
+  });
+  recs.forEach(function(r, i){
+    if (used[i]) return; var d = String(r.report_date||"").slice(0,10);
+    if (d < rg.from || d > rg.to) return;
+    nmRow(r.nm_name || "Name not given").other++;
+  });
+  var list = order.map(function(k){ return by[k]; }).sort(function(a, b){ return b.assigned - a.assigned || b.other - a.other || (a.name < b.name ? -1 : 1); });
+  var span = TALLY_N === 1 ? "last night (" + niceDay(rg.to) + ")" : niceDay(rg.from) + " to " + niceDay(rg.to);
+  var jfMsg = JF_STATE === "loading" ? " Jotform recaps are still loading, so counts may rise." : JF_STATE === "err" ? " Jotform recaps did not load, so only hub recaps are counted." : "";
+  note.textContent = (MKT === "nnv" ? "Northern Nevada. " : "Las Vegas. ") + (stops.length ? "Stops sent on the Route Out for " : "No route outs were sent for ") + span + (fsm ? " by " + fsm : "") + ". Tap a name to see the stops not covered and filter the list." + jfMsg;
+  if (!list.length){ body.innerHTML = ""; return; }
+  var tA = 0, tD = 0, tO = 0, h = '<div class="hd">Night manager</div><div class="hd">Submitted of assigned</div><div class="hd r">Submitted</div>';
+  list.forEach(function(x){
+    tA += x.assigned; tD += x.done; tO += x.other;
+    var pct = x.assigned ? Math.round(x.done / x.assigned * 100) : null;
+    h += '<button type="button" class="nmb' + (TALLY_OPEN === x.name ? ' on' : '') + '" data-nmk="' + esc(x.name) + '">' + esc(x.name) + '</button>'
+      + '<div class="bar' + (pct === null ? ' na' : pct < 80 ? ' lo' : '') + '" title="' + (pct === null ? 'Nothing assigned' : pct + '%') + '">' + (pct === null ? '' : '<i style="width:' + pct + '%"></i>') + '</div>'
+      + '<div class="num">' + (x.assigned ? x.done + ' of ' + x.assigned : 'none assigned') + '<small>' + (pct === null ? '' : pct + '%') + (x.other ? (pct === null ? '' : ' &middot; ') + '+' + x.other + ' other' : '') + '</small></div>';
+    if (TALLY_OPEN === x.name){
+      h += '<div class="miss">' + (x.miss.length ? '<b>Not covered:</b> ' + x.miss.map(function(s){ return esc(s.account_name) + ' (' + esc(niceDay(s.report_date)) + (s.fsm ? ', ' + esc(s.fsm) : '') + ')'; }).join('; ') : 'Every assigned stop has a recap.') + (x.other ? '<br>' + x.other + ' recap' + (x.other === 1 ? '' : 's') + ' filed at buildings not on the route.' : '') + '</div>';
+    }
+  });
+  var tp = tA ? Math.round(tD / tA * 100) : null;
+  h += '<div class="sep"></div><div class="nmb">All</div><div class="bar' + (tp === null ? ' na' : tp < 80 ? ' lo' : '') + '">' + (tp === null ? '' : '<i style="width:' + tp + '%"></i>') + '</div><div class="num">' + (tA ? tD + ' of ' + tA : '0') + '<small>' + (tp === null ? '' : tp + '%') + (tO ? (tp === null ? '' : ' &middot; ') + '+' + tO + ' other' : '') + '</small></div>';
+  body.innerHTML = h;
+  Array.prototype.forEach.call(body.querySelectorAll("[data-nmk]"), function(b){ b.addEventListener("click", function(){
+    var k = b.getAttribute("data-nmk"); TALLY_OPEN = TALLY_OPEN === k ? "" : k;
+    // Point the list filter at the same person, whatever spelling the recaps use.
+    var sel = $("nm"), pick = "";
+    if (TALLY_OPEN) Array.prototype.forEach.call(sel.options, function(o){ if (!pick && o.value && samePerson(o.value, k)) pick = o.value; });
+    sel.value = pick; render(); tally();
+  }); });
+}
 function fillSel(id, key){
   var sel = $(id), cur = sel.value, seen = {};
-  var names = ROWS.map(function(r){ return r[key]; }).filter(function(n){ if (!n || seen[n]) return false; seen[n] = 1; return true; }).sort();
+  var names = ROWS.map(function(r){ return r[key]; }).filter(function(n){ if (!n || seen[n]) return false; seen[n] = 1; return true; }).sort(function(a, b){ return b.length - a.length; });
+  if (id === "nm") names = names.filter(function(n, i){ return !names.slice(0, i).some(function(m){ return samePerson(m, n); }); });
+  names.sort();
   sel.innerHTML = '<option value="">' + (id==="nm" ? "All night managers" : "All FSMs") + '</option>' + names.map(function(n){ return '<option' + (n===cur?' selected':'') + '>' + esc(n) + '</option>'; }).join("");
 }
 function render(){
   var q = $("q").value.trim().toLowerCase(), nm = $("nm").value, fsm = $("fsm").value;
   var rows = ROWS.filter(function(r){
-    if (nm && r.nm_name !== nm) return false;
+    if (nm && r.nm_name !== nm && !samePerson(r.nm_name, nm)) return false;
     if (fsm && r.fsm !== fsm) return false;
     if (FLAGS_ONLY && !/low_score|complaint|unresolved|fsm_action|crew_unverified|standards_failed/.test(r.flags||"")) return false;
     if (q && (r.account_name + " " + r.vendor_name + " " + r.nm_name + " " + r.fsm + " " + r.reason + " " + r.summary).toLowerCase().indexOf(q) < 0) return false;
@@ -254,7 +388,8 @@ function niceDay(d){ if (!d) return ""; d = String(d).slice(0,10); var p = d.spl
 
 Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(b){ b.addEventListener("click", function(){ MKT = b.getAttribute("data-m"); Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(x){ x.classList.toggle("on", x===b); }); load(); }); });
 $("flagsOnly").addEventListener("click", function(){ FLAGS_ONLY = !FLAGS_ONLY; this.classList.toggle("on", FLAGS_ONLY); render(); });
-$("q").addEventListener("input", render); $("nm").addEventListener("change", render); $("fsm").addEventListener("change", render);
+$("q").addEventListener("input", render); $("nm").addEventListener("change", function(){ TALLY_OPEN = ""; render(); tally(); }); $("fsm").addEventListener("change", function(){ render(); tally(); });
+Array.prototype.forEach.call(document.querySelectorAll("[data-r]"), function(b){ b.addEventListener("click", function(){ TALLY_N = +b.getAttribute("data-r"); tally(); }); });
 
 // Deep links from the 7am roll-up email: ?m=lv|nnv picks the market, ?attn=1 opens on
 // Needs attention only, ?q= prefills the search box.

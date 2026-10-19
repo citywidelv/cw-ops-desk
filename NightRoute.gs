@@ -78,6 +78,7 @@ function nrDispatch_(data) {
   if (kind === 'ni_route_save') return nrSave_(data);
   if (kind === 'ni_route_checks') return nrChecks_(data);
   if (kind === 'ni_route_send') return nrSend_(data);
+  if (kind === 'ni_route_tally') return nrTally_(data);
   return niOut_({ ok: false, error: 'Unknown kind ' + kind });
 }
 
@@ -590,4 +591,34 @@ function nrAnswer_(r) {
   } catch (e) {
     return { stop_id: sid, error: String(e && e.message || e) };
   }
+}
+
+// ------------------------------------------------------------------ tally --
+
+/**
+ * ni_route_tally (Oct 19 2026). Every SENT stop for a market across a range of
+ * nights, trimmed to what the recaps page needs to count assigned vs submitted
+ * per night manager. Drafts (no sent_at) and Removed stops are not assigned
+ * work, so they are left out. Instructions and checklists are not returned,
+ * which keeps the reply small enough to load beside the recap list.
+ *   from, to   yyyy-MM-dd, inclusive. Default: the last 7 nights.
+ */
+function nrTally_(data) {
+  var mkt = niMarket_(data.market);
+  var region = NI_MARKETS[mkt];
+  var to = niStr_(data.to) || nrNightDate_();
+  var from = niStr_(data.from) || Utilities.formatDate(new Date(new Date().getTime() - 7 * 86400000), NI_TZ, 'yyyy-MM-dd');
+  var out = { ok: true, market: mkt, region: region, from: from, to: to, stops: [] };
+  nrRows_().rows.forEach(function (r) {
+    if (r.market !== region || r.status === 'Removed' || !r.sent_at) return;
+    var d = nrDate_(r.report_date);
+    if (!d || d < from || d > to) return;
+    out.stops.push({
+      stop_id: r.stop_id, report_date: d, fsm: r.fsm, nm_name: r.nm_name,
+      account_id: r.account_id, account_name: r.account_name,
+      reason: r.reason, priority: r.priority,
+      status: r.status || 'Assigned', inspection_id: r.inspection_id
+    });
+  });
+  return niOut_(out);
 }
