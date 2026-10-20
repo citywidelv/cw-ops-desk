@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Vendor Responses | CW Ops Hub</title>
-<!-- build 2026-07-15a -->
+<!-- build 2026-10-20a: Responded to / Not a fit on every reply, the same Alert Status marks as the Ops Hub Alerts card
+(responses_list now returns marks + roster; alerts_set writes them). Who-picker shares the hub's cwAlertsWho name.
+Needs Attention filter, open-reply counts on each posting, #posting-id deep link opens that posting. -->
 <style>
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
   --border:#E5E5E5;--gold:#E5B423;--teal:#0AA6A9;
@@ -69,6 +71,32 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:66ch}
   margin-top:12px}
 .qa dd{margin:2px 0 0;white-space:pre-wrap;font-size:13.5px}
 .ractions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:12px;border-top:1px dashed var(--border)}
+/* Oct 20 2026: marks (Responded to / Not a fit), shared with the Ops Hub Alerts card */
+.tools .who{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--grey);margin-left:auto}
+.tools .who select{font-family:inherit;font-size:13px;border:1.5px solid var(--border);border-radius:20px;padding:8px 12px;background:#fff;color:var(--black);min-height:40px}
+.tools .who select.need{border-color:var(--red);box-shadow:0 0 0 3px rgba(210,39,48,.18)}
+.pb-need{background:#FDF1F2;border:1px solid var(--red);color:var(--red)}
+.pb-done{background:#EAF7F7;border:1px solid var(--teal);color:#0A7D80}
+.rhead .mark{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:4px;padding:3px 9px;white-space:nowrap}
+.rhead .mark.yes{background:#EAF7F7;color:#0A7D80;border:1px solid var(--teal)}
+.rhead .mark.no{background:var(--light);color:var(--grey);border:1px solid var(--border)}
+.rhead .mark.open{background:#FDF1F2;color:var(--red);border:1px solid var(--red)}
+.rhead .mark.closed{background:var(--light);color:var(--grey);border:1px solid var(--border)}
+.rcard.marked{border-color:#CFE9E9}
+.rmark{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;padding-top:12px;border-top:1px dashed var(--border)}
+.rmark .lbl{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--grey);width:100%}
+.rmark .btn.sm{min-height:40px}
+.rmark .btn.teal{background:var(--teal)}
+.rmark .btn.teal:hover{background:#088C8F}
+.rmark .done{font-size:13px;color:var(--black)}
+.rmark .done small{display:block;color:var(--grey);font-size:11.5px}
+.rmark .undo{font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);background:none;border:none;text-decoration:underline;cursor:pointer;padding:8px 0;min-height:40px}
+.rmark .undo:hover{color:var(--red)}
+.rmark .note{font-size:12px;color:var(--red);font-weight:700;width:100%}
+.rmark button[disabled]{opacity:.5;cursor:wait}
+#rstatus{font-size:12.5px;color:var(--grey);margin:-10px 0 16px;min-height:18px}
+#rstatus .err{color:var(--red);font-weight:700}
+@media(max-width:640px){.tools .who{margin-left:0;width:100%}.tools .who select{flex:1}}
 .state{background:#fff;border:1px dashed var(--border);border-radius:12px;padding:44px 24px;
   text-align:center;color:var(--grey)}
 .state b{display:block;color:var(--black);font-size:16px;margin-bottom:6px}
@@ -76,7 +104,7 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:66ch}
 .foot{text-align:center;font-size:11px;color:var(--grey);padding:24px}
 @media print{
   body{background:#fff}
-  .head,.tools,.gatebox,.foot,.ractions,.phead .meta{display:none!important}
+  .head,.tools,.gatebox,.foot,.ractions,.rmark,#rstatus,.phead .meta{display:none!important}
   .pgroup,.rcard{border:1px solid #ccc;box-shadow:none;page-break-inside:avoid}
   .pbody,.rbody{display:block!important}
   body.printing-one .pgroup:not(.print-target){display:none}
@@ -99,7 +127,7 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:66ch}
 
 <div class="wrap">
 <h1>Vendor Responses</h1>
-<p class="lede">Every interest letter and quote, readable in full. Click a posting to see who raised their hand; click a response for the whole answer sheet, its PDF, or a clean printout.</p>
+<p class="lede">Every interest letter and quote, readable in full. Click a posting to see who raised their hand; click a response for the whole answer sheet, its PDF, or a clean printout. Mark each reply Responded to or Not a fit here or on the Ops Hub Alerts card; the mark shows in both places and keeps it out of the next digest.</p>
 
 <div id="gate" class="gatebox hidden">
   <b>Team passcode</b>
@@ -115,8 +143,11 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:66ch}
     <button class="fbtn" data-f="open">Open</button>
     <button class="fbtn" data-f="filled">Filled</button>
     <button class="fbtn" data-f="responded">Has Responses</button>
+    <button class="fbtn" data-f="need">Needs Attention</button>
     <button class="btn ghost sm" id="reload" type="button">Refresh</button>
+    <label class="who" for="rwho">You are <select id="rwho"><option value="">Pick your name</option></select></label>
   </div>
+  <div id="rstatus"></div>
   <div id="list"><div class="state">Loading&hellip;</div></div>
 </div>
 </div>
@@ -128,6 +159,31 @@ p.lede{color:var(--grey);margin:12px 0 20px;max-width:66ch}
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var KEY = "cwOpsHubPass";
 var FILTER = "all", QUERY = "", DATA = null;
+/* Oct 20 2026: marks are the Ops Hub Alerts card's check-offs (Alert Status tab). DATA.marks is
+keyed by response_id: {status, by, at_nice}. DATA.roster is the FSM list for the who-picker, which
+shares the hub's cwAlertsWho name so one pick covers both pages. */
+var WHOKEY = "cwAlertsWho";
+var STATUSES = ["Responded to", "Not a fit"];
+var BUSY = {};
+function who(){ try{ return localStorage.getItem(WHOKEY) || ""; }catch(e){ return ""; } }
+function setWho(k){ try{ localStorage.setItem(WHOKEY, k); }catch(e){} }
+function whoName(){
+  var w = who();
+  var f = ((DATA && DATA.roster) || []).filter(function(x){ return x.key === w; })[0];
+  return f ? f.name : (w === "other" ? "Someone else" : "");
+}
+function fillWho(){
+  var sel = document.getElementById("rwho"), cur = who();
+  var html = '<option value="">Pick your name</option>';
+  ((DATA && DATA.roster) || []).forEach(function(f){
+    html += '<option value="' + esc(f.key) + '"' + (f.key === cur ? ' selected' : '') + '>' + esc(f.name) + '</option>';
+  });
+  html += '<option value="other"' + (cur === "other" ? ' selected' : '') + '>Someone else</option>';
+  sel.innerHTML = html;
+  sel.classList.toggle("need", !cur);
+}
+function markOf(r){ return (DATA && DATA.marks && DATA.marks[String(r.response_id || "")]) || null; }
+function say(html){ document.getElementById("rstatus").innerHTML = html || ""; }
 
 function esc(s){var d=document.createElement("div");d.textContent=String(s==null?"":s);return d.innerHTML;}
 function fmtMoney(v){
@@ -140,8 +196,31 @@ function qa(label,val){
   if(val===null||val===undefined||String(val).trim()==="")return "";
   return "<dt>"+esc(label)+"</dt><dd>"+esc(val)+"</dd>";
 }
+/* The chip on the reply header. Teal = Responded to, grey = Not a fit or closed with its posting,
+red = still open. */
+function markChip(m){
+  if(!m) return '<span class="mark open">Needs a reply</span>';
+  var s = String(m.status || "");
+  var cls = s === "Responded to" ? "yes" : s === "Not a fit" ? "no" : "closed";
+  return '<span class="mark ' + cls + '" title="' + esc((m.by ? "by " + m.by : "") + (m.at_nice ? " " + m.at_nice : "")) + '">' + esc(s) + '</span>';
+}
+/* Status buttons, or the handled line with Undo. data-* attributes are read by the list click handler. */
+function markBlock(r){
+  var m = markOf(r), rid = String(r.response_id || "");
+  if(!rid) return "";
+  if(m){
+    return '<div class="rmark"><span class="done">' + esc(m.status) + ' by ' + esc(m.by || "someone") + (m.at_nice ? '<small>' + esc(m.at_nice) + '</small>' : '') + '</span>'
+      + '<button class="undo" type="button" data-undo="' + esc(rid) + '">Undo</button></div>';
+  }
+  return '<div class="rmark"><span class="lbl">Mark this reply</span>'
+    + STATUSES.map(function(s, i){
+        return '<button class="btn sm' + (i === 0 ? ' teal' : ' ghost') + '" type="button" data-rid="' + esc(rid) + '" data-status="' + esc(s) + '">' + esc(s) + '</button>';
+      }).join("")
+    + '</div>';
+}
 function rCard(r){
   var isQuote = String(r.mode||"").toLowerCase()==="quote";
+  var m = markOf(r);
   var body = '<dl class="qa">'
     + qa("Received", r.received)
     + qa("Contact", (r.contact_name||"") + (r.email ? " | " + r.email : "") + (r.phone ? " | " + r.phone : ""))
@@ -163,22 +242,30 @@ function rCard(r){
     + '<button class="btn ghost sm" onclick="printOne(this)" type="button">Print This Response</button>'
     + (r.email ? '<a class="btn ghost sm" href="mailto:'+esc(r.email)+'?subject='+encodeURIComponent("Re: "+(r.posting_title||"your response")+" ("+(r.posting_id||"")+")")+'">Email '+esc(r.contact_name||"Vendor")+'</a>' : "")
     + "</div>";
-  return '<div class="rcard"><div class="rhead" onclick="this.parentNode.classList.toggle(\'open\')">'
+  return '<div class="rcard'+(m?" marked":"")+'" data-rid="'+esc(r.response_id||"")+'"><div class="rhead" onclick="this.parentNode.classList.toggle(\'open\')">'
     + "<b>"+esc(r.company||r.contact_name||"Vendor")+"</b>"
     + '<span class="sub">'+(isQuote?"Quote":"Interest letter")+(r.received?" &middot; "+esc(r.received):"")+"</span>"
+    + markChip(m)
     + (isQuote && r.quote_amount ? '<span class="amt">'+esc(fmtMoney(r.quote_amount))+"</span>" : "")
-    + '</div><div class="rbody">'+body+actions+"</div></div>";
+    + '</div><div class="rbody">'+body+markBlock(r)+actions+"</div></div>";
 }
+/* Replies on this posting nobody has marked yet. */
+function needCount(resps){ return resps.filter(function(r){ return !markOf(r); }).length; }
 function pGroup(p, resps){
   var filled = String(p.filled).toUpperCase()==="TRUE" || p.filled===true;
   var rHtml = resps.length ? resps.map(rCard).join("")
     : '<div class="state" style="padding:22px"><b>No responses yet</b>The posting is live; answers land here the moment they arrive.</div>';
-  return '<div class="pgroup'+(filled?" filled":"")+'" data-filled="'+(filled?1:0)+'" data-n="'+resps.length+'">'
+  var need = needCount(resps);
+  var needBadge = !resps.length ? "" : need
+    ? '<span class="pbadge pb-need">'+need+(need===1?" needs a reply":" need a reply")+"</span>"
+    : '<span class="pbadge pb-done">All marked</span>';
+  return '<div class="pgroup'+(filled?" filled":"")+'" data-pid="'+esc(p.id||"")+'" data-filled="'+(filled?1:0)+'" data-n="'+resps.length+'">'
     + '<div class="phead" onclick="this.parentNode.classList.toggle(\'open\')">'
     + '<span class="pbadge '+(filled?"pb-filled":"pb-open")+'">'+(filled?"Filled":"Open")+"</span>"
     + '<span class="pbadge pb-region">'+esc(p.region||"")+"</span>"
     + "<h2>"+esc(p.title||p.id)+(p.account_name?' <span style="font-weight:400;color:var(--grey);font-size:12px">('+esc(p.account_name)+")</span>":"")+"</h2>"
     + '<span class="pbadge pb-count">'+resps.length+(resps.length===1?" response":" responses")+"</span>"
+    + needBadge
     + '<span class="meta">'+esc(p.trade||"")+(p.posted?" &middot; posted "+esc(p.posted):"")+" &middot; "+esc(p.id||"")+"</span>"
     + '</div><div class="pbody">'+rHtml+"</div></div>";
 }
@@ -197,6 +284,7 @@ function render(){
     if(FILTER==="open"&&filled)return false;
     if(FILTER==="filled"&&!filled)return false;
     if(FILTER==="responded"&&!resps.length)return false;
+    if(FILTER==="need"&&!needCount(resps))return false;
     if(q){
       var hay=(JSON.stringify(p)+JSON.stringify(resps)).toLowerCase();
       if(hay.indexOf(q)<0)return false;
@@ -204,8 +292,75 @@ function render(){
     return true;
   }).map(function(p){return pGroup(p,byPost[String(p.id)]||[]);}).join("");
   document.getElementById("list").innerHTML = html ||
-    '<div class="state"><b>Nothing matches</b>Try a different filter or search.</div>';
+    '<div class="state"><b>Nothing matches</b>' + (FILTER==="need" ? "Every reply on file has been marked." : "Try a different filter or search.") + '</div>';
+  Object.keys(OPEN).forEach(function(k){ var g=document.querySelector('.pgroup[data-pid="'+k.replace(/"/g,'')+'"]'); if(g)g.classList.add("open"); });
+  Object.keys(OPENR).forEach(function(k){ var c=document.querySelector('.rcard[data-rid="'+k.replace(/"/g,'')+'"]'); if(c)c.classList.add("open"); });
+  if(HASH){
+    var tgt=document.querySelector('.pgroup[data-pid="'+HASH.replace(/"/g,'')+'"]');
+    if(tgt){ tgt.classList.add("open"); OPEN[HASH]=1; try{ tgt.scrollIntoView({block:"start",behavior:"smooth"}); }catch(e){} }
+    HASH="";
+  }
 }
+/* Postings and replies the reader has opened stay open across re-renders (a mark re-renders the list). */
+var OPEN = {}, OPENR = {};
+var HASH = decodeURIComponent((location.hash||"").replace(/^#/,""));
+document.addEventListener("click",function(e){
+  var h=e.target.closest?e.target.closest(".phead,.rhead"):null;
+  if(!h)return;
+  var box=h.parentNode, isP=h.classList.contains("phead");
+  var key=box.getAttribute(isP?"data-pid":"data-rid"), set=isP?OPEN:OPENR;
+  /* the inline onclick toggled it already; mirror the result */
+  if(box.classList.contains("open"))set[key]=1; else delete set[key];
+});
+/* Marks: one call to the same alerts_set the hub uses. keys are resp:<response_id>. */
+function mark(rid, status, btn){
+  var by = whoName();
+  if(!by){
+    var sel=document.getElementById("rwho");
+    sel.classList.add("need");
+    if(btn&&btn.parentElement&&!btn.parentElement.querySelector(".note")){ var n=document.createElement("span"); n.className="note"; n.textContent="Pick your name at the top first, so the team can see who handled it."; btn.parentElement.appendChild(n); }
+    say('<span class="err">Pick your name first so the team can see who handled it.</span>');
+    try{ sel.scrollIntoView({block:"center",behavior:"smooth"}); }catch(e){}
+    sel.focus();
+    return;
+  }
+  if(BUSY[rid])return;
+  BUSY[rid]=1;
+  var buttons = btn&&btn.parentElement ? btn.parentElement.querySelectorAll("button") : [];
+  Array.prototype.forEach.call(buttons,function(b){b.disabled=true;});
+  fetch(WEBHOOK,{method:"POST",headers:{"Content-Type":"text/plain"},
+    body:JSON.stringify({kind:"alerts_set",passcode:CWAuth.get(),keys:["resp:"+rid],status:status,by:by})})
+    .then(function(r){return r.json();})
+    .then(function(r){
+      delete BUSY[rid];
+      if(!r||!r.ok){
+        Array.prototype.forEach.call(buttons,function(b){b.disabled=false;});
+        if(r&&r.error&&CWAuth.isPassError(r.error)){ CWAuth.locked("ops", r.error); return; }
+        say('<span class="err">Could not save. '+esc((r&&r.error)||"Try again.")+'</span>');
+        return;
+      }
+      DATA.marks = DATA.marks || {};
+      (r.saved||[]).forEach(function(s){
+        var k=String(s.key||"");
+        if(k.indexOf("resp:")!==0)return;
+        if(s.status) DATA.marks[k.slice(5)] = {status:s.status, by:s.by, at_nice:s.at_nice};
+        else delete DATA.marks[k.slice(5)];
+      });
+      render();
+      say("Saved "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+". The Ops Hub Alerts card shows this too, and it stays out of the next digest.");
+    })
+    .catch(function(){
+      delete BUSY[rid];
+      Array.prototype.forEach.call(buttons,function(b){b.disabled=false;});
+      say('<span class="err">Could not reach the server. Try again.</span>');
+    });
+}
+document.getElementById("list").addEventListener("click",function(e){
+  var t=e.target.closest?e.target.closest("button"):null;
+  if(!t)return;
+  if(t.hasAttribute("data-rid")){ mark(t.getAttribute("data-rid"), t.getAttribute("data-status"), t); return; }
+  if(t.hasAttribute("data-undo")){ mark(t.getAttribute("data-undo"), "", t); return; }
+});
 function printOne(btn){
   var card=btn.closest(".rcard"), group=btn.closest(".pgroup");
   document.body.classList.add("printing-one");
@@ -227,9 +382,13 @@ function load(pass){
       if(r&&r.ok){
         localStorage.setItem(KEY,pass);
         DATA=r;
+        DATA.marks=DATA.marks||{}; DATA.roster=DATA.roster||[];
+        if(r.statuses&&r.statuses.length)STATUSES=r.statuses;
         document.getElementById("gate").classList.add("hidden");
         document.getElementById("app").classList.remove("hidden");
+        fillWho();
         render();
+        say(whoName() ? "" : "Pick your name at the top to mark replies.");
       }else{
         localStorage.removeItem(KEY);
         showGate((r&&r.error)||"Wrong passcode.");
@@ -249,6 +408,7 @@ document.getElementById("reload").addEventListener("click",function(){
   var p=CWAuth.get();if(p)load(p);
 });
 document.getElementById("q").addEventListener("input",function(){QUERY=this.value.trim();render();});
+document.getElementById("rwho").addEventListener("change",function(){ setWho(this.value); this.classList.toggle("need",!this.value); say(this.value?"":"Pick your name at the top to mark replies."); });
 Array.prototype.forEach.call(document.querySelectorAll(".fbtn"),function(b){
   b.addEventListener("click",function(){
     Array.prototype.forEach.call(document.querySelectorAll(".fbtn"),function(x){x.classList.remove("on");});

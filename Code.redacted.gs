@@ -955,7 +955,18 @@ function handleResponsesList(data) {
     }
     return out;
   };
-  return _json({ ok: true, postings: read(TAB, 'id'), responses: read(RESP_TAB, 'response_id') });
+  // Oct 20 2026 per Robert: the replies page shows and sets the same Responded to / Not a fit
+  // marks as the Alerts card (Alert Status tab, Alerts.gs). marks[response_id] = {status, by, at_nice}.
+  var marks = {}, roster = [];
+  try {
+    var am = alStatusMap_(alSheet_());
+    Object.keys(am).forEach(function (k) {
+      if (k.indexOf('resp:') !== 0 || !am[k].status || am[k].status === 'Open') return;
+      marks[k.slice(5)] = { status: am[k].status, by: am[k].by, at_nice: alNice_(am[k].at) };
+    });
+    roster = alRoster_();
+  } catch (e) { marks = {}; roster = []; }
+  return _json({ ok: true, postings: read(TAB, 'id'), responses: read(RESP_TAB, 'response_id'), marks: marks, roster: roster, statuses: (typeof AL_STATUS !== 'undefined' ? AL_STATUS.response : ['Responded to', 'Not a fit']) });
 }
 
 
@@ -2544,7 +2555,7 @@ if (d && String(d.kind||'').indexOf('vm_') === 0) return vmDispatch(d);
 // Every internal / confirmation send routes through cwMail_(tag, opts).
 // Mode per tag comes from the SendConfig sheet tab, else CW_DEFAULT_MODE:
 //   send   = MailApp now
-//   digest = queue to the Digest tab; goes out in the 8am and 4pm digests
+//   digest = queue to the Digest tab; goes out in the 10am and 6pm digests
 //   weekly = queue; goes out only in the Monday 8am weekly rollup
 //   skip   = drop (the page already showed an on-screen receipt)
 // Hard rules that no config can change:
@@ -2554,8 +2565,8 @@ if (d && String(d.kind||'').indexOf('vm_') === 0) return vmDispatch(d);
 //     so digest or skip can never lose a submission
 //   * any error inside the router falls back to a plain MailApp send
 // The digest runs from cwDigestTick(): a time trigger if one is installed,
-// and opportunistically from doGet / doPost (first hit after 8am, after 4pm,
-// and Monday after 8am). Marker cells J1 / K1 on the Digest tab make each
+// and opportunistically from doGet / doPost (first hit after 10am, after 6pm,
+// and Monday after 10am). Marker cells J1 / K1 on the Digest tab make each
 // slot fire once, and a script lock stops two hits from sending twice.
 // Weekly rollup (Monday 8am) recaps everything queued in the last 7 days,
 // digested or immediate, so one email shows the whole week.
@@ -2838,7 +2849,7 @@ function cwDigestTick() {
     var ymd = Utilities.formatDate(now, 'America/Los_Angeles', 'yyyyMMdd');
     var hour = Number(Utilities.formatDate(now, 'America/Los_Angeles', 'H'));
     var dow = Utilities.formatDate(now, 'America/Los_Angeles', 'u');  // 1 = Monday
-    var slot = hour >= 16 ? '16' : (hour >= 8 ? '08' : '');
+    var slot = hour >= 18 ? '18' : (hour >= 10 ? '10' : '');   // Oct 20 2026 per Robert: 10 AM and 6 PM (was 8 AM and 4 PM)
     var sCell = sh.getRange(CW_DIGEST_SLOT_CELL), wCell = sh.getRange(CW_DIGEST_WEEK_CELL);
     if (slot) {
       var key = 'd' + ymd + '-' + slot;
@@ -2847,7 +2858,7 @@ function cwDigestTick() {
         try { out.push('slot ' + slot + ': ' + cwSendSlotDigest_(slot)); } catch (e1) { out.push('slot error ' + e1); }
       }
     }
-    if (dow === '1' && hour >= 8) {
+    if (dow === '1' && hour >= 10) {
       var wkey = 'w' + ymd;
       if (String(wCell.getValue()) !== wkey) {
         wCell.setValue(wkey);
@@ -2886,14 +2897,23 @@ function cwGroupByTo_(rows) {
   return Object.keys(groups).map(function (k) { return groups[k]; });
 }
 
-// Morning (08) or afternoon (16) digest: every unsent daily-cadence row.
+// Morning (10) or evening (18) digest: every unsent daily-cadence row.
+// Oct 20 2026 per Robert: a vendor reply the FSM already handled on the hub (Responded to,
+// Not a fit, or its posting marked filled) stays out of the digest, and so does a new
+// posting that was already marked filled. Those rows are marked sent without being emailed,
+// so only replies and postings still open on the hub reach the FSMs.
 function cwSendSlotDigest_(slot) {
   var sh = cwDigestSheet_();
-  var rows = cwRows_(sh).filter(function (r) { return !r.sent && r.cadence === 'daily'; });
+  var all = cwRows_(sh).filter(function (r) { return !r.sent && r.cadence === 'daily'; });
+  var skip = cwDigestHandled_(all);
+  var rows = all.filter(function (r) { return !skip[r.i]; });
+  all.forEach(function (r) { if (skip[r.i]) sh.getRange(r.i + 1, 6).setValue(true); });
+  var skipped = Object.keys(skip).length;
+  var tail = skipped ? ' (' + skipped + ' left out, already handled on the hub)' : '';
   var open = cwOpenSupplyAlerts_();
-  var label = slot === '16' ? 'Afternoon digest' : (slot === 'now' ? 'Digest' : 'Morning digest');
-  var when = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'EEE MMM d') + (slot === '16' ? ', 4 PM' : (slot === 'now' ? ', ' + Utilities.formatDate(new Date(), 'America/Los_Angeles', 'h:mm a') : ', 8 AM'));
-  if (!rows.length) return slot === '16' ? 'nothing to send' : cwSendAlertReminder_(open, when);
+  var label = slot === '18' ? 'Evening digest' : (slot === 'now' ? 'Digest' : 'Morning digest');
+  var when = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'EEE MMM d') + (slot === '18' ? ', 6 PM' : (slot === 'now' ? ', ' + Utilities.formatDate(new Date(), 'America/Los_Angeles', 'h:mm a') : ', 10 AM'));
+  if (!rows.length) return (slot === '18' ? 'nothing to send' : cwSendAlertReminder_(open, when)) + tail;
   var sentCount = 0;
   cwGroupByTo_(rows).forEach(function (g) {
     var cc = Object.keys(g.cc).join(',');
@@ -2906,7 +2926,34 @@ function cwSendSlotDigest_(slot) {
     sentCount++;
   });
   rows.forEach(function (r) { sh.getRange(r.i + 1, 6).setValue(true); });
-  return 'sent ' + rows.length + ' item(s) in ' + sentCount + ' email(s)';
+  return 'sent ' + rows.length + ' item(s) in ' + sentCount + ' email(s)' + tail;
+}
+// Digest rows the hub already closed, keyed by Digest row index. A reply is handled when the
+// Alert Status tab holds any status for resp:<id> (Responded to, Not a fit, Posting filled)
+// or its posting has Filled checked. A posting is handled when Filled is checked. Any failure
+// here returns nothing, so the digest sends everything the way it did before.
+function cwDigestHandled_(rows) {
+  var skip = {};
+  try {
+    var need = rows.some(function (r) { return (r.tag === 'response' || r.tag === 'posting') && r.details && r.details.id; });
+    if (!need || typeof alStatusMap_ !== 'function' || typeof alSheet_ !== 'function') return skip;
+    var map = alStatusMap_(alSheet_());
+    var ss = cwSS_();
+    var filled = {}, postOf = {};
+    var ps = ss.getSheetByName(TAB);
+    if (ps) alRows_(ps).forEach(function (p) { var id = alStr_(p.id); if (id) filled[id] = (p.filled === true || String(p.filled).toUpperCase() === 'TRUE'); });
+    var rs = ss.getSheetByName(RESP_TAB);
+    if (rs) alRows_(rs).forEach(function (r) { var rid = alStr_(r.response_id); if (rid) postOf[rid] = alStr_(r.posting_id); });
+    rows.forEach(function (r) {
+      var id = (r.details && r.details.id) ? String(r.details.id) : '';
+      if (!id) return;
+      if (r.tag === 'response') {
+        var st = map['resp:' + id];
+        if ((st && st.status && st.status !== 'Open') || filled[postOf[id]]) skip[r.i] = 1;
+      } else if (r.tag === 'posting' && filled[id]) skip[r.i] = 1;
+    });
+  } catch (e) { skip = {}; }
+  return skip;
 }
 
 // ---------------------------------------- unmarked supply alerts -----
@@ -3107,14 +3154,12 @@ function cwInstallDigestTrigger() {
   var out = [];
   trigs.forEach(function (t) {
     var h = t.getHandlerFunction();
-    if (h === 'cwSendDailyDigest' || h === 'cwSendWeeklyDigest') { ScriptApp.deleteTrigger(t); out.push('removed old ' + h); }
+    // Oct 20 2026: every run replaces the ticks, so a time change only needs this run again
+    if (h === 'cwSendDailyDigest' || h === 'cwSendWeeklyDigest' || h === 'cwDigestTick') { ScriptApp.deleteTrigger(t); out.push('removed old ' + h); }
   });
-  var have = ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'cwDigestTick'; }).length;
-  if (have < 2) {
-    ScriptApp.newTrigger('cwDigestTick').timeBased().atHour(8).nearMinute(5).everyDays(1).inTimezone('America/Los_Angeles').create();
-    ScriptApp.newTrigger('cwDigestTick').timeBased().atHour(16).nearMinute(5).everyDays(1).inTimezone('America/Los_Angeles').create();
-    out.push('installed 8am + 4pm ticks');
-  } else out.push('ticks present');
+  ScriptApp.newTrigger('cwDigestTick').timeBased().atHour(10).nearMinute(5).everyDays(1).inTimezone('America/Los_Angeles').create();
+  ScriptApp.newTrigger('cwDigestTick').timeBased().atHour(18).nearMinute(5).everyDays(1).inTimezone('America/Los_Angeles').create();
+  out.push('installed 10am + 6pm ticks');
   Logger.log(out.join(', ')); return out.join(', ');
 }
 // Force the current slot's digest now (ignores the once-per-slot marker). Marks rows sent.
@@ -3171,7 +3216,7 @@ function cwDigestSelfTest(to) {
   var rows = cwRows_(sh).filter(function (r) { return !r.sent && r.cadence === 'daily' && r.to.toLowerCase() === String(to).toLowerCase() && /ZZ SELFTEST/.test(r.subject); });
   var when = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'EEE MMM d h:mm a');
   cwSend_({ to: to, name: CW_DIGEST_SENDER, subject: 'City Wide digest SELF-TEST - ' + when + ' (' + rows.length + ' items)',
-    htmlBody: cwDigestHtml_('Self-test digest', when, rows, 'Two sample items queued by cwDigestSelfTest. Real digests go out at 8 AM and 4 PM.'), body: cwDigestPlain_('Self-test digest', when, rows) });
+    htmlBody: cwDigestHtml_('Self-test digest', when, rows, 'Two sample items queued by cwDigestSelfTest. Real digests go out at 10 AM and 6 PM.'), body: cwDigestPlain_('Self-test digest', when, rows) });
   rows.forEach(function (r) { sh.getRange(r.i + 1, 6).setValue(true); });
   var s = 'self-test digest sent to ' + to + ' with ' + rows.length + ' rows';
   Logger.log(s); return s;
