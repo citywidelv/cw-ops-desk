@@ -1082,6 +1082,7 @@ var MENU = [
    },
    {
     "sub": "Account Changes",
+    "hidden": true,
     "items": [
      {
       "label": "Log an Account Change",
@@ -1391,6 +1392,7 @@ function renderMainNav(){
 function items(list, depth){
 var out = "";
 list.forEach(function(it){
+if(!it || it.hidden) return;
 if(it.ghead){ out += '<div class="ghead">' + esc(it.ghead) + '</div>'; }
 else if(it.sub){
 out += '<div class="nsub"><a class="subbtn" href="#" data-sub="1">' + esc(it.sub) + '</a>' +
