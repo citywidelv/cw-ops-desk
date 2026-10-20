@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Vendor Responses | CW Ops Hub</title>
-<!-- build 2026-10-20a: Responded to / Not a fit on every reply, the same Alert Status marks as the Ops Hub Alerts card
+<!-- build 2026-10-20b: Responded to / Not a fit on every reply, the same Alert Status marks as the Ops Hub Alerts card
 (responses_list now returns marks + roster; alerts_set writes them). Who-picker shares the hub's cwAlertsWho name.
 Needs Attention filter, open-reply counts on each posting, #posting-id deep link opens that posting. -->
 <style>
@@ -347,7 +347,7 @@ function mark(rid, status, btn){
         else delete DATA.marks[k.slice(5)];
       });
       render();
-      say("Saved "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+". The Ops Hub Alerts card shows this too, and it stays out of the next digest.");
+      say("Saved "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+". "+(status ? "The Ops Hub Alerts card shows this too, and it stays out of the next digest." : "Reopened. It is back on the Ops Hub Alerts card and in the next digest."));
     })
     .catch(function(){
       delete BUSY[rid];
