@@ -55,7 +55,7 @@ textarea.big{min-height:200px}
 .who .name{font-size:18px;font-weight:700}
 .linkbtn{background:none;border:0;color:var(--red);font-weight:700;font-size:14px;text-decoration:underline;cursor:pointer;font-family:inherit;padding:10px 6px;min-height:44px}
 .picker{position:relative}
-.list{position:absolute;left:0;right:0;top:100%;background:#fff;border:1.5px solid var(--border);border-radius:0 0 12px 12px;box-shadow:var(--shadow);max-height:280px;overflow:auto;z-index:4}
+.list{position:static;margin-top:6px;background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:var(--shadow);max-height:320px;overflow:auto}
 .list button{display:block;width:100%;text-align:left;background:#fff;border:0;border-bottom:1px solid var(--border);padding:12px 14px;font-size:15px;font-family:inherit;color:var(--black);cursor:pointer;min-height:48px}
 .list button small{display:block;font-size:12px;color:var(--grey)}
 .list button.mine{background:#fffaf0}
@@ -63,18 +63,27 @@ textarea.big{min-height:200px}
 .picked{display:flex;align-items:center;gap:10px;border:1.5px solid var(--red);border-radius:10px;padding:10px 14px;background:#fdf3f3;min-height:48px}
 .picked b{flex:1;font-size:16px}
 .picked small{display:block;font-size:12px;color:var(--grey);font-weight:400}
-.score{display:flex;align-items:center;gap:12px;margin:8px 0}
-.score button{width:56px;height:56px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:28px;font-family:inherit;color:var(--black);cursor:pointer}
-.score .n{flex:1;text-align:center;font-size:54px;font-weight:700;line-height:1}
-.score .n.low{color:var(--red)}
-.score .n small{display:block;font-size:12px;color:var(--grey);font-weight:400;margin-top:2px}
-input[type=range]{width:100%;accent-color:var(--red);height:40px}
+.score{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:8px 0}
+.score button{min-height:52px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:20px;font-weight:700;font-family:inherit;color:var(--black);cursor:pointer}
+.score button.on{background:var(--black);border-color:var(--black);color:#fff}
+.score button.on.low{background:var(--red);border-color:var(--red)}
+.anchors{display:flex;justify-content:space-between;font-size:12px;color:var(--grey);margin-top:2px}
+.yn-row{display:flex;align-items:center;gap:10px;border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;background:#fff;margin-bottom:8px}
+.yn-row .q{flex:1;font-size:15px;line-height:1.3}
+.yn-row .yn{display:flex;gap:6px;flex:none}
+.yn-row .yn button{min-width:58px;min-height:44px;border-radius:9px;border:1.5px solid var(--border);background:#fff;font-family:inherit;font-size:14px;font-weight:700;color:var(--black);cursor:pointer}
+.yn-row .yn button.on.y{background:#eef8f1;border-color:var(--ok);color:var(--ok)}
+.yn-row .yn button.on.n{background:var(--red);border-color:var(--red);color:#fff}
 .note{font-size:14px;color:var(--grey);background:var(--light);border-radius:10px;padding:10px 14px}
 .note.ok{color:var(--ok);background:#eef8f1}
 .note.warn{color:var(--red-dark);background:#fdf3f3;font-weight:700}
 .photo{display:flex;align-items:center;gap:12px;border:1.5px dashed var(--border);border-radius:12px;padding:12px;background:#fff;margin-bottom:10px}
 .photo .lbl{flex:1;font-size:15px;font-weight:700}
 .photo .lbl small{display:block;font-weight:400;font-size:12px;color:var(--grey)}
+.photo.req{border-color:var(--red);border-style:solid;background:#fdf3f3}
+.photo.req .lbl small.must{color:var(--red-dark);font-weight:700}
+.pneed{font-size:14px;font-weight:700;border-radius:10px;padding:10px 14px;margin-bottom:12px;background:#fdf3f3;color:var(--red-dark)}
+.pneed.ok{background:#eef8f1;color:var(--ok)}
 .cam{flex:none;background:var(--black);color:#fff;border:0;border-radius:10px;padding:12px 16px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;min-height:48px}
 .thumbs{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px}
 .thumb{position:relative;width:88px;height:88px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#eee}
@@ -103,7 +112,7 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 .si{border:1.5px solid var(--border);border-radius:12px;padding:10px;background:#fff;display:flex;flex-direction:column;gap:8px}
 .si .q{font-size:14px;line-height:1.3;font-weight:700;min-height:36px}
 .si .yn{display:flex;gap:6px}
-.si .yn button{flex:1;min-height:40px;border-radius:9px;border:1.5px solid var(--border);background:#fff;font-family:inherit;font-size:14px;font-weight:700;color:var(--black);cursor:pointer}
+.si .yn button{flex:1;min-height:46px;border-radius:9px;border:1.5px solid var(--border);background:#fff;font-family:inherit;font-size:14px;font-weight:700;color:var(--black);cursor:pointer}
 .si .yn button.na{flex:0 0 44px;font-size:11px;color:var(--grey)}
 .si .yn button.on.y{background:#eef8f1;border-color:var(--ok);color:var(--ok)}
 .si .yn button.on.n{background:var(--red);border-color:var(--red);color:#fff}
@@ -175,16 +184,16 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <b>How this works</b>
 <ul>
 <li>Do your inspection first. Walk the building before you start typing.</li>
-<li>Take all the photos you want to use before you start. Or take them from this form when it asks.</li>
+<li>Take your photos as you walk, or take them from this form when it asks. Photos from your camera roll work too.</li>
 <li>Answer the questions. You only see the ones that fit your visit.</li>
-<li>Use the photo buttons to add your pictures. You can add more than one to each spot.</li>
+<li>Every visit needs photos. Wide shots of the rooms and the restrooms, not close-ups. The other photo spots are optional.</li>
 <li>Paste your summary from the Night Manager AI Tool, or type it.</li>
 <li>Check your arrival and leave times before you send. We track time in every building.</li>
 <li>Your report saves as you go. If your phone dies, open this page again and keep going.</li>
 </ul>
 </div>
 <div class="card">
-<label class="f">Who are you?</label>
+<label class="f">Your name</label>
 <div id="whoChip" class="who hidden"><span class="name" id="whoName"></span><button class="linkbtn" id="whoChange">Not you?</button></div>
 <div id="whoPick"><select id="whoSel"><option value="">Pick your name...</option></select>
 <input type="text" id="whoOther" class="hidden" placeholder="Type your name" style="margin-top:8px"></div>
@@ -199,11 +208,11 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <div class="card">
 <label class="f">Building <span class="req">*</span></label>
 <div id="acctPicked" class="picked hidden"><b id="acctName"></b><button class="linkbtn" id="acctChange">Change</button></div>
-<div id="acctPick" class="picker"><input type="search" id="acctQ" placeholder="Start typing the building name" autocomplete="off"><div id="acctList" class="list hidden"></div></div>
+<div id="acctPick" class="picker"><input type="search" id="acctQ" placeholder="Type part of the building name" autocomplete="off" enterkeyhint="search"><div id="acctList" class="list hidden"></div></div>
 <div class="hint" id="acctHint"></div>
 <label class="f">Cleaning company</label>
 <div id="vendPicked" class="picked hidden"><b id="vendName"></b><button class="linkbtn" id="vendChange">Change</button></div>
-<div id="vendPick" class="picker"><input type="search" id="vendQ" placeholder="Start typing the company or owner" autocomplete="off"><div id="vendList" class="list hidden"></div></div>
+<div id="vendPick" class="picker"><input type="search" id="vendQ" placeholder="Type part of the company or owner name" autocomplete="off" enterkeyhint="search"><div id="vendList" class="list hidden"></div></div>
 <div class="hint" id="vendHint"></div>
 <button class="linkbtn" id="reqOpen" type="button">Can't find it?</button>
 <div id="reqPanel" class="req-panel hidden">
@@ -217,22 +226,22 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <div id="fsmW"><label class="f">FSM</label><select id="fsm"><option value="">Pick the FSM...</option></select></div>
 </div>
 <div class="card" id="arrCard">
-<label class="f">Arrived</label><input type="time" id="arrival">
+<label class="f">Time you arrived</label><input type="time" id="arrival">
 </div>
 <div class="err" id="err1"></div>
 </section>
 
 <!-- ===================== Screen 2: Why tonight ===================== -->
 <section id="s2" class="scr hidden">
-<div class="step">Step 2</div><h1>Why tonight?</h1>
+<div class="step">Step 2</div><h1>Why were you there?</h1>
 <div class="card">
 <div class="tiles" id="reasons">
 <button class="tile" data-r="Regular check" type="button"><b>Regular check</b><small>Normal inspection</small></button>
 <button class="tile" data-r="New building" type="button"><b>New building</b><small>New start, nights 1 to 5</small></button>
 <button class="tile" data-r="Client complained" type="button"><b>Client complained</b><small>You went because of a complaint</small></button>
-<button class="tile" data-r="Work order" type="button"><b>Work order</b><small>Field visit or a job</small></button>
+<button class="tile" data-r="Work order" type="button"><b>Work order</b><small>You went to do or check a job</small></button>
 <button class="tile" data-r="Phone only" type="button"><b>Phone only</b><small>You did not go to the building</small></button>
-<button class="tile" data-r="Photos from crew" type="button"><b>Photos from crew</b><small>The crew sent you pictures</small></button>
+<button class="tile" data-r="Photos from crew" type="button"><b>Photos from crew</b><small>You did not go. The crew sent pictures</small></button>
 </div>
 <label class="tick" id="cflagRow" style="margin-top:14px"><input type="checkbox" id="cflag"><span>The client also complained tonight</span></label>
 </div>
@@ -250,14 +259,14 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <div class="chips" id="icPaid"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div></div>
 </div>
 <div class="card" id="woCard">
-<label class="f">What was the work order?</label><input type="text" id="wo_what" placeholder="Short. What was the job">
+<label class="f">What was the job?</label><input type="text" id="wo_what" placeholder="Short. Example: strip and wax the lobby">
 <label class="f">Was it done?</label>
 <div class="chips" id="woDone"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="Partly" type="button">Partly</button><button class="chip" data-v="No" type="button">No</button></div>
 </div>
 <div class="card" id="phCard">
 <label class="f">Who did you talk to?</label><input type="text" id="call_who" placeholder="Name and who they are">
-<label class="f">What about?</label><textarea id="call_about"></textarea>
-<label class="f">What happens next?</label><input type="text" id="call_next">
+<label class="f">What was the call about?</label><textarea id="call_about"></textarea>
+<label class="f">What happens next?</label><input type="text" id="call_next" placeholder="Example: crew goes back tomorrow night">
 </div>
 <div class="err" id="err2"></div>
 </section>
@@ -265,24 +274,42 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <!-- ===================== Screen 3: What you found ===================== -->
 <section id="s3" class="scr hidden">
 <div class="step">Step 3</div><h1>What you found</h1>
-<div class="card" id="hsCard">
-<label class="f">Hot spots for this building</label>
-<div class="sub">These are the areas the client watches. Tick each one you checked.</div>
-<div id="hsList"></div>
-<div class="hint" id="hsHint"></div>
-</div>
 <div class="card hidden" id="askCard">
-<div class="stdhead"><label class="f" style="margin:0">What your FSM asked for</label><span class="cnt" id="askCount"></span></div>
+<div class="stdhead"><label class="f" style="margin:0">What your FSM asked you to check</label><span class="cnt" id="askCount"></span></div>
 <div class="sub">Answer each one. Your answer goes straight back to the FSM who asked.</div>
 <div id="askInst"></div>
 <div id="askList"></div>
 <div class="hint" id="askHint"></div>
 </div>
+<div class="card" id="hsCard">
+<label class="f">Hot spots at this building</label>
+<div class="sub">The client watches these areas closely. Tick each one you looked at tonight.</div>
+<div id="hsList"></div>
+<div class="hint" id="hsHint"></div>
+</div>
+<div class="card" id="nsListCard">
+<label class="f" id="nsListTitle">Checklist</label>
+<div id="nsList"></div>
+<details id="nsPolicy"><summary>What we do on this night</summary><div class="policy" id="nsPolicyText"></div></details>
+</div>
 <div class="card" id="fixedCard">
 <div class="stdhead"><label class="f" style="margin:0">Does it meet the standard?</label><span class="cnt" id="stdCount"></span></div>
-<div class="sub">Look at each one. Yes means you checked it and it looks good. No means it did not meet the standard. N/A means the building does not have it.</div>
+<div class="sub">Yes means you looked and it is good. No means it is not good. N/A means the building does not have it.</div>
 <div class="std" id="stdGrid"></div>
 <div class="hint" id="stdHint"></div>
+</div>
+<div class="card" id="closetCard">
+<label class="f">Did you check the janitor closet?</label>
+<div class="chips" id="closetChk"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
+<div id="closetW" class="hidden" style="margin-top:12px">
+<div class="yn-row" data-yn="closet_organized"><div class="q">Closet is neat and organized</div><div class="yn"><button type="button" class="y" data-a="Yes">Yes</button><button type="button" class="n" data-a="No">No</button></div></div>
+<div class="yn-row" data-yn="sds_present"><div class="q">SDS sheets are in the closet</div><div class="yn"><button type="button" class="y" data-a="Yes">Yes</button><button type="button" class="n" data-a="No">No</button></div></div>
+<div class="yn-row" data-yn="chemicals_labelled"><div class="q">Every bottle has a label</div><div class="yn"><button type="button" class="y" data-a="Yes">Yes</button><button type="button" class="n" data-a="No">No</button></div></div>
+<div class="yn-row" data-yn="chemicals_on_hand"><div class="q">All four chemicals are there (stainless, glass, bowl, Mineral Shock)</div><div class="yn"><button type="button" class="y" data-a="Yes">Yes</button><button type="button" class="n" data-a="No">No</button></div></div>
+<div class="yn-row" data-yn="equipment_ok"><div class="q">Equipment is commercial grade and clean</div><div class="yn"><button type="button" class="y" data-a="Yes">Yes</button><button type="button" class="n" data-a="No">No</button></div></div>
+<div class="yn-row" data-yn="envirox_low"><div class="q">EnvirOx is low. The crew needs another case</div><div class="yn"><button type="button" class="y" data-a="Yes">Yes</button><button type="button" class="n" data-a="No">No</button></div></div>
+<label class="f">Closet notes</label><textarea id="closet_notes" placeholder="Only if something needs saying"></textarea>
+</div>
 </div>
 <div class="card" id="crewCard">
 <label class="f">Did you see the crew tonight?</label>
@@ -290,8 +317,8 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <div id="crewNo" class="note ok hidden" style="margin-top:10px">That is fine. Coming after the clean is normal.</div>
 <div id="uniW" class="hidden">
 <label class="f">Were they in the right uniform?</label>
-<div class="chips" id="crewUni"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="Some of them" type="button">Some of them</button><button class="chip" data-v="No" type="button">No</button></div>
-<div id="uniNoteW" class="hidden"><label class="f">What was off?</label><input type="text" id="crew_uniform_note" placeholder="Short. Who and what"></div>
+<div class="chips" id="crewUni"><button class="chip" data-v="Yes" type="button">Yes, all of them</button><button class="chip" data-v="Some of them" type="button">Some of them</button><button class="chip" data-v="No" type="button">No</button></div>
+<div id="uniNoteW" class="hidden"><label class="f">Who, and what was wrong?</label><input type="text" id="crew_uniform_note" placeholder="Example: Luis, no City Wide shirt"></div>
 <div id="crewNamesW" class="hidden"><label class="f" id="crewTitle">Who was on the crew? Ask their names.</label>
 <div class="sub" id="crewSub">First and last name. We match them to the roster and the background checks on file.</div>
 <div id="crewKnown"></div>
@@ -300,48 +327,31 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <button class="linkbtn" id="crewAdd" type="button">+ Add another name</button></div>
 </div>
 </div>
+<div class="card" id="compCard">
+<h2>The complaint</h2>
+<label class="f">What did the client say?</label><textarea id="complaint_what" placeholder="Their words, as close as you can"></textarea>
+<label class="f">Which rooms or spots did they name?</label><input type="text" id="complaint_areas" placeholder="Example: 2nd floor restroom, break room">
+<label class="f">How did we hear about it?</label>
+<div class="chips" id="compHow"><button class="chip" data-v="Email" type="button">Email</button><button class="chip" data-v="Phone" type="button">Phone</button><button class="chip" data-v="In person" type="button">In person</button><button class="chip" data-v="FSM" type="button">From the FSM</button></div>
+<label class="f">Did you look at those spots yourself tonight?</label>
+<div class="chips" id="compVer"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
+<label class="f">Why did it happen?</label><textarea id="complaint_root_cause" placeholder="Example: new cleaner, nobody told him about the conference room"></textarea>
+<label class="f">What will the crew do so it does not happen again?</label><textarea id="complaint_agreed_fix" placeholder="What they agreed to"></textarea>
+<label class="f">Is the complaint fixed?</label>
+<div class="chips" id="compRes"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
+<div id="compBlockW" class="hidden"><label class="f">What stopped you? What do we tell the client and the crew?</label><textarea id="complaint_blocker"></textarea></div>
+<label class="f">Did you close your part in CRM?</label>
+<div class="chips" id="compCrm"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
+</div>
 <div class="card" id="scoreCard">
-<label class="f">How good was the clean?</label>
-<div class="score"><button type="button" id="scoreDown">&minus;</button><div class="n" id="scoreN">8<small>out of 10</small></div><button type="button" id="scoreUp">+</button></div>
-<input type="range" id="score" min="1" max="10" step="1" value="8">
+<label class="f">Score the clean, 1 to 10 <span class="req">*</span></label>
+<div class="sub">10 means nothing to fix. 8 means a few small things. Under 8 means the client would notice.</div>
+<div class="score" id="scoreBtns"><button type="button" data-s="1">1</button><button type="button" data-s="2">2</button><button type="button" data-s="3">3</button><button type="button" data-s="4">4</button><button type="button" data-s="5">5</button><button type="button" data-s="6">6</button><button type="button" data-s="7">7</button><button type="button" data-s="8">8</button><button type="button" data-s="9">9</button><button type="button" data-s="10">10</button></div>
+<div class="anchors"><span>Bad</span><span>Perfect</span></div>
 <div id="lowW" class="hidden">
 <label class="f">What was wrong? <span class="req">*</span></label><textarea id="score_note" placeholder="Say exactly what you saw"></textarea>
 <div class="note warn" style="margin-top:8px">Take a photo of it on the next screen.</div>
 </div>
-</div>
-<div class="card" id="nsListCard">
-<label class="f" id="nsListTitle">Checklist</label>
-<div id="nsList"></div>
-<details id="nsPolicy"><summary>What we do on this night</summary><div class="policy" id="nsPolicyText"></div></details>
-</div>
-<div class="card" id="closetCard">
-<label class="f">Did you check the janitor closet?</label>
-<div class="chips" id="closetChk"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
-<div id="closetW" class="hidden">
-<label class="tick"><input type="checkbox" id="closet_organized"><span>Closet is organized</span></label>
-<label class="tick"><input type="checkbox" id="sds_present"><span>SDS sheets are there</span></label>
-<label class="tick"><input type="checkbox" id="chemicals_labelled"><span>Chemicals are labelled</span></label>
-<label class="tick"><input type="checkbox" id="chemicals_on_hand"><span>All chemicals on hand (stainless, glass, bowl, Mineral Shock)</span></label>
-<label class="tick"><input type="checkbox" id="equipment_ok"><span>Equipment is commercial grade and clean</span></label>
-<label class="tick"><input type="checkbox" id="envirox_low"><span>EnvirOx is running low, needs another case</span></label>
-<label class="f">Closet notes</label><textarea id="closet_notes"></textarea>
-</div>
-</div>
-<div class="card" id="compCard">
-<h2>The complaint</h2>
-<label class="f">What did the client say?</label><textarea id="complaint_what"></textarea>
-<label class="f">Which areas?</label><input type="text" id="complaint_areas" placeholder="Rooms or spots they named">
-<label class="f">How did it reach us?</label>
-<div class="chips" id="compHow"><button class="chip" data-v="Email" type="button">Email</button><button class="chip" data-v="Phone" type="button">Phone</button><button class="chip" data-v="In person" type="button">In person</button><button class="chip" data-v="FSM" type="button">From the FSM</button></div>
-<label class="f">Did you check those areas yourself?</label>
-<div class="chips" id="compVer"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
-<label class="f">Root cause</label><textarea id="complaint_root_cause" placeholder="Why it happened"></textarea>
-<label class="f">Agreed fix</label><textarea id="complaint_agreed_fix" placeholder="What the crew agreed to do so it does not happen again"></textarea>
-<label class="f">Is it resolved?</label>
-<div class="chips" id="compRes"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
-<div id="compBlockW" class="hidden"><label class="f">What stopped you? What do we tell the client and the company?</label><textarea id="complaint_blocker"></textarea></div>
-<label class="f">Did you close your part in CRM?</label>
-<div class="chips" id="compCrm"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button></div>
 </div>
 <div class="err" id="err3"></div>
 </section>
@@ -350,29 +360,30 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <section id="s4" class="scr hidden">
 <div class="step">Step 4</div><h1>Photos</h1>
 <div class="card">
-<div class="sub" id="photoSub">Tap a button, take the shot. Each photo is saved as soon as you take it.</div>
+<div class="sub" id="photoSub">Tap a button, then take the shot or pick it from your camera roll. Each photo is saved as soon as you add it.</div>
+<div class="pneed" id="photoNeed"></div>
 <div id="photoRows"></div>
-<input type="file" id="fileIn" accept="image/*" capture="environment" class="hidden" multiple>
+<input type="file" id="fileIn" accept="image/*" class="hidden" multiple>
 </div>
 <div class="err" id="err4"></div>
 </section>
 
 <!-- ===================== Screen 5: Before you go ===================== -->
 <section id="s5" class="scr hidden">
-<div class="step">Step 5</div><h1>Before you go</h1>
+<div class="step">Step 5</div><h1>Before you send</h1>
 <div class="card" id="issuesCard">
-<label class="f">Did everything get fixed tonight?</label>
-<div class="chips" id="issRes"><button class="chip" data-v="Yes" type="button">Yes</button><button class="chip" data-v="No" type="button">No</button><button class="chip" data-v="Nothing to fix" type="button">Nothing to fix</button></div>
-<div id="issFixW" class="hidden"><label class="f">How was it fixed?</label><textarea id="issue_resolution"></textarea></div>
+<label class="f">Was every problem fixed before you left?</label>
+<div class="chips" id="issRes"><button class="chip" data-v="Nothing to fix" type="button">There were no problems</button><button class="chip" data-v="Yes" type="button">Yes, all fixed</button><button class="chip" data-v="No" type="button">No, something is still open</button></div>
+<div id="issFixW" class="hidden"><label class="f">How was it fixed?</label><textarea id="issue_resolution" placeholder="Who did what"></textarea></div>
 <div id="issOpenW" class="hidden">
-<label class="f">What is left?</label><textarea id="issue_remaining"></textarea>
-<label class="f">Who is doing it?</label><input type="text" id="issue_owner">
+<label class="f">What is still open?</label><textarea id="issue_remaining"></textarea>
+<label class="f">Who is fixing it?</label><input type="text" id="issue_owner" placeholder="Crew, FSM, or you">
 <label class="f">By when?</label><input type="text" id="issue_due" placeholder="Tomorrow night, Friday, etc">
 </div>
 </div>
 <div class="card">
 <label class="f">Summary</label>
-<div class="sub">Paste from the Night Manager AI Tool, or type it.</div>
+<div class="sub">What the client would want to know about tonight. Paste from the Night Manager AI Tool, or type it.</div>
 <div class="chips" style="margin-bottom:8px"><button class="chip" id="aiBtn" type="button">Write it with the AI tool</button></div>
 <div class="hint" id="aiHint">Copies your notes from this form, then opens the Night Manager AI Tool. Paste what it writes back here.</div>
 <textarea id="summary" class="big"></textarea>
@@ -415,7 +426,7 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <div id="fsmNoteW" class="hidden"><label class="f">What does the FSM need to handle?</label><textarea id="fsm_action_note" placeholder="Say what happened and what they need to do"></textarea></div>
 </div>
 <div class="card" id="depCard">
-<label class="f">Left at</label><input type="time" id="departure">
+<label class="f">Time you left</label><input type="time" id="departure">
 </div>
 <div class="err" id="err5"></div>
 </section>
@@ -425,7 +436,7 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <div class="step">Last step</div><h1>Check it before you send</h1>
 <div class="card timebox" id="timeCard">
 <b>Double-check your time.</b>
-<div class="sub" style="margin-top:4px">Make sure your arrival time is right. Make sure your leave time is right. We track everybody's time inside buildings.</div>
+<div class="sub" style="margin-top:4px">Is the time you arrived right? Is the time you left right? We track everybody's time inside buildings.</div>
 <div class="grid"><div><label class="f">Arrived</label><input type="time" id="arrival2"></div><div><label class="f">Left</label><input type="time" id="departure2"></div></div>
 </div>
 <div class="card" id="review"></div>
@@ -485,8 +496,8 @@ function fresh(){
     hotspots_shown:"", hotspots_checked:[], dispensers_ok:false, trash_ok:false, restrooms_ok:false, standards:{}, std_fix:{}, prior_complaints:"",
     route_stop_id:"", route_from:"", route_inst:"", route_items:[], ask:{}, ask_note:{},
     crew_seen:"", crew_uniform:"", crew_uniform_note:"", crew_names:[], crew_known:[],
-    score:8, score_note:"",
-    closet_checked:"", closet_organized:false, sds_present:false, chemicals_labelled:false, chemicals_on_hand:false, equipment_ok:false, envirox_low:false, closet_notes:"",
+    score:"", score_note:"",
+    closet_checked:"", closet_organized:"", sds_present:"", chemicals_labelled:"", chemicals_on_hand:"", equipment_ok:"", envirox_low:"", closet_notes:"",
     complaint_what:"", complaint_areas:"", complaint_channel:"", complaint_verified:"", complaint_root_cause:"", complaint_agreed_fix:"", complaint_resolved:"", complaint_blocker:"", crm_closed:"",
     issues_resolved:"", issue_resolution:"", issue_remaining:"", issue_owner:"", issue_due:"",
     summary:"", fsm_action_needed:"", fsm_action_note:"", fsm_confirmed:false,
@@ -539,7 +550,7 @@ function applyRules(){
   show("uniW", S.crew_seen==="Yes");
   show("uniNoteW", S.crew_seen==="Yes" && S.crew_uniform && S.crew_uniform!=="Yes");
   show("scoreCard", showsScore());
-  show("lowW", showsScore() && Number(S.score) < LOW);
+  show("lowW", showsScore() && lowScore());
   show("nsListCard", R()==="New building" && !!S.newstart_night);
   show("closetCard", inBuilding());
   show("closetW", inBuilding() && S.closet_checked==="Yes");
@@ -780,33 +791,63 @@ function tickHtml(val, label){
 }
 
 /* ---------- score ---------- */
+function lowScore(){ return S.score!=="" && Number(S.score) < LOW; }
 function paintScore(){
-  var n = Number(S.score)||8;
-  $("score").value = n; $("scoreN").innerHTML = n + '<small>out of 10</small>'; $("scoreN").classList.toggle("low", n < LOW);
+  Array.prototype.forEach.call($("scoreBtns").querySelectorAll("button"), function(b){
+    var on = String(S.score)===b.getAttribute("data-s");
+    b.classList.toggle("on", on); b.classList.toggle("low", on && Number(S.score) < LOW);
+  });
 }
-$("score").addEventListener("input", function(){ S.score = Number(this.value); paintScore(); applyRules(); save(); });
-$("scoreDown").addEventListener("click", function(){ S.score = Math.max(1, Number(S.score)-1); paintScore(); applyRules(); save(); });
-$("scoreUp").addEventListener("click", function(){ S.score = Math.min(10, Number(S.score)+1); paintScore(); applyRules(); save(); });
+Array.prototype.forEach.call($("scoreBtns").querySelectorAll("button"), function(b){
+  b.addEventListener("click", function(){ S.score = Number(b.getAttribute("data-s")); paintScore(); applyRules(); save(); renderPhotoRows(); });
+});
 
 /* ---------- photos ---------- */
 var pendingLabel = "";
+var GEN_MIN = 2;   // general photos an in-building visit needs before it can send
+var GEN = "General condition";
+function photoRules(){
+  if (inBuilding()) return { min:GEN_MIN, label:GEN, text:GEN_MIN + " general photos" };
+  if (R()==="Work order") return { min:1, label:"", text:"1 photo of the job" };
+  if (R()==="Photos from crew") return { min:1, label:"", text:"1 photo the crew sent" };
+  return { min:0, label:"", text:"" };
+}
+function photoCount(label){ return S.photos.filter(function(p){ return (p.file_id || p._data) && (!label || p.label===label); }).length; }
+function photosShort(){ var r = photoRules(); return r.min ? Math.max(0, r.min - photoCount(r.label)) : 0; }
 function photoPrompts(){
-  var p = [];
+  var p = [], hint;
+  if (inBuilding()) p.push({ label:GEN, req:true, hint:"Wide shots. What does each room look like, not close-ups. Include the restrooms." });
+  if (R()==="Work order") p.push({ label:"The job", req:true, hint:"Before and after if you have both." });
+  if (R()==="Photos from crew") p.push({ label:"Photos the crew sent", req:true, hint:"Save them from your texts to your camera roll, then pick them here." });
+  if (inBuilding()) stdFailed().forEach(function(it){ p.push({ label:"Did not meet standard: " + it.q.slice(0, 40), hot:true }); });
+  if (showsScore() && lowScore()) p.push({ label:"What was wrong", hot:true });
   if (showsHotspots()) HS.forEach(function(h){ p.push({ label:"Hot spot: " + h, one:true }); });
   if (inBuilding() && S.closet_checked==="Yes") p.push({ label:"Janitor closet", one:true });
-  if (inBuilding()) stdFailed().forEach(function(it){ p.push({ label:"Did not meet standard: " + it.q.slice(0, 40), hot:true }); });
-  if (showsScore() && Number(S.score) < LOW) p.push({ label:"What was wrong", hot:true });
-  if (complaintOn() && S.complaint_resolved==="Yes") p.push({ label:"The fix", one:true });
-  if (complaintOn() && S.complaint_resolved!=="Yes") p.push({ label:"The problem area" });
+  if (inBuilding()) p.push({ label:"Client contact's desk", hint:"Their desk and what they see from their chair." });
+  if (inBuilding() && S.prior_complaints){ hint = String(S.prior_complaints).replace(/\s+/g," ").trim(); p.push({ label:"Past complaint areas", hint: hint.length > 90 ? hint.slice(0, 90) + "..." : hint }); }
+  if (complaintOn() && S.complaint_resolved==="Yes") p.push({ label:"The fix", one:true, hint:"The complaint area, fixed." });
+  if (complaintOn() && S.complaint_resolved!=="Yes") p.push({ label:"The problem area", hint:"What is still wrong." });
   p.push({ label:"Anything that needs fixing" });
-  p.push({ label:"Anything else" });
   return p;
 }
 function renderPhotoRows(){
-  var rows = photoPrompts();
+  var rows = photoPrompts(), rules = photoRules(), short = photosShort(), total = photoCount("");
+  var need = $("photoNeed");
+  if (!rules.min){ need.textContent = ""; show("photoNeed", false); }
+  else {
+    show("photoNeed", true);
+    need.classList.toggle("ok", !short);
+    need.textContent = short ? "Need " + short + " more. This report needs at least " + rules.text + " before it can send." : (total + " photo" + (total===1?"":"s") + " added. Good to send.");
+  }
   $("photoRows").innerHTML = rows.map(function(r){
     var mine = S.photos.filter(function(p){ return p.label===r.label; });
-    return '<div class="photo'+(r.hot && !mine.length ? '" style="border-color:var(--red)':'"')+'"><div class="lbl">'+esc(r.label)+(r.hot && !mine.length?'<small>Please take this one.</small>':'')+
+    var reqOpen = r.req && (rules.label ? r.label===rules.label : true) && short > 0 && (rules.label ? true : !total);
+    var cls = "photo" + (reqOpen ? " req" : "");
+    var small = "";
+    if (reqOpen) small += '<small class="must">' + (rules.label ? "Need " + rules.min + ". " : "Need at least 1. ") + "This one is required.</small>";
+    else if (r.hot && !mine.length) small += '<small class="must" style="color:var(--red-dark);font-weight:700">Please take this one.</small>';
+    if (r.hint) small += '<small>' + esc(r.hint) + '</small>';
+    return '<div class="'+cls+(r.hot && !mine.length && !reqOpen ? '" style="border-color:var(--red)':'"')+'"><div class="lbl">'+esc(r.label)+small+
       '<div class="thumbs">'+mine.map(function(p){ return '<div class="thumb'+(p.status==="bad"?' bad':'')+'" data-id="'+p.id+'"><img src="'+p.preview+'" alt=""><button type="button" class="x" data-x="'+p.id+'">&times;</button>'+
         (p.status!=="ok"?'<div class="st">'+(p.status==="bad"?'Not saved. Retake.':p.status==="pending"?'Saving...':'')+'</div>':'')+'</div>'; }).join("")+'</div></div>'+
       '<button type="button" class="cam" data-l="'+esc(r.label)+'">'+(mine.length ? 'Add another' : 'Add photo')+'</button></div>';
@@ -821,7 +862,7 @@ function renderPhotoRows(){
 $("fileIn").addEventListener("change", function(){
   var files = Array.prototype.slice.call(this.files || []);
   if (!files.length) return;
-  var label = pendingLabel || "Anything else";
+  var label = pendingLabel || photoPrompts()[0].label;
   files.slice(0, 10).forEach(function(f){ addPhoto(f, label); });
 });
 function addPhoto(file, label){
@@ -882,28 +923,33 @@ function validate(n){
     if (!S.account_name) return e.textContent = "Pick the building, or tap Can't find it.";
   }
   if (n===2){
-    if (!S.reason) return e.textContent = "Pick why you were there tonight.";
+    if (!S.reason) return e.textContent = "Pick why you were there.";
     if (inBuilding() && !S.timing) return e.textContent = "Say when you got there.";
     if (R()==="New building" && !S.newstart_night) return e.textContent = "Which night is it?";
     if (R()==="New building" && S.newstart_night==="Night 1" && !S.initial_clean_paid) return e.textContent = "Did the client pay for an initial clean?";
-    if (R()==="Work order" && !S.wo_what) return e.textContent = "What was the work order?";
+    if (R()==="Work order" && !S.wo_what) return e.textContent = "What was the job?";
     if (R()==="Phone only" && !S.call_who) return e.textContent = "Who did you talk to?";
   }
   if (n===3){
+    var ao = askOpen(); if (ao.length) return e.textContent = "Your FSM asked about this. Answer it: " + ao[0].q;
+    var an = askNoNote(); if (an.length) return e.textContent = "Write one line back to your FSM about: " + an[0].q;
+    if (inBuilding()){ var open = stdItems().filter(function(it){ return !S.standards[it.k]; }); if (open.length) return e.textContent = "Answer every standard. " + open.length + " left: " + open[0].q; }
+    if (inBuilding()){ var nofix = stdFailed().filter(function(it){ return !(S.std_fix[it.k]||"").trim(); }); if (nofix.length) return e.textContent = "Say what you did about: " + nofix[0].q; }
+    if (inBuilding() && !S.closet_checked) return e.textContent = "Did you check the janitor closet?";
     if (inBuilding() && !S.crew_seen) return e.textContent = "Did you see the crew tonight?";
     if (S.crew_seen==="Yes" && !S.crew_known.length && !S.crew_names.some(function(n){ return n.trim(); })) return e.textContent = "Tick or add at least one crew member's name. Ask them.";
     if (S.crew_seen==="Yes" && !S.crew_uniform) return e.textContent = "Were they in the right uniform?";
-    if (showsScore() && Number(S.score) < LOW && !S.score_note.trim()) return e.textContent = "A score under " + LOW + " needs a note on what was wrong.";
-    if (inBuilding()){ var open = stdItems().filter(function(it){ return !S.standards[it.k]; }); if (open.length) return e.textContent = "Answer every standard. " + open.length + " left: " + open[0].q; }
-    if (inBuilding()){ var nofix = stdFailed().filter(function(it){ return !(S.std_fix[it.k]||"").trim(); }); if (nofix.length) return e.textContent = "Say what you did about: " + nofix[0].q; }
-    var ao = askOpen(); if (ao.length) return e.textContent = "Your FSM asked about this. Answer it: " + ao[0].q;
-    var an = askNoNote(); if (an.length) return e.textContent = "Write one line back to your FSM about: " + an[0].q;
-    if (inBuilding() && !S.closet_checked) return e.textContent = "Did you check the janitor closet?";
     if (complaintOn() && !S.complaint_what.trim()) return e.textContent = "What did the client say?";
-    if (complaintOn() && !S.complaint_resolved) return e.textContent = "Is the complaint resolved?";
+    if (complaintOn() && !S.complaint_resolved) return e.textContent = "Is the complaint fixed?";
+    if (showsScore() && S.score==="") return e.textContent = "Score the clean, 1 to 10.";
+    if (showsScore() && lowScore() && !S.score_note.trim()) return e.textContent = "A score under " + LOW + " needs a note on what was wrong.";
+  }
+  if (n===4 || n===6){
+    var ps = photosShort();
+    if (ps) return e.textContent = "Add " + ps + " more photo" + (ps===1?"":"s") + ". This report needs at least " + photoRules().text + " to send. " + (n===6 ? "Tap Edit next to Photos." : "");
   }
   if (n===5){
-    if ((physical() || R()==="Photos from crew") && !S.issues_resolved) return e.textContent = "Did everything get fixed tonight?";
+    if ((physical() || R()==="Photos from crew") && !S.issues_resolved) return e.textContent = "Was every problem fixed before you left?";
     if (R()!=="Phone only" && !S.bsup) return e.textContent = "Does the building need supplies?";
     if (R()!=="Phone only" && !S.vsup) return e.textContent = "Does the crew need anything?";
     if (!S.fsm_action_needed) return e.textContent = "Is there a problem the FSM must handle tomorrow?";
@@ -939,14 +985,14 @@ function renderReview(){
   if (R()==="New building") add("New building", [S.newstart_night, S.initial_clean_paid?"initial clean paid: "+S.initial_clean_paid:"", S.checklist_items.length+" checklist items ticked"].filter(String).join(", "), 2);
   if (R()==="Work order") add("Work order", S.wo_what + (S.wo_done?" - done: "+S.wo_done:""), 2);
   if (R()==="Phone only") add("Phone call", [S.call_who, S.call_about, S.call_next].filter(String).join("\n"), 2);
-  if (showsScore()) add("Score", S.score + " out of 10" + (S.score_note?"\n"+S.score_note:""), 3);
+  if (showsScore()) add("Score", S.score==="" ? "" : S.score + " out of 10" + (S.score_note?"\n"+S.score_note:""), 3);
   if (showsHotspots()) add("Hot spots checked", S.hotspots_checked.length + " of " + HS.length, 3);
   if (inBuilding()){ var items = stdItems(); var fails = stdFailed(); add("Standards", (items.length - fails.length) + " of " + items.length + " met" + (fails.length ? "\nNot met: " + fails.map(function(it){ return it.q + " (" + (S.std_fix[it.k]||"") + ")"; }).join("\n") : ""), 3); }
   var aks = askItems(); if (aks.length || S.route_inst) add("What the FSM asked", (S.route_inst ? S.route_inst + "\n" : "") + aks.map(function(it){ return it.q + ": " + (S.ask[it.k]||"") + (S.ask_note[it.k] ? " - " + S.ask_note[it.k] : ""); }).join("\n"), 3);
   if (inBuilding()) add("Crew", S.crew_seen==="Yes" ? "Saw them. Uniform: " + S.crew_uniform + (S.crew_uniform_note?" ("+S.crew_uniform_note+")":"") + "\nNames: " + S.crew_known.concat(S.crew_names.filter(function(n){return n.trim();})).join(", ") : "Did not see the crew", 3);
-  if (inBuilding()) add("Closet", S.closet_checked==="Yes" ? [S.closet_organized?"organized":"", S.sds_present?"SDS there":"", S.chemicals_labelled?"labelled":"", S.chemicals_on_hand?"chemicals on hand":"", S.equipment_ok?"equipment ok":"", S.envirox_low?"EnvirOx low":""].filter(String).join(", ") + (S.closet_notes?"\n"+S.closet_notes:"") : "Not checked", 3);
+  if (inBuilding()) add("Closet", S.closet_checked==="Yes" ? [["closet_organized","organized"],["sds_present","SDS there"],["chemicals_labelled","labelled"],["chemicals_on_hand","chemicals on hand"],["equipment_ok","equipment ok"],["envirox_low","EnvirOx low"]].map(function(x){ var v=S[x[0]]; return v==="Yes"||v===true ? x[1] : (v==="No" ? "not " + x[1] : ""); }).filter(String).join(", ") + (S.closet_notes?"\n"+S.closet_notes:"") : "Not checked", 3);
   if (complaintOn()) add("Complaint", [S.complaint_what, "Resolved: " + S.complaint_resolved, S.complaint_blocker].filter(String).join("\n"), 3);
-  if (showsPhotos()) add("Photos", S.photos.filter(function(p){ return p.file_id || p._data; }).length + " attached", 4);
+  if (showsPhotos()){ var pr = photoRules(), psh = photosShort(); add("Photos", photoCount("") + " attached" + (pr.label ? " (" + photoCount(pr.label) + " general)" : "") + (psh ? "\nMissing " + psh + ". Needs at least " + pr.text + "." : ""), 4); }
   if (physical() || R()==="Photos from crew") add("Everything fixed", S.issues_resolved + (S.issue_remaining?"\nLeft: "+S.issue_remaining:"") + (S.issue_resolution?"\n"+S.issue_resolution:""), 5);
   if (R()!=="Phone only") add("Building needs", S.bsup==="Yes" ? S.building_supplies.concat(S.bsup_other?[S.bsup_other]:[]).join(", ") || "Yes (nothing listed)" : "Nothing", 5);
   if (R()!=="Phone only") add("Crew needs", S.vsup==="Yes" ? S.vendor_supplies.concat(S.vsup_other?[S.vsup_other]:[]).join(", ") || "Yes (nothing listed)" : "Nothing", 5);
@@ -1040,7 +1086,7 @@ function bindAll(){
   paintChips("compRes", "data-v", S.complaint_resolved); paintChips("compCrm", "data-v", S.crm_closed); paintChips("issRes", "data-v", S.issues_resolved); paintChips("fsmAct", "data-v", S.fsm_action_needed);
   ["wo_what","call_who","call_about","call_next","crew_uniform_note","score_note","closet_notes","complaint_what","complaint_areas","complaint_root_cause","complaint_agreed_fix","complaint_blocker","issue_resolution","issue_remaining","issue_owner","issue_due","summary","fsm_action_note"].forEach(function(k){ $(k).value = S[k] || ""; });
   $("bsupOther").value = S.bsup_other || ""; $("vsupOther").value = S.vsup_other || "";
-  ["closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ var el=$(k); el.checked=!!S[k]; el.closest(".tick").classList.toggle("on", el.checked); });
+  paintYnRows();
   paintStd(); paintRoute(); paintAsk();
   paintChips("bsup", "data-v", S.bsup); paintChips("vsup", "data-v", S.vsup); paintSup(); paintCrewNames(); $("howto").classList.add("hidden");
   paintScore(); paintHotspots(); applyRules(); renderPhotoRows();
@@ -1050,7 +1096,15 @@ function bindAll(){
 ["wo_what","call_who","call_about","call_next","crew_uniform_note","score_note","closet_notes","complaint_what","complaint_areas","complaint_root_cause","complaint_agreed_fix","complaint_blocker","issue_resolution","issue_remaining","issue_owner","issue_due","summary","fsm_action_note"].forEach(function(k){ $(k).addEventListener("input", function(){ S[k] = this.value; save(); }); });
 $("bsupOther").addEventListener("input", function(){ S.bsup_other = this.value; save(); });
 $("vsupOther").addEventListener("input", function(){ S.vsup_other = this.value; save(); });
-["closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ var el=$(k); el.addEventListener("change", function(){ S[k]=el.checked; el.closest(".tick").classList.toggle("on", el.checked); applyRules(); save(); }); });
+function paintYnRows(){
+  Array.prototype.forEach.call(document.querySelectorAll(".yn-row[data-yn]"), function(row){
+    var k = row.getAttribute("data-yn"), v = S[k]===true ? "Yes" : (S[k]===false ? "" : (S[k]||""));
+    Array.prototype.forEach.call(row.querySelectorAll("button"), function(b){ b.classList.toggle("on", b.getAttribute("data-a")===v); });
+  });
+}
+Array.prototype.forEach.call(document.querySelectorAll(".yn-row[data-yn] button"), function(b){
+  b.addEventListener("click", function(){ var k = b.closest(".yn-row").getAttribute("data-yn"), a = b.getAttribute("data-a"); S[k] = (S[k]===a) ? "" : a; paintYnRows(); applyRules(); save(); });
+});
 $("arrival").addEventListener("change", function(){ S.arrival = this.value; save(); });
 $("departure").addEventListener("change", function(){ S.departure = this.value; save(); });
 $("why_early").addEventListener("change", function(){ S.why_early = this.value; save(); });
@@ -1081,19 +1135,19 @@ Array.prototype.forEach.call(document.querySelectorAll("[data-bs]"), function(c)
 Array.prototype.forEach.call(document.querySelectorAll("[data-vs]"), function(c){ c.addEventListener("change", function(){ var v=c.getAttribute("data-vs"); S.vendor_supplies = S.vendor_supplies.filter(function(x){ return x!==v; }); if (c.checked) S.vendor_supplies.push(v); c.closest(".tick").classList.toggle("on", c.checked); save(); }); });
 /* ---------- standards checklist ---------- */
 var STD = [
-  { k:"hotspots", q:"Hot spots on the DBIS checked", dyn:"hs" },
-  { k:"prior", q:"Past complaint areas checked and fixed", dyn:"prior" },
-  { k:"contact", q:"Client contact's desk and what they see from it" },
-  { k:"lobby", q:"Lobby looks good. First impression" },
+  { k:"hotspots", q:"Every hot spot looks good", dyn:"hs" },
+  { k:"prior", q:"Past complaint areas look good", dyn:"prior" },
+  { k:"contact", q:"Client contact's desk and the view from their chair" },
+  { k:"lobby", q:"Lobby. The first thing the client sees" },
   { k:"restrooms", q:"Restrooms clean" },
   { k:"dispensers", q:"Soap, paper towels and toilet paper full" },
   { k:"floors_mop", q:"Hard floors mopped right. No streaks or spots" },
   { k:"carpet", q:"Carpet vacuumed. No debris on any floor" },
   { k:"trash", q:"Trash emptied" },
-  { k:"liners", q:"Liners replaced right" },
+  { k:"liners", q:"Fresh liners in every can" },
   { k:"break", q:"Break room and kitchen wiped down" },
   { k:"glass", q:"Entry glass and doors clean" },
-  { k:"dust", q:"Dusting done. Desks, ledges, high touch spots" },
+  { k:"dust", q:"Dusting done. Desks, ledges, high-touch spots" },
   { k:"secure", q:"Lights off and doors locked where they should be" }
 ];
 function stdItems(){
@@ -1101,7 +1155,7 @@ function stdItems(){
     if (it.dyn==="hs") return HS.length > 0;
     if (it.dyn==="prior") return !!S.prior_complaints;
     return true;
-  }).map(function(it){ var o = Object.assign({}, it); if (it.dyn==="prior") o.q = "Past complaint areas checked and fixed: " + S.prior_complaints; return o; });
+  }).map(function(it){ var o = Object.assign({}, it); if (it.dyn==="prior") o.q = "Past complaint areas look good: " + S.prior_complaints; return o; });
 }
 function paintStd(){
   var items = stdItems();
@@ -1111,7 +1165,7 @@ function paintStd(){
     var a = S.standards[it.k] || "";
     return '<div class="si'+(a==="No"?' bad':'')+'" data-k="'+it.k+'"><div class="q">'+esc(it.q)+'</div>'+
       '<div class="yn"><button type="button" class="y'+(a==="Yes"?' on':'')+'" data-a="Yes">Yes</button><button type="button" class="n'+(a==="No"?' on':'')+'" data-a="No">No</button><button type="button" class="na'+(a==="N/A"?' on':'')+'" data-a="N/A">N/A</button></div>'+
-      (a==="No" ? '<div class="fix">As the night manager, your job is to leave the building compliant. What did you do to get this to standard before you left?</div><textarea data-fix="'+it.k+'" placeholder="What you found and what you did">'+esc(S.std_fix[it.k]||"")+'</textarea><div class="fix">Take a photo of it on the photo screen.</div>' : '')+
+      (a==="No" ? '<div class="fix">Your job is to leave the building right. What did you do about this before you left?</div><textarea data-fix="'+it.k+'" placeholder="What you found and what you did">'+esc(S.std_fix[it.k]||"")+'</textarea><div class="fix">Take a photo of it on the photo screen.</div>' : '')+
       '</div>';
   }).join("");
   Array.prototype.forEach.call($("stdGrid").querySelectorAll(".yn button"), function(b){
@@ -1249,7 +1303,7 @@ function paintCrewNames(){
 $("crewAdd").addEventListener("click", function(){ S.crew_names.push(""); paintCrewNames(); save(); var inps=$("crewNames").querySelectorAll("input"); inps[inps.length-1].focus(); });
 $("aiBtn").addEventListener("click", function(){
   var lines = ["Write my night manager recap for tonight from these notes.", "Building: " + S.account_name, "Cleaning company: " + (S.vendor_name||"unknown"), "Reason: " + S.reason + (S.timing ? " (" + S.timing + ")" : "")];
-  if (showsScore()) lines.push("Score: " + S.score + " out of 10" + (S.score_note ? ". " + S.score_note : ""));
+  if (showsScore() && S.score!=="") lines.push("Score: " + S.score + " out of 10" + (S.score_note ? ". " + S.score_note : ""));
   var ak = askItems(); if (ak.length) lines.push("FSM asked: " + ak.map(function(it){ return it.q + " = " + (S.ask[it.k]||"") + (S.ask_note[it.k] ? " (" + S.ask_note[it.k] + ")" : ""); }).join(" | "));
   if (S.route_inst) lines.push("FSM instructions: " + S.route_inst);
   if (inBuilding()){ var f = stdFailed(); lines.push(f.length ? "Did not meet standard: " + f.map(function(it){ return it.q + ". What I did: " + (S.std_fix[it.k]||""); }).join(" | ") : "All standards checked met."); }

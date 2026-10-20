@@ -392,13 +392,7 @@ window.CW_NAV = {
      "items": [
       {
        "label": "Night Inspection Form",
-       "href": "https://form.jotform.com/233486327771060",
-       "tag": "Jotform"
-      },
-      {
-       "label": "Night Inspection Page",
-       "href": "night-inspection.html",
-       "tag": "New"
+       "href": "night-inspection.html"
       },
       {
        "label": "Inspection Recaps",
@@ -611,7 +605,7 @@ window.CW_NAV = {
   },
   {
    "label": "Night Inspection",
-   "href": "https://form.jotform.com/233486327771060",
+   "href": "night-inspection.html",
    "icon": "clip"
   },
   {
