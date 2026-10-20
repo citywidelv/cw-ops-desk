@@ -402,14 +402,6 @@ window.CW_NAV = {
       {
        "label": "Inspection Recaps",
        "href": "night-inspections.html"
-      },
-      {
-       "label": "Inspections, Las Vegas",
-       "href": "form-view.html?f=ni_lv"
-      },
-      {
-       "label": "Inspections, Northern Nevada",
-       "href": "form-view.html?f=ni_nnv"
       }
      ]
     },
