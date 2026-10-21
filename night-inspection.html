@@ -812,6 +812,12 @@ function photoRules(){
   if (R()==="Photos from crew") return { min:1, label:"", text:"1 photo the crew sent" };
   return { min:0, label:"", text:"" };
 }
+function photoBreakdown(){
+  var by = {}, order = [];
+  S.photos.forEach(function(p){ if (!(p.file_id || p._data)) return; if (!by[p.label]){ by[p.label] = 0; order.push(p.label); } by[p.label]++; });
+  if (!order.length) return "";
+  return "\n" + order.map(function(l){ return by[l] + " " + l; }).join("\n");
+}
 function photoCount(label){ return S.photos.filter(function(p){ return (p.file_id || p._data) && (!label || p.label===label); }).length; }
 function photosShort(){ var r = photoRules(); return r.min ? Math.max(0, r.min - photoCount(r.label)) : 0; }
 function photoPrompts(){
@@ -992,7 +998,7 @@ function renderReview(){
   if (inBuilding()) add("Crew", S.crew_seen==="Yes" ? "Saw them. Uniform: " + S.crew_uniform + (S.crew_uniform_note?" ("+S.crew_uniform_note+")":"") + "\nNames: " + S.crew_known.concat(S.crew_names.filter(function(n){return n.trim();})).join(", ") : "Did not see the crew", 3);
   if (inBuilding()) add("Closet", S.closet_checked==="Yes" ? [["closet_organized","organized","not organized"],["sds_present","SDS there","no SDS"],["chemicals_labelled","bottles labelled","bottles not labelled"],["chemicals_on_hand","chemicals on hand","chemicals missing"],["equipment_ok","equipment ok","equipment not ok"],["envirox_low","EnvirOx low","EnvirOx ok"]].map(function(x){ var v=S[x[0]]; return v==="Yes"||v===true ? x[1] : (v==="No" ? x[2] : ""); }).filter(String).join(", ") + (S.closet_notes?"\n"+S.closet_notes:"") : "Not checked", 3);
   if (complaintOn()) add("Complaint", [S.complaint_what, "Resolved: " + S.complaint_resolved, S.complaint_blocker].filter(String).join("\n"), 3);
-  if (showsPhotos()){ var pr = photoRules(), psh = photosShort(); add("Photos", photoCount("") + " attached" + (pr.label ? " (" + photoCount(pr.label) + " general)" : "") + (psh ? "\nMissing " + psh + ". Needs at least " + pr.text + "." : ""), 4); }
+  if (showsPhotos()){ var pr = photoRules(), psh = photosShort(); add("Photos", photoCount("") + " attached" + photoBreakdown() + (psh ? "\nMissing " + psh + ". Needs at least " + pr.text + "." : ""), 4); }
   if (physical() || R()==="Photos from crew") add("Everything fixed", S.issues_resolved + (S.issue_remaining?"\nLeft: "+S.issue_remaining:"") + (S.issue_resolution?"\n"+S.issue_resolution:""), 5);
   if (R()!=="Phone only") add("Building needs", S.bsup==="Yes" ? S.building_supplies.concat(S.bsup_other?[S.bsup_other]:[]).join(", ") || "Yes (nothing listed)" : "Nothing", 5);
   if (R()!=="Phone only") add("Crew needs", S.vsup==="Yes" ? S.vendor_supplies.concat(S.vsup_other?[S.vsup_other]:[]).join(", ") || "Yes (nothing listed)" : "Nothing", 5);

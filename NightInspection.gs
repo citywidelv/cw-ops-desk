@@ -23,6 +23,12 @@
 //   ni_list     recent rows for night-inspections.html - newest first
 //   ni_get      one recap + picker lists, for night-inspection-edit.html (Oct 21 2026)
 //   ni_edit     save changes to a recap (Oct 21 2026)
+//   ni_reattach file photos a recap's draft left behind in _Incoming (Oct 21 2026).
+//               Until this date ni_submit kept only the first 16 photos, in the
+//               order they were added. General condition is the first button on
+//               the page, so the janitor closet, complaint and standard photos
+//               were the ones that fell off. Nothing was deleted; the extras sat
+//               in _Incoming. This kind moves them in and rebuilds the PDF.
 //
 // Maintenance: niSweepIncoming() trashes _Incoming photos older than 3 days
 // (drafts nobody sent). Give it a daily time trigger after launch.
@@ -45,6 +51,9 @@ var NI_TAB = 'Inspections';
 var NI_REQ_TAB = 'Requests';
 var NI_TZ = 'America/Los_Angeles';
 var NI_LOW_SCORE = 8;   // under this = low_score flag
+var NI_PHOTO_MAX = 60;  // photos filed per recap. Every one is kept in Drive and linked on the row.
+var NI_PDF_MAX = 30;    // photos embedded in the PDF. Category photos first, then General condition.
+                        // Past this the PDF says how many more are in the photo folder.
 var NI_EDITOR = 'tjroberts@gocitywide.com';
 
 // Sheet contract. Append at the END only; never insert a column mid-list.
@@ -179,6 +188,7 @@ function niDispatch(data) {
     if (kind === 'ni_list') return niList_(data);
     if (kind === 'ni_get') return niGet_(data);
     if (kind === 'ni_edit') return niEdit_(data);
+    if (kind === 'ni_reattach') return niReattach_(data);
     return niOut_({ ok: false, error: 'Unknown kind ' + kind });
   } catch (e) {
     return niOut_({ ok: false, error: String(e && e.message || e) });
@@ -351,6 +361,16 @@ function niSweepIncoming() {
 
 // ------------------------------------------------------------ submit ------
 
+// General condition last, everything else first, order otherwise kept. The
+// closet, complaint, hot spot and standard photos are the ones that answer a
+// question, so they are never the ones that fall off the end of a PDF.
+function niGeneral_(label) { return /^general condition/i.test(niStr_(label)); }
+function niPhotoOrder_(list, labelOf) {
+  var cat = [], gen = [];
+  list.forEach(function (p) { (niGeneral_(labelOf(p)) ? gen : cat).push(p); });
+  return cat.concat(gen);
+}
+
 function niFlags_(r) {
   var f = [];
   var score = Number(r.score);
@@ -416,14 +436,17 @@ function niSubmit_(data) {
 
     // Photos: [{file_id, label, small?}] already in _Incoming via ni_photo, or
     // {data, label} inline for a page that could not upload as it went.
-    var photos = Array.isArray(data.photos) ? data.photos.slice(0, 16) : [];
+    // Category photos (closet, complaint, standards, hot spots) are filed and
+    // embedded first; General condition fills in after. Nothing is dropped
+    // short of NI_PHOTO_MAX, and the PDF says when it could not hold them all.
+    var photos = niPhotoOrder_(Array.isArray(data.photos) ? data.photos : [], function (p) { return p.label; }).slice(0, NI_PHOTO_MAX);
     var links = [], embeds = [], photoFolder = null;
     if (photos.length) {
       photoFolder = niMonthFolder_(mkt, reportDate, 'Photos');
-      photos.forEach(function (p, i) {
+      photos.forEach(function (p) {
         try {
           var label = niSafe_(p.label || '') || 'photo';
-          var name = stem + ' - ' + ('0' + (i + 1)).slice(-2) + ' ' + label + '.jpg';
+          var name = stem + ' - ' + ('0' + (links.length + 1)).slice(-2) + ' ' + label + '.jpg';
           var f = null;
           if (p.file_id) {
             f = DriveApp.getFileById(String(p.file_id));
@@ -437,9 +460,11 @@ function niSubmit_(data) {
           if (!f) return;
           niShare_(f);
           links.push(f.getUrl());
-          var small = String(p.small || '');
-          if (!/^data:image/.test(small)) small = 'data:image/jpeg;base64,' + Utilities.base64Encode(f.getBlob().getBytes());
-          embeds.push({ src: small, label: label });
+          if (embeds.length < NI_PDF_MAX) {
+            var small = String(p.small || '');
+            if (!/^data:image/.test(small)) small = niEmbedSrc_(f);
+            embeds.push({ src: small, label: label });
+          }
         } catch (e) {}
       });
     }
@@ -448,7 +473,7 @@ function niSubmit_(data) {
     r.photo_folder_url = photoFolder ? photoFolder.getUrl() : '';
     r.flags = niFlags_(r);
 
-    var pdf = niPdf_(r, embeds, stem, mkt, reportDate);
+    var pdf = niPdf_(r, embeds, stem, mkt, reportDate, links.length - embeds.length);
     r.pdf_url = pdf.url; r.pdf_name = pdf.name;
 
     var row = head.map(function (h) { return r[h] === undefined ? '' : r[h]; });
@@ -578,8 +603,9 @@ function niCrew_(r) {
 
 // ------------------------------------------------------------ PDF ---------
 
-function niPdf_(r, embeds, stem, mkt, reportDate) {
+function niPdf_(r, embeds, stem, mkt, reportDate, more) {
   var e = niEsc_;
+  more = Number(more) || 0;
   function row(label, val) { return val === '' || val == null ? '' : '<tr><th>' + e(label) + '</th><td>' + e(val).replace(/\n/g, '<br>') + '</td></tr>'; }
   function sec(title, rows) { var body = rows.join(''); return body ? '<h2>' + e(title) + '</h2><table>' + body + '</table>' : ''; }
   var flags = r.flags || niFlags_(r);
@@ -627,15 +653,36 @@ function niPdf_(r, embeds, stem, mkt, reportDate) {
       row('Building needs', r.building_supplies), row('Crew needs', r.vendor_supplies), row('Supplies note', r.supplies_note)])
     + (r.summary ? '<h2>Summary</h2><div class="sum">' + e(r.summary) + '</div>' : '');
 
-  if (embeds.length) {
-    html += '<h2>Photos (' + embeds.length + ')</h2><div class="ph">';
-    embeds.forEach(function (p) { if (/^data:image/.test(p.src)) html += '<div class="cap">' + e(p.label) + '</div><img src="' + p.src + '">'; });
-    html += '</div>';
+  var total = embeds.length + more;
+  var folderLine = (more > 0 && r.photo_folder_url) ? '<div class="cap" style="margin:6px 0 8px;color:#D22730"><b>' + more + ' more photo' + (more === 1 ? '' : 's') + '</b> in the photo folder: ' + e(r.photo_folder_url) + '</div>' : '';
+  function body(list) {
+    var h = '';
+    if (list.length || more) {
+      h += '<h2>Photos (' + total + ')</h2><div class="ph">' + folderLine;
+      list.forEach(function (p) { if (/^data:image/.test(p.src)) h += '<div class="cap">' + e(p.label) + '</div><img src="' + p.src + '">'; });
+      h += '</div>';
+    }
+    return h;
   }
-  html += '<div class="foot">City Wide Facility Solutions &middot; ' + e(r.market) + ' &middot; ' + e(r.inspection_id) + ' &middot; Internal record' + (r.edited_at ? ' &middot; Edited ' + e(r.edited_at) + (r.edited_by ? ' by ' + e(r.edited_by) : '') : '') + ' &middot; GoCityWide.com</div></body></html>';
+  var tail = '<div class="foot">City Wide Facility Solutions &middot; ' + e(r.market) + ' &middot; ' + e(r.inspection_id) + ' &middot; Internal record' + (r.edited_at ? ' &middot; Edited ' + e(r.edited_at) + (r.edited_by ? ' by ' + e(r.edited_by) : '') : '') + ' &middot; GoCityWide.com</div></body></html>';
 
   var name = stem + '.pdf';
-  var blob = Utilities.newBlob(html, 'text/html', name.replace(/\.pdf$/, '.html')).getAs('application/pdf').setName(name);
+  // The HTML to PDF converter has an unpublished size ceiling. If it refuses,
+  // embed fewer photos and say so, rather than failing the whole recap.
+  var list = embeds.slice(), blob = null, lastErr = null;
+  for (var attempt = 0; attempt < 4 && !blob; attempt++) {
+    try {
+      blob = Utilities.newBlob(html + body(list) + tail, 'text/html', name.replace(/\.pdf$/, '.html')).getAs('application/pdf').setName(name);
+    } catch (pe) {
+      lastErr = pe;
+      if (!list.length) break;
+      var keep = Math.floor(list.length / 2);
+      more += list.length - keep;
+      folderLine = (more > 0 && r.photo_folder_url) ? '<div class="cap" style="margin:6px 0 8px;color:#D22730"><b>' + more + ' more photo' + (more === 1 ? '' : 's') + '</b> in the photo folder: ' + e(r.photo_folder_url) + '</div>' : '';
+      list = list.slice(0, keep);
+    }
+  }
+  if (!blob) throw lastErr || new Error('PDF conversion failed');
   var file = niMonthFolder_(mkt, reportDate, 'Reports').createFile(blob);
   niShare_(file);
   return { url: file.getUrl(), id: file.getId(), name: name };
@@ -833,7 +880,8 @@ function niEdit_(data) {
     var stem = niStem_(r, reportDate);
     var monthMoved = oldDate.slice(0, 7) !== reportDate.slice(0, 7);
     var photoFolder = (monthMoved && r.photo_links) ? niMonthFolder_(mkt, reportDate, 'Photos') : null;
-    var embeds = [];
+    var embeds = [], kept = 0;
+    var files = [];
     String(r.photo_links || '').split('\n').filter(String).forEach(function (u, i) {
       var m = String(u).match(/\/d\/([^\/?#]+)/) || String(u).match(/[?&]id=([^&#]+)/);
       if (!m) return;
@@ -843,12 +891,16 @@ function niEdit_(data) {
         var label = pm ? pm[3] : 'photo';
         f.setName(stem + ' - ' + (pm ? pm[2] : ('0' + (i + 1)).slice(-2)) + ' ' + label + '.jpg');
         if (photoFolder) f.moveTo(photoFolder);
-        embeds.push({ src: niEmbedSrc_(f), label: label });
+        files.push({ f: f, label: label });
       } catch (pe) {}
+    });
+    niPhotoOrder_(files, function (x) { return x.label; }).forEach(function (x) {
+      kept++;
+      if (embeds.length < NI_PDF_MAX) embeds.push({ src: niEmbedSrc_(x.f), label: x.label });
     });
     if (photoFolder) r.photo_folder_url = photoFolder.getUrl();
 
-    var pdf = niPdf_(r, embeds, stem, mkt, reportDate);
+    var pdf = niPdf_(r, embeds, stem, mkt, reportDate, kept - embeds.length);
     r.pdf_url = pdf.url; r.pdf_name = pdf.name;
 
     // Write only the cells that changed, so untouched dates and times keep their sheet values.
@@ -879,6 +931,124 @@ function niEdit_(data) {
       lt.getRange(lt.getLastRow() + 1, 1, safe.length, NI_EDIT_HEADERS.length).setValues(safe);
     }
     return niOut_({ ok: true, inspection_id: id, changed: log.length, pdf_url: pdf.url, flags: r.flags, crew_unverified: r.crew_unverified });
+  } finally { lock.releaseLock(); }
+}
+
+// ------------------------------------------------------------ reattach ----
+
+// Photos a draft uploaded that never made it onto the recap. Looks in
+// _Incoming for files named "<draft_id> - <label>.jpg", skips any that are a
+// byte-for-byte size match of a photo already on the row under the same label
+// (the page sometimes uploads a photo twice), files the rest next to the
+// others with the next numbers, appends the links, rebuilds the PDF with the
+// category photos first, keeps the old PDF in _Replaced, and logs the change.
+//   data.id        inspection_id (required)
+//   data.draft_id  optional; the row's own draft_id is used when blank
+//   data.editor    name for the Recap Edits log; defaults to 'reattach'
+function niReattach_(data) {
+  var id = niStr_(data.id);
+  if (!id) return niOut_({ ok: false, error: 'No recap was named.' });
+  var ss = niSS_();
+  var sh = niTab_(ss);
+  var head = niHead_(sh);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(25000);
+  try {
+    var at = niFindRow_(sh, head, id);
+    if (!at) return niOut_({ ok: false, error: 'Recap ' + id + ' was not found.' });
+    var raw = sh.getRange(at, 1, 1, head.length).getValues()[0];
+    var r = {};
+    head.forEach(function (h, j) { if (h) r[h] = niStr_(raw[j]); });
+    niTidy_(r);
+    var draft = niStr_(data.draft_id) || r.draft_id;
+    if (!draft) return niOut_({ ok: false, error: 'This recap has no draft id, so its leftover photos cannot be matched.' });
+
+    var mkt = niMarket_(r.market);
+    var reportDate = String(r.report_date || '').slice(0, 10);
+    var stem = niStem_(r, reportDate);
+    var photoFolder = niMonthFolder_(mkt, reportDate, 'Photos');
+
+    // What the row already has: {size, label} per filed photo, in link order.
+    var have = [], links = String(r.photo_links || '').split('\n').filter(String);
+    links.forEach(function (u) {
+      var m = String(u).match(/\/d\/([^\/?#]+)/) || String(u).match(/[?&]id=([^&#]+)/);
+      if (!m) return;
+      try {
+        var f = DriveApp.getFileById(m[1]);
+        var pm = f.getName().match(/ - (\d{2}) (.*?)\.jpe?g$/i);
+        have.push({ f: f, size: f.getSize(), label: pm ? pm[2] : 'photo' });
+      } catch (e) {}
+    });
+
+    // Leftovers in _Incoming for this draft.
+    var found = [], it = niIncoming_().getFiles();
+    while (it.hasNext()) {
+      var f = it.next();
+      var nm = f.getName();
+      if (nm.indexOf(draft + ' - ') !== 0) continue;
+      var lm = nm.match(/^.* - (.*?)\.jpe?g$/i);
+      found.push({ f: f, size: f.getSize(), label: niSafe_(lm ? lm[1] : 'photo') || 'photo', created: f.getDateCreated().getTime() });
+    }
+    found.sort(function (a, b) { return a.created - b.created; });
+
+    var added = [], skipped = 0, seen = have.map(function (h) { return h.label + '|' + h.size; });
+    found.forEach(function (x) {
+      var key = x.label + '|' + x.size;
+      if (seen.indexOf(key) >= 0) { skipped++; try { x.f.setTrashed(true); } catch (e) {} return; }
+      seen.push(key);
+      added.push(x);
+    });
+    if (!added.length) return niOut_({ ok: true, inspection_id: id, added: 0, skipped: skipped, note: 'No new photos were waiting for this recap.' });
+
+    var n = have.length;
+    added.forEach(function (x) {
+      if (have.length >= NI_PHOTO_MAX) return;
+      n++;
+      try {
+        x.f.setName(stem + ' - ' + ('0' + n).slice(-2) + ' ' + x.label + '.jpg');
+        x.f.moveTo(photoFolder);
+        niShare_(x.f);
+        links.push(x.f.getUrl());
+        have.push({ f: x.f, size: x.size, label: x.label });
+      } catch (e) {}
+    });
+
+    var embeds = [];
+    niPhotoOrder_(have, function (x) { return x.label; }).forEach(function (x) {
+      if (embeds.length < NI_PDF_MAX) embeds.push({ src: niEmbedSrc_(x.f), label: x.label });
+    });
+    var oldLinks = r.photo_links, oldCount = r.photo_count, oldPdfUrl = r.pdf_url;
+    r.photo_links = links.join('\n');
+    r.photo_count = String(links.length);
+    r.photo_folder_url = photoFolder.getUrl();
+    var now = new Date();
+    r.edited_at = Utilities.formatDate(now, NI_TZ, 'yyyy-MM-dd HH:mm');
+    r.edited_by = niStr_(data.editor) || 'reattach';
+
+    var pdf = niPdf_(r, embeds, stem, mkt, reportDate, have.length - embeds.length);
+    r.pdf_url = pdf.url; r.pdf_name = pdf.name;
+
+    var out = raw.slice();
+    head.forEach(function (h, j) { if (h && r[h] !== undefined && String(r[h]) !== niStr_(raw[j])) out[j] = String(r[h]); });
+    sh.getRange(at, 1, 1, out.length).setValues([out]);
+
+    var oldPdf = String(oldPdfUrl || '').match(/\/d\/([^\/?#]+)/);
+    if (oldPdf && oldPdf[1] !== pdf.id) {
+      try {
+        var of = DriveApp.getFileById(oldPdf[1]);
+        of.setName(of.getName().replace(/\.pdf$/i, '') + ' (replaced ' + Utilities.formatDate(now, NI_TZ, 'yyyy-MM-dd') + ').pdf');
+        of.moveTo(niSub_(niMonthFolder_(mkt, reportDate, 'Reports'), '_Replaced'));
+      } catch (oe) {}
+    }
+    try {
+      var lt = niTab_(ss, NI_EDIT_TAB, NI_EDIT_HEADERS);
+      lt.getRange(lt.getLastRow() + 1, 1, 2, NI_EDIT_HEADERS.length).setValues([
+        [r.edited_at, id, r.edited_by, 'photo_count', oldCount, r.photo_count],
+        [r.edited_at, id, r.edited_by, 'photo_links', oldLinks, r.photo_links]
+      ]);
+    } catch (le) {}
+    return niOut_({ ok: true, inspection_id: id, added: added.length, skipped: skipped, photo_count: links.length, pdf_url: pdf.url,
+      labels: added.map(function (x) { return x.label; }) });
   } finally { lock.releaseLock(); }
 }
 
