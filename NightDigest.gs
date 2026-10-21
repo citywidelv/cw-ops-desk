@@ -20,6 +20,7 @@
 // gets it; no deploy needed. Seeded Oct 8 2026 per TJ:
 //   Las Vegas        To CWLV_FSMs@   cc TJ, Robert Krause
 //   Northern Nevada  To Jeremy Walker  cc TJ
+//   Crew checks      To Angel Nieves   cc TJ   (Oct 21 2026: crew names with no background check)
 //
 // Window: each market keeps a cutoff in script property NID_LAST_<lv|nnv>
 // (epoch ms). A run covers submitted_at >= last cutoff and < this run's
@@ -386,11 +387,12 @@ function niDigestRun() {
     var now = new Date();
     var cutoff = Math.floor(now.getTime() / 60000) * 60000;
     var first = Utilities.parseDate(NID_FIRST_CUTOFF, NI_TZ, 'yyyy-MM-dd HH:mm').getTime();
-    var out = [];
+    var out = [], crewRows = [];
     nidRecipients_().forEach(function (rc) {
       var pk = 'NID_LAST_' + rc.key;
       var since = Number(props.getProperty(pk)) || first;
       var rows = nidRows_(rc.market, since, cutoff);
+      crewRows = crewRows.concat(rows);
       var sent = nidJfSent_(rc.key), jf = [];
       try {
         jf = nidJfRows_(rc.market, rc.key, function (x) { return !sent[x.id]; });
@@ -405,6 +407,7 @@ function niDigestRun() {
       nidJfSave_(rc.key, sent);
       out.push(rc.market + ': sent ' + rows.length + ' (' + jf.length + ' Jotform) to ' + rc.to + (rc.cc ? ' cc ' + rc.cc : ''));
     });
+    try { out.push(nidCrewSend_(crewRows, false)); } catch (ce) { out.push('crew checks failed: ' + ce.message); }
     Logger.log(out.join('\n'));
     return out.join('\n');
   } finally { lock.releaseLock(); }
@@ -426,6 +429,7 @@ function niDigestPreview() {
     cwSend_({ to: NID_TEST_TO, subject: m.subject, body: m.body, htmlBody: m.htmlBody, name: NID_SENDER[p[1]], replyTo: NID_TEST_TO });
     out.push(p[0] + ': test with ' + rows.length + ' sent to ' + NID_TEST_TO);
   });
+  try { out.push(nidCrewSend_(nidRows_('Las Vegas', since, now).concat(nidRows_('Northern Nevada', since, now)), true)); } catch (ce) { out.push('crew checks test failed: ' + ce.message); }
   Logger.log(out.join('\n'));
   return out.join('\n');
 }
@@ -460,6 +464,89 @@ function niDigestStatus() {
   ['lv', 'nnv'].forEach(function (k) { var v = Number(props.getProperty('NID_LAST_' + k)); out.push(k + ' cutoff ' + (v ? nidFmt_(v, 'yyyy-MM-dd HH:mm') : 'not set')); });
   out.push('triggers ' + ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === NID_FN; }).length);
   nidRecipients_().forEach(function (r) { out.push(r.market + ' to ' + r.to + ' cc ' + r.cc); });
+  var crc = nidCrewRecipient_(); out.push('crew checks ' + (crc ? 'to ' + crc.to + ' cc ' + crc.cc : 'off'));
   Logger.log(out.join('\n'));
   return out.join('\n');
+}
+
+// ------------------------------------------------------------ crew checks --
+// Oct 21 2026, per TJ. When the roll-up goes out, one more email goes to the ops
+// admin (Angel) listing every crew member a night manager met whose name is not
+// on that vendor's background checks (the crew_unverified column), grouped by
+// vendor. The ask: check the Background Checks log; if the person is not there,
+// reach out to the vendor to submit a check or ask us to run one. Both markets in
+// one email. Recipient is the "Crew checks" row on the Digest tab (added on
+// first run), so it can be changed without a deploy.
+var NID_CREW_MARKET = 'Crew checks';
+var NID_CREW_SEED = ['Crew checks', 'Angel.Nieves@gocitywide.com', 'tjroberts@gocitywide.com', 'TRUE', 'Oct 21 2026 per TJ: crew names with no background check on file'];
+var NID_CREW_BC = 'https://citywidelv.github.io/cw-admin-hub/background-checks.html';
+var NID_CREW_SENDER = 'City Wide Nevada Night Ops';
+
+function nidCrewRecipient_() {
+  var sh = nidConfigTab_();
+  var last = sh.getLastRow();
+  var vals = last >= 2 ? sh.getRange(2, 1, last - 1, NID_HEAD.length).getValues() : [];
+  for (var i = 0; i < vals.length; i++) {
+    if (nidStr_(vals[i][0]) !== NID_CREW_MARKET) continue;
+    var act = String(vals[i][3]).toUpperCase();
+    if (!nidStr_(vals[i][1]) || act === 'FALSE' || act === 'NO') return null;
+    return { to: nidStr_(vals[i][1]), cc: nidStr_(vals[i][2]) };
+  }
+  sh.getRange(last + 1, 1, 1, NID_HEAD.length).setValues([NID_CREW_SEED]);
+  return { to: NID_CREW_SEED[1], cc: NID_CREW_SEED[2] };
+}
+
+// rows: hub recaps from both markets. Returns [{vendor, owner, market, names:[], visits:[{account, when, nm, pdf, names}]}]
+function nidCrewGroups_(rows) {
+  var by = {}, order = [];
+  rows.forEach(function (r) {
+    if (r._src === 'jotform') return;
+    var names = nidStr_(r.crew_unverified).split('\n').map(function (n) { return n.trim(); }).filter(Boolean);
+    if (!names.length) return;
+    var vendor = nidStr_(r.vendor_name) || 'Company not given';
+    var k = vendor.toLowerCase() + '|' + nidStr_(r.market);
+    if (!by[k]) { by[k] = { vendor: vendor, owner: nidStr_(r.vendor_owner), market: nidStr_(r.market), names: [], visits: [] }; order.push(k); }
+    var g = by[k];
+    names.forEach(function (n) { if (!g.names.some(function (x) { return x.toLowerCase() === n.toLowerCase(); })) g.names.push(n); });
+    g.visits.push({ account: nidStr_(r.account_name), when: nidWhen_(r, true), nm: nidStr_(r.nm_name), pdf: nidStr_(r.pdf_url), names: names });
+  });
+  return order.map(function (k) { return by[k]; });
+}
+
+function nidCrewBuild_(groups, test) {
+  var F = CW_HTML_F;
+  var total = groups.reduce(function (s, g) { return s + g.names.length; }, 0);
+  var html = '<p style="margin:0 0 14px;' + F + 'font-size:14px;line-height:1.55;color:#2d2a26;">' +
+    'Night managers met ' + nidE_(nidPlural_(total, 'crew member')) + ' last night with no background check on file for their company.</p>' +
+    '<p style="margin:0 0 16px;' + F + 'font-size:14px;line-height:1.55;color:#2d2a26;">For each name:<br>' +
+    '1. Check the Background Checks log. If the check is there, attach it to the vendor.<br>' +
+    '2. If it is not, reach out to the vendor. Ask them to submit a background check, or to request that we run one.</p>';
+  groups.forEach(function (g) {
+    html += '<div style="margin:0 0 12px;border:1px solid #E5E5E5;border-left:4px solid #D22730;padding:12px 14px;">' +
+      '<div style="' + F + 'font-size:15px;font-weight:bold;color:#2d2a26;">' + nidE_(g.vendor) + (g.owner ? ' <span style="font-weight:normal;color:#636466;">- ' + nidE_(g.owner) + '</span>' : '') + '</div>' +
+      '<div style="' + F + 'font-size:11px;color:#636466;margin:2px 0 8px;">' + nidE_(g.market) + '</div>' +
+      '<div style="' + F + 'font-size:14px;color:#2d2a26;line-height:1.6;"><b>Names:</b> ' + nidE_(g.names.join(', ')) + '</div>' +
+      g.visits.map(function (v) {
+        return '<div style="' + F + 'font-size:12px;color:#636466;line-height:1.5;margin-top:4px;">' + nidE_(v.account) + ' &middot; ' + nidE_(v.when) + (v.nm ? ' &middot; ' + nidE_(v.nm) : '') +
+          (v.pdf ? ' &middot; <a href="' + nidE_(v.pdf) + '" style="color:#D22730;">Recap PDF</a>' : '') + '</div>';
+      }).join('') + '</div>';
+  });
+  html += cwButton_('Open the Background Checks log', NID_CREW_BC);
+  var subject = (test ? '[TEST] ' : '') + 'Background checks needed: ' + nidPlural_(total, 'crew name') + ' from last night';
+  var body = subject + '\n\n' + groups.map(function (g) {
+    return g.vendor + (g.owner ? ' - ' + g.owner : '') + ' (' + g.market + '): ' + g.names.join(', ') + '\n' +
+      g.visits.map(function (v) { return '  ' + v.account + ', ' + v.when + (v.nm ? ', ' + v.nm : '') + (v.pdf ? ', ' + v.pdf : ''); }).join('\n');
+  }).join('\n\n') + '\n\nCheck the Background Checks log first. If the check is there, attach it to the vendor. If not, reach out to the vendor and ask them to submit a background check or request that we run one.\n' + NID_CREW_BC;
+  return { subject: subject, body: body, htmlBody: cwShell_('Background checks needed', 'from last night\'s recaps', html, test ? 'TEST send. The real email goes to the Crew checks row on the Digest tab.' : undefined) };
+}
+
+// Called from niDigestRun with every hub recap the roll-up just covered.
+function nidCrewSend_(rows, test) {
+  var groups = nidCrewGroups_(rows);
+  if (!groups.length) return 'crew checks: none needed';
+  var rc = test ? { to: NID_TEST_TO, cc: '' } : nidCrewRecipient_();
+  if (!rc) return 'crew checks: recipient row is off';
+  var m = nidCrewBuild_(groups, !!test);
+  cwSend_({ to: rc.to, cc: rc.cc, subject: m.subject, body: m.body, htmlBody: m.htmlBody, name: NID_CREW_SENDER, replyTo: test ? NID_TEST_TO : 'tjroberts@gocitywide.com' });
+  return 'crew checks: ' + groups.length + ' vendor(s) to ' + rc.to + (rc.cc ? ' cc ' + rc.cc : '');
 }
