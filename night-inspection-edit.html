@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Edit Night Recap | City Wide Facility Solutions</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;--border:#E5E5E5;--ok:#1d8f4e;--chg:#fff7e0;--chgb:#e0a800;
+--shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;color:var(--black);background:var(--light);font-size:14px;line-height:1.5;padding-bottom:120px}
+.head{background:#fff;box-shadow:0 1px 8px rgba(45,42,38,.10);position:sticky;top:0;z-index:5}
+.head .bar{max-width:900px;margin:0 auto;padding:0 16px;height:56px;display:flex;align-items:center;gap:12px}
+.head img{height:30px;width:auto;flex:none}
+.head .t{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);border-left:2px solid var(--border);padding-left:12px;white-space:nowrap}
+.head a.back{margin-left:auto;font-size:11px;font-weight:700;color:var(--grey);text-decoration:none;border:1px solid var(--border);border-radius:14px;padding:7px 12px;background:var(--light);white-space:nowrap}
+.wrap{max-width:900px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin-bottom:2px}
+.sub{color:var(--grey);font-size:13px;margin-bottom:12px}
+.top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.top a{font-size:12px;font-weight:700;color:#fff;background:var(--black);text-decoration:none;border-radius:9px;padding:8px 12px}
+.top a.pdf{background:var(--red)}
+.top .ed{font-size:12px;color:var(--grey)}
+details.sec{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+details.sec>summary{list-style:none;cursor:pointer;padding:12px 16px;font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary::before{content:"+";display:inline-block;width:18px;color:var(--grey);font-weight:700}
+details.sec[open]>summary::before{content:"\2212"}
+details.sec>summary small{font-weight:400;color:var(--grey);font-size:12px}
+details.sec>summary .n{margin-left:auto;font-size:11px;font-weight:700;background:var(--chgb);color:#fff;border-radius:9px;padding:1px 8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;padding:4px 16px 16px}
+.f{min-width:0}
+.f.w{grid-column:1/-1}
+.f label,.f .lb{display:block;font-size:12px;font-weight:700;color:var(--grey);margin-bottom:4px}
+.f input[type=text],.f input[type=date],.f input[type=time],.f input[type=search],.f input[type=password],.f select,.f textarea{width:100%;font-family:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:10px;padding:9px 11px;background:#fff;color:var(--black);min-height:44px}
+.f textarea{min-height:72px;resize:vertical;line-height:1.45}
+.f textarea.big{min-height:220px}
+.f.chg input,.f.chg select,.f.chg textarea,.f.chg .cur{border-color:var(--chgb);background:var(--chg)}
+.f .was{font-size:11px;color:var(--grey);margin-top:3px;overflow-wrap:anywhere}
+.f .was b{color:var(--black);font-weight:400;text-decoration:line-through}
+.cur{border:1.5px solid var(--border);border-radius:10px;padding:9px 11px;background:var(--light);display:flex;align-items:center;gap:8px;min-height:44px}
+.cur span{flex:1;min-width:0;overflow-wrap:anywhere}
+.cur small{display:block;color:var(--grey);font-size:11px}
+.pick{position:relative;margin-top:6px}
+.plist{position:absolute;left:0;right:0;top:100%;z-index:4;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:var(--shadow);max-height:300px;overflow:auto;margin-top:2px}
+.plist button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--border);background:#fff;padding:10px 12px;font-family:inherit;font-size:14px;cursor:pointer;color:var(--black)}
+.plist button:hover,.plist button:focus{background:#fdf3f3}
+.plist button small{display:block;color:var(--grey);font-size:11px}
+.plist .none{padding:10px 12px;color:var(--grey);font-size:13px}
+.hint{font-size:12px;color:var(--grey);margin-top:4px}
+.hint button,.lnkbtn{border:0;background:none;color:var(--red-dark);font-weight:700;font-family:inherit;font-size:12px;cursor:pointer;text-decoration:underline;padding:0}
+.ck{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;cursor:pointer;min-height:44px}
+.ck input{width:22px;height:22px;accent-color:var(--red)}
+.std{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+.si{border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;background:#fff}
+.si.no{border-color:var(--red);background:#fdf3f3}
+.si.chg{border-color:var(--chgb);background:var(--chg)}
+.si .q{font-size:13px;margin-bottom:6px}
+.si .ans{display:flex;gap:6px}
+.si .ans button{flex:1;border:1.5px solid var(--border);border-radius:9px;padding:7px 4px;font-family:inherit;font-size:13px;font-weight:700;background:#fff;cursor:pointer;color:var(--black);min-height:40px}
+.si .ans button.on{background:var(--black);border-color:var(--black);color:#fff}
+.si .ans button.on.n{background:var(--red);border-color:var(--red)}
+.si textarea{margin-top:8px;width:100%;font-family:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:9px;padding:8px 10px;min-height:60px}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;padding:4px 16px 16px}
+.thumbs a{display:block;width:110px;height:110px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#eee}
+.thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+.savebar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--border);box-shadow:0 -4px 16px rgba(45,42,38,.10);z-index:6}
+.savebar .in{max-width:900px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.savebar .cnt{font-size:13px;font-weight:700;margin-right:auto}
+.savebar input{font-family:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:10px;padding:8px 10px;min-height:44px;width:180px}
+.btn{border:0;border-radius:10px;padding:11px 18px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;min-height:44px}
+.btn.go{background:var(--red);color:#fff}
+.btn.go:disabled{background:#ccc;cursor:default}
+.btn.ghost{background:var(--light);color:var(--black);border:1.5px solid var(--border)}
+.msg{width:100%;font-size:13px}
+.msg.err{color:var(--red-dark);font-weight:700}
+.msg.ok{color:var(--ok);font-weight:700}
+.msg a{color:inherit}
+.empty{text-align:center;color:var(--grey);padding:40px 10px}
+.gatebox{max-width:380px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+.hidden{display:none!important}
+@media (max-width:640px){.head .t{display:none}.grid,.std{grid-template-columns:1fr}.savebar input{flex:1;min-width:0;width:auto}.savebar .cnt{width:100%}}
+</style>
+<link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
+</head>
+<body>
+<header class="head"><div class="bar">
+<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
+<span class="t">Edit Night Recap</span>
+<a class="back" href="night-inspections.html">&larr; Recaps</a>
+</div></header>
+
+<div class="wrap">
+<div id="gate" class="gatebox hidden"><b>Open this from the Ops Hub</b><p class="sub">This page uses the Ops Hub session on this device.</p><a href="index.html">&larr; Ops Hub</a></div>
+<div id="app" class="hidden">
+<h1 id="title">Edit night recap</h1>
+<div class="sub" id="subt">Loading...</div>
+<div class="top" id="top"></div>
+<div id="form"><div class="empty">Loading the recap...</div></div>
+</div>
+</div>
+
+<div class="savebar hidden" id="savebar"><div class="in">
+<span class="cnt" id="cnt">No changes yet</span>
+<input type="text" id="editor" placeholder="Your name" autocomplete="name" aria-label="Your name">
+<input type="password" id="apass" class="hidden" placeholder="Admin passcode" autocomplete="current-password" aria-label="Admin passcode">
+<button class="btn ghost" id="undoAll" type="button">Undo all</button>
+<button class="btn go" id="save" type="button" disabled>Save changes</button>
+<div class="msg" id="msg"></div>
+</div></div>
+
+<script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
+<script>
+// Oct 21 2026. Opened from the Edit button beside the PDF on night-inspections.html.
+// Every field of one hub recap on one page. Saving sends only what changed (with the
+// old value, so a second editor is never overwritten) to ni_edit, which rewrites the
+// row, rebuilds the PDF with the photos, keeps the old PDF in Reports/_Replaced and
+// logs each change on the Recap Edits tab. Saving needs the Site Admin passcode,
+// remembered on this device under the same key site-admin.html uses.
+(function(){
+"use strict";
+var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
+var SAKEY = "cwSiteAdminPass", WHOKEY = "cwNiEditor";
+var PASS = "", ID = "", CTX = null, ORIG = {}, V = {}, STD = [], SAVING = false;
+var YN = ["Yes","No"];
+var STDMAP = { "Soap, paper towels and toilet paper full":"dispensers_ok", "Trash emptied":"trash_ok", "Restrooms clean":"restrooms_ok" };
+var CLOSET = [["closet_organized","Organized"],["sds_present","SDS book there"],["chemicals_labelled","Chemicals labelled"],["chemicals_on_hand","Enough chemicals"],["equipment_ok","Equipment working"],["envirox_low","EnvirOx running low"]];
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d=document.createElement("div"); d.textContent=String(s==null?"":s); return d.innerHTML; }
+function ls(fn){ try { return fn(); } catch(e){ return null; } }
+function post(body){ body.passcode = PASS; return fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) }).then(function(r){ return r.json(); }); }
+function driveId(u){ var m = String(u||"").match(/\/d\/([^\/?#]+)/); return m ? m[1] : ""; }
+function isTrue(v){ return /^(true|yes)$/i.test(String(v||"")); }
+
+// Sheets hands back dates as "2026-10-20 00:00" and times as "1899-12-30 18:40".
+function norm(k, v){
+  v = String(v == null ? "" : v).replace(/\r/g, "").trim();
+  if (k === "report_date") return v.slice(0, 10);
+  if (k === "arrival" || k === "departure"){
+    var m = v.match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
+    if (!m) return v;
+    var h = +m[1]; if (m[3]){ var pm = /pm/i.test(m[3]); if (h === 12) h = pm ? 12 : 0; else if (pm) h += 12; }
+    return ("0" + h).slice(-2) + ":" + m[2];
+  }
+  if (k === "account_matched" || k === "vendor_matched" || k === "complaint_flag") return isTrue(v) ? "TRUE" : "FALSE";
+  return v;
+}
+function clock12(s){ var m = String(s||"").match(/^(\d{2}):(\d{2})$/); if (!m) return s; var h = +m[1], ap = h >= 12 ? "PM" : "AM"; return (h % 12 || 12) + ":" + m[2] + " " + ap; }
+function nice(k, v){
+  if (v === "") return "blank";
+  if (k === "arrival" || k === "departure") return clock12(v);
+  if (k === "account_matched" || k === "vendor_matched") return v === "TRUE" ? "in directory" : "typed by hand";
+  if (k === "complaint_flag") return v === "TRUE" ? "Yes" : "No";
+  return v;
+}
+
+/* ---------- field specs ---------- */
+function F(k, l, type, o, w){ return { k:k, l:l, type:type, o:o, w:w }; }
+function sections(){
+  return [
+    { t:"Visit", keys:["report_date","nm_name","reason","account_name","vendor_name","fsm","timing","why_early","arrival","departure"], f:[
+      F("report_date","Night of","date"), F("nm_name","Night manager","nm"),
+      F("reason","Reason","sel",CTX.reasons), F("fsm","FSM","fsm"),
+      F("account","Building","account",null,true), F("vendor","Cleaning company","vendor",null,true),
+      F("timing","When they got there","sel",["Before the crew","During the clean","After the crew"]), F("why_early","Why before the crew","text"),
+      F("arrival","Arrived","time"), F("departure","Left","time") ] },
+    { t:"What they found", keys:["score","score_note","crew_seen","crew_names","crew_uniform","crew_uniform_note","hotspots_checked"], f:[
+      F("score","Score, 1 to 10","sel",["1","2","3","4","5","6","7","8","9","10"]), F("crew_seen","Saw the crew","sel",YN),
+      F("score_note","What was wrong","area",null,true),
+      F("crew_names","Crew on site, one name per line","area"), F("crew_uniform","Right uniform","sel",["Yes","Some of them","No"]),
+      F("crew_uniform_note","What was off with the uniform","text",null,true),
+      F("hotspots_checked","Hot spots checked","area",null,true) ] },
+    { t:"Standards", std:true, keys:["standards","standards_failed","standards_met"] },
+    { t:"What the FSM asked for", keys:["route_answers"], f:[ F("route_answers","One line per ask: question | answer | note","area",null,true) ] },
+    { t:"Closet", keys:["closet_checked","closet_notes"].concat(CLOSET.map(function(c){ return c[0]; })), f:[ F("closet_checked","Closet checked","sel",YN) ]
+        .concat(CLOSET.map(function(c){ return F(c[0], c[1], "sel", YN); })).concat([F("closet_notes","Closet notes","area",null,true)]) },
+    { t:"Client complaint", keys:["complaint_flag","complaint_what","complaint_areas","complaint_channel","complaint_verified","complaint_root_cause","complaint_agreed_fix","complaint_resolved","complaint_blocker","crm_closed"], f:[
+      F("complaint_flag","A client complaint is part of this recap","check",null,true),
+      F("complaint_what","What the client said","area",null,true), F("complaint_areas","Which areas","text"),
+      F("complaint_channel","How it reached us","sel",["Email","Phone","In person","FSM"]),
+      F("complaint_verified","Checked those areas in person","sel",YN), F("complaint_resolved","Resolved","sel",YN),
+      F("complaint_root_cause","Root cause","area"), F("complaint_agreed_fix","Agreed fix","area"),
+      F("complaint_blocker","What stopped them","text"), F("crm_closed","Closed in CRM","sel",YN) ] },
+    { t:"New building", keys:["newstart_night","initial_clean_paid","checklist_items"], f:[
+      F("newstart_night","Night","sel",["Night 1","Night 2","Night 3","Night 4","Night 5"]), F("initial_clean_paid","Client paid for initial clean","sel",YN),
+      F("checklist_items","Checklist done, one per line","area",null,true) ] },
+    { t:"Work order", keys:["wo_what","wo_done"], f:[ F("wo_what","What it was","area"), F("wo_done","Done","sel",["Yes","Partly","No"]) ] },
+    { t:"Phone call", keys:["call_who","call_about","call_next"], f:[ F("call_who","Who","text"), F("call_about","About","area"), F("call_next","What happens next","area",null,true) ] },
+    { t:"Before they left", keys:["issues_resolved","issue_resolution","issue_remaining","issue_owner","issue_due","fsm_action_needed","fsm_action_note","building_supplies","vendor_supplies"], f:[
+      F("issues_resolved","Everything fixed","sel",["Nothing to fix","Yes","No"]), F("fsm_action_needed","FSM needs to act tomorrow","sel",YN),
+      F("issue_resolution","How it was fixed","area"), F("fsm_action_note","What the FSM needs to do","area"),
+      F("issue_remaining","What is left","text"), F("issue_owner","Who is doing it","text"), F("issue_due","By when","text"),
+      F("building_supplies","Building needs, one per line","area"), F("vendor_supplies","Crew needs, one per line","area") ] },
+    { t:"Summary", keys:["summary"], f:[ F("summary","Summary","area",null,true) ] }
+  ];
+}
+var OPTLABEL = { "Nothing to fix":"There were no problems", "FSM":"From the FSM" };
+
+/* ---------- render ---------- */
+function opts(list, cur){
+  var l = list.slice(); if (cur && l.indexOf(cur) < 0) l.unshift(cur);
+  return '<option value="">Not answered</option>' + l.map(function(o){ return '<option value="' + esc(o) + '"' + (o === cur ? ' selected' : '') + '>' + esc(OPTLABEL[o] || o) + '</option>'; }).join("");
+}
+function field(s){
+  var k = s.k, v = V[k], id = "f_" + k, h = '<div class="f' + (s.w ? ' w' : '') + '" data-f="' + k + '">';
+  if (s.type === "account" || s.type === "vendor"){
+    h += '<div class="lb">' + esc(s.l) + '</div><div class="cur" id="cur_' + k + '"></div>'
+      + '<div class="pick"><input type="search" id="q_' + k + '" placeholder="' + (k === "account" ? "Search buildings to change it" : "Search companies or owners to change it") + '" autocomplete="off"><div class="plist hidden" id="pl_' + k + '"></div></div>'
+      + '<div class="hint" id="hint_' + k + '"></div><div class="was" id="was_' + k + '"></div></div>';
+    return h;
+  }
+  if (s.type === "check") return h + '<label class="ck"><input type="checkbox" id="' + id + '"' + (V[k] === "TRUE" ? " checked" : "") + '> ' + esc(s.l) + '</label><div class="was" id="was_' + k + '"></div></div>';
+  h += '<label for="' + id + '">' + esc(s.l) + '</label>';
+  if (s.type === "sel") h += '<select id="' + id + '">' + opts(s.o, v) + '</select>';
+  else if (s.type === "nm") h += '<select id="' + id + '">' + opts((CTX.night_managers||[]).map(function(p){ return p.name; }), v) + '</select>';
+  else if (s.type === "fsm") h += '<select id="' + id + '">' + opts((CTX.fsms||[]).map(function(p){ return p.name; }), v) + '</select>';
+  else if (s.type === "area") h += '<textarea id="' + id + '"' + (k === "summary" ? ' class="big"' : '') + '>' + esc(v) + '</textarea>';
+  else h += '<input type="' + (s.type === "date" ? "date" : s.type === "time" ? "time" : "text") + '" id="' + id + '" value="' + esc(v) + '">';
+  return h + '<div class="was" id="was_' + k + '"></div></div>';
+}
+function hasAny(keys){ return keys.some(function(k){ return ORIG[k] !== "" && ORIG[k] !== "FALSE"; }); }
+function render(){
+  var r = CTX.row;
+  $("title").textContent = r.account_name || "Edit night recap";
+  $("subt").textContent = [r.report_date ? String(r.report_date).slice(0,10) : "", r.nm_name, r.market, r.inspection_id].filter(String).join(" · ");
+  var photos = String(r.photo_links || "").split("\n").filter(String);
+  $("top").innerHTML = (r.pdf_url ? '<a class="pdf" href="' + esc(r.pdf_url) + '" target="_blank" rel="noopener">PDF as it stands</a>' : '')
+    + (r.edited_at ? '<span class="ed">Last edited ' + esc(r.edited_at) + (r.edited_by ? ' by ' + esc(r.edited_by) : '') + '</span>' : '<span class="ed">Filed ' + esc(r.submitted_at) + '. Never edited.</span>');
+  var html = sections().map(function(sec){
+    var open = sec.t === "Visit" || hasAny(sec.keys);
+    var body;
+    if (sec.std) body = '<div class="grid"><div class="std" id="std"></div><div class="f w"><div class="hint" id="stdHint"></div></div></div>';
+    else body = '<div class="grid">' + sec.f.map(field).join("") + '</div>';
+    return '<details class="sec" data-sec="' + esc(sec.t) + '"' + (open ? ' open' : '') + '><summary>' + esc(sec.t) + (open ? '' : ' <small>nothing filled in</small>') + '<span class="n hidden"></span></summary>' + body + '</details>';
+  }).join("");
+  if (photos.length) html += '<details class="sec" open><summary>Photos (' + photos.length + ') <small>open them in Drive. Photos are not changed here.</small></summary><div class="thumbs">'
+    + photos.map(function(u){ var id = driveId(u); return '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + (id ? '<img loading="lazy" src="https://drive.google.com/thumbnail?id=' + esc(id) + '&sz=w240" alt="">' : '') + '</a>'; }).join("") + '</div></details>';
+  $("form").innerHTML = html;
+  wire();
+  paintPick("account"); paintPick("vendor"); paintStd(); refresh();
+  $("savebar").classList.remove("hidden");
+}
+
+/* ---------- account and company pickers ---------- */
+function curLabel(which){
+  if (which === "account") return { main: V.account_name || "No building", sub: V.account_name ? (V.account_matched === "TRUE" ? "In the account directory" : "Typed by hand, not in the directory") : "" };
+  var lab = V.vendor_name ? V.vendor_name + (V.vendor_owner ? " - " + V.vendor_owner : "") : "No company";
+  return { main: lab, sub: V.vendor_name ? (V.vendor_matched === "TRUE" ? "In the vendor directory" : "Typed by hand, not in the directory") : "" };
+}
+function paintPick(which){
+  var c = curLabel(which);
+  $("cur_" + which).innerHTML = '<span>' + esc(c.main) + (c.sub ? '<small>' + esc(c.sub) + '</small>' : '') + '</span>';
+}
+function pickList(which){
+  if (which === "account") return (CTX.accounts || []).map(function(a){ return { key:a.id || a.name, main:a.name, sub:[a.address, a.fsm ? "FSM " + a.fsm : ""].filter(String).join(" · "), s:(a.name + " " + a.address + " " + a.fsm).toLowerCase(), a:a }; });
+  return (CTX.vendors || []).map(function(v){ return { key:v.id || v.label, main:v.label, sub:"", s:v.label.toLowerCase(), v:v }; });
+}
+function drawPick(which){
+  var q = $("q_" + which), list = $("pl_" + which), t = q.value.trim().toLowerCase();
+  var items = pickList(which).filter(function(x){ return !t || x.s.indexOf(t) >= 0; }).slice(0, 40);
+  var typed = q.value.trim();
+  list.innerHTML = (items.length ? items.map(function(x, i){ return '<button type="button" data-i="' + i + '">' + esc(x.main) + (x.sub ? '<small>' + esc(x.sub) + '</small>' : '') + '</button>'; }).join("") : '<div class="none">Nothing in the directory matches.</div>')
+    + (typed.length > 2 ? '<button type="button" data-typed="1">Use "' + esc(typed) + '" as typed<small>Not in the directory. It will be flagged that way.</small></button>' : '');
+  list.classList.remove("hidden");
+  Array.prototype.forEach.call(list.querySelectorAll("button"), function(b){
+    b.addEventListener("click", function(){
+      if (b.getAttribute("data-typed")) choose(which, null, typed); else choose(which, items[+b.getAttribute("data-i")], "");
+      list.classList.add("hidden"); q.value = "";
+    });
+  });
+}
+function choose(which, item, typed){
+  if (which === "account"){
+    if (item){ V.account_id = item.a.id; V.account_name = item.a.name; V.account_matched = "TRUE"; }
+    else { V.account_id = ""; V.account_name = typed; V.account_matched = "FALSE"; }
+    var fsmOnFile = item && item.a.fsm;
+    $("hint_account").innerHTML = (fsmOnFile && fsmOnFile !== V.fsm) ? 'This building\'s FSM on file is ' + esc(fsmOnFile) + '. <button type="button" class="lnkbtn" id="useFsm">Use ' + esc(fsmOnFile) + '</button>' : '';
+    if ($("useFsm")) $("useFsm").addEventListener("click", function(){ setVal("fsm", fsmOnFile); $("hint_account").innerHTML = ""; });
+  } else {
+    if (item){ V.vendor_id = item.v.id; V.vendor_name = item.v.dba; V.vendor_owner = item.v.owner || ""; V.vendor_matched = "TRUE"; }
+    else { var p = typed.split(/\s+-\s+/); V.vendor_id = ""; V.vendor_name = p[0]; V.vendor_owner = p.slice(1).join(" - "); V.vendor_matched = "FALSE"; }
+  }
+  paintPick(which); refresh();
+}
+function setVal(k, v){
+  V[k] = v; var el = $("f_" + k);
+  if (el){ if (el.type === "checkbox") el.checked = v === "TRUE"; else { if (el.tagName === "SELECT" && v && !Array.prototype.some.call(el.options, function(o){ return o.value === v; })){ var o = document.createElement("option"); o.value = o.textContent = v; el.insertBefore(o, el.options[1]); } el.value = v; } }
+  refresh();
+}
+
+/* ---------- standards ---------- */
+function parseStd(){
+  var fix = {};
+  String(ORIG.standards_failed || "").split("\n").forEach(function(l){ var i = l.indexOf(" | "); if (i > 0) fix[l.slice(0, i).trim()] = l.slice(i + 3).trim(); });
+  STD = String(ORIG.standards || "").split("\n").filter(function(l){ return l.trim(); }).map(function(l){
+    var i = l.lastIndexOf(" | "), q = i > 0 ? l.slice(0, i).trim() : l.trim(), a = i > 0 ? l.slice(i + 3).trim() : "";
+    return { q:q, a:a, a0:a, fix: fix[q] || "", fix0: fix[q] || "" };
+  });
+}
+function paintStd(){
+  var box = $("std");
+  if (!STD.length){ box.innerHTML = '<div class="hint">No standards checklist on this recap. It is only asked on a regular check, a new building or a client complaint.</div>'; return; }
+  box.innerHTML = STD.map(function(it, i){
+    var c = it.a !== it.a0 || it.fix !== it.fix0;
+    return '<div class="si' + (it.a === "No" ? ' no' : '') + (c ? ' chg' : '') + '" data-i="' + i + '"><div class="q">' + esc(it.q) + '</div><div class="ans">'
+      + ["Yes","No","N/A"].map(function(a){ return '<button type="button" data-a="' + a + '" class="' + (it.a === a ? 'on' : '') + (a === "No" ? ' n' : '') + '">' + a + '</button>'; }).join("") + '</div>'
+      + (it.a === "No" ? '<textarea placeholder="What was done to get it to standard before leaving">' + esc(it.fix) + '</textarea>' : '')
+      + (c ? '<div class="was">Was: <b>' + esc(it.a0 || "blank") + '</b></div>' : '') + '</div>';
+  }).join("");
+  Array.prototype.forEach.call(box.querySelectorAll(".si"), function(el){
+    var it = STD[+el.getAttribute("data-i")];
+    Array.prototype.forEach.call(el.querySelectorAll("button"), function(b){ b.addEventListener("click", function(){ it.a = b.getAttribute("data-a"); paintStd(); refresh(); }); });
+    var ta = el.querySelector("textarea");
+    if (ta) ta.addEventListener("input", function(){ it.fix = ta.value; refresh(); el.classList.toggle("chg", it.a !== it.a0 || it.fix !== it.fix0); });
+  });
+}
+function stdOut(){
+  // Only rebuilt when a standard was actually touched, so an old row never shows a phantom change.
+  if (!STD.length || !STD.some(function(it){ return it.a !== it.a0 || it.fix !== it.fix0; })) return null;
+  var failed = STD.filter(function(it){ return it.a === "No"; });
+  var o = {
+    standards: STD.map(function(it){ return it.q + " | " + it.a; }).join("\n"),
+    standards_failed: failed.map(function(it){ return it.q + " | " + it.fix.trim(); }).join("\n"),
+    standards_met: (STD.length - failed.length) + "/" + STD.length
+  };
+  STD.forEach(function(it){ if (STDMAP[it.q]) o[STDMAP[it.q]] = it.a; });
+  return o;
+}
+
+/* ---------- changes ---------- */
+function collect(){
+  var out = {};
+  Object.keys(V).forEach(function(k){ out[k] = V[k]; });
+  var s = stdOut(); if (s) Object.keys(s).forEach(function(k){ out[k] = s[k]; });
+  // Same derivations the recap form makes when it is filed.
+  var bl = String(out.building_supplies || "").split("\n").map(function(x){ return x.trim(); }).filter(String);
+  var vl = String(out.vendor_supplies || "").split("\n").map(function(x){ return x.trim(); }).filter(String);
+  if (out.building_supplies !== ORIG.building_supplies || out.vendor_supplies !== ORIG.vendor_supplies || out.reason !== ORIG.reason){
+    out.supplies_needed = (bl.length || vl.length) ? "Yes" : (out.reason === "Phone only" ? "" : "No");
+    out.uniforms_needed = vl.some(function(x){ return /polo|uniform|shirt/i.test(x); }) ? "Yes" : (out.reason === "Phone only" ? "" : "No");
+    out.supplies_note = [bl.length ? "Building: " + bl.join(", ") : "", vl.length ? "Crew: " + vl.join(", ") : ""].filter(String).join(" | ");
+  }
+  if (out.issues_resolved !== ORIG.issues_resolved) out.issues_found = out.issues_resolved === "Nothing to fix" ? "No" : (out.issues_resolved ? "Yes" : "");
+  if (out.nm_name !== ORIG.nm_name){ var nm = (CTX.night_managers || []).filter(function(p){ return p.name === out.nm_name; })[0]; out.nm_email = nm ? nm.email : ""; }
+  var ch = {};
+  (CTX.editable || []).forEach(function(k){
+    if (!(k in out)) return;
+    var a = norm(k, out[k]), b = norm(k, ORIG[k]);
+    if (a !== b) ch[k] = { old: CTX.row[k] == null ? "" : CTX.row[k], "new": a };
+  });
+  return ch;
+}
+var LABEL = {};
+function refresh(){
+  var ch = collect(), keys = Object.keys(ch);
+  Array.prototype.forEach.call(document.querySelectorAll(".f[data-f]"), function(el){
+    var k = el.getAttribute("data-f"), was = $("was_" + k);
+    var ks = k === "account" ? ["account_name","account_matched"] : k === "vendor" ? ["vendor_name","vendor_owner","vendor_matched"] : [k];
+    var hit = ks.filter(function(x){ return ch[x]; });
+    el.classList.toggle("chg", hit.length > 0);
+    var wasTxt = k === "account" ? (ORIG.account_name || "blank") : k === "vendor" ? (ORIG.vendor_name ? ORIG.vendor_name + (ORIG.vendor_owner ? " - " + ORIG.vendor_owner : "") : "blank") : nice(k, norm(k, ORIG[k]));
+    if (was) was.innerHTML = hit.length ? "Was: <b>" + esc(wasTxt) + "</b>" : "";
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("details.sec[data-sec]"), function(d){
+    var sec = sections().filter(function(s){ return s.t === d.getAttribute("data-sec"); })[0], n = 0;
+    if (sec && sec.std) n = STD.filter(function(it){ return it.a !== it.a0 || it.fix !== it.fix0; }).length;
+    else if (sec) n = sec.keys.filter(function(k){ return ch[k] && k !== "account_name" && k !== "vendor_name"; }).length
+      + (ch.account_name || ch.account_matched ? (sec.t === "Visit" ? 1 : 0) : 0) + (ch.vendor_name || ch.vendor_owner || ch.vendor_matched ? (sec.t === "Visit" ? 1 : 0) : 0);
+    var b = d.querySelector(".n"); b.textContent = n + " changed"; b.classList.toggle("hidden", !n);
+  });
+  // Count what a person changed: a building or a company is one change, each standard is one.
+  var grp = {};
+  keys.forEach(function(k){
+    if (/^account_/.test(k)) grp.account = 1;
+    else if (/^vendor_/.test(k)) grp.vendor = 1;
+    else if (/^standards|^(dispensers|trash|restrooms)_ok$/.test(k)) grp.std = 1;
+    else if (["nm_email","issues_found","supplies_needed","uniforms_needed","supplies_note"].indexOf(k) < 0) grp[k] = 1;
+  });
+  var real = Object.keys(grp).length - (grp.std ? 1 : 0) + (grp.std ? STD.filter(function(it){ return it.a !== it.a0 || it.fix !== it.fix0; }).length : 0);
+  $("cnt").textContent = keys.length ? real + " change" + (real === 1 ? "" : "s") + " not saved" : "No changes yet";
+  $("save").disabled = !keys.length || SAVING;
+  return ch;
+}
+function wire(){
+  Array.prototype.forEach.call(document.querySelectorAll(".f[data-f] input, .f[data-f] select, .f[data-f] textarea"), function(el){
+    var k = el.id.replace(/^f_/, ""); if (!el.id || el.id.indexOf("f_") !== 0) return;
+    var h = function(){ V[k] = el.type === "checkbox" ? (el.checked ? "TRUE" : "FALSE") : el.value; refresh(); };
+    el.addEventListener(el.tagName === "SELECT" || el.type === "checkbox" ? "change" : "input", h);
+  });
+  ["account","vendor"].forEach(function(w){
+    var q = $("q_" + w);
+    q.addEventListener("input", function(){ drawPick(w); });
+    q.addEventListener("focus", function(){ drawPick(w); });
+    q.addEventListener("keydown", function(e){ if (e.key === "Enter"){ e.preventDefault(); var b = $("pl_" + w).querySelector("button"); if (b) b.click(); } if (e.key === "Escape") $("pl_" + w).classList.add("hidden"); });
+  });
+}
+document.addEventListener("click", function(e){ ["account","vendor"].forEach(function(w){ var l = $("pl_" + w), q = $("q_" + w); if (l && !l.contains(e.target) && e.target !== q) l.classList.add("hidden"); }); });
+
+/* ---------- load and save ---------- */
+function load(){
+  $("msg").textContent = ""; $("msg").className = "msg";
+  post({ kind:"ni_get", id:ID }).then(function(r){
+    if (!r || !r.ok){
+      if (r && CWAuth.isPassError(r.error)) return CWAuth.locked("ops", r.error);
+      $("form").innerHTML = '<div class="empty">' + esc((r && r.error) || "Could not load this recap.") + '</div>'; $("subt").textContent = ""; return;
+    }
+    CTX = r; ORIG = {}; V = {};
+    (r.editable || []).forEach(function(k){ ORIG[k] = norm(k, r.row[k]); V[k] = ORIG[k]; });
+    parseStd(); render();
+  }).catch(function(){ $("form").innerHTML = '<div class="empty">Could not reach the hub. Check the connection and reload.</div>'; });
+}
+function save(){
+  var ch = refresh();
+  if (!Object.keys(ch).length) return;
+  var who = $("editor").value.trim();
+  var msg = $("msg");
+  if (!who){ msg.className = "msg err"; msg.textContent = "Put your name in so the change log shows who made the change."; $("editor").focus(); return; }
+  var ap = $("apass").value.trim() || ls(function(){ return localStorage.getItem(SAKEY); }) || "";
+  if (!ap){ $("apass").classList.remove("hidden"); msg.className = "msg err"; msg.textContent = "Saving a recap needs the admin passcode. It is asked once on this device."; $("apass").focus(); return; }
+  ls(function(){ localStorage.setItem(WHOKEY, who); });
+  SAVING = true; $("save").disabled = true; $("save").textContent = "Saving...";
+  msg.className = "msg"; msg.textContent = "Saving and rebuilding the PDF with the photos. This takes 10 to 40 seconds.";
+  post({ kind:"ni_edit", id:ID, editor:who, admin_pass:ap, changes:ch }).then(function(r){
+    SAVING = false; $("save").textContent = "Save changes";
+    if (r && r.ok){
+      ls(function(){ localStorage.setItem(SAKEY, ap); });
+      $("apass").value = ""; $("apass").classList.add("hidden");
+      msg.className = "msg ok";
+      msg.innerHTML = "Saved. " + (r.pdf_url ? '<a href="' + esc(r.pdf_url) + '" target="_blank" rel="noopener">Open the new PDF</a>. ' : "") + "The old PDF is kept in the Reports folder under _Replaced. "
+        + (r.crew_unverified ? "Crew with no background check on file for this company: " + esc(String(r.crew_unverified).replace(/\n/g, ", ")) + ". " : "")
+        + '<a href="night-inspections.html">Back to recaps</a>';
+      var keep = msg.innerHTML;
+      load(); setTimeout(function(){ msg.className = "msg ok"; msg.innerHTML = keep; }, 50);
+      return;
+    }
+    if (r && r.admin){ ls(function(){ localStorage.removeItem(SAKEY); }); $("apass").classList.remove("hidden"); $("apass").value = ""; $("apass").focus(); }
+    if (r && CWAuth.isPassError(r.error) && !r.admin) return CWAuth.locked("ops", r.error);
+    msg.className = "msg err"; msg.textContent = (r && r.error) || "Could not save. Nothing was changed.";
+    refresh();
+  }).catch(function(){ SAVING = false; $("save").textContent = "Save changes"; refresh(); msg.className = "msg err"; msg.textContent = "Lost the connection while saving. Reload the page to see whether the change landed before trying again."; });
+}
+$("save").addEventListener("click", save);
+$("apass").addEventListener("keydown", function(e){ if (e.key === "Enter") save(); });
+$("undoAll").addEventListener("click", function(){ if (!CTX) return; if (Object.keys(refresh()).length && !confirm("Put every field back the way it is saved?")) return; Object.keys(ORIG).forEach(function(k){ V[k] = ORIG[k]; }); parseStd(); render(); $("msg").textContent = ""; });
+window.addEventListener("beforeunload", function(e){ if (CTX && !SAVING && Object.keys(collect()).length){ e.preventDefault(); e.returnValue = ""; } });
+
+try { ID = String(new URLSearchParams(location.search).get("id") || "").trim(); } catch (e) {}
+$("editor").value = ls(function(){ return localStorage.getItem(WHOKEY) || localStorage.getItem("cwAlertsWho") || ""; }) || "";
+PASS = CWAuth.require({hub:"ops"});
+if (PASS){
+  $("app").classList.remove("hidden");
+  if (!ID){ $("subt").textContent = ""; $("form").innerHTML = '<div class="empty">No recap picked. Open one from the <a href="night-inspections.html">recaps page</a> and tap Edit.</div>'; }
+  else load();
+}
+})();
+</script>
+</body>
+</html>

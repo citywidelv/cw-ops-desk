@@ -21,6 +21,8 @@
 //               returns the first row instead of writing a second.
 //   ni_request  a building or cleaning company that is not in the directory
 //   ni_list     recent rows for night-inspections.html - newest first
+//   ni_get      one recap + picker lists, for night-inspection-edit.html (Oct 21 2026)
+//   ni_edit     save changes to a recap; also needs the Site Admin passcode (Oct 21 2026)
 //
 // Maintenance: niSweepIncoming() trashes _Incoming photos older than 3 days
 // (drafts nobody sent). Give it a daily time trigger after launch.
@@ -72,7 +74,9 @@ var NI_HEADERS = [
   // appended Sep 15 2026 (standards checklist)
   'standards', 'standards_failed', 'standards_met', 'prior_complaints',
   // appended Sep 15 2026 (route out)
-  'route_stop_id', 'route_answers'
+  'route_stop_id', 'route_answers',
+  // appended Oct 21 2026 (recap edits, ni_edit)
+  'edited_at', 'edited_by'
 ];
 var NI_REQ_HEADERS = ['when', 'market', 'type', 'name', 'owner', 'label', 'nm_name', 'sent_to', 'status'];
 
@@ -173,6 +177,8 @@ function niDispatch(data) {
     if (kind === 'ni_submit') return niSubmit_(data);
     if (kind === 'ni_request') return niRequest_(data);
     if (kind === 'ni_list') return niList_(data);
+    if (kind === 'ni_get') return niGet_(data);
+    if (kind === 'ni_edit') return niEdit_(data);
     return niOut_({ ok: false, error: 'Unknown kind ' + kind });
   } catch (e) {
     return niOut_({ ok: false, error: String(e && e.message || e) });
@@ -626,13 +632,246 @@ function niPdf_(r, embeds, stem, mkt, reportDate) {
     embeds.forEach(function (p) { if (/^data:image/.test(p.src)) html += '<div class="cap">' + e(p.label) + '</div><img src="' + p.src + '">'; });
     html += '</div>';
   }
-  html += '<div class="foot">City Wide Facility Solutions &middot; ' + e(r.market) + ' &middot; ' + e(r.inspection_id) + ' &middot; Internal record &middot; GoCityWide.com</div></body></html>';
+  html += '<div class="foot">City Wide Facility Solutions &middot; ' + e(r.market) + ' &middot; ' + e(r.inspection_id) + ' &middot; Internal record' + (r.edited_at ? ' &middot; Edited ' + e(r.edited_at) + (r.edited_by ? ' by ' + e(r.edited_by) : '') : '') + ' &middot; GoCityWide.com</div></body></html>';
 
   var name = stem + '.pdf';
   var blob = Utilities.newBlob(html, 'text/html', name.replace(/\.pdf$/, '.html')).getAs('application/pdf').setName(name);
   var file = niMonthFolder_(mkt, reportDate, 'Reports').createFile(blob);
   niShare_(file);
   return { url: file.getUrl(), id: file.getId(), name: name };
+}
+
+// ------------------------------------------------------------ edit --------
+// Oct 21 2026. Fix a recap after it was filed: the wrong cleaning company,
+// the wrong building, the wrong FSM, a typo. Page: night-inspection-edit.html?id=<inspection_id>,
+// opened from the Edit button beside the PDF on night-inspections.html.
+//
+//   ni_get   team passcode. One recap plus the picker lists for its market.
+//   ni_edit  team passcode AND the Site Admin passcode (SA_PASSCODE, sent as
+//            admin_pass). Arrival and departure are how time inside the
+//            buildings is tracked, and every FSM and night manager knows the
+//            team passcode, so saving a change needs the higher one.
+//
+// ni_edit only writes the columns that actually changed, checks every old
+// value against the sheet first (someone else's edit is never overwritten),
+// re-runs the same rules as ni_submit (complaint flag, crew gate, crew check,
+// flags), renames the photos to the new file name, rebuilds the PDF with the
+// photos in it, and moves the old PDF to Reports/_Replaced instead of deleting
+// it. Every changed column is logged with its old value on the Recap Edits tab.
+var NI_EDIT_TAB = 'Recap Edits';
+var NI_EDIT_HEADERS = ['when', 'inspection_id', 'editor', 'field', 'old_value', 'new_value'];
+var NI_EDITABLE = [
+  'report_date', 'nm_name', 'nm_email',
+  'account_id', 'account_name', 'account_matched',
+  'vendor_id', 'vendor_name', 'vendor_owner', 'vendor_matched',
+  'fsm', 'reason', 'timing', 'why_early', 'arrival', 'departure',
+  'score', 'score_note',
+  'complaint_flag', 'complaint_what', 'complaint_areas', 'complaint_channel', 'complaint_verified',
+  'complaint_root_cause', 'complaint_agreed_fix', 'complaint_resolved', 'complaint_blocker', 'crm_closed',
+  'hotspots_checked', 'dispensers_ok', 'trash_ok', 'restrooms_ok',
+  'closet_checked', 'closet_organized', 'sds_present', 'chemicals_labelled', 'chemicals_on_hand',
+  'equipment_ok', 'envirox_low', 'closet_notes',
+  'newstart_night', 'initial_clean_paid', 'checklist_items',
+  'issues_found', 'issues_resolved', 'issue_resolution', 'issue_remaining', 'issue_owner', 'issue_due',
+  'fsm_action_needed', 'fsm_action_note',
+  'supplies_needed', 'supplies_note', 'uniforms_needed', 'building_supplies', 'vendor_supplies',
+  'summary', 'wo_what', 'wo_done', 'call_who', 'call_about', 'call_next',
+  'crew_seen', 'crew_uniform', 'crew_uniform_note', 'crew_names',
+  'standards', 'standards_failed', 'standards_met', 'route_answers'
+];
+
+function niFindRow_(sh, head, id) {
+  var c = head.indexOf('inspection_id');
+  var last = sh.getLastRow();
+  if (c < 0 || last < 2) return 0;
+  var ids = sh.getRange(2, c + 1, last - 1, 1).getValues();
+  for (var i = ids.length - 1; i >= 0; i--) if (niStr_(ids[i][0]) === id) return i + 2;
+  return 0;
+}
+
+// Buildings, cleaning companies, night managers and FSMs for one market.
+// Same filters as niContext_, without the 1,500-row history read, so the edit page opens fast.
+function niPickers_(mkt) {
+  var region = NI_MARKETS[mkt];
+  var out = { market: mkt, region: region, accounts: [], vendors: [], night_managers: [], fsms: [], warnings: [] };
+  try {
+    actAccountRows_(actSS_()).forEach(function (r) {
+      if (actRegion_(r.region) !== region) return;
+      if (actStr_(r.hide).toUpperCase() === 'TRUE') return;
+      var st = actStr_(r.status);
+      if (st && st !== 'Active') return;
+      out.accounts.push({ id: actStr_(r.account_id), name: actStr_(r.name), fsm: actStr_(r.fsm), address: [actStr_(r.address1), actStr_(r.city)].filter(String).join(', ') });
+    });
+    out.accounts.sort(function (a, b) { return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1; });
+  } catch (e) { out.warnings.push('accounts: ' + e.message); }
+  try {
+    vdAllRows_(vdSS_()).forEach(function (r) {
+      if (!vdStr_(r.dba_name) || vdTrue_(r.hide)) return;
+      if (VD_LIVE_STATUS.indexOf(vdStr_(r.status)) < 0) return;
+      if (!vdInRegion_(vdRegion_(r.region), mkt)) return;
+      var slugs = vdSlugs_(r.service_types);
+      if (slugs.length && slugs.indexOf(VD_JANITORIAL) < 0) return;
+      var owner = vdStr_(r.contact_name);
+      out.vendors.push({ id: vdStr_(r.vendor_id), dba: vdStr_(r.dba_name), owner: owner, label: vdStr_(r.dba_name) + (owner ? ' - ' + owner : '') });
+    });
+    out.vendors.sort(function (a, b) { return a.label.toLowerCase() < b.label.toLowerCase() ? -1 : 1; });
+  } catch (e) { out.warnings.push('vendors: ' + e.message); }
+  try {
+    var sh = staffSS_().getSheetByName('Staff');
+    var v = sh ? sh.getDataRange().getValues() : [];
+    for (var i = 1; i < v.length; i++) {
+      if (!v[i][0] || String(v[i][5]).toUpperCase() === 'FALSE') continue;
+      var p = { name: String(v[i][0]).replace(/\s+/g, ' ').trim(), email: String(v[i][4] || '').trim(), market: String(v[i][2] || '').trim(), role: String(v[i][1] || '').trim() };
+      var inMkt = p.market === 'Both' || p.market === region;
+      if (p.role === 'Night Manager') out.night_managers.push(p);
+      else if (/Facility Solutions Manager|Director of Operations|General Manager/.test(p.role)) { p.in_market = inMkt; out.fsms.push(p); }
+    }
+    out.fsms.sort(function (a, b) { if (a.in_market !== b.in_market) return a.in_market ? -1 : 1; return a.name < b.name ? -1 : 1; });
+  } catch (e) { out.warnings.push('staff: ' + e.message); }
+  return out;
+}
+
+function niGet_(data) {
+  var id = niStr_(data.id);
+  if (!id) return niOut_({ ok: false, error: 'No recap was named in the link.' });
+  var sh = niTab_(niSS_());
+  var head = niHead_(sh);
+  var at = niFindRow_(sh, head, id);
+  if (!at) return niOut_({ ok: false, error: 'Recap ' + id + ' was not found. It may have been filed on the old Jotform, which cannot be edited here.' });
+  var vals = sh.getRange(at, 1, 1, head.length).getValues()[0];
+  var row = {};
+  head.forEach(function (h, j) { if (h) row[h] = (h === 'device') ? '' : niStr_(vals[j]); });
+  var out = niPickers_(niMarket_(row.market));
+  out.ok = true; out.row = row; out.editable = NI_EDITABLE; out.reasons = NI_REASONS; out.low_score = NI_LOW_SCORE;
+  return niOut_(out);
+}
+
+// A photo as a ~900px JPEG for the rebuilt PDF. Drive's own thumbnail first,
+// the full file if that fails (bigger PDF, same picture).
+function niEmbedSrc_(file) {
+  try {
+    var tok = ScriptApp.getOAuthToken();
+    var opt = { headers: { Authorization: 'Bearer ' + tok }, muteHttpExceptions: true };
+    var meta = JSON.parse(UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + file.getId() + '?fields=thumbnailLink', opt).getContentText() || '{}');
+    if (meta.thumbnailLink) {
+      var res = UrlFetchApp.fetch(String(meta.thumbnailLink).replace(/=s\d+$/, '') + '=s900', opt);
+      var b = res.getBlob();
+      if (res.getResponseCode() === 200 && b.getBytes().length > 3000) return 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes());
+    }
+  } catch (e) {}
+  return 'data:image/jpeg;base64,' + Utilities.base64Encode(file.getBlob().getBytes());
+}
+
+function niStem_(r, reportDate) {
+  return reportDate + ' - ' + (niSafe_(r.account_name) || 'Building') + ' - ' + (niSafe_(r.vendor_name) || 'No company') + ' - '
+    + (niSafe_(niLastName_(r.nm_name)) || 'NM') + ' - ' + r.reason + (r.score !== '' ? ' - ' + r.score : '');
+}
+
+function niEdit_(data) {
+  var sa = PropertiesService.getScriptProperties().getProperty('SA_PASSCODE') || '';
+  if (!sa || String(data.admin_pass || '') !== sa) return niOut_({ ok: false, admin: true, error: 'The admin passcode is needed to save changes to a recap.' });
+  var id = niStr_(data.id), editor = niStr_(data.editor);
+  if (!id) return niOut_({ ok: false, error: 'No recap was named.' });
+  if (!editor) return niOut_({ ok: false, error: 'Put your name in so the change log shows who made the change.' });
+  var changes = (data.changes && typeof data.changes === 'object') ? data.changes : {};
+  var keys = Object.keys(changes).filter(function (k) { return NI_EDITABLE.indexOf(k) >= 0 && changes[k] && typeof changes[k] === 'object'; });
+  if (!keys.length) return niOut_({ ok: true, changed: 0, note: 'Nothing was changed.' });
+
+  var ss = niSS_();
+  var sh = niTab_(ss);            // also appends edited_at / edited_by to the header row the first time
+  var head = niHead_(sh);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(25000);
+  try {
+    var at = niFindRow_(sh, head, id);
+    if (!at) return niOut_({ ok: false, error: 'Recap ' + id + ' was not found.' });
+    var raw = sh.getRange(at, 1, 1, head.length).getValues()[0];
+    var cur = {};
+    head.forEach(function (h, j) { if (h) cur[h] = niStr_(raw[j]); });
+
+    var stale = keys.filter(function (k) { return niStr_(changes[k].old) !== (cur[k] || ''); });
+    if (stale.length) return niOut_({ ok: false, conflict: true, error: 'This recap changed after you opened it (' + stale.join(', ') + '). Reload the page and make your change again.' });
+
+    var r = {};
+    Object.keys(cur).forEach(function (k) { r[k] = cur[k]; });
+    keys.forEach(function (k) { var v = changes[k].new; r[k] = Array.isArray(v) ? v.join('\n') : String(v == null ? '' : v).replace(/[​-‍﻿]/g, '').trim(); });
+
+    // The same rules ni_submit applies.
+    if (NI_REASONS.indexOf(r.reason) < 0) return niOut_({ ok: false, error: 'Pick a reason.' });
+    if (!r.nm_name) return niOut_({ ok: false, error: 'Night manager name is required.' });
+    if (!r.account_name) return niOut_({ ok: false, error: 'Building is required.' });
+    if (r.score !== '' && (isNaN(Number(r.score)) || Number(r.score) < 1 || Number(r.score) > 10)) return niOut_({ ok: false, error: 'The score is a number from 1 to 10.' });
+    if (r.score !== '' && Number(r.score) < NI_LOW_SCORE && !r.score_note) return niOut_({ ok: false, error: 'A score under ' + NI_LOW_SCORE + ' needs a note on what was wrong.' });
+    // TRUE/FALSE columns: keep the sheet's own value when the meaning did not change.
+    var tf = function (k, v) { r[k] = (v === niBool_(cur[k])) ? cur[k] : v; };
+    tf('account_matched', niBool_(r.account_matched));
+    tf('vendor_matched', niBool_(r.vendor_matched));
+    tf('complaint_flag', (r.reason === 'Client complained' || niBool_(r.complaint_flag) === 'TRUE') ? 'TRUE' : 'FALSE');
+    if (r.crew_seen !== 'Yes') { r.crew_uniform = ''; r.crew_uniform_note = ''; r.crew_names = ''; }
+    if (r.crew_uniform === 'Yes') r.crew_uniform_note = '';
+    var crewTouched = ['vendor_id', 'vendor_name', 'crew_names', 'crew_seen'].some(function (k) { return keys.indexOf(k) >= 0; });
+    if (crewTouched) {
+      r.crew_unverified = '';
+      if (r.crew_names) { try { r.crew_unverified = niCrew_(r).unverified.join('\n'); } catch (ce) {} }
+    }
+    var now = new Date();
+    r.edited_at = Utilities.formatDate(now, NI_TZ, 'yyyy-MM-dd HH:mm');
+    r.edited_by = editor;
+    r.flags = niFlags_(r);
+
+    // Photos: rename to the new file name, move them if the night moved to another month.
+    var mkt = niMarket_(r.market);
+    var oldDate = String(cur.report_date || '').slice(0, 10), reportDate = String(r.report_date || '').slice(0, 10) || oldDate;
+    var stem = niStem_(r, reportDate);
+    var monthMoved = oldDate.slice(0, 7) !== reportDate.slice(0, 7);
+    var photoFolder = (monthMoved && r.photo_links) ? niMonthFolder_(mkt, reportDate, 'Photos') : null;
+    var embeds = [];
+    String(r.photo_links || '').split('\n').filter(String).forEach(function (u, i) {
+      var m = String(u).match(/\/d\/([^\/?#]+)/) || String(u).match(/[?&]id=([^&#]+)/);
+      if (!m) return;
+      try {
+        var f = DriveApp.getFileById(m[1]);
+        var pm = f.getName().match(/^(.*) - (\d{2}) (.*?)\.jpe?g$/i);
+        var label = pm ? pm[3] : 'photo';
+        f.setName(stem + ' - ' + (pm ? pm[2] : ('0' + (i + 1)).slice(-2)) + ' ' + label + '.jpg');
+        if (photoFolder) f.moveTo(photoFolder);
+        embeds.push({ src: niEmbedSrc_(f), label: label });
+      } catch (pe) {}
+    });
+    if (photoFolder) r.photo_folder_url = photoFolder.getUrl();
+
+    var pdf = niPdf_(r, embeds, stem, mkt, reportDate);
+    r.pdf_url = pdf.url; r.pdf_name = pdf.name;
+
+    // Write only the cells that changed, so untouched dates and times keep their sheet values.
+    var out = raw.slice(), log = [];
+    var when = r.edited_at;
+    head.forEach(function (h, j) {
+      if (!h || r[h] === undefined) return;
+      var nv = String(r[h]);
+      if (nv === (cur[h] || '')) return;
+      out[j] = /^\d{1,2}\/\d{1,2}$/.test(nv) ? "'" + nv : nv;   // "12/14" standards met must not turn into a date
+      if (h !== 'edited_at' && h !== 'edited_by' && h !== 'pdf_name') log.push([when, id, editor, h, cur[h] || '', nv]);
+    });
+    sh.getRange(at, 1, 1, out.length).setValues([out]);
+
+    // Keep the old PDF as the record of what was first filed.
+    var oldPdf = String(cur.pdf_url || '').match(/\/d\/([^\/?#]+)/);
+    if (oldPdf && oldPdf[1] !== pdf.id) {
+      try {
+        var of = DriveApp.getFileById(oldPdf[1]);
+        of.setName(of.getName().replace(/\.pdf$/i, '') + ' (replaced ' + Utilities.formatDate(now, NI_TZ, 'yyyy-MM-dd') + ').pdf');
+        of.moveTo(niSub_(niMonthFolder_(mkt, oldDate || reportDate, 'Reports'), '_Replaced'));
+      } catch (oe) {}
+    }
+
+    if (log.length) {
+      var lt = niTab_(ss, NI_EDIT_TAB, NI_EDIT_HEADERS);
+      var safe = log.map(function (row) { return row.map(function (c) { c = String(c); return /^[=+\-@]/.test(c) ? "'" + c : c; }); });
+      lt.getRange(lt.getLastRow() + 1, 1, safe.length, NI_EDIT_HEADERS.length).setValues(safe);
+    }
+    return niOut_({ ok: true, inspection_id: id, changed: log.length, pdf_url: pdf.url, flags: r.flags, crew_unverified: r.crew_unverified });
+  } finally { lock.releaseLock(); }
 }
 
 // ------------------------------------------------------------ list --------
