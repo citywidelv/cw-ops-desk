@@ -107,7 +107,6 @@ details.sec>summary .n{margin-left:auto;font-size:11px;font-weight:700;backgroun
 <div class="savebar hidden" id="savebar"><div class="in">
 <span class="cnt" id="cnt">No changes yet</span>
 <input type="text" id="editor" placeholder="Your name" autocomplete="name" aria-label="Your name">
-<input type="password" id="apass" class="hidden" placeholder="Admin passcode" autocomplete="current-password" aria-label="Admin passcode">
 <button class="btn ghost" id="undoAll" type="button">Undo all</button>
 <button class="btn go" id="save" type="button" disabled>Save changes</button>
 <div class="msg" id="msg"></div>
@@ -119,12 +118,11 @@ details.sec>summary .n{margin-left:auto;font-size:11px;font-weight:700;backgroun
 // Every field of one hub recap on one page. Saving sends only what changed (with the
 // old value, so a second editor is never overwritten) to ni_edit, which rewrites the
 // row, rebuilds the PDF with the photos, keeps the old PDF in Reports/_Replaced and
-// logs each change on the Recap Edits tab. Saving needs the Site Admin passcode,
-// remembered on this device under the same key site-admin.html uses.
+// logs each change on the Recap Edits tab. The team passcode is all it needs.
 (function(){
 "use strict";
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
-var SAKEY = "cwSiteAdminPass", WHOKEY = "cwNiEditor";
+var WHOKEY = "cwNiEditor";
 var PASS = "", ID = "", CTX = null, ORIG = {}, V = {}, STD = [], SAVING = false;
 var YN = ["Yes","No"];
 var STDMAP = { "Soap, paper towels and toilet paper full":"dispensers_ok", "Trash emptied":"trash_ok", "Restrooms clean":"restrooms_ok" };
@@ -420,16 +418,12 @@ function save(){
   var who = $("editor").value.trim();
   var msg = $("msg");
   if (!who){ msg.className = "msg err"; msg.textContent = "Put your name in so the change log shows who made the change."; $("editor").focus(); return; }
-  var ap = $("apass").value.trim() || ls(function(){ return localStorage.getItem(SAKEY); }) || "";
-  if (!ap){ $("apass").classList.remove("hidden"); msg.className = "msg err"; msg.textContent = "Saving a recap needs the admin passcode. It is asked once on this device."; $("apass").focus(); return; }
   ls(function(){ localStorage.setItem(WHOKEY, who); });
   SAVING = true; $("save").disabled = true; $("save").textContent = "Saving...";
   msg.className = "msg"; msg.textContent = "Saving and rebuilding the PDF with the photos. This takes 10 to 40 seconds.";
-  post({ kind:"ni_edit", id:ID, editor:who, admin_pass:ap, changes:ch }).then(function(r){
+  post({ kind:"ni_edit", id:ID, editor:who, changes:ch }).then(function(r){
     SAVING = false; $("save").textContent = "Save changes";
     if (r && r.ok){
-      ls(function(){ localStorage.setItem(SAKEY, ap); });
-      $("apass").value = ""; $("apass").classList.add("hidden");
       msg.className = "msg ok";
       msg.innerHTML = "Saved. " + (r.pdf_url ? '<a href="' + esc(r.pdf_url) + '" target="_blank" rel="noopener">Open the new PDF</a>. ' : "") + "The old PDF is kept in the Reports folder under _Replaced. "
         + (r.crew_unverified ? "Crew with no background check on file for this company: " + esc(String(r.crew_unverified).replace(/\n/g, ", ")) + ". " : "")
@@ -438,14 +432,12 @@ function save(){
       load(); setTimeout(function(){ msg.className = "msg ok"; msg.innerHTML = keep; }, 50);
       return;
     }
-    if (r && r.admin){ ls(function(){ localStorage.removeItem(SAKEY); }); $("apass").classList.remove("hidden"); $("apass").value = ""; $("apass").focus(); }
-    if (r && CWAuth.isPassError(r.error) && !r.admin) return CWAuth.locked("ops", r.error);
+    if (r && CWAuth.isPassError(r.error)) return CWAuth.locked("ops", r.error);
     msg.className = "msg err"; msg.textContent = (r && r.error) || "Could not save. Nothing was changed.";
     refresh();
   }).catch(function(){ SAVING = false; $("save").textContent = "Save changes"; refresh(); msg.className = "msg err"; msg.textContent = "Lost the connection while saving. Reload the page to see whether the change landed before trying again."; });
 }
 $("save").addEventListener("click", save);
-$("apass").addEventListener("keydown", function(e){ if (e.key === "Enter") save(); });
 $("undoAll").addEventListener("click", function(){ if (!CTX) return; if (Object.keys(refresh()).length && !confirm("Put every field back the way it is saved?")) return; Object.keys(ORIG).forEach(function(k){ V[k] = ORIG[k]; }); parseStd(); render(); $("msg").textContent = ""; });
 window.addEventListener("beforeunload", function(e){ if (CTX && !SAVING && Object.keys(collect()).length){ e.preventDefault(); e.returnValue = ""; } });
 

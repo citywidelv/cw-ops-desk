@@ -22,7 +22,7 @@
 //   ni_request  a building or cleaning company that is not in the directory
 //   ni_list     recent rows for night-inspections.html - newest first
 //   ni_get      one recap + picker lists, for night-inspection-edit.html (Oct 21 2026)
-//   ni_edit     save changes to a recap; also needs the Site Admin passcode (Oct 21 2026)
+//   ni_edit     save changes to a recap (Oct 21 2026)
 //
 // Maintenance: niSweepIncoming() trashes _Incoming photos older than 3 days
 // (drafts nobody sent). Give it a daily time trigger after launch.
@@ -647,10 +647,8 @@ function niPdf_(r, embeds, stem, mkt, reportDate) {
 // opened from the Edit button beside the PDF on night-inspections.html.
 //
 //   ni_get   team passcode. One recap plus the picker lists for its market.
-//   ni_edit  team passcode AND the Site Admin passcode (SA_PASSCODE, sent as
-//            admin_pass). Arrival and departure are how time inside the
-//            buildings is tracked, and every FSM and night manager knows the
-//            team passcode, so saving a change needs the higher one.
+//   ni_edit  team passcode (Oct 21 2026: TJ dropped the Site Admin passcode
+//            requirement; the team is fixing recaps as a matter of course).
 //
 // ni_edit only writes the columns that actually changed, checks every old
 // value against the sheet first (someone else's edit is never overwritten),
@@ -779,8 +777,6 @@ function niStem_(r, reportDate) {
 }
 
 function niEdit_(data) {
-  var sa = PropertiesService.getScriptProperties().getProperty('SA_PASSCODE') || '';
-  if (!sa || String(data.admin_pass || '') !== sa) return niOut_({ ok: false, admin: true, error: 'The admin passcode is needed to save changes to a recap.' });
   var id = niStr_(data.id), editor = niStr_(data.editor);
   if (!id) return niOut_({ ok: false, error: 'No recap was named.' });
   if (!editor) return niOut_({ ok: false, error: 'Put your name in so the change log shows who made the change.' });
