@@ -44,6 +44,7 @@ h1{font-size:20px;margin-bottom:4px}
 .links{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
 .links a{font-size:12px;font-weight:700;color:#fff;background:var(--black);text-decoration:none;border-radius:9px;padding:8px 12px;white-space:nowrap}
 .links a.pdf{background:var(--red)}
+.links a.edit{background:#fff;color:var(--black);border:1.5px solid var(--black);padding:6.5px 12px}
 .det{display:none;border-top:1px solid var(--border);padding:14px 16px;background:#fafafa}
 .card.open .det{display:block}
 .det table{width:100%;border-collapse:collapse;font-size:13px}
@@ -97,8 +98,8 @@ h1{font-size:20px;margin-bottom:4px}
 <div id="gate" class="gatebox hidden"><b>Open this from the Ops Hub</b><p class="sub">This page uses the Ops Hub session on this device.</p><a href="index.html">&larr; Ops Hub</a></div>
 <div id="app" class="hidden">
 <h1>Night inspection recaps</h1>
-<div class="sub">The box below counts the stops each night manager was sent on the Route Out against the recaps that came back. Under it, recaps newest first. Recaps filed on the hub and on the Jotform both show here. Tap a row for the details. Hub recaps carry a PDF with the photos in it. <a href="night-inspection.html">File a new recap</a>.</div>
-<div class="tally" id="tally"><div class="th"><b>Assigned vs submitted</b><div class="rng"><button type="button" data-r="night">Last night</button><button type="button" data-r="week" class="on">This week</button><button type="button" data-r="month">This month</button></div></div>
+<div class="sub">The box below counts each night manager's recaps against what is expected: 5 a night, every weekday that is not a holiday. Under each count is how many buildings they were routed out to. Under the box, recaps newest first. Recaps filed on the hub and on the Jotform both show here. Tap a row for the details. Hub recaps carry a PDF with the photos in it. Tap Edit beside the PDF to fix a recap, such as the wrong cleaning company or building.</div>
+<div class="tally" id="tally"><div class="th"><b>Submitted vs expected</b><div class="rng"><button type="button" data-r="night">Last night</button><button type="button" data-r="week" class="on">This week</button><button type="button" data-r="month">This month</button></div></div>
 <div class="note" id="tallyNote">Loading route outs...</div><div class="tl" id="tallyBody"></div></div>
 <div class="tools">
 <button class="chip on" data-m="lv" type="button">Las Vegas</button><button class="chip" data-m="nnv" type="button">Northern Nevada</button>
@@ -227,6 +228,32 @@ function tallyRange(r){
   if (r === "month") return { from: to.slice(0, 8) + "01", to: to, end: monthEnd(to) };
   var mon = mondayOf(to); return { from: mon, to: to, end: addDays(mon, 6) };
 }
+// Oct 21 2026: expected = EXPECT_PER_NIGHT recaps per night manager for every weekday night
+// (Monday to Friday) in the range that is not a company holiday. Holidays land on the
+// nearest weekday when they fall on a weekend. Edit HOLIDAYS if the company list changes.
+var EXPECT_PER_NIGHT = 5;
+var HOLIDAYS = ["New Year's Day", "Memorial Day", "Independence Day", "Labor Day", "Thanksgiving", "Day after Thanksgiving", "Christmas Day"];
+function holidaySet(year){
+  function nth(m, dow, n){ var d = new Date(year, m, 1); return new Date(year, m, 1 + ((dow - d.getDay() + 7) % 7) + (n - 1) * 7); }
+  function lastOf(m, dow){ var d = new Date(year, m + 1, 0); return new Date(year, m, d.getDate() - ((d.getDay() - dow + 7) % 7)); }
+  function obs(d){ var w = d.getDay(); if (w === 6) d = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1); else if (w === 0) d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1); return ymd(d); }
+  var tg = nth(10, 4, 4), out = {};
+  out[obs(new Date(year, 0, 1))] = HOLIDAYS[0]; out[ymd(lastOf(4, 1))] = HOLIDAYS[1]; out[obs(new Date(year, 6, 4))] = HOLIDAYS[2];
+  out[ymd(nth(8, 1, 1))] = HOLIDAYS[3]; out[ymd(tg)] = HOLIDAYS[4]; out[ymd(new Date(year, 10, tg.getDate() + 1))] = HOLIDAYS[5]; out[obs(new Date(year, 11, 25))] = HOLIDAYS[6];
+  return out;
+}
+// Weekday nights in from..to that are not holidays, plus the holidays skipped (for the note).
+function workNights(from, to){
+  var hs = {}, y0 = +from.slice(0, 4), y1 = +to.slice(0, 4);
+  for (var y = y0 - 1; y <= y1 + 1; y++){ var h = holidaySet(y); Object.keys(h).forEach(function(k){ hs[k] = h[k]; }); }
+  var n = 0, skipped = [], d = from;
+  while (d <= to){
+    var p = d.split("-"), w = new Date(+p[0], +p[1] - 1, +p[2]).getDay();
+    if (w >= 1 && w <= 5){ if (hs[d]) skipped.push(hs[d] + " (" + niceDay(d) + ")"); else n++; }
+    d = addDays(d, 1);
+  }
+  return { nights: n, skipped: skipped };
+}
 function loadStops(seq, mkt){
   STOPS = []; STOP_STATE = "loading"; tally();
   // Pull from the earlier of this week's Monday and this month's 1st, so switching ranges needs no second call.
@@ -267,21 +294,27 @@ function tally(){
   var stops = STOPS.filter(function(s){ return s.report_date >= rg.from && s.report_date <= rg.to && (!fsm || s.fsm === fsm); });
   // A recap filed after midnight can carry the next day's date, so a recap on the stop's night or the morning after counts.
   var recs = ROWS.filter(function(r){ var d = String(r.report_date||"").slice(0,10); return d >= rg.from && d <= addDays(rg.to, 1) && (!fsm || r.fsm === fsm || stops.some(function(s){ return sameAcct(s, r); })); });
+  var wn = workNights(rg.from, rg.to), expect = wn.nights * EXPECT_PER_NIGHT;
   var used = {}, by = {}, order = [];
   function nmRow(name){
     for (var i = 0; i < order.length; i++) if (samePerson(order[i], name)) return by[order[i]];
-    order.push(name); by[name] = { name: name, assigned: 0, done: 0, other: 0, miss: [] }; return by[name];
+    order.push(name); by[name] = { name: name, submitted: 0, routed: 0, covered: 0, miss: [] }; return by[name];
   }
+  // Every active night manager in this market is on the board, even with nothing filed.
+  (STAFF || []).forEach(function(p){
+    if (String(p.role||"") !== "Night Manager") return;
+    if (String(p.active||"").toUpperCase() === "FALSE") return;
+    var m = String(p.market||""); if (m && m !== "Both" && m !== (MKT === "nnv" ? "Northern Nevada" : "Las Vegas")) return;
+    if (p.name) nmRow(String(p.name).replace(/\s+/g, " ").trim());
+  });
   stops.sort(function(a, b){ return a.report_date < b.report_date ? -1 : 1; });
-  // Match in three rounds across ALL stops, so one night manager's recap is never
+  // Match recaps to stops in rounds across ALL stops, so one night manager's recap is never
   // taken by another night manager's stop at the same building:
   //   0. the recap filed from the route card (same inspection id)
   //   1. the same night manager, same building, same date
   //   2. the same night manager, same building, the morning after (filed past midnight)
   //   3. anyone at that building, same date
   //   4. anyone at that building, the morning after
-  // Same-date matches always win, so when an FSM sends the same building two nights
-  // running, a single recap is credited to the night it was filed for.
   var hitOf = {};
   [0, 1, 2, 3, 4].forEach(function(pass){
     stops.forEach(function(s, si){
@@ -300,39 +333,41 @@ function tally(){
   });
   stops.forEach(function(s, si){
     var row = nmRow(s.nm_name || "No night manager named");
-    row.assigned++;
-    if (hitOf[si] != null || s.status === "Done") row.done++;
+    row.routed++;
+    if (hitOf[si] != null || s.status === "Done") row.covered++;
     else row.miss.push(s);
   });
-  recs.forEach(function(r, i){
-    if (used[i]) return; var d = String(r.report_date||"").slice(0,10);
+  // Submitted = every recap in the range by that night manager, on the route or not.
+  recs.forEach(function(r){
+    var d = String(r.report_date||"").slice(0,10);
     if (d < rg.from || d > rg.to) return;
-    nmRow(r.nm_name || "Name not given").other++;
+    nmRow(r.nm_name || "Name not given").submitted++;
   });
-  var list = order.map(function(k){ return by[k]; }).sort(function(a, b){ return b.assigned - a.assigned || b.other - a.other || (a.name < b.name ? -1 : 1); });
+  var list = order.map(function(k){ return by[k]; }).sort(function(a, b){ return b.submitted - a.submitted || b.routed - a.routed || (a.name < b.name ? -1 : 1); });
   var thru = rg.to === rg.end ? "" : ", counted through last night (" + niceDay(rg.to) + ")";
   var span = TALLY_R === "night" ? "last night (" + niceDay(rg.to) + ")"
     : TALLY_R === "week" ? "the week of " + niceDay(rg.from) + " to " + niceDay(rg.end) + thru
     : "the month of " + monthName(rg.from) + thru;
   var jfMsg = JF_STATE === "loading" ? " Jotform recaps are still loading, so counts may rise." : JF_STATE === "err" ? " Jotform recaps did not load, so only hub recaps are counted." : "";
-  // jf_list returns at most 400 recaps. If the range reaches back past the oldest one loaded, say so.
   var jfOld = JF_ROWS.reduce(function(m, r){ var d = String(r.report_date||"").slice(0,10); return d && (!m || d < m) ? d : m; }, "");
   if (JF_STATE === "ok" && JF_IN > JF_ROWS.length && jfOld > rg.from) jfMsg += " Only the newest " + JF_ROWS.length + " Jotform recaps loaded, so nights before " + niceDay(jfOld) + " may count low.";
-  note.textContent = (MKT === "nnv" ? "Northern Nevada. " : "Las Vegas. ") + (stops.length ? "Stops sent on the Route Out for " : "No route outs were sent for ") + span + (fsm ? " by " + fsm : "") + ". Tap a name to see the stops not covered and filter the list." + jfMsg;
+  note.textContent = (MKT === "nnv" ? "Northern Nevada, " : "Las Vegas, ") + span + (fsm ? ", FSM " + fsm : "") + ". Expected " + expect + " per night manager: " + EXPECT_PER_NIGHT + " a night over " + wn.nights + " weekday night" + (wn.nights === 1 ? "" : "s")
+    + (wn.skipped.length ? ", skipping " + wn.skipped.join(" and ") : "") + ". Routed = buildings sent on the Route Out. Tap a name to see routed stops with no recap and filter the list." + jfMsg;
   if (!list.length){ body.innerHTML = ""; return; }
-  var tA = 0, tD = 0, tO = 0, h = '<div class="hd">Night manager</div><div class="hd">Submitted of assigned</div><div class="hd r">Submitted</div>';
+  var tS = 0, tE = 0, tR = 0, tC = 0, h = '<div class="hd">Night manager</div><div class="hd">Submitted of expected</div><div class="hd r">Submitted</div>';
   list.forEach(function(x){
-    tA += x.assigned; tD += x.done; tO += x.other;
-    var pct = x.assigned ? Math.round(x.done / x.assigned * 100) : null;
+    tS += x.submitted; tE += expect; tR += x.routed; tC += x.covered;
+    var pct = expect ? Math.round(x.submitted / expect * 100) : null;
     h += '<button type="button" class="nmb' + (TALLY_OPEN === x.name ? ' on' : '') + '" data-nmk="' + esc(x.name) + '">' + esc(x.name) + '</button>'
-      + '<div class="bar' + (pct === null ? ' na' : pct < 80 ? ' lo' : '') + '" title="' + (pct === null ? 'Nothing assigned' : pct + '%') + '">' + (pct === null ? '' : '<i style="width:' + pct + '%"></i>') + '</div>'
-      + '<div class="num">' + (x.assigned ? x.done + ' of ' + x.assigned : '0 assigned') + '<small>' + (pct === null ? '' : pct + '%') + (x.other ? (pct === null ? '' : ' &middot; ') + '+' + x.other + ' other' : '') + '</small></div>';
+      + '<div class="bar' + (pct === null ? ' na' : pct < 80 ? ' lo' : '') + '" title="' + (pct === null ? 'No weekday nights in range' : pct + '%') + '">' + (pct === null ? '' : '<i style="width:' + Math.min(100, pct) + '%"></i>') + '</div>'
+      + '<div class="num">' + x.submitted + ' of ' + expect + '<small>' + (pct === null ? '' : pct + '% &middot; ') + 'routed ' + x.routed + (x.routed ? ' (' + x.covered + ' covered)' : '') + '</small></div>';
     if (TALLY_OPEN === x.name){
-      h += '<div class="miss">' + (x.miss.length ? '<b>Not covered:</b> ' + x.miss.map(function(s){ return esc(s.account_name) + ' (' + esc(niceDay(s.report_date)) + (s.fsm ? ', ' + esc(s.fsm) : '') + ')'; }).join('; ') : 'Every assigned stop has a recap.') + (x.other ? '<br>' + x.other + ' recap' + (x.other === 1 ? '' : 's') + ' filed at buildings not on the route.' : '') + '</div>';
+      h += '<div class="miss">' + (x.routed ? (x.miss.length ? '<b>Routed, no recap:</b> ' + x.miss.map(function(s){ return esc(s.account_name) + ' (' + esc(niceDay(s.report_date)) + (s.fsm ? ', ' + esc(s.fsm) : '') + ')'; }).join('; ') : 'Every routed stop has a recap.') : 'Nothing was routed to this night manager in this range.')
+        + (x.submitted > x.covered ? '<br>' + (x.submitted - x.covered) + ' recap' + (x.submitted - x.covered === 1 ? '' : 's') + ' filed at buildings not on the route.' : '') + '</div>';
     }
   });
-  var tp = tA ? Math.round(tD / tA * 100) : null;
-  h += '<div class="sep"></div><div class="nmb">All</div><div class="bar' + (tp === null ? ' na' : tp < 80 ? ' lo' : '') + '">' + (tp === null ? '' : '<i style="width:' + tp + '%"></i>') + '</div><div class="num">' + (tA ? tD + ' of ' + tA : '0') + '<small>' + (tp === null ? '' : tp + '%') + (tO ? (tp === null ? '' : ' &middot; ') + '+' + tO + ' other' : '') + '</small></div>';
+  var tp = tE ? Math.round(tS / tE * 100) : null;
+  h += '<div class="sep"></div><div class="nmb">All</div><div class="bar' + (tp === null ? ' na' : tp < 80 ? ' lo' : '') + '">' + (tp === null ? '' : '<i style="width:' + Math.min(100, tp) + '%"></i>') + '</div><div class="num">' + tS + ' of ' + tE + '<small>' + (tp === null ? '' : tp + '% &middot; ') + 'routed ' + tR + (tR ? ' (' + tC + ' covered)' : '') + '</small></div>';
   body.innerHTML = h;
   Array.prototype.forEach.call(body.querySelectorAll("[data-nmk]"), function(b){ b.addEventListener("click", function(){
     var k = b.getAttribute("data-nmk"); TALLY_OPEN = TALLY_OPEN === k ? "" : k;
@@ -370,7 +405,7 @@ function render(){
       + '<div class="score' + (sc===null ? ' na' : sc < 8 ? ' low' : '') + '">' + (sc===null ? 'no<br>score' : sc + '<small>of 10</small>') + '</div>'
       + '<div class="main"><b>' + esc(r.account_name) + '</b><div class="meta">' + esc(r.nm_name) + ' &middot; ' + esc(r.reason) + (r.vendor_name ? ' &middot; ' + esc(r.vendor_name) : '') + (r.arrival ? ' &middot; ' + esc(clock(r.arrival)) + (r.departure ? ' to ' + esc(clock(r.departure)) : '') : '') + (r.fsm ? ' &middot; FSM ' + esc(r.fsm) : '') + (r._src === "jotform" ? ' <span class="flag src">Jotform</span>' : '') + '</div>'
       + (flags ? '<div class="flags">' + flags + '</div>' : '') + '</div>'
-      + '<div class="links">' + (r._src === "jotform" ? '<a href="form-view.html?f=' + esc(r._slug) + '&raw=1#' + encodeURIComponent(r._jf ? r._jf.id : '') + '">Jotform</a>' : '') + (r.pdf_url ? '<a class="pdf" href="' + esc(r.pdf_url) + '" target="_blank" rel="noopener">PDF</a>' : '') + (photos.length && r._src !== "jotform" ? '<a href="' + esc(r.photo_folder_url || photos[0]) + '" target="_blank" rel="noopener">' + photos.length + ' photo' + (photos.length>1?'s':'') + '</a>' : '') + '</div>'
+      + '<div class="links">' + (r._src === "jotform" ? '<a href="form-view.html?f=' + esc(r._slug) + '&raw=1#' + encodeURIComponent(r._jf ? r._jf.id : '') + '">Jotform</a>' : '') + (r.pdf_url ? '<a class="pdf" href="' + esc(r.pdf_url) + '" target="_blank" rel="noopener">PDF</a>' : '') + (r._src !== "jotform" && r.inspection_id ? '<a class="edit" href="night-inspection-edit.html?id=' + encodeURIComponent(r.inspection_id) + '">Edit this record</a>' : '') + (photos.length && r._src !== "jotform" ? '<a href="' + esc(r.photo_folder_url || photos[0]) + '" target="_blank" rel="noopener">' + photos.length + ' photo' + (photos.length>1?'s':'') + '</a>' : '') + '</div>'
       + '</div><div class="det">' + (r._src === "jotform" ? detailJf(r, photos) : detail(r, photos)) + '</div></div>';
   });
   $("list").innerHTML = html;

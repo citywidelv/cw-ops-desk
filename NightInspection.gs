@@ -680,6 +680,16 @@ var NI_EDITABLE = [
   'standards', 'standards_failed', 'standards_met', 'route_answers'
 ];
 
+// Sheets turns typed text into cells: "08:10" becomes a time (reads back as
+// "1899-12-30 08:10"), "12/14" standards met becomes a date. Put them back the
+// way the night manager typed them before they are shown or printed again.
+function niTidy_(r) {
+  ['arrival', 'departure'].forEach(function (k) { var m = String(r[k] || '').match(/^1899-12-\d{2} (\d{2}:\d{2})$/); if (m) r[k] = m[1]; });
+  var d = String(r.report_date || '').match(/^(\d{4}-\d{2}-\d{2}) 00:00$/); if (d) r.report_date = d[1];
+  var s = String(r.standards_met || '').match(/^\d{4}-(\d{2})-(\d{2}) 00:00$/); if (s) r.standards_met = String(Number(s[1])) + '/' + String(Number(s[2]));
+  return r;
+}
+
 function niFindRow_(sh, head, id) {
   var c = head.indexOf('inspection_id');
   var last = sh.getLastRow();
@@ -741,6 +751,7 @@ function niGet_(data) {
   var vals = sh.getRange(at, 1, 1, head.length).getValues()[0];
   var row = {};
   head.forEach(function (h, j) { if (h) row[h] = (h === 'device') ? '' : niStr_(vals[j]); });
+  niTidy_(row);
   var out = niPickers_(niMarket_(row.market));
   out.ok = true; out.row = row; out.editable = NI_EDITABLE; out.reasons = NI_REASONS; out.low_score = NI_LOW_SCORE;
   return niOut_(out);
@@ -788,6 +799,7 @@ function niEdit_(data) {
     var raw = sh.getRange(at, 1, 1, head.length).getValues()[0];
     var cur = {};
     head.forEach(function (h, j) { if (h) cur[h] = niStr_(raw[j]); });
+    niTidy_(cur);
 
     var stale = keys.filter(function (k) { return niStr_(changes[k].old) !== (cur[k] || ''); });
     if (stale.length) return niOut_({ ok: false, conflict: true, error: 'This recap changed after you opened it (' + stale.join(', ') + '). Reload the page and make your change again.' });
