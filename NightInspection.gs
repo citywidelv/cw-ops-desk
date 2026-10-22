@@ -220,7 +220,7 @@ function niContext_(data) {
   var mkt = niMarket_(data.market);
   var region = NI_MARKETS[mkt];
   var out = { ok: true, market: mkt, region: region, today: Utilities.formatDate(new Date(), NI_TZ, 'yyyy-MM-dd'),
-    accounts: [], vendors: [], night_managers: [], fsms: [], last_vendor: {}, prior_complaints: {}, roster: {}, warnings: [] };
+    accounts: [], vendors: [], night_managers: [], fsms: [], last_vendor: {}, prior_complaints: {}, roster: {}, vendor_roster: {}, warnings: [] };
 
   try {
     actAccountRows_(actSS_()).forEach(function (r) {
@@ -260,6 +260,25 @@ function niContext_(data) {
     out.fsms.sort(function (a, b) { if (a.in_market !== b.in_market) return a.in_market ? -1 : 1; return a.name < b.name ? -1 : 1; });
   } catch (e) { out.warnings.push('staff: ' + e.message); }
 
+  // Oct 21 2026: names attached to the cleaning company itself, so the crew step
+  // can list who that vendor has turned in to us once the vendor is picked, not
+  // only who was seen at this building before. Keyed by vendor_id and by
+  // lowercase DBA. Each entry is {n, bc}; bc is 'Cleared', 'Pending' or '' (no
+  // background check on file). Sources: the Vendor Directory background check
+  // tabs, the Account Cleaner Tracker roster by company, and prior recaps.
+  var vrAdd = function (key, name, bc) {
+    key = String(key || '').trim(); name = String(name || '').replace(/\s+/g, ' ').trim();
+    if (!key || name.length < 2) return;
+    var list = out.vendor_roster[key] || (out.vendor_roster[key] = []);
+    var low = name.toLowerCase(), hit = null;
+    list.some(function (x) { if (x.n.toLowerCase() === low) { hit = x; return true; } return false; });
+    if (hit) { if (bc === 'Cleared' || (bc === 'Pending' && !hit.bc)) hit.bc = bc; return; }
+    list.push({ n: name, bc: bc || '' });
+  };
+  var vrBoth = function (id, dba, name, bc) { if (id) vrAdd(id, name, bc); if (dba) vrAdd(String(dba).toLowerCase(), name, bc); };
+  var vrIdByName = {}, vrDbaById = {};
+  out.vendors.forEach(function (v) { vrIdByName[v.dba.toLowerCase()] = v.id; vrDbaById[v.id] = v.dba; });
+
   try {
     var isheet = niTab_(niSS_());
     var head = niHead_(isheet);
@@ -275,7 +294,7 @@ function niContext_(data) {
         var key = niStr_(vals[k][cA]) || niStr_(vals[k][cAN]).toLowerCase();
         if (!key) continue;
         if (!out.last_vendor[key] && niStr_(vals[k][cV])) out.last_vendor[key] = { id: niStr_(vals[k][cVI]), dba: niStr_(vals[k][cV]), owner: niStr_(vals[k][cVO]) };
-        if (cCN >= 0 && niStr_(vals[k][cCN])) niStr_(vals[k][cCN]).split('\n').forEach(function (n) { niRosterAdd_(out.roster, key, n); if (cAN >= 0) niRosterAdd_(out.roster, niStr_(vals[k][cAN]).toLowerCase(), n); });
+        if (cCN >= 0 && niStr_(vals[k][cCN])) niStr_(vals[k][cCN]).split('\n').forEach(function (n) { niRosterAdd_(out.roster, key, n); if (cAN >= 0) niRosterAdd_(out.roster, niStr_(vals[k][cAN]).toLowerCase(), n); vrBoth(niStr_(vals[k][cVI]), niStr_(vals[k][cV]), n, ''); });
         // Past complaints and failed standards at this building in the last 90 days feed a checklist line.
         var when = vals[k][cSub] instanceof Date ? vals[k][cSub].getTime() : Date.parse(niStr_(vals[k][cSub]).replace(' ', 'T'));
         if (isNaN(when)) when = Date.now();   // unreadable stamp: treat as recent rather than drop it
@@ -305,6 +324,40 @@ function niContext_(data) {
       });
     }
   } catch (e) { out.warnings.push('roster: ' + e.message); }
+
+  // Cleaner Tracker roster by company (the names vendors turned in on the roster form).
+  try {
+    if (typeof acRows_ === 'function') {
+      var rh2 = AC_ROS_HEAD, g2 = function (x, f) { return Array.isArray(x) ? x[rh2.indexOf(f)] : x[f]; };
+      acRows_(AC_ROS, AC_ROS_HEAD).forEach(function (x) {
+        if (/removed/i.test(String(g2(x, 'status') || ''))) return;
+        var n = (String(g2(x, 'cleaner_first') || '') + ' ' + String(g2(x, 'cleaner_last') || '')).trim();
+        var co = String(g2(x, 'company_matched') || '').trim();
+        if (!n || !co) return;
+        vrBoth(vrIdByName[co.toLowerCase()] || '', co, n, '');
+      });
+    }
+  } catch (e) { out.warnings.push('vendor_roster_ac: ' + e.message); }
+
+  // Background check tabs: everyone turned in for a check, cleared or pending.
+  // Removed people and anyone who did not clear never reach the page.
+  try {
+    var vss = vdSS_();
+    VD_BC_TABS.forEach(function (b) {
+      var sh = vss.getSheetByName(b.name);
+      if (!sh) return;
+      vdRows_(sh).rows.forEach(function (r) {
+        var name = [vdStr_(r.first_name), vdStr_(r.last_name)].filter(String).join(' ');
+        if (!name) return;
+        var st = vdStr_(r.status), res = vdBcRes_(r.result);
+        if (st === 'Removed' || res === 'Not clear') return;
+        var id = vdStr_(r.vendor_id) || vrIdByName[vdStr_(r.vendor).toLowerCase()] || '';
+        var dba = vrDbaById[id] || vdStr_(r.vendor);
+        if (!id && !dba) return;
+        vrBoth(id, dba, name, (st === 'Pending' || res === 'Pending') ? 'Pending' : 'Cleared');
+      });
+    });
+  } catch (e) { out.warnings.push('vendor_roster_bc: ' + e.message); }
 
   // Tonight's route from the FSMs, plus every standing per-building checklist.
   // The page filters the stops once the night manager picks their name. A

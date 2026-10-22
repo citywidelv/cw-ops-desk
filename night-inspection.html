@@ -51,6 +51,8 @@ textarea.big{min-height:200px}
 .tick{display:flex;align-items:flex-start;gap:12px;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff;margin-bottom:8px;cursor:pointer;font-size:15px;line-height:1.4;font-weight:400}
 .tick input{width:24px;height:24px;flex:none;margin-top:1px;accent-color:var(--red)}
 .tick.on{border-color:var(--red);background:#fdf3f3}
+.tick .bctag{font-size:12px;color:var(--grey);font-weight:400;margin-left:6px;white-space:nowrap}
+.crewhead{font-size:13px;color:var(--grey);margin:10px 0 6px}
 .who{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .who .name{font-size:18px;font-weight:700}
 .linkbtn{background:none;border:0;color:var(--red);font-weight:700;font-size:14px;text-decoration:underline;cursor:pointer;font-family:inherit;padding:10px 6px;min-height:44px}
@@ -625,7 +627,7 @@ chipGroup("mktChips", "data-m", function(){ return S.market; }, function(v){
 function setMarket(v){
   S.market = v; ls(function(){ localStorage.setItem(MKT_KEY, v); });
   paintChips("mktChips", "data-m", S.market);
-  if (CTX){ CTX = { ok:true, region:CTX.region, accounts:[], vendors:[], night_managers:CTX.night_managers||[], fsms:CTX.fsms||[], last_vendor:{}, prior_complaints:{}, roster:{}, account_checks:{} }; }
+  if (CTX){ CTX = { ok:true, region:CTX.region, accounts:[], vendors:[], night_managers:CTX.night_managers||[], fsms:CTX.fsms||[], last_vendor:{}, prior_complaints:{}, roster:{}, vendor_roster:{}, account_checks:{} }; }
   ACC = []; VEN = [];
   pickAccount(null); pickVendor(null); loadCtx(true);
 }
@@ -684,10 +686,10 @@ function pickAccount(a){
   save();
 }
 function pickVendor(v){
-  if (!v){ S.vendor_id=""; S.vendor_name=""; S.vendor_owner=""; S.vendor_matched=false; show("vendPicked", false); show("vendPick", true); $("vendQ").value=""; $("vendHint").textContent=""; save(); return; }
+  if (!v){ S.vendor_id=""; S.vendor_name=""; S.vendor_owner=""; S.vendor_matched=false; show("vendPicked", false); show("vendPick", true); $("vendQ").value=""; $("vendHint").textContent=""; CREW_ALL=false; paintCrewNames(); save(); return; }
   S.vendor_id = v.id||""; S.vendor_name = v.dba; S.vendor_owner = v.owner||""; S.vendor_matched = v.matched!==undefined ? !!v.matched : true;
   $("vendName").innerHTML = esc(v.label) + (S.vendor_matched ? '' : '<small>Typed by hand. The office will add it.</small>');
-  show("vendPicked", true); show("vendPick", false); save();
+  show("vendPicked", true); show("vendPick", false); CREW_ALL=false; paintCrewNames(); save();
 }
 $("acctChange").addEventListener("click", function(){ pickAccount(null); setTimeout(function(){ $("acctQ").focus(); }, 50); });
 $("vendChange").addEventListener("click", function(){ pickVendor(null); setTimeout(function(){ $("vendQ").focus(); }, 50); });
@@ -1283,22 +1285,52 @@ function askAnswers(){
 }
 
 /* ---------- crew names ---------- */
+// Two lists feed the tick boxes once the building and the cleaning company are
+// picked: names seen at this building before (CTX.roster, by account) and names
+// the cleaning company itself has turned in to us (CTX.vendor_roster: background
+// checks on file, the cleaner roster, prior recaps with that company). Anyone
+// not on either list is typed under "Anyone new?".
+var CREW_ALL = false;
 function siteRoster(){
   if (!CTX || !CTX.roster) return [];
   return CTX.roster[S.account_id] || CTX.roster[String(S.account_name||"").toLowerCase()] || [];
 }
+function vendorRoster(){
+  if (!CTX || !CTX.vendor_roster) return [];
+  var vr = CTX.vendor_roster;
+  return (S.vendor_id && vr[S.vendor_id]) || vr[String(S.vendor_name||"").toLowerCase()] || [];
+}
 function paintCrewNames(){
-  var known = siteRoster();
-  if (known.length){
-    $("crewTitle").textContent = "The names we have for cleaners at this site are below. Tick who you saw.";
-    $("crewSub").textContent = "Not on the list? Add them under it. Ask for first and last name.";
-    $("crewKnown").innerHTML = known.map(function(n){ var on = S.crew_known.indexOf(n)>=0; return '<label class="tick'+(on?' on':'')+'"><input type="checkbox" data-kn="'+esc(n)+'"'+(on?' checked':'')+'><span>'+esc(n)+'</span></label>'; }).join("");
+  var site = siteRoster().slice();
+  var low = site.map(function(n){ return n.toLowerCase(); });
+  var vend = vendorRoster().filter(function(x){ return low.indexOf(x.n.toLowerCase())<0; });
+  var vlow = vend.map(function(x){ return x.n.toLowerCase(); });
+  // a name ticked earlier that is on neither list now (vendor changed, roster changed) stays visible so it is not lost
+  var extra = S.crew_known.filter(function(n){ var l=n.toLowerCase(); return low.indexOf(l)<0 && vlow.indexOf(l)<0; });
+  var vname = S.vendor_name || "the cleaning company";
+  var tick = function(n, tag){ var on = S.crew_known.indexOf(n)>=0; return '<label class="tick'+(on?' on':'')+'"><input type="checkbox" data-kn="'+esc(n)+'"'+(on?' checked':'')+'><span>'+esc(n)+(tag?'<small class="bctag">'+esc(tag)+'</small>':'')+'</span></label>'; };
+  var html = "";
+  if (site.length || extra.length){
+    html += '<div class="crewhead">Cleaners we have at this building. Tick who you saw.</div>' + site.concat(extra).map(function(n){ return tick(n, ""); }).join("");
+  }
+  if (vend.length){
+    var all = CREW_ALL || vend.length <= 12;
+    var shown = all ? vend : vend.slice(0, 12);
+    html += '<div class="crewhead">' + (site.length ? 'Other names ' : 'Names ') + esc(vname) + ' has turned in to us. Tick who you saw.</div>'
+      + shown.map(function(x){ return tick(x.n, x.bc==="Pending" ? "check pending" : ""); }).join("")
+      + (all ? "" : '<button class="linkbtn" type="button" id="crewMore">Show all ' + vend.length + ' names</button>');
+  }
+  if (html){
+    $("crewTitle").textContent = "Who was on the crew tonight?";
+    $("crewSub").textContent = "Tick the names below. Not on the list? Add them at the bottom. Ask for first and last name.";
+    $("crewKnown").innerHTML = html;
     Array.prototype.forEach.call($("crewKnown").querySelectorAll("input"), function(c){ c.addEventListener("change", function(){ var n=c.getAttribute("data-kn"); S.crew_known = S.crew_known.filter(function(x){ return x!==n; }); if (c.checked) S.crew_known.push(n); c.closest(".tick").classList.toggle("on", c.checked); save(); }); });
+    var more = $("crewMore"); if (more) more.addEventListener("click", function(){ CREW_ALL = true; paintCrewNames(); });
     $("crewNewL").textContent = "Anyone new? Add their name."; show("crewNewL", true);
     if (!S.crew_names.length) S.crew_names = [""];
   } else {
     $("crewTitle").textContent = "Who was on the crew? Ask their names.";
-    $("crewSub").textContent = "First inspection here. Add every name you can get. First and last name.";
+    $("crewSub").textContent = (S.vendor_name ? "No names on file yet for " + S.vendor_name + " here. " : "First inspection here. ") + "Add every name you can get. First and last name.";
     $("crewKnown").innerHTML = ""; show("crewNewL", false);
     if (!S.crew_names.length) S.crew_names = [""];
   }
