@@ -1,7 +1,7 @@
 /* nav.js for the Ops Hub. Seeded from the page menu on 2026-09-13 by Claude.
    The Site Admin hub (cw-admin-hub/site-admin.html) republishes this file; do not edit by hand.
    The page keeps its own MENU as a fallback if this file is missing or malformed.
-   Edited by hand 2026-10-22 (Work Tickets > Handyman Work Orders and Handyman Order Form hidden, nothing deleted), 2026-10-20 (Accounts & Buildings > Account Changes hidden, nothing deleted), 2026-10-15 (Work Tickets > Tickets to Bill) and 2026-09-25 (menu cleanup: one home per tool, short labels with tag chips; Opportunities promoted, Work Tickets under Accounts): before the next Site Admin publish, click Import live menu. */
+   Edited by hand 2026-10-22b (Accounts & Buildings > Client Hubs: Ovation Hub, Ovation Review Queue), 2026-10-22 (Work Tickets > Handyman Work Orders and Handyman Order Form hidden, nothing deleted), 2026-10-20 (Accounts & Buildings > Account Changes hidden, nothing deleted), 2026-10-15 (Work Tickets > Tickets to Bill) and 2026-09-25 (menu cleanup: one home per tool, short labels with tag chips; Opportunities promoted, Work Tickets under Accounts): before the next Site Admin publish, click Import live menu. */
 window.CW_NAV = {
  "hub": "ops",
  "label": "Ops Hub",
@@ -303,6 +303,21 @@ window.CW_NAV = {
        "label": "COI Request Log",
        "href": "https://citywidelv.github.io/cw-admin-hub/coi-log.html",
        "tag": "Admin"
+      }
+     ]
+    },
+    {
+     "sub": "Client Hubs",
+     "items": [
+      {
+       "label": "Ovation Hub",
+       "href": "https://citywidelv.github.io/ovation-hub/",
+       "tag": "Client"
+      },
+      {
+       "label": "Ovation Review Queue",
+       "href": "https://citywidelv.github.io/ovation-hub/review.html",
+       "tag": "Queue"
       }
      ]
     },

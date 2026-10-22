@@ -6,6 +6,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
 <!-- build 2026-10-18-alerts: Alerts card redesigned. Six tiles (All alerts, Work tickets, Property supplies, Vendor supplies, Opportunity responses, Requests and reports), Mine / See all, No FSM matched always at the bottom. One row per work ticket with the supplies strip (YES with cost and receipt count, or NO) and a View full ticket PDF button (PDF Link column written by the Work Tickets script, per-ticket items from WorkTicketsHub.gs wtAlertItems_; the old rolled-up "N work tickets to bill" line still renders until that deploys). Work ticket reassigns post wt_assign. Same alerts_list / alerts_set / alerts_assign payloads. -->
+<!-- build 2026-10-22-ovation: Accounts & Buildings > Client Hubs cascade (Ovation Hub at /ovation-hub/, its own passcode for Ovation staff and porters; Ovation Review Queue, team passcode). Backend Ovation.gs, ov_ kinds. -->
 <!-- build 2026-10-15-queue: Work tickets billing queue (work-tickets.html, WorkTicketsHub.gs wt_ kinds). The Alerts card shows one "N work tickets to bill" line per FSM (type ticket, no status buttons, Mark all skips it) linking to the queue; menu Accounts & Buildings > Work Tickets > Tickets to Bill. -->
 <!-- build 2026-09-25-menus: Jotform submissions on the hub. Every Jotform still in use syncs to a Google Sheet on the company Google account; forms.html lists them with counts and form-view.html?f=<slug> shows one form. Menu: Team & Admin > Form Submissions cascade, Jotform hub views under Night Ops > Night Manager Inspection and Work Tickets (CCCNV, Handyman). Alerts card gained client work requests (type workreq, CCCNV) and the workdone / review types, all read from the Feeds tab of CW Jotform Feeds (JotformFeeds.gs, kinds jf_*).
 build 2026-09-24: Ops asked for the Exhibit A request link back, so Vendors now carries an Exhibit A cascade (Create an Exhibit A, Request an Exhibit A Asana form, the Exhibit A Requests board) and the quick row has the Exhibit A Request chip again. Vendor Evaluation Form now points at the native Vendor Hub page (the Jotform never fed the directory). Nav: any tall dropdown lists its section headings as side cascades and every panel is kept on screen by CWNav.place (flip left, shift up, scroll).
@@ -1122,6 +1123,21 @@ var MENU = [
       "label": "COI Request Log",
       "href": "https://citywidelv.github.io/cw-admin-hub/coi-log.html",
       "tag": "Admin"
+     }
+    ]
+   },
+   {
+    "sub": "Client Hubs",
+    "items": [
+     {
+      "label": "Ovation Hub",
+      "href": "https://citywidelv.github.io/ovation-hub/",
+      "tag": "Client"
+     },
+     {
+      "label": "Ovation Review Queue",
+      "href": "https://citywidelv.github.io/ovation-hub/review.html",
+      "tag": "Queue"
      }
     ]
    },
