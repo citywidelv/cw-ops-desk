@@ -217,7 +217,7 @@ function ovRows_(sh, headers) {
     var o = { _row: i + 2 };
     for (var c = 0; c < headers.length; c++) {
       var val = v[i][c];
-      if (val instanceof Date) val = val.toISOString();
+      if (val instanceof Date) val = ovCell_(headers[c], val);
       o[headers[c]] = val;
     }
     rows.push(o);
@@ -230,6 +230,11 @@ function ovFindRow_(sh, id) {
   var ids = sh.getRange(2, 1, last - 1, 1).getValues();
   for (var i = 0; i < ids.length; i++) if (String(ids[i][0]) === id) return i + 2;
   return 0;
+}
+// Sheets turns a yyyy-mm-dd string into a Date; hand dates back as the day, not an instant.
+function ovCell_(header, d) {
+  if (header === 'service_date') return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  return d.toISOString();
 }
 function ovConfig_() {
   var sh = ovConfigTab_();
@@ -399,7 +404,7 @@ function ovGet_(d) {
   if (!r) return ovOut_({ ok: false, error: 'Not found' });
   var rowVals = sh.getRange(r, 1, 1, headers.length).getValues()[0];
   var index = {};
-  headers.forEach(function (h, i) { var v = rowVals[i]; index[h] = v instanceof Date ? v.toISOString() : v; });
+  headers.forEach(function (h, i) { var v = rowVals[i]; index[h] = v instanceof Date ? ovCell_(h, v) : v; });
   var fileId = String(index.json_file || '');
   if (!fileId) return ovOut_({ ok: false, error: 'No saved data' });
   var doc = JSON.parse(DriveApp.getFileById(fileId).getBlob().getDataAsString());
@@ -467,7 +472,7 @@ function ovPdfPut_(d) {
   var type = ovTypeOf_(id);
   if (!type) return ovOut_({ ok: false, error: 'Bad id' });
   var data = String(d.data || '');
-  var m = data.match(/^data:application\/pdf;base64,(.+)$/);
+  var m = data.match(/^data:application\/pdf;(?:[^,]*;)?base64,(.+)$/);
   if (!m) return ovOut_({ ok: false, error: 'Expected a base64 PDF' });
   var bytes = Utilities.base64Decode(m[1]);
   if (bytes.length > 24000000) return ovOut_({ ok: false, error: 'PDF too large to email (24 MB cap)' });
@@ -505,7 +510,7 @@ function ovSend_(d) {
   var pdfId = String(sh.getRange(r, headers.indexOf('pdf_file') + 1).getValue() || '');
   var blob = null;
   if (d.pdf) {
-    var m = String(d.pdf).match(/^data:application\/pdf;base64,(.+)$/);
+    var m = String(d.pdf).match(/^data:application\/pdf;(?:[^,]*;)?base64,(.+)$/);
     if (m) {
       var put = JSON.parse(ovPdfPut_({ id: id, data: d.pdf, filename: d.filename }).getContent());
       if (!put.ok) return ovOut_({ ok: false, error: put.error });
