@@ -7,10 +7,16 @@
  * passcode. The FSM review queue (review.html) is team-passcode only.
  *
  * Routed from doPost: kinds starting ov_ come here.
- *   Client kinds (Ovation passcode OR team passcode):
+ *   Client kinds (Ovation passcode only, script property OV_PASSCODE; the team passcode does
+ *   NOT open the client side, per TJ Oct 22 2026):
  *     ov_auth          -> passcode check for the hub gate
  *     ov_submit        -> save one report (observation / work request) or one porter checklist
  *     ov_photo_put     -> store one photo (JPEG, base64) for a submission
+ *     ov_feed          -> porter view of Ovation reports and requests, anonymised (no name, role, phone, email, City Wide notes)
+ *     ov_feed_get      -> one report, anonymised, with its photo file ids
+ *     ov_feed_photo    -> one report photo (file must sit in the Reports and Requests folder)
+ *     ov_library       -> porter view of submitted checklists (index only, no City Wide notes)
+ *     ov_pdf_get       -> the FSM-built PDF for one checklist, base64, so the porter library can open it
  *   Team kinds (team passcode only):
  *     ov_list          -> index rows for the review queue (type: report | checklist)
  *     ov_get           -> one submission, full JSON, plus its photo file ids
@@ -115,7 +121,7 @@ function ovIsTeam_(d) { var t = ovTeamPass_(); return !!t && String(d.passcode |
 function ovIsClient_(d) {
   var c = ovClientPass_();
   if (!c) return false;
-  return String(d.passcode || '') === c || ovIsTeam_(d);
+  return String(d.passcode || '') === c;
 }
 
 function ovDispatch(d) {
@@ -123,9 +129,9 @@ function ovDispatch(d) {
   try {
     if (kind === 'ov_auth') {
       if (!ovClientPass_()) return ovOut_({ ok: false, error: 'The Ovation Hub passcode has not been set yet. Ask City Wide.' });
-      return ovIsClient_(d) ? ovOut_({ ok: true, hub: 'ovation', team: ovIsTeam_(d) }) : ovOut_({ ok: false, error: 'Wrong passcode' });
+      return ovIsClient_(d) ? ovOut_({ ok: true, hub: 'ovation' }) : ovOut_({ ok: false, error: 'Wrong passcode' });
     }
-    var client = ['ov_submit', 'ov_photo_put'];
+    var client = ['ov_submit', 'ov_photo_put', 'ov_feed', 'ov_feed_get', 'ov_feed_photo', 'ov_library', 'ov_pdf_get'];
     if (client.indexOf(kind) >= 0) {
       if (!ovIsClient_(d)) return ovOut_({ ok: false, error: 'Bad passcode' });
     } else {
@@ -133,6 +139,11 @@ function ovDispatch(d) {
     }
     if (kind === 'ov_submit') return ovSubmit_(d);
     if (kind === 'ov_photo_put') return ovPhotoPut_(d);
+    if (kind === 'ov_feed') return ovFeed_(d);
+    if (kind === 'ov_feed_get') return ovFeedGet_(d);
+    if (kind === 'ov_feed_photo') return ovFeedPhoto_(d);
+    if (kind === 'ov_library') return ovLibrary_(d);
+    if (kind === 'ov_pdf_get') return ovPdfGet_(d);
     if (kind === 'ov_list') return ovList_(d);
     if (kind === 'ov_get') return ovGet_(d);
     if (kind === 'ov_photo_get') return ovPhotoGet_(d);
@@ -574,6 +585,86 @@ function ovPropertySet_(d) {
     if (d[k] !== undefined) sh.getRange(r, OV_PROP_HEADERS.indexOf(k) + 1).setValue(ovStr_(d[k], 300));
   });
   return ovOut_({ ok: true, property: name });
+}
+
+// ------------------------------------------------- porter-facing views --
+// Porters see what Ovation staff asked for, never who asked. Contact details and
+// City Wide's internal notes stay on the team side.
+var OV_FEED_COLS = ['id', 'created_at', 'property', 'mode', 'category', 'subcategory', 'urgency', 'summary', 'status', 'photos', 'updated_at'];
+function ovAnonDoc_(doc) {
+  var out = {};
+  ['id', 'created_at', 'property', 'mode', 'category', 'subcategory', 'urgency', 'location', 'summary', 'notes', 'hazard_notes', 'status', 'response', 'photos', 'reviewed_at'].forEach(function (k) { if (doc[k] !== undefined) out[k] = doc[k]; });
+  out.answers = (doc.answers || []).filter(function (a) { return a && a.id !== 'approver'; });
+  return out;
+}
+function ovFeed_(d) {
+  var sh = ovReports_();
+  var rows = ovRows_(sh, OV_REPORT_HEADERS);
+  var property = String(d.property || '');
+  var since = Date.now() - 1000 * 60 * 60 * 24 * (Number(d.days) || 60);
+  rows = rows.filter(function (r) {
+    if (property && String(r.property) !== property) return false;
+    var t = Date.parse(String(r.created_at || ''));
+    return !t || t >= since;
+  });
+  rows.sort(function (a, b) { return String(b.created_at).localeCompare(String(a.created_at)); });
+  var out = rows.slice(0, Number(d.limit) || 150).map(function (r) { var o = {}; OV_FEED_COLS.forEach(function (k) { o[k] = r[k]; }); return o; });
+  return ovOut_({ ok: true, rows: out });
+}
+function ovFeedGet_(d) {
+  var id = String(d.id || '');
+  if (ovTypeOf_(id) !== 'report') return ovOut_({ ok: false, error: 'Bad id' });
+  var sh = ovReports_();
+  var r = ovFindRow_(sh, id);
+  if (!r) return ovOut_({ ok: false, error: 'Not found' });
+  var fileId = String(sh.getRange(r, OV_REPORT_HEADERS.indexOf('json_file') + 1).getValue() || '');
+  if (!fileId) return ovOut_({ ok: false, error: 'No saved data' });
+  var doc = JSON.parse(DriveApp.getFileById(fileId).getBlob().getDataAsString());
+  doc.status = String(sh.getRange(r, OV_REPORT_HEADERS.indexOf('status') + 1).getValue() || doc.status || 'New');
+  var files = {};
+  try {
+    var it = ovFolderFor_('report').searchFiles("title contains '" + id + "_ph_' and trashed = false");
+    while (it.hasNext()) { var f = it.next(); var mm = f.getName().match(/_(ph_[\w-]+)\.jpg$/); if (mm) files[mm[1]] = f.getId(); }
+  } catch (e) {}
+  return ovOut_({ ok: true, doc: ovAnonDoc_(doc), photo_files: files });
+}
+function ovFeedPhoto_(d) {
+  var fileId = String(d.fileId || '');
+  if (!fileId) return ovOut_({ ok: false, error: 'Missing fileId' });
+  var file;
+  try { file = DriveApp.getFileById(fileId); } catch (e) { return ovOut_({ ok: false, error: 'Photo not found' }); }
+  if (!file || file.isTrashed() || !/_ph_[\w-]+\.jpg$/.test(file.getName())) return ovOut_({ ok: false, error: 'Photo not found' });
+  // Only photos filed under Reports and Requests leave through this door.
+  var ok = false, reportsId = ovFolderFor_('report').getId();
+  var parents = file.getParents();
+  while (parents.hasNext()) { if (parents.next().getId() === reportsId) ok = true; }
+  if (!ok) return ovOut_({ ok: false, error: 'Photo not found' });
+  return ovOut_({ ok: true, fileId: fileId, data: 'data:image/jpeg;base64,' + Utilities.base64Encode(file.getBlob().getBytes()) });
+}
+var OV_LIB_COLS = ['id', 'created_at', 'service_date', 'weekday', 'property', 'porter', 'areas_done', 'areas_na', 'tasks_checked', 'tasks_total', 'photos', 'status', 'sent_at'];
+function ovLibrary_(d) {
+  var sh = ovChecks_();
+  var rows = ovRows_(sh, OV_CHECK_HEADERS);
+  var property = String(d.property || '');
+  if (property) rows = rows.filter(function (r) { return String(r.property) === property; });
+  rows.sort(function (a, b) { return String(b.service_date + b.created_at).localeCompare(String(a.service_date + a.created_at)); });
+  var out = rows.slice(0, Number(d.limit) || 200).map(function (r) { var o = {}; OV_LIB_COLS.forEach(function (k) { o[k] = r[k]; }); o.has_pdf = !!r.pdf_file; return o; });
+  return ovOut_({ ok: true, rows: out });
+}
+function ovPdfGet_(d) {
+  var id = String(d.id || '');
+  var type = ovTypeOf_(id);
+  if (!type) return ovOut_({ ok: false, error: 'Bad id' });
+  var sh = ovSheetFor_(type), headers = ovHeadersFor_(type);
+  var r = ovFindRow_(sh, id);
+  if (!r) return ovOut_({ ok: false, error: 'Not found' });
+  var pdfId = String(sh.getRange(r, headers.indexOf('pdf_file') + 1).getValue() || '');
+  if (!pdfId) return ovOut_({ ok: false, error: 'No PDF yet. City Wide has not built it.' });
+  var file;
+  try { file = DriveApp.getFileById(pdfId); } catch (e) { return ovOut_({ ok: false, error: 'PDF not found' }); }
+  if (!file || file.isTrashed()) return ovOut_({ ok: false, error: 'PDF not found' });
+  var bytes = file.getBlob().getBytes();
+  return ovOut_({ ok: true, name: file.getName(), size: bytes.length, data: 'data:application/pdf;base64,' + Utilities.base64Encode(bytes) });
 }
 
 // --------------------------------------------------------------- notify --
