@@ -29,6 +29,14 @@
  *     ov_config        -> read the Config tab
  *     ov_digest_list   -> everything not yet sent to a property (checklists + reports), for digest.html
  *     ov_digest_send   -> one property's weekly digest: HTML email + one PDF per item, marks each Sent
+ *     ov_mgr_setpass   -> sets script property OV_MGR_PASSCODE (team passcode only)
+ *   Manager kinds (Manager Desk passcode OV_MGR_PASSCODE, or the team passcode; Oct 23 2026):
+ *     ov_mgr_auth      -> passcode check for manager.html
+ *     ov_mgr_list      -> checklists + reports, every status, Ovation contacts stripped
+ *     ov_mgr_get       -> one item, contacts stripped
+ *     ov_mgr_photo     -> one photo (file must sit in an Ovation folder)
+ *     ov_mgr_approve   -> approve a porter checklist (status Reviewed, clears the Alerts card)
+ *     ov_mgr_request   -> porter supplies or building supplies request (saved as a report, emails ops)
  *
  * Oct 23 2026 (TJ): everything submitted on the hub reaches the FSM.
  *   - Every New checklist and every New report is an item on the Ops Hub Alerts card
@@ -58,6 +66,7 @@
 var OV_SHEET_PROP = 'OVATION_SHEET_ID';
 var OV_FOLDER_PROP = 'OVATION_FOLDER_ID';
 var OV_PASS_PROP = 'OV_PASSCODE';
+var OV_MGR_PASS_PROP = 'OV_MGR_PASSCODE';   // Oct 23 2026: Manager Desk (the porter vendor's site manager). Its own tier: not the client code, not the team code.
 var OV_EDITOR = 'tjroberts@gocitywide.com';
 var OV_TAB_REPORTS = 'Reports';
 var OV_TAB_CHECKS = 'Checklists';
@@ -142,6 +151,8 @@ function ovIsClient_(d) {
   if (!c) return false;
   return String(d.passcode || '') === c;
 }
+function ovMgrPass_() { return String(PropertiesService.getScriptProperties().getProperty(OV_MGR_PASS_PROP) || ''); }
+function ovIsMgr_(d) { var m = ovMgrPass_(); return !!m && String(d.passcode || '') === m; }
 
 function ovDispatch(d) {
   var kind = String(d.kind || '');
@@ -150,12 +161,25 @@ function ovDispatch(d) {
       if (!ovClientPass_()) return ovOut_({ ok: false, error: 'The Ovation Hub passcode has not been set yet. Ask City Wide.' });
       return ovIsClient_(d) ? ovOut_({ ok: true, hub: 'ovation' }) : ovOut_({ ok: false, error: 'Wrong passcode' });
     }
+    if (kind === 'ov_mgr_auth') {
+      if (!ovMgrPass_()) return ovOut_({ ok: false, error: 'The Manager Desk passcode has not been set yet. Ask City Wide.' });
+      return ovIsMgr_(d) ? ovOut_({ ok: true, hub: 'ovation-manager' }) : ovOut_({ ok: false, error: 'Wrong passcode' });
+    }
     var client = ['ov_submit', 'ov_photo_put', 'ov_feed', 'ov_feed_get', 'ov_feed_photo', 'ov_library', 'ov_pdf_get'];
+    var manager = ['ov_mgr_list', 'ov_mgr_get', 'ov_mgr_photo', 'ov_mgr_approve', 'ov_mgr_request'];
     if (client.indexOf(kind) >= 0) {
       if (!ovIsClient_(d)) return ovOut_({ ok: false, error: 'Bad passcode' });
+    } else if (manager.indexOf(kind) >= 0) {
+      if (!ovIsMgr_(d) && !ovIsTeam_(d)) return ovOut_({ ok: false, error: 'Bad passcode' });
     } else {
       if (!ovIsTeam_(d)) return ovOut_({ ok: false, error: 'Bad passcode' });
     }
+    if (kind === 'ov_mgr_list') return ovMgrList_(d);
+    if (kind === 'ov_mgr_get') return ovMgrGet_(d);
+    if (kind === 'ov_mgr_photo') return ovMgrPhoto_(d);
+    if (kind === 'ov_mgr_approve') return ovMgrApprove_(d);
+    if (kind === 'ov_mgr_request') return ovMgrRequest_(d);
+    if (kind === 'ov_mgr_setpass') { PropertiesService.getScriptProperties().setProperty(OV_MGR_PASS_PROP, ovStr_(d.value, 80)); return ovOut_({ ok: true, set: !!ovMgrPass_() }); }
     if (kind === 'ov_submit') return ovSubmit_(d);
     if (kind === 'ov_photo_put') return ovPhotoPut_(d);
     if (kind === 'ov_feed') return ovFeed_(d);
@@ -696,13 +720,124 @@ function ovPdfGet_(d) {
   return ovOut_({ ok: true, name: file.getName(), size: bytes.length, data: 'data:application/pdf;base64,' + Utilities.base64Encode(bytes) });
 }
 
+// ------------------------------------------------ Manager Desk (Oct 23 2026) --
+// The porter vendor's site manager (manager.html, passcode OV_MGR_PASSCODE). Sees the porters'
+// checklists and every report, can approve a checklist, can ask City Wide for supplies. Never
+// sees Ovation contacts (no phone, no email, no sent-to list) and never sends anything to the
+// property. No names baked in: whoever holds the passcode is the manager.
+var OV_MGR_STRIP = ['phone', 'email', 'sent_to'];
+function ovMgrScrubIndex_(r) { var o = {}; Object.keys(r).forEach(function (k) { if (OV_MGR_STRIP.indexOf(k) < 0 && k !== '_row' && k !== 'json_file' && k !== 'pdf_file') o[k] = r[k]; }); o.has_pdf = !!r.pdf_file; return o; }
+function ovMgrScrubDoc_(doc) {
+  var out = {};
+  Object.keys(doc || {}).forEach(function (k) { if (OV_MGR_STRIP.indexOf(k) < 0 && k !== 'sent_by') out[k] = doc[k]; });
+  if (out.answers) out.answers = out.answers.filter(function (a) { return a && a.id !== 'approver'; });
+  return out;
+}
+function ovMgrList_(d) {
+  var days = Number(d.days) || 60;
+  var since = Date.now() - days * 86400000;
+  function fresh(iso) { var t = Date.parse(String(iso || '')); return !t || t >= since; }
+  var checks = ovRows_(ovChecks_(), OV_CHECK_HEADERS).filter(function (r) { return fresh(r.created_at); }).map(ovMgrScrubIndex_);
+  var reports = ovRows_(ovReports_(), OV_REPORT_HEADERS).filter(function (r) { return fresh(r.created_at); }).map(ovMgrScrubIndex_);
+  checks.sort(function (a, b) { return String(b.service_date + b.created_at).localeCompare(String(a.service_date + a.created_at)); });
+  reports.sort(function (a, b) { return String(b.created_at).localeCompare(String(a.created_at)); });
+  var props = ovRows_(ovProps_(), OV_PROP_HEADERS).map(function (p) { return { property: p.property, group: p.group, awarded: p.awarded, start: p.start, porter_days: p.porter_days }; });
+  return ovOut_({ ok: true, checklists: checks.slice(0, 400), reports: reports.slice(0, 300), properties: props, today: Utilities.formatDate(new Date(), 'America/Los_Angeles', 'yyyy-MM-dd') });
+}
+function ovMgrGet_(d) {
+  var r = JSON.parse(ovGet_(d).getContent());
+  if (!r.ok) return ovOut_(r);
+  return ovOut_({ ok: true, type: r.type, doc: ovMgrScrubDoc_(r.doc), index: ovMgrScrubIndex_(r.index), photo_files: r.photo_files });
+}
+// Only photos filed under the two Ovation folders leave through this door.
+function ovMgrPhoto_(d) {
+  var fileId = String(d.fileId || '');
+  if (!fileId) return ovOut_({ ok: false, error: 'Missing fileId' });
+  var file;
+  try { file = DriveApp.getFileById(fileId); } catch (e) { return ovOut_({ ok: false, error: 'Photo not found' }); }
+  if (!file || file.isTrashed() || !/_ph_[\w-]+\.jpg$/.test(file.getName())) return ovOut_({ ok: false, error: 'Photo not found' });
+  var ok = false, ids = [ovFolderFor_('report').getId(), ovFolderFor_('checklist').getId()];
+  var parents = file.getParents();
+  while (parents.hasNext()) { if (ids.indexOf(parents.next().getId()) >= 0) ok = true; }
+  if (!ok) return ovOut_({ ok: false, error: 'Photo not found' });
+  return ovOut_({ ok: true, fileId: fileId, data: 'data:image/jpeg;base64,' + Utilities.base64Encode(file.getBlob().getBytes()) });
+}
+// Manager approves a porter checklist. Status becomes Reviewed (what review.html filters on), the
+// doc records who, and the Ops Hub Alerts card drops it (ovAlertItems_ only lists New rows). An
+// Alert Status row is written too so the card's handled list shows who approved it.
+function ovMgrApprove_(d) {
+  var id = String(d.id || '');
+  if (ovTypeOf_(id) !== 'checklist') return ovOut_({ ok: false, error: 'Only a porter checklist can be approved here' });
+  var who = ovStr_(d.by, 80);
+  if (!who) return ovOut_({ ok: false, error: 'Enter your name' });
+  var by = who + ' (site manager)';
+  var sh = ovChecks_(), headers = OV_CHECK_HEADERS;
+  var r = ovFindRow_(sh, id);
+  if (!r) return ovOut_({ ok: false, error: 'Not found' });
+  var current = String(sh.getRange(r, headers.indexOf('status') + 1).getValue() || 'New');
+  if (current !== 'New') return ovOut_({ ok: true, id: id, status: current, already: true });
+  var now = ovNow_();
+  sh.getRange(r, headers.indexOf('status') + 1).setValue('Reviewed');
+  sh.getRange(r, headers.indexOf('updated_at') + 1).setValue(now);
+  try {
+    var f = DriveApp.getFileById(String(sh.getRange(r, headers.indexOf('json_file') + 1).getValue()));
+    var doc = JSON.parse(f.getBlob().getDataAsString());
+    doc.status = 'Reviewed'; doc.reviewed_by = by; doc.reviewed_at = now; doc.approved_by_manager = true;
+    if (d.note !== undefined) doc.manager_note = ovStr_(d.note, 1000);
+    f.setContent(JSON.stringify(doc));
+  } catch (e) {}
+  try {
+    if (typeof alSheet_ === 'function' && typeof alStatusMap_ === 'function' && typeof alNextRow_ === 'function') {
+      var ash = alSheet_(), map = alStatusMap_(ash);
+      var key = 'ovc:' + id, row = map[key] ? map[key].row : alNextRow_(ash);
+      ash.getRange(row, 1, 1, 6).setValues([[key, 'ovcheck', 'Approved', by, new Date(), 'Approved on the Manager Desk']]);
+    }
+  } catch (e2) {}
+  return ovOut_({ ok: true, id: id, status: 'Reviewed', by: by, at: now });
+}
+// Manager asks City Wide for supplies. Saved as a report (so it rides the review queue, the
+// Alerts card and the immediate ops email) with role Site manager and a "Manager ..." mode.
+function ovMgrRequest_(d) {
+  var kind = String(d.type || '') === 'building' ? 'building' : 'porter';
+  var items = d.items;
+  if (typeof items === 'string') { try { items = JSON.parse(items); } catch (e) { items = []; } }
+  items = (items || []).map(function (it) { return { name: ovStr_(it && it.name, 120), qty: Math.max(1, Math.min(999, Number(it && it.qty) || 1)) }; }).filter(function (it) { return it.name; }).slice(0, 60);
+  if (!items.length) return ovOut_({ ok: false, error: 'Pick at least one item' });
+  var property = ovStr_(d.property, 120);
+  if (!property) return ovOut_({ ok: false, error: 'Pick the property' });
+  var who = ovStr_(d.by, 80);
+  if (!who) return ovOut_({ ok: false, error: 'Enter your name' });
+  var lines = items.map(function (it) { return it.qty + ' x ' + it.name; });
+  var doc = {
+    id: 'ovr_' + Utilities.getUuid().replace(/-/g, '').slice(0, 12),
+    created_at: ovNow_(),
+    property: property, submitter: who, role: 'Site manager', phone: ovStr_(d.phone, 40), email: '',
+    mode: kind === 'building' ? 'Manager building supplies request' : 'Manager porter supplies request',
+    category: kind === 'building' ? 'Building supplies' : 'Porter supplies and chemicals',
+    subcategory: items.length + (items.length === 1 ? ' item' : ' items'),
+    urgency: ovStr_(d.urgency || 'Normal', 40), location: ovStr_(d.where, 300),
+    summary: (kind === 'building' ? 'Building supplies: ' : 'Porter supplies: ') + lines.join(', ').slice(0, 360),
+    notes: ovStr_(d.notes, 2000),
+    answers: [{ id: 'items', q: 'Items requested', a: lines }].concat(d.notes ? [{ id: 'notes', q: 'Notes', a: ovStr_(d.notes, 2000) }] : []),
+    items: items, hazard_notes: [], photos: [], status: 'New'
+  };
+  ovUpsert_('report', doc, false);
+  var notified = '';
+  try { notified = ovNotifyReport_(doc); } catch (e) { notified = ''; }
+  return ovOut_({ ok: true, id: doc.id, notified: notified });
+}
+
 // --------------------------------------------------------------- notify --
 function ovEsc_(s) { return String(s === undefined || s === null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-// A porter emergency or maintenance request submitted from porter-report.html. role is Porter and
-// mode starts with "Porter". These never show on the porter feed and email ops at once.
+// Reports that come from City Wide's own side rather than from Ovation staff: a porter emergency
+// or maintenance request (porter-report.html, role Porter, mode "Porter ...") and a site manager's
+// supply request (Manager Desk, role Site manager, mode "Manager ..."). These never show on the
+// porter feed and email ops at once. Manager requests also never go to the property.
 function ovIsPorterReport_(r) {
-  return /^porter/i.test(String(r && r.mode || '')) || String(r && r.role || '').toLowerCase() === 'porter';
+  var mode = String(r && r.mode || ''), role = String(r && r.role || '').toLowerCase();
+  return /^(porter|manager)/i.test(mode) || role === 'porter' || role === 'site manager';
 }
+function ovIsManagerReport_(r) { return /^manager/i.test(String(r && r.mode || '')) || String(r && r.role || '').toLowerCase() === 'site manager'; }
 function ovIsEmergency_(r) { return /emergency/i.test(String(r && r.mode || '')) || /emergency/i.test(String(r && r.urgency || '')); }
 var OV_REVIEW_URL = 'https://citywidelv.github.io/ovation-hub/review.html';
 var OV_LOGO_OV = 'https://citywidelv.github.io/ovation-hub/ovation-logo.png';
@@ -719,7 +854,8 @@ function ovNotifyReport_(doc) {
   var seen = {}; to = to.filter(function (a) { var k = a.toLowerCase(); if (seen[k]) return false; seen[k] = 1; return true; });
   if (!to.length) return '';
   var isReq = /request/i.test(String(doc.mode || ''));
-  var label = emergency ? 'EMERGENCY' : porter ? 'Porter maintenance request' : isReq ? 'Ovation work request' : 'Ovation report';
+  var mgr = ovIsManagerReport_(doc);
+  var label = emergency ? 'EMERGENCY' : mgr ? (/building/i.test(String(doc.mode || '')) ? 'Ovation manager: building supplies request' : 'Ovation manager: porter supplies request') : porter ? 'Porter maintenance request' : isReq ? 'Ovation work request' : 'Ovation report';
   var subject = label + ' - ' + doc.property + (doc.category ? ' - ' + doc.category : '') + (!emergency && doc.urgency && /urgent|today/i.test(doc.urgency) ? ' (' + doc.urgency + ')' : '');
   var fields = [
     ['Property', doc.property], ['From', [doc.submitter, doc.role].filter(Boolean).join(', ')],
@@ -745,7 +881,7 @@ function ovNotifyReport_(doc) {
       (n ? '<p style="margin:10px 0 0;' + F + 'font-size:12px;color:#636466;">' + n + (n === 1 ? ' photo' : ' photos') + ' in the review queue.</p>' : '') +
       cwButton_('Open in the review queue', link) +
       '<p style="margin:14px 0 0;' + F + 'font-size:11px;color:#999999;">This item stays on the Ops Hub Alerts card and in the daily digest until someone marks it.</p>';
-    html = cwShell_('Ovation Hub', (emergency ? 'EMERGENCY' : 'New ' + (porter ? 'porter request' : isReq ? 'work request' : 'report')), inner);
+    html = cwShell_('Ovation Hub', (emergency ? 'EMERGENCY' : 'New ' + (mgr ? 'supply request from the site manager' : porter ? 'porter request' : isReq ? 'work request' : 'report')), inner);
   } else {
     var rows = fields.filter(function (f) { return f[1]; }).map(function (f) {
       return '<tr><td style="padding:4px 10px 4px 0;color:#636466;white-space:nowrap;vertical-align:top">' + ovEsc_(f[0]) + '</td><td style="padding:4px 0">' + ovEsc_(f[1]) + '</td></tr>';
@@ -872,7 +1008,7 @@ function ovDigestList_(d) {
       porter: r.porter, status: r.status || 'New', areas_done: r.areas_done, areas_na: r.areas_na, tasks_checked: r.tasks_checked, tasks_total: r.tasks_total,
       photos: r.photos, followups: ovStr_(r.followups, 200), supplies: ovStr_(r.supplies, 120), has_pdf: !!r.pdf_file, created_at: r.created_at };
   });
-  var reports = ovRows_(ovReports_(), OV_REPORT_HEADERS).filter(keep).map(function (r) {
+  var reports = ovRows_(ovReports_(), OV_REPORT_HEADERS).filter(keep).filter(function (r) { return !ovIsManagerReport_(r); }).map(function (r) {   // manager supply requests are City Wide business, never sent to the property
     return { id: r.id, type: 'report', property: r.property, created_at: r.created_at, day: ovNice_(r.created_at), service_date: String(r.created_at || '').slice(0, 10),
       submitter: r.submitter, role: r.role, mode: r.mode, category: r.category, subcategory: r.subcategory, urgency: r.urgency, status: r.status || 'New',
       summary: ovStr_(r.summary, 200), photos: r.photos, has_pdf: !!r.pdf_file, porter: ovIsPorterReport_(r), emergency: ovIsEmergency_(r) };
