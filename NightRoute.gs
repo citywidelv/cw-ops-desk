@@ -602,23 +602,39 @@ function nrAnswer_(r) {
  * work, so they are left out. Instructions and checklists are not returned,
  * which keeps the reply small enough to load beside the recap list.
  *   from, to   yyyy-MM-dd, inclusive. Default: the last 7 nights.
+ *   detail     true (Oct 23 2026) also returns the FSM's instructions, the
+ *              check items, the night manager's answers and note, and the
+ *              sent and answered times, so the recaps page can show the
+ *              route outs themselves, not just count them.
  */
 function nrTally_(data) {
   var mkt = niMarket_(data.market);
   var region = NI_MARKETS[mkt];
   var to = niStr_(data.to) || nrNightDate_();
   var from = niStr_(data.from) || Utilities.formatDate(new Date(new Date().getTime() - 7 * 86400000), NI_TZ, 'yyyy-MM-dd');
+  var detail = data.detail === true || String(data.detail).toUpperCase() === 'TRUE';
   var out = { ok: true, market: mkt, region: region, from: from, to: to, stops: [] };
   nrRows_().rows.forEach(function (r) {
     if (r.market !== region || r.status === 'Removed' || !r.sent_at) return;
     var d = nrDate_(r.report_date);
     if (!d || d < from || d > to) return;
-    out.stops.push({
+    var s = {
       stop_id: r.stop_id, report_date: d, fsm: r.fsm, nm_name: r.nm_name,
       account_id: r.account_id, account_name: r.account_name,
       reason: r.reason, priority: r.priority,
       status: r.status || 'Assigned', inspection_id: r.inspection_id
-    });
+    };
+    if (detail) {
+      s.route_id = r.route_id;
+      s.instructions = r.instructions;
+      s.check_items = r.check_items ? r.check_items.split('\n').filter(String) : [];
+      s.check_answers = r.check_answers;
+      s.nm_note = r.nm_note;
+      s.answered_at = r.answered_at;
+      s.sent_at = r.sent_at;
+      s.flags = r.flags;
+    }
+    out.stops.push(s);
   });
   return niOut_(out);
 }

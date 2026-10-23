@@ -58,12 +58,47 @@ h1{font-size:20px;margin-bottom:4px}
 .jfnote{font-size:12px;color:var(--grey);margin:-6px 0 12px}
 .thumbs a.lnk{width:auto;height:auto;padding:8px 12px;font-size:12px;font-weight:700;color:var(--black);text-decoration:none;background:#fff}
 .empty{text-align:center;color:var(--grey);padding:40px 10px}
+.views{display:inline-flex;border:1.5px solid var(--border);border-radius:12px;background:#fff;padding:3px;margin:0 0 12px}
+.views button{border:0;border-radius:9px;padding:9px 16px;font-size:13px;font-weight:700;background:none;cursor:pointer;font-family:inherit;color:var(--grey);min-height:40px}
+.views button.on{background:var(--black);color:#fff}
+.range{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:12px}
+.range .lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin-right:4px}
+.range button{border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;font-size:12px;font-weight:700;background:#fff;cursor:pointer;font-family:inherit;color:var(--black);min-height:36px}
+.range button.on{border-color:var(--red);background:#fdf3f3;color:var(--red-dark)}
+.range .pick{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;color:var(--grey)}
+.range .pick input{font-family:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:9px;padding:6px 8px;background:#fff;min-height:36px;color:var(--black)}
+.range .pick button{background:var(--black);color:#fff;border-color:var(--black)}
 .tally{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:16px}
 .tally .th{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:4px}
 .tally .th b{font-size:15px;margin-right:auto}
-.tally .rng{display:flex;flex-wrap:wrap;gap:6px}
-.tally .rng button{border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;font-size:12px;font-weight:700;background:#fff;cursor:pointer;font-family:inherit;color:var(--black);min-height:34px}
-.tally .rng button.on{border-color:var(--red);background:#fdf3f3;color:var(--red-dark)}
+.rt{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.rt .rh{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;padding:12px 16px;border-bottom:1px solid var(--border);background:#fafafa}
+.rt .rh b{font-size:15px}
+.rt .rh .meta{font-size:12px;color:var(--grey)}
+.rt .rh .meta a{color:var(--black)}
+.stop{padding:12px 16px;border-top:1px solid var(--border)}
+.stop:first-of-type{border-top:0}
+.stop.miss{background:#fdf3f3}
+.stop .sh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:4px}
+.stop .sh b{font-size:15px;margin-right:2px}
+.pill{font-size:11px;font-weight:700;border-radius:9px;padding:2px 8px;background:var(--light);color:var(--black);white-space:nowrap}
+.pill.must{background:var(--black);color:#fff}
+.pill.done{background:#e6f4ec;color:var(--ok)}
+.pill.bad{background:var(--red);color:#fff}
+.pill.open{background:#fff;border:1px solid var(--border);color:var(--grey)}
+.stop .rsn{font-size:12px;color:var(--grey)}
+.stop .ins{white-space:pre-wrap;font-size:13px;margin:4px 0 2px}
+.stop .lab{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin:8px 0 3px}
+.stop ul.chk{margin:0 0 0 18px;font-size:13px}
+.stop .ans{display:grid;gap:4px}
+.stop .al{display:grid;grid-template-columns:72px 1fr;gap:8px;font-size:13px;align-items:start}
+.stop .al .a{font-weight:700;border-radius:8px;padding:2px 8px;text-align:center;background:#e6f4ec;color:var(--ok)}
+.stop .al.no .a{background:var(--red);color:#fff}
+.stop .al.na .a{background:var(--light);color:var(--grey)}
+.stop .al .n{color:var(--grey);display:block;font-size:12px}
+.stop .nmn{white-space:pre-wrap;background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin-top:8px;font-size:13px}
+.stop .links{flex-direction:row;justify-content:flex-start;margin-top:8px;flex-wrap:wrap}
+.stop .links button{font-size:12px;font-weight:700;color:#fff;background:var(--black);border:0;border-radius:9px;padding:8px 12px;cursor:pointer;font-family:inherit}
 .tally .note{font-size:12px;color:var(--grey);margin-bottom:10px;overflow-wrap:anywhere}
 .tl{display:grid;grid-template-columns:minmax(110px,190px) minmax(48px,1fr) max-content;gap:6px 12px;align-items:center}
 .tl .hd{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey)}
@@ -98,8 +133,11 @@ h1{font-size:20px;margin-bottom:4px}
 <div id="gate" class="gatebox hidden"><b>Open this from the Ops Hub</b><p class="sub">This page uses the Ops Hub session on this device.</p><a href="index.html">&larr; Ops Hub</a></div>
 <div id="app" class="hidden">
 <h1>Night inspection recaps</h1>
-<div class="sub">The box below counts each night manager's recaps against what is expected: 5 a night, every weekday that is not a holiday. Under each count is how many buildings they were routed out to. Under the box, recaps newest first. Recaps filed on the hub and on the Jotform both show here. Tap a row for the details. Hub recaps carry a PDF with the photos in it. Tap Edit beside the PDF to fix a recap, such as the wrong cleaning company or building.</div>
-<div class="tally" id="tally"><div class="th"><b>Submitted vs expected</b><div class="rng"><button type="button" data-r="night">Last night</button><button type="button" data-r="week" class="on">This week</button><button type="button" data-r="month">This month</button></div></div>
+<div class="sub" id="intro">Pick the nights to look at, then switch between the recaps the night managers filed and the route outs the FSMs sent them. The box counts each night manager's recaps against what is expected: 5 a night, every weekday that is not a holiday. Under each count is how many buildings they were routed out to. Tap a row for the details. Hub recaps carry a PDF with the photos in it. Tap Edit beside the PDF to fix a recap, such as the wrong cleaning company or building.</div>
+<div class="views"><button type="button" data-v="insp" class="on">Inspections</button><button type="button" data-v="routes">Route outs</button></div>
+<div class="range"><span class="lbl">Nights</span><button type="button" data-r="night">Last night</button><button type="button" data-r="week" class="on">This week</button><button type="button" data-r="month">This month</button><button type="button" data-r="pick">Pick dates</button>
+<span class="pick hidden" id="pickBox"><input type="date" id="dFrom" aria-label="From"> to <input type="date" id="dTo" aria-label="To"> <button type="button" id="dGo">Show</button></span></div>
+<div class="tally" id="tally"><div class="th"><b>Submitted vs expected</b></div>
 <div class="note" id="tallyNote">Loading route outs...</div><div class="tl" id="tallyBody"></div></div>
 <div class="tools">
 <button class="chip on" data-m="lv" type="button">Las Vegas</button><button class="chip" data-m="nnv" type="button">Northern Nevada</button>
@@ -131,7 +169,13 @@ var JF_SLUG = { lv:"ni_lv", nnv:"ni_nnv" }, JF_DAYS = 35, JF_IN = 0;
 // show as "other".
 // Oct 20 2026: ranges are calendar ranges, not rolling nights. Week = Monday to Sunday,
 // month = the 1st to the last day. Both run through the last finished night.
-var STOPS = [], STOP_STATE = "", TALLY_R = "week", TALLY_OPEN = "";
+// Oct 23 2026: the range now drives the whole page, not just the tally. "Pick dates" adds a
+// from/to window; when it reaches past what is loaded, the page reloads that window from the
+// server (ni_list from/to, jf_list days, ni_route_tally from/to). VIEW switches the list
+// between the recaps (insp) and the route outs the FSMs sent (routes), read with detail:true
+// so the FSM's instructions, check items and the night manager's answers come along.
+var STOPS = [], STOP_STATE = "", TALLY_R = "week", TALLY_OPEN = "", VIEW = "insp", PICK = { from:"", to:"" };
+var LOADED = { from:"", to:"" }, HUB_TRUNC = false, HUB_NOTE = "";
 var JQ = { score:"Rate the Quality of the Clean based on what you see tonight", fsmAsk:"Any actions needed by the FSM tomorrow morning?", fsmNote:"FSM Follow-up needed", resolved:"Were all issues resolved before you left", why:"Why wasn't it resolved prior to you leaving, what is the plan for resolution?", how:"How was the issue Resolved", uniform:"Is the crew all in uniform?", supplies:"Do we need to order supplies for the account or for the vendor?", times:"Arrival and Departure Times", vendor:"Vendor", fsmEmail:"FSM Email", date:"Date", sub:"Submission Date" };
 var FLAG = { standards_failed:["Standard not met","hot"], low_score:["Low score","hot"], complaint:["Complaint","hot"], unresolved:["Unresolved","hot"], fsm_action:["FSM action","hot"], crew_unverified:["Crew not background checked","mid"], uniform:["Uniform","mid"], supplies:["Supplies",""], unmatched_vendor:["Company not in directory",""], unmatched_account:["Building not in directory",""] };
 function $(id){ return document.getElementById(id); }
@@ -139,34 +183,73 @@ function esc(s){ var d=document.createElement("div"); d.textContent=String(s==nu
 function post(body){ body.passcode = PASS; return fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) }).then(function(r){ return r.json(); }); }
 function driveId(u){ var m = String(u||"").match(/\/d\/([^\/]+)/); return m ? m[1] : ""; }
 
-function load(){
+// win = { from, to } (yyyy-MM-dd) to load a specific window; omitted = the default (newest
+// 500 hub recaps, 35 days of Jotform recaps, route outs from the earlier of this week and
+// this month). The window the page ends up holding is kept in LOADED so a range change
+// only hits the server when it reaches outside it.
+function load(win){
   var seq = ++LOADSEQ, mkt = MKT;
-  HUB_ROWS = []; JF_ROWS = []; JF_STATE = "loading"; ROWS = [];
+  HUB_ROWS = []; JF_ROWS = []; JF_STATE = "loading"; ROWS = []; HUB_TRUNC = false;
+  var today = ymd(new Date());
+  if (win){ LOADED = { from: win.from, to: win.to }; JF_DAYS = Math.max(1, daysBetween(win.from, today) + 1); }
+  else { JF_DAYS = 35; LOADED = { from: addDays(today, -JF_DAYS), to: "9999-12-31" }; }
   $("list").innerHTML = '<div class="empty">Loading...</div>'; jfNote();
   loadJf(seq, mkt);
-  loadStops(seq, mkt);
-  post({ kind:"ni_list", market: mkt, limit: 500 }).then(function(r){
+  loadStops(seq, mkt, win);
+  var body = { kind:"ni_list", market: mkt, limit: 500 };
+  if (win){ body.from = win.from; body.to = win.to; }
+  post(body).then(function(r){
     if (seq !== LOADSEQ) return;
     if (!r || !r.ok){ if (r && CWAuth.isPassError(r.error)) return CWAuth.locked("ops", r.error); $("list").innerHTML = '<div class="empty">' + esc((r && r.error) || "Could not load.") + '</div>'; return; }
     HUB_ROWS = (r.rows || []).map(function(x){ x._src = "hub"; x._ts = hubTs(x.submitted_at); return x; });
+    // The newest-500 read can stop short of the Jotform window. Note the oldest night it
+    // reached, so a range that goes further back reloads instead of counting low.
+    if (!win && HUB_ROWS.length >= 500){
+      HUB_TRUNC = true;
+      var oldest = HUB_ROWS.reduce(function(m, x){ var d = String(x.report_date||"").slice(0,10); return d && (!m || d < m) ? d : m; }, "");
+      if (oldest && oldest > LOADED.from) LOADED.from = oldest;
+    }
+    HUB_NOTE = (win && r.truncated) ? " Only the newest 500 hub recaps in these nights loaded; narrow the dates to see the rest." : "";
     if (r.sheet_url) $("sheetLink").innerHTML = 'Every hub recap is also a row on the <a href="' + esc(r.sheet_url) + '" target="_blank" rel="noopener">CW Night Inspections sheet</a>. Jotform recaps open in full under Form Submissions.';
     merge();
   }).catch(function(){ if (seq === LOADSEQ) $("list").innerHTML = '<div class="empty">Could not reach the server.</div>'; });
 }
+function daysBetween(a, b){ var p = String(a).split("-"), q = String(b).split("-"); return Math.round((new Date(+q[0], +q[1]-1, +q[2]) - new Date(+p[0], +p[1]-1, +p[2])) / 864e5); }
+// Make sure the current range is loaded, then draw. Reloads only when the range reaches
+// outside what is already here.
+function show(){
+  var rg = tallyRange(), need = { from: rg.from, to: addDays(rg.to, 1) };
+  if (need.from < LOADED.from || need.to > LOADED.to) return load(need);
+  render(); tally();
+}
 function merge(){
-  ROWS = HUB_ROWS.concat(JF_ROWS).sort(function(a, b){
-    var da = String(a.report_date||"").slice(0,10), db = String(b.report_date||"").slice(0,10);
-    if (da !== db) return da < db ? 1 : -1;
+  ROWS = HUB_ROWS.concat(JF_ROWS).map(function(r){ r._night = nightOf(r); return r; }).sort(function(a, b){
+    if (a._night !== b._night) return a._night < b._night ? 1 : -1;
     return (b._ts||0) - (a._ts||0);
   });
-  fillSel("nm", "nm_name"); fillSel("fsm", "fsm");
-  render(); jfNote(); tally();
+  fillSels();
+  jfNote(); show();
+}
+// The name pickers list whoever appears in the current view: recap names for Inspections,
+// route-out names for Route outs. The chosen name is kept across the switch when it still fits.
+function fillSels(){
+  var src = VIEW === "routes" ? STOPS : ROWS;
+  fillSel("nm", "nm_name", src); fillSel("fsm", "fsm", src);
 }
 function jfNote(){
   var n = JF_ROWS.length;
-  $("jfNote").textContent = JF_STATE === "loading" ? "Loading Jotform recaps..." : JF_STATE === "err" ? "Jotform recaps could not load. Hub recaps are shown." : JF_STATE === "ok" ? "Includes " + n + " Jotform recap" + (n===1?"":"s") + " from the last " + JF_DAYS + " days." : "";
+  $("jfNote").textContent = (JF_STATE === "loading" ? "Loading Jotform recaps..." : JF_STATE === "err" ? "Jotform recaps could not load. Hub recaps are shown." : JF_STATE === "ok" && n ? "Includes " + n + " Jotform recap" + (n===1?"":"s") + " from the last " + JF_DAYS + " days." : "") + HUB_NOTE;
 }
 function hubTs(s){ var m = String(s||"").match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})/); return m ? new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5]).getTime() : 0; }
+// The night a recap belongs to. report_date is the calendar day it was filed, so a recap
+// filed at 1:00 AM carries the next day's date. Anything filed before noon counts as the
+// night before, the same rule the route out server uses. Lists and day headers use this.
+function nightOf(r){
+  var d = String(r.report_date||"").slice(0,10); if (!d) return "";
+  var t = r._ts ? new Date(r._ts) : null;
+  if (t && t.getHours() < 12 && ymd(t) === d) return addDays(d, -1);
+  return d;
+}
 // Staff tab, cached 12 hours, so a Jotform FSM email shows as a name.
 function staff(){
   if (STAFF) return Promise.resolve(STAFF);
@@ -180,11 +263,12 @@ function nameFor(email){
   return email.split("@")[0].split(/[._]/).map(function(w){ return w.charAt(0).toUpperCase() + w.slice(1); }).join(" ");
 }
 function loadJf(seq, mkt){
+  var lo = LOADED.from, hi = LOADED.to;
   Promise.all([post({ kind:"jf_list", slug: JF_SLUG[mkt], days: JF_DAYS, limit: 400 }), staff()]).then(function(res){
     if (seq !== LOADSEQ) return;
     var r = res[0];
     if (!r || !r.ok){ JF_STATE = "err"; jfNote(); return; }
-    JF_ROWS = (r.rows || []).map(function(j){ return fromJf(j, mkt); });
+    JF_ROWS = (r.rows || []).map(function(j){ return fromJf(j, mkt); }).filter(function(o){ var d = String(o.report_date||"").slice(0,10); return !d || (d >= lo && d <= hi); });
     JF_IN = Number(r.in_window) || JF_ROWS.length;
     JF_STATE = "ok";
     merge();
@@ -224,6 +308,7 @@ function monthEnd(s){ var p = String(s).split("-"); return ymd(new Date(+p[0], +
 function tallyRange(r){
   r = r || TALLY_R;
   var to = addDays(ymd(new Date()), -1);
+  if (r === "pick" && PICK.from && PICK.to) return { from: PICK.from, to: PICK.to, end: PICK.to };
   if (r === "night") return { from: to, to: to, end: to };
   if (r === "month") return { from: to.slice(0, 8) + "01", to: to, end: monthEnd(to) };
   var mon = mondayOf(to); return { from: mon, to: to, end: addDays(mon, 6) };
@@ -254,15 +339,17 @@ function workNights(from, to){
   }
   return { nights: n, skipped: skipped };
 }
-function loadStops(seq, mkt){
-  STOPS = []; STOP_STATE = "loading"; tally();
-  // Pull from the earlier of this week's Monday and this month's 1st, so switching ranges needs no second call.
+function loadStops(seq, mkt, win){
+  STOPS = []; STOP_STATE = "loading"; tally(); if (VIEW === "routes") render();
+  // Default: from the earlier of this week's Monday and this month's 1st through today, so
+  // switching between the three quick ranges needs no second call. A picked window loads itself.
   var wk = tallyRange("week"), mo = tallyRange("month");
-  post({ kind:"ni_route_tally", market: mkt, from: wk.from < mo.from ? wk.from : mo.from, to: wk.to }).then(function(r){
+  var from = win ? win.from : (wk.from < mo.from ? wk.from : mo.from), to = win ? win.to : ymd(new Date());
+  post({ kind:"ni_route_tally", market: mkt, from: from, to: to, detail: true }).then(function(r){
     if (seq !== LOADSEQ) return;
-    if (!r || !r.ok){ STOP_STATE = "err:" + ((r && r.error) || ""); tally(); return; }
-    STOPS = r.stops || []; STOP_STATE = "ok"; tally();
-  }).catch(function(){ if (seq === LOADSEQ){ STOP_STATE = "err:"; tally(); } });
+    if (!r || !r.ok){ STOP_STATE = "err:" + ((r && r.error) || ""); tally(); if (VIEW === "routes") render(); return; }
+    STOPS = r.stops || []; STOP_STATE = "ok"; tally(); fillSels(); if (VIEW === "routes") render();
+  }).catch(function(){ if (seq === LOADSEQ){ STOP_STATE = "err:"; tally(); if (VIEW === "routes") render(); } });
 }
 function words(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(String); }
 // Same person: first names match and last initials match, or last names match.
@@ -347,6 +434,7 @@ function tally(){
   var thru = rg.to === rg.end ? "" : ", counted through last night (" + niceDay(rg.to) + ")";
   var span = TALLY_R === "night" ? "last night (" + niceDay(rg.to) + ")"
     : TALLY_R === "week" ? "the week of " + niceDay(rg.from) + " to " + niceDay(rg.end) + thru
+    : TALLY_R === "pick" ? (rg.from === rg.to ? "the night of " + niceDay(rg.from) : "the nights of " + niceDay(rg.from) + " to " + niceDay(rg.to))
     : "the month of " + monthName(rg.from) + thru;
   var jfMsg = JF_STATE === "loading" ? " Jotform recaps are still loading, so counts may rise." : JF_STATE === "err" ? " Jotform recaps did not load, so only hub recaps are counted." : "";
   var jfOld = JF_ROWS.reduce(function(m, r){ var d = String(r.report_date||"").slice(0,10); return d && (!m || d < m) ? d : m; }, "");
@@ -377,26 +465,31 @@ function tally(){
     sel.value = pick; render(); tally();
   }); });
 }
-function fillSel(id, key){
+function fillSel(id, key, src){
   var sel = $(id), cur = sel.value, seen = {};
-  var names = ROWS.map(function(r){ return r[key]; }).filter(function(n){ if (!n || seen[n]) return false; seen[n] = 1; return true; }).sort(function(a, b){ return b.length - a.length; });
+  var names = (src || ROWS).map(function(r){ return r[key]; }).filter(function(n){ if (!n || seen[n]) return false; seen[n] = 1; return true; }).sort(function(a, b){ return b.length - a.length; });
   if (id === "nm") names = names.filter(function(n, i){ return !names.slice(0, i).some(function(m){ return samePerson(m, n); }); });
   names.sort();
   sel.innerHTML = '<option value="">' + (id==="nm" ? "All night managers" : "All FSMs") + '</option>' + names.map(function(n){ return '<option' + (n===cur?' selected':'') + '>' + esc(n) + '</option>'; }).join("");
 }
 function render(){
-  var q = $("q").value.trim().toLowerCase(), nm = $("nm").value, fsm = $("fsm").value;
+  Array.prototype.forEach.call(document.querySelectorAll("[data-v]"), function(b){ b.classList.toggle("on", b.getAttribute("data-v") === VIEW); });
+  $("flagsOnly").textContent = VIEW === "routes" ? "Missed or not met only" : "Needs attention only";
+  $("q").placeholder = VIEW === "routes" ? "Search building, instructions, name" : "Search building, company, name";
+  if (VIEW === "routes") return renderRoutes();
+  var q = $("q").value.trim().toLowerCase(), nm = $("nm").value, fsm = $("fsm").value, rg = tallyRange();
   var rows = ROWS.filter(function(r){
+    if (r._night && (r._night < rg.from || r._night > rg.to)) return false;
     if (nm && r.nm_name !== nm && !samePerson(r.nm_name, nm)) return false;
     if (fsm && r.fsm !== fsm) return false;
     if (FLAGS_ONLY && !/low_score|complaint|unresolved|fsm_action|crew_unverified|standards_failed/.test(r.flags||"")) return false;
-    if (q && (r.account_name + " " + r.vendor_name + " " + r.nm_name + " " + r.fsm + " " + r.reason + " " + r.summary).toLowerCase().indexOf(q) < 0) return false;
+    if (q && (r.account_name + " " + r.vendor_name + " " + r.nm_name + " " + r.fsm + " " + r.reason + " " + r.summary + " " + r.inspection_id).toLowerCase().indexOf(q) < 0) return false;
     return true;
   });
-  if (!rows.length){ $("list").innerHTML = '<div class="empty">Nothing here yet.</div>'; return; }
+  if (!rows.length){ $("list").innerHTML = '<div class="empty">' + (JF_STATE === "loading" && !HUB_ROWS.length ? 'Loading...' : 'No recaps for these nights.') + '</div>'; return; }
   var html = "", day = "";
   rows.forEach(function(r, i){
-    var rd = String(r.report_date||'').slice(0,10);
+    var rd = r._night || String(r.report_date||'').slice(0,10);
     if (rd !== day){ day = rd; html += '<div class="day">' + esc(niceDay(day)) + '</div>'; }
     var sc = r.score !== "" ? Number(r.score) : null;
     var flags = (r.flags||"").split(",").filter(String).map(function(f){ var d = FLAG[f] || [f,""]; return '<span class="flag ' + d[1] + '">' + esc(d[0]) + '</span>'; }).join("");
@@ -410,6 +503,96 @@ function render(){
   });
   $("list").innerHTML = html;
   Array.prototype.forEach.call(document.querySelectorAll(".row"), function(el){ el.addEventListener("click", function(e){ if (e.target.closest("a")) return; el.parentNode.classList.toggle("open"); }); });
+}
+// ---- route outs ----
+// One card per route (an FSM's stops for one night manager on one night), newest night first,
+// each stop with the FSM's instructions, the check items, and the night manager's answers once
+// the recap is in. Only routes the FSM SENT are here; a saved draft is the FSM's alone.
+function notMet(s){ return s.flags === "not_met" || /\|\s*(No|Couldn't|Couldnt)\s*\|/i.test(s.check_answers || ""); }
+function renderRoutes(){
+  var list = $("list");
+  if (STOP_STATE === "loading"){ list.innerHTML = '<div class="empty">Loading route outs...</div>'; return; }
+  if (STOP_STATE.indexOf("err") === 0){ list.innerHTML = '<div class="empty">Route outs could not load. ' + esc(STOP_STATE.slice(4)) + '</div>'; return; }
+  var q = $("q").value.trim().toLowerCase(), nm = $("nm").value, fsm = $("fsm").value, rg = tallyRange();
+  var stops = STOPS.filter(function(s){
+    if (s.report_date < rg.from || s.report_date > rg.to) return false;
+    if (nm && s.nm_name !== nm && !samePerson(s.nm_name, nm)) return false;
+    if (fsm && s.fsm !== fsm) return false;
+    if (FLAGS_ONLY && s.status === "Done" && !notMet(s)) return false;
+    if (q && (s.account_name + " " + s.fsm + " " + s.nm_name + " " + s.reason + " " + (s.instructions||"") + " " + (s.check_items||[]).join(" ") + " " + (s.nm_note||"")).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+  if (!stops.length){ list.innerHTML = '<div class="empty">No route outs were sent for these nights.</div>'; return; }
+  // Group: night (newest first) -> route (FSM + night manager), stops in the order the FSM wrote them.
+  var nights = {}, order = [];
+  stops.forEach(function(s){
+    var d = s.report_date, k = s.fsm + "|" + s.nm_name;
+    if (!nights[d]){ nights[d] = { order: [], by: {} }; order.push(d); }
+    if (!nights[d].by[k]){ nights[d].by[k] = { fsm: s.fsm, nm: s.nm_name, sent: s.sent_at, stops: [] }; nights[d].order.push(k); }
+    var rt = nights[d].by[k]; rt.stops.push(s); if (s.sent_at && (!rt.sent || s.sent_at > rt.sent)) rt.sent = s.sent_at;
+  });
+  order.sort().reverse();
+  var html = "";
+  order.forEach(function(d){
+    html += '<div class="day">' + esc(niceDay(d)) + '</div>';
+    nights[d].order.forEach(function(k){
+      var rt = nights[d].by[k], done = rt.stops.filter(function(s){ return s.status === "Done"; }).length, bad = rt.stops.filter(notMet).length;
+      html += '<div class="rt"><div class="rh"><b>' + esc(rt.fsm || "FSM not named") + ' &rarr; ' + esc(rt.nm || "Night manager not named") + '</b>'
+        + '<span class="meta">' + rt.stops.length + ' stop' + (rt.stops.length === 1 ? '' : 's') + ' &middot; ' + done + ' with a recap' + (bad ? ' &middot; ' + bad + ' not met' : '') + (rt.sent ? ' &middot; sent ' + esc(clockOf(rt.sent)) : '') + '</span></div>';
+      rt.stops.forEach(function(s){ html += stopCard(s); });
+      html += '</div>';
+    });
+  });
+  list.innerHTML = html;
+  Array.prototype.forEach.call(list.querySelectorAll("[data-open]"), function(b){ b.addEventListener("click", function(){ openRecap(b.getAttribute("data-open")); }); });
+}
+function stopCard(s){
+  var rec = s.inspection_id ? ROWS.filter(function(r){ return r.inspection_id === s.inspection_id; })[0] : null;
+  var isDone = s.status === "Done", bad = notMet(s);
+  var st = isDone ? (bad ? '<span class="pill bad">Not met</span>' : '<span class="pill done">Done</span>') : '<span class="pill open">No recap yet</span>';
+  var h = '<div class="stop' + (isDone ? (bad ? ' miss' : '') : ' miss') + '"><div class="sh"><b>' + esc(s.account_name) + '</b>'
+    + (s.priority ? '<span class="pill' + (/must/i.test(s.priority) ? ' must' : '') + '">' + esc(s.priority) + '</span>' : '') + st
+    + (s.reason ? '<span class="rsn">' + esc(s.reason) + '</span>' : '') + '</div>';
+  if (s.instructions) h += '<div class="ins">' + esc(s.instructions) + '</div>';
+  var items = s.check_items || [], ans = parseAnswers(s.check_answers);
+  if (ans.length){
+    h += '<div class="lab">What the FSM asked, and the answer</div><div class="ans">' + ans.map(function(a){
+      var cls = /^yes/i.test(a.a) ? '' : /^no/i.test(a.a) ? ' no' : ' na';
+      return '<div class="al' + cls + '"><span class="a">' + esc(a.a || "?") + '</span><span>' + esc(a.q) + (a.n ? '<span class="n">' + esc(a.n) + '</span>' : '') + '</span></div>';
+    }).join("") + '</div>';
+  } else if (items.length){
+    h += '<div class="lab">Check for</div><ul class="chk">' + items.map(function(i){ return '<li>' + esc(i) + '</li>'; }).join("") + '</ul>';
+  }
+  if (s.nm_note) h += '<div class="nmn">' + esc(s.nm_note) + '</div>';
+  if (isDone){
+    h += '<div class="links">' + (s.answered_at ? '<span class="rsn">Answered ' + esc(s.answered_at) + '</span>' : '')
+      + (rec && rec.pdf_url ? '<a class="pdf" href="' + esc(rec.pdf_url) + '" target="_blank" rel="noopener">PDF</a>' : '')
+      + (s.inspection_id ? '<button type="button" data-open="' + esc(s.inspection_id) + '">Open the recap</button>' : '') + '</div>';
+  }
+  return h + '</div>';
+}
+// Lines of "question | Yes/No/Could not | note", as the inspection page writes them.
+function parseAnswers(s){
+  return String(s || "").split("\n").map(function(l){ return l.trim(); }).filter(String).map(function(l){
+    var p = l.split("|").map(function(x){ return x.trim(); });
+    return p.length >= 2 ? { q: p[0], a: p[1], n: p.slice(2).join(" | ") } : { q: l, a: "", n: "" };
+  });
+}
+function clockOf(s){ var m = String(s||"").match(/(\d{1,2}):(\d{2})/); return m ? clock(m[1] + ":" + m[2]) : s; }
+// Jump from a route stop to its recap: switch to Inspections, search by the recap id, open the card.
+function openRecap(id){
+  if (!id) return;
+  VIEW = "insp"; $("q").value = id; FLAGS_ONLY = false; $("flagsOnly").classList.remove("on");
+  var rg = tallyRange(), rec = ROWS.filter(function(r){ return r.inspection_id === id; })[0];
+  var d = rec ? rec._night : "";
+  // Point the range at the recap's own night if the current one misses it.
+  if (d && (d < rg.from || d > rg.to)){ TALLY_R = "pick"; PICK = { from: d, to: d }; syncPick(); }
+  fillSels(); render(); tally();
+  var card = document.querySelector(".card"); if (card){ card.classList.add("open"); card.scrollIntoView({ behavior:"smooth", block:"start" }); }
+}
+function syncPick(){
+  $("dFrom").value = PICK.from; $("dTo").value = PICK.to;
+  $("pickBox").classList.toggle("hidden", TALLY_R !== "pick");
 }
 function detail(r, photos){
   function tr(k, v){ return v ? '<tr><th>' + esc(k) + '</th><td>' + esc(v) + '</td></tr>' : ''; }
@@ -453,22 +636,54 @@ function clock(s){
 function monthName(d){ var p = String(d).split("-"); return new Date(+p[0], +p[1]-1, 1).toLocaleDateString("en-US", { month:"long", year:"numeric" }); }
 function niceDay(d){ if (!d) return ""; d = String(d).slice(0,10); var p = d.split("-"); var dt = new Date(Number(p[0]), Number(p[1])-1, Number(p[2])); return dt.toLocaleDateString("en-US", { weekday:"long", month:"short", day:"numeric" }); }
 
-Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(b){ b.addEventListener("click", function(){ MKT = b.getAttribute("data-m"); Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(x){ x.classList.toggle("on", x===b); }); load(); }); });
+Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(b){ b.addEventListener("click", function(){ MKT = b.getAttribute("data-m"); Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(x){ x.classList.toggle("on", x===b); }); var rg = tallyRange(); load(TALLY_R === "pick" ? { from: rg.from, to: addDays(rg.to, 1) } : null); }); });
 $("flagsOnly").addEventListener("click", function(){ FLAGS_ONLY = !FLAGS_ONLY; this.classList.toggle("on", FLAGS_ONLY); render(); });
 $("q").addEventListener("input", render); $("nm").addEventListener("change", function(){ TALLY_OPEN = ""; render(); tally(); }); $("fsm").addEventListener("change", function(){ render(); tally(); });
-Array.prototype.forEach.call(document.querySelectorAll("[data-r]"), function(b){ b.addEventListener("click", function(){ TALLY_R = b.getAttribute("data-r"); tally(); }); });
+Array.prototype.forEach.call(document.querySelectorAll("[data-v]"), function(b){ b.addEventListener("click", function(){ VIEW = b.getAttribute("data-v"); fillSels(); render(); }); });
+// Nights: the three quick ranges draw at once. Pick dates shows the two boxes and waits for Show
+// (or a change in either box once both are filled), so a half-typed date never fires a reload.
+Array.prototype.forEach.call(document.querySelectorAll("[data-r]"), function(b){ b.addEventListener("click", function(){
+  var r = b.getAttribute("data-r");
+  if (r === "pick"){
+    TALLY_R = "pick";
+    if (!PICK.from || !PICK.to){ var y = addDays(ymd(new Date()), -1); PICK = { from: PICK.from || addDays(y, -6), to: PICK.to || y }; }
+    syncPick(); $("dFrom").focus(); show(); return;
+  }
+  TALLY_R = r; syncPick(); show();
+}); });
+function pickGo(){
+  var f = $("dFrom").value, t = $("dTo").value, today = ymd(new Date());
+  if (!f || !t) return;
+  if (f > t){ var x = f; f = t; t = x; }
+  if (t > today) t = today; if (f > today) f = today;
+  PICK = { from: f, to: t }; TALLY_R = "pick"; TALLY_OPEN = ""; syncPick(); show();
+}
+$("dGo").addEventListener("click", pickGo);
+$("dFrom").addEventListener("change", function(){ if ($("dTo").value) pickGo(); });
+$("dTo").addEventListener("change", function(){ if ($("dFrom").value) pickGo(); });
+$("dFrom").max = ymd(new Date()); $("dTo").max = ymd(new Date());
 
 // Deep links from the 7am roll-up email: ?m=lv|nnv picks the market, ?attn=1 opens on
-// Needs attention only, ?q= prefills the search box.
+// Needs attention only, ?q= prefills the search box, ?v=routes opens on the route outs,
+// ?from=yyyy-mm-dd&to=yyyy-mm-dd opens on those nights (one date for one night).
 try {
   var QS = new URLSearchParams(location.search);
   var qm = String(QS.get("m") || "").toLowerCase();
   if (qm === "lv" || qm === "nnv"){ MKT = qm; Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(x){ x.classList.toggle("on", x.getAttribute("data-m") === qm); }); }
   if (QS.get("attn") === "1"){ FLAGS_ONLY = true; $("flagsOnly").classList.add("on"); }
   if (QS.get("q")) $("q").value = QS.get("q");
+  if (QS.get("v") === "routes") VIEW = "routes";
+  var qf = String(QS.get("from") || QS.get("date") || ""), qt = String(QS.get("to") || qf);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(qf) && /^\d{4}-\d{2}-\d{2}$/.test(qt)){ PICK = { from: qf < qt ? qf : qt, to: qf < qt ? qt : qf }; TALLY_R = "pick"; syncPick(); }
+  else { var qr = QS.get("r"); if (qr === "night" || qr === "week" || qr === "month"){ TALLY_R = qr; syncPick(); } }
 } catch (e) {}
 PASS = CWAuth.require({hub:"ops"});
-if (PASS){ document.getElementById("app").classList.remove("hidden"); load(); }
+if (PASS){
+  document.getElementById("app").classList.remove("hidden");
+  var rg0 = tallyRange();
+  // A picked window outside the default load (35 days / newest 500) loads itself from the start.
+  load(TALLY_R === "pick" && rg0.from < addDays(ymd(new Date()), -35) ? { from: rg0.from, to: addDays(rg0.to, 1) } : null);
+}
 })();
 </script>
 </body>

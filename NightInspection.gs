@@ -1107,21 +1107,35 @@ function niReattach_(data) {
 
 // ------------------------------------------------------------ list --------
 
+/**
+ * Newest rows first. Without from/to: the newest `limit` rows on the sheet
+ * (max 500). With from/to (Oct 23 2026, yyyy-MM-dd, inclusive, on report_date):
+ * every row in that window, however old, capped at `limit`, so a picked date
+ * range on the recaps page can reach past the newest 500.
+ */
 function niList_(data) {
   var sh = niTab_(niSS_());
   var head = niHead_(sh);
   var last = sh.getLastRow();
   if (last < 2) return niOut_({ ok: true, rows: [], sheet_url: sh.getParent().getUrl() });
   var n = Math.min(Number(data.limit) || 100, 500);
-  var start = Math.max(2, last - n + 1);
+  var from = niStr_(data.from).slice(0, 10), to = niStr_(data.to).slice(0, 10);
+  var ranged = !!(from || to);
+  var start = ranged ? 2 : Math.max(2, last - n + 1);
   var vals = sh.getRange(start, 1, last - start + 1, head.length).getValues();
   var mkt = data.market ? NI_MARKETS[niMarket_(data.market)] : '';
+  var dc = head.indexOf('report_date'), mc = head.indexOf('market');
   var rows = [];
   for (var i = vals.length - 1; i >= 0; i--) {
+    if (mkt && mc >= 0 && niStr_(vals[i][mc]) !== mkt) continue;
+    if (ranged && dc >= 0) {
+      var d = niStr_(vals[i][dc]).slice(0, 10);
+      if ((from && d < from) || (to && d > to)) continue;
+    }
     var o = {};
     head.forEach(function (h, j) { o[h] = (h === 'device') ? '' : niStr_(vals[i][j]); });
-    if (mkt && o.market !== mkt) continue;
     rows.push(o);
+    if (rows.length >= n) break;
   }
-  return niOut_({ ok: true, rows: rows, sheet_url: sh.getParent().getUrl() });
+  return niOut_({ ok: true, rows: rows, sheet_url: sh.getParent().getUrl(), from: from, to: to, truncated: rows.length >= n });
 }
