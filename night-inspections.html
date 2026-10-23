@@ -372,37 +372,17 @@ function sameAcct(stop, r){
   var hit = a.filter(function(w){ return b.indexOf(w) >= 0 || b.some(function(v){ return v.length > 3 && w.length > 3 && (v.indexOf(w) === 0 || w.indexOf(v) === 0); }); }).length;
   return hit / Math.min(a.length, b.length) >= 0.6;
 }
-function tally(){
-  var note = $("tallyNote"), body = $("tallyBody");
-  Array.prototype.forEach.call(document.querySelectorAll("[data-r]"), function(b){ b.classList.toggle("on", b.getAttribute("data-r") === TALLY_R); });
-  if (STOP_STATE === "loading"){ note.textContent = "Loading route outs..."; body.innerHTML = ""; return; }
-  if (STOP_STATE.indexOf("err") === 0){ note.textContent = "Route outs could not load. " + STOP_STATE.slice(4); body.innerHTML = ""; return; }
-  var rg = tallyRange(), fsm = $("fsm").value;
-  var stops = STOPS.filter(function(s){ return s.report_date >= rg.from && s.report_date <= rg.to && (!fsm || s.fsm === fsm); });
-  // A recap filed after midnight can carry the next day's date, so a recap on the stop's night or the morning after counts.
-  var recs = ROWS.filter(function(r){ var d = String(r.report_date||"").slice(0,10); return d >= rg.from && d <= addDays(rg.to, 1) && (!fsm || r.fsm === fsm || stops.some(function(s){ return sameAcct(s, r); })); });
-  var wn = workNights(rg.from, rg.to), expect = wn.nights * EXPECT_PER_NIGHT;
-  var used = {}, by = {}, order = [];
-  function nmRow(name){
-    for (var i = 0; i < order.length; i++) if (samePerson(order[i], name)) return by[order[i]];
-    order.push(name); by[name] = { name: name, submitted: 0, routed: 0, covered: 0, miss: [] }; return by[name];
-  }
-  // Every active night manager in this market is on the board, even with nothing filed.
-  (STAFF || []).forEach(function(p){
-    if (String(p.role||"") !== "Night Manager") return;
-    if (String(p.active||"").toUpperCase() === "FALSE") return;
-    var m = String(p.market||""); if (m && m !== "Both" && m !== (MKT === "nnv" ? "Northern Nevada" : "Las Vegas")) return;
-    if (p.name) nmRow(String(p.name).replace(/\s+/g, " ").trim());
-  });
-  stops.sort(function(a, b){ return a.report_date < b.report_date ? -1 : 1; });
-  // Match recaps to stops in rounds across ALL stops, so one night manager's recap is never
-  // taken by another night manager's stop at the same building:
-  //   0. the recap filed from the route card (same inspection id)
-  //   1. the same night manager, same building, same date
-  //   2. the same night manager, same building, the morning after (filed past midnight)
-  //   3. anyone at that building, same date
-  //   4. anyone at that building, the morning after
-  var hitOf = {};
+// Match recaps to stops in rounds across ALL stops, so one night manager's recap is never
+// taken by another night manager's stop at the same building:
+//   0. the recap filed from the route card (same inspection id)
+//   1. the same night manager, same building, same date
+//   2. the same night manager, same building, the morning after (filed past midnight)
+//   3. anyone at that building, same date
+//   4. anyone at that building, the morning after
+// Returns stop index -> recap index. Used by the tally and by the route outs view, so a stop
+// the tally counts as covered never shows "No recap yet".
+function matchStops(stops, recs){
+  var hitOf = {}, used = {};
   [0, 1, 2, 3, 4].forEach(function(pass){
     stops.forEach(function(s, si){
       if (hitOf[si] != null) return;
@@ -418,6 +398,32 @@ function tally(){
       }
     });
   });
+  return hitOf;
+}
+function tally(){
+  var note = $("tallyNote"), body = $("tallyBody");
+  Array.prototype.forEach.call(document.querySelectorAll("[data-r]"), function(b){ b.classList.toggle("on", b.getAttribute("data-r") === TALLY_R); });
+  if (STOP_STATE === "loading"){ note.textContent = "Loading route outs..."; body.innerHTML = ""; return; }
+  if (STOP_STATE.indexOf("err") === 0){ note.textContent = "Route outs could not load. " + STOP_STATE.slice(4); body.innerHTML = ""; return; }
+  var rg = tallyRange(), fsm = $("fsm").value;
+  var stops = STOPS.filter(function(s){ return s.report_date >= rg.from && s.report_date <= rg.to && (!fsm || s.fsm === fsm); });
+  // A recap filed after midnight can carry the next day's date, so a recap on the stop's night or the morning after counts.
+  var recs = ROWS.filter(function(r){ var d = String(r.report_date||"").slice(0,10); return d >= rg.from && d <= addDays(rg.to, 1) && (!fsm || r.fsm === fsm || stops.some(function(s){ return sameAcct(s, r); })); });
+  var wn = workNights(rg.from, rg.to), expect = wn.nights * EXPECT_PER_NIGHT;
+  var by = {}, order = [];
+  function nmRow(name){
+    for (var i = 0; i < order.length; i++) if (samePerson(order[i], name)) return by[order[i]];
+    order.push(name); by[name] = { name: name, submitted: 0, routed: 0, covered: 0, miss: [] }; return by[name];
+  }
+  // Every active night manager in this market is on the board, even with nothing filed.
+  (STAFF || []).forEach(function(p){
+    if (String(p.role||"") !== "Night Manager") return;
+    if (String(p.active||"").toUpperCase() === "FALSE") return;
+    var m = String(p.market||""); if (m && m !== "Both" && m !== (MKT === "nnv" ? "Northern Nevada" : "Las Vegas")) return;
+    if (p.name) nmRow(String(p.name).replace(/\s+/g, " ").trim());
+  });
+  stops.sort(function(a, b){ return a.report_date < b.report_date ? -1 : 1; });
+  var hitOf = matchStops(stops, recs);
   stops.forEach(function(s, si){
     var row = nmRow(s.nm_name || "No night manager named");
     row.routed++;
@@ -509,16 +515,24 @@ function render(){
 // each stop with the FSM's instructions, the check items, and the night manager's answers once
 // the recap is in. Only routes the FSM SENT are here; a saved draft is the FSM's alone.
 function notMet(s){ return s.flags === "not_met" || /\|\s*(No|Couldn't|Couldnt)\s*\|/i.test(s.check_answers || ""); }
+// A stop is covered when the server marked it Done (recap filed from the route card) or the
+// tally matched a recap to it by building and night.
+function covered(s){ return s.status === "Done" || !!s._rec; }
 function renderRoutes(){
   var list = $("list");
   if (STOP_STATE === "loading"){ list.innerHTML = '<div class="empty">Loading route outs...</div>'; return; }
   if (STOP_STATE.indexOf("err") === 0){ list.innerHTML = '<div class="empty">Route outs could not load. ' + esc(STOP_STATE.slice(4)) + '</div>'; return; }
   var q = $("q").value.trim().toLowerCase(), nm = $("nm").value, fsm = $("fsm").value, rg = tallyRange();
-  var stops = STOPS.filter(function(s){
-    if (s.report_date < rg.from || s.report_date > rg.to) return false;
+  // Pair every sent stop in range with its recap the same way the tally does, before any
+  // filter, so the pairing does not change with the pickers.
+  var inRange = STOPS.filter(function(s){ return s.report_date >= rg.from && s.report_date <= rg.to; }).sort(function(a, b){ return a.report_date < b.report_date ? -1 : 1; });
+  var recs = ROWS.filter(function(r){ var d = String(r.report_date||"").slice(0,10); return d >= rg.from && d <= addDays(rg.to, 1); });
+  var hitOf = matchStops(inRange, recs);
+  inRange.forEach(function(s, si){ s._rec = hitOf[si] != null ? recs[hitOf[si]] : null; });
+  var stops = inRange.filter(function(s){
     if (nm && s.nm_name !== nm && !samePerson(s.nm_name, nm)) return false;
     if (fsm && s.fsm !== fsm) return false;
-    if (FLAGS_ONLY && s.status === "Done" && !notMet(s)) return false;
+    if (FLAGS_ONLY && covered(s) && !notMet(s)) return false;
     if (q && (s.account_name + " " + s.fsm + " " + s.nm_name + " " + s.reason + " " + (s.instructions||"") + " " + (s.check_items||[]).join(" ") + " " + (s.nm_note||"")).toLowerCase().indexOf(q) < 0) return false;
     return true;
   });
@@ -536,7 +550,7 @@ function renderRoutes(){
   order.forEach(function(d){
     html += '<div class="day">' + esc(niceDay(d)) + '</div>';
     nights[d].order.forEach(function(k){
-      var rt = nights[d].by[k], done = rt.stops.filter(function(s){ return s.status === "Done"; }).length, bad = rt.stops.filter(notMet).length;
+      var rt = nights[d].by[k], done = rt.stops.filter(covered).length, bad = rt.stops.filter(notMet).length;
       html += '<div class="rt"><div class="rh"><b>' + esc(rt.fsm || "FSM not named") + ' &rarr; ' + esc(rt.nm || "Night manager not named") + '</b>'
         + '<span class="meta">' + rt.stops.length + ' stop' + (rt.stops.length === 1 ? '' : 's') + ' &middot; ' + done + ' with a recap' + (bad ? ' &middot; ' + bad + ' not met' : '') + (rt.sent ? ' &middot; sent ' + esc(clockOf(rt.sent)) : '') + '</span></div>';
       rt.stops.forEach(function(s){ html += stopCard(s); });
@@ -547,10 +561,12 @@ function renderRoutes(){
   Array.prototype.forEach.call(list.querySelectorAll("[data-open]"), function(b){ b.addEventListener("click", function(){ openRecap(b.getAttribute("data-open")); }); });
 }
 function stopCard(s){
-  var rec = s.inspection_id ? ROWS.filter(function(r){ return r.inspection_id === s.inspection_id; })[0] : null;
-  var isDone = s.status === "Done", bad = notMet(s);
-  var st = isDone ? (bad ? '<span class="pill bad">Not met</span>' : '<span class="pill done">Done</span>') : '<span class="pill open">No recap yet</span>';
-  var h = '<div class="stop' + (isDone ? (bad ? ' miss' : '') : ' miss') + '"><div class="sh"><b>' + esc(s.account_name) + '</b>'
+  var rec = s._rec || (s.inspection_id ? ROWS.filter(function(r){ return r.inspection_id === s.inspection_id; })[0] : null);
+  var isDone = covered(s), bad = notMet(s), answered = s.status === "Done";
+  // Done = the night manager answered from the route card. Recap filed = a recap landed for
+  // that building that night, but not through the card, so the FSM's questions have no answers.
+  var st = bad ? '<span class="pill bad">Not met</span>' : answered ? '<span class="pill done">Done</span>' : isDone ? '<span class="pill done">Recap filed</span>' : '<span class="pill open">No recap yet</span>';
+  var h = '<div class="stop' + (isDone && !bad ? '' : ' miss') + '"><div class="sh"><b>' + esc(s.account_name) + '</b>'
     + (s.priority ? '<span class="pill' + (/must/i.test(s.priority) ? ' must' : '') + '">' + esc(s.priority) + '</span>' : '') + st
     + (s.reason ? '<span class="rsn">' + esc(s.reason) + '</span>' : '') + '</div>';
   if (s.instructions) h += '<div class="ins">' + esc(s.instructions) + '</div>';
@@ -564,10 +580,12 @@ function stopCard(s){
     h += '<div class="lab">Check for</div><ul class="chk">' + items.map(function(i){ return '<li>' + esc(i) + '</li>'; }).join("") + '</ul>';
   }
   if (s.nm_note) h += '<div class="nmn">' + esc(s.nm_note) + '</div>';
+  else if (!answered && rec && rec.summary) h += '<div class="nmn">' + esc(String(rec.summary).slice(0, 500)) + (rec.summary.length > 500 ? '...' : '') + '</div>';
   if (isDone){
-    h += '<div class="links">' + (s.answered_at ? '<span class="rsn">Answered ' + esc(s.answered_at) + '</span>' : '')
+    var rid = s.inspection_id || (rec ? rec.inspection_id : "");
+    h += '<div class="links">' + (s.answered_at ? '<span class="rsn">Answered ' + esc(s.answered_at) + '</span>' : (rec && !answered ? '<span class="rsn">Recap by ' + esc(rec.nm_name) + (rec.score !== "" && rec.score != null ? ', scored ' + esc(rec.score) : '') + '</span>' : ''))
       + (rec && rec.pdf_url ? '<a class="pdf" href="' + esc(rec.pdf_url) + '" target="_blank" rel="noopener">PDF</a>' : '')
-      + (s.inspection_id ? '<button type="button" data-open="' + esc(s.inspection_id) + '">Open the recap</button>' : '') + '</div>';
+      + (rid ? '<button type="button" data-open="' + esc(rid) + '">Open the recap</button>' : '') + '</div>';
   }
   return h + '</div>';
 }
