@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
-<!-- build 2026-10-18-alerts: Alerts card redesigned. Six tiles (All alerts, Work tickets, Property supplies, Vendor supplies, Opportunity responses, Requests and reports), Mine / See all, No FSM matched always at the bottom. One row per work ticket with the supplies strip (YES with cost and receipt count, or NO) and a View full ticket PDF button (PDF Link column written by the Work Tickets script, per-ticket items from WorkTicketsHub.gs wtAlertItems_; the old rolled-up "N work tickets to bill" line still renders until that deploys). Work ticket reassigns post wt_assign. Same alerts_list / alerts_set / alerts_assign payloads. -->
+<!-- build 2026-10-23-ovation: Alerts card carries Ovation Hub items (types ovcheck / ovreport from Ovation.gs ovAlertItems_) under Requests and reports: porter checklists to approve (one button, Approved) and Ovation staff reports plus porter emergencies / maintenance requests (Reviewed / Scheduled / Done). An EMERGENCY summary paints red. Same alerts_list / alerts_set payloads.
+     build 2026-10-18-alerts: Alerts card redesigned. Six tiles (All alerts, Work tickets, Property supplies, Vendor supplies, Opportunity responses, Requests and reports), Mine / See all, No FSM matched always at the bottom. One row per work ticket with the supplies strip (YES with cost and receipt count, or NO) and a View full ticket PDF button (PDF Link column written by the Work Tickets script, per-ticket items from WorkTicketsHub.gs wtAlertItems_; the old rolled-up "N work tickets to bill" line still renders until that deploys). Work ticket reassigns post wt_assign. Same alerts_list / alerts_set / alerts_assign payloads. -->
 <!-- build 2026-10-22-ovation: Accounts & Buildings > Client Hubs cascade (Ovation Hub at /ovation-hub/, its own passcode for Ovation staff and porters; Ovation Review Queue, team passcode). Backend Ovation.gs, ov_ kinds. -->
 <!-- build 2026-10-15-queue: Work tickets billing queue (work-tickets.html, WorkTicketsHub.gs wt_ kinds). The Alerts card shows one "N work tickets to bill" line per FSM (type ticket, no status buttons, Mark all skips it) linking to the queue; menu Accounts & Buildings > Work Tickets > Tickets to Bill. -->
 <!-- build 2026-09-25-menus: Jotform submissions on the hub. Every Jotform still in use syncs to a Google Sheet on the company Google account; forms.html lists them with counts and form-view.html?f=<slug> shows one form. Menu: Team & Admin > Form Submissions cascade, Jotform hub views under Night Ops > Night Manager Inspection and Work Tickets (CCCNV, Handyman). Alerts card gained client work requests (type workreq, CCCNV) and the workdone / review types, all read from the Feeds tab of CW Jotform Feeds (JotformFeeds.gs, kinds jf_*).
@@ -266,6 +267,7 @@ Type scale 12 / 13 / 15 / 16, 4px spacing grid, radius 8 / 12 / 14. */
 .bsub{font-size:13px;color:var(--black);margin-top:3px;overflow-wrap:anywhere}
 .bsub b{font-weight:700}
 .bsum{font-size:13px;color:var(--black);margin-top:3px;overflow-wrap:anywhere}
+.bsum.urgent{color:var(--red);font-weight:700;border-left:3px solid var(--red);padding-left:8px}
 .bmeta{font-size:12px;color:var(--grey);margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 14px}
 .bmeta b{color:var(--black)}
 .bmeta a{color:var(--grey);font-weight:700}
@@ -1742,10 +1744,10 @@ tickets: { label:"Work tickets",          sub:"Create the CRM work order, bill i
 prop:    { label:"Property supplies",     sub:"The building needs stock",          empty:["No property supply reports.", "When a crew or night manager reports a building is out of something, it lands here."] },
 vend:    { label:"Vendor supplies",       sub:"Shop orders for their own kit",     empty:["No vendor shop orders.", "Orders vendors place on the Vendor Shop land here."] },
 opp:     { label:"Opportunity responses", sub:"Vendors replying to postings",      empty:["No replies waiting.", "Vendor replies to open postings land here."] },
-req:     { label:"Requests and reports",  sub:"Client asks, night reports, forms", empty:["Nothing to review.", "Client work requests, night manager reports and forms to review land here."] }
+req:     { label:"Requests and reports",  sub:"Client asks, night reports, Ovation", empty:["Nothing to review.", "Client work requests, night manager reports, forms to review and Ovation Hub checklists and reports land here."] }
 };
-var AL_TYPE_BUCKET = { ticket:"tickets", workdone:"tickets", supply:"prop", shop:"vend", posting:"opp", response:"opp", night:"req", workreq:"req", review:"req" };
-var AL_KIND = { response:"Vendor reply", supply:"Property supplies", shop:"Vendor shop order", posting:"Open posting", night:"Night manager report", workreq:"Client work request", workdone:"Completed work order (form)", review:"Form to review", ticket:"Work ticket" };
+var AL_TYPE_BUCKET = { ticket:"tickets", workdone:"tickets", supply:"prop", shop:"vend", posting:"opp", response:"opp", night:"req", workreq:"req", review:"req", ovcheck:"req", ovreport:"req" };
+var AL_KIND = { response:"Vendor reply", supply:"Property supplies", shop:"Vendor shop order", posting:"Open posting", night:"Night manager report", workreq:"Client work request", workdone:"Completed work order (form)", review:"Form to review", ticket:"Work ticket", ovcheck:"Ovation porter checklist to approve", ovreport:"Ovation report or request" };
 var AL_VIEWKEY = "cwAlertsView", AL_TILEKEY = "cwAlertsTile";
 function alBucket(it){ return AL_TYPE_BUCKET[it.type] || "req"; }
 function alView(){ try{ return localStorage.getItem(AL_VIEWKEY) === "all" ? "all" : "mine"; }catch(e){ return "mine"; } }
@@ -1885,7 +1887,7 @@ out.push('<a class="aact" href="tel:' + esc(digits) + '">' + AL_ICON.phone + 'Ca
 }
 if(it.link){
 var lbl = it.type === "response" ? (/responses\.html/.test(it.link) ? "Open reply" : (/^Quoted\s/.test(it.summary || "") ? "Open quote" : "Open PDF"))
-: it.type === "posting" ? "Open replies page" : it.type === "ticket" ? "Open the billing queue" : it.type === "night" ? "Open report" : (it.type === "workreq" || it.type === "workdone" || it.type === "review") ? "Open submission" : it.type === "supply" ? "Open report" : it.type === "shop" ? "Open order" : "Open sheet";
+: it.type === "posting" ? "Open replies page" : it.type === "ticket" ? "Open the billing queue" : it.type === "night" ? "Open report" : (it.type === "workreq" || it.type === "workdone" || it.type === "review") ? "Open submission" : it.type === "supply" ? "Open report" : it.type === "shop" ? "Open order" : it.type === "ovcheck" ? "Open checklist in review queue" : it.type === "ovreport" ? "Open in review queue" : "Open sheet";
 out.push('<a class="aact" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + AL_ICON.open + esc(lbl) + '</a>');
 }
 return out;
@@ -1969,7 +1971,7 @@ var html = '<div class="ablk ' + alBucket(it) + ' ' + esc(it.type) + (it.status 
 '<div class="bmain"><span class="bkind">' + esc(kind) + ownerTag + '</span>' +
 '<div class="btitle">' + esc(title) + (it.type === "posting" && it.internal ? '<span class="bint" title="Internal account name. Vendors never see this.">Internal</span>' : '') + '</div>' +
 (sub ? '<div class="bsub">' + sub + '</div>' : '') +
-(it.type !== "posting" && it.type !== "ticket" && it.summary ? '<div class="bsum">' + esc(it.summary) + '</div>' : '') +
+(it.type !== "posting" && it.type !== "ticket" && it.summary ? '<div class="bsum' + (it.urgent ? ' urgent' : '') + '">' + esc(it.summary) + '</div>' : '') +
 (meta.length ? '<div class="bmeta">' + meta.map(function(m){ return '<span>' + m + '</span>'; }).join('') + '</div>' : '') +
 (it.type === "ticket" && it.ticket ? alSupplies(it) : '') +
 alOwn(it) +

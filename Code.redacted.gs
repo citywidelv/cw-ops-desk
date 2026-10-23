@@ -2971,7 +2971,7 @@ function cwOpenSupplyAlerts_() {
   try {
     if (typeof alList_ !== 'function') return out;
     (alList_({}).items || []).forEach(function (it) {
-      if ((it.type !== 'supply' && it.type !== 'shop') || it.status) return;
+      if ((it.type !== 'supply' && it.type !== 'shop' && it.type !== 'ovcheck' && it.type !== 'ovreport') || it.status) return;   // Oct 23 2026: Ovation Hub items ride along until marked
       var t = null;
       try { if (it.when) t = Utilities.parseDate(it.when, 'America/Los_Angeles', "yyyy-MM-dd'T'HH:mm:ss"); } catch (pe) { t = null; }
       var hrs = t ? (Date.now() - t.getTime()) / 3600000 : 999;
@@ -3002,14 +3002,17 @@ function cwAge_(h) {
   if (h < 48) return Math.floor(h) + (Math.floor(h) === 1 ? ' hour' : ' hours');
   return Math.floor(h / 24) + ' days';
 }
+var CW_ALERT_KIND = { shop: 'Shop order', supply: 'Supply report', ovcheck: 'Ovation porter checklist to approve', ovreport: 'Ovation report or request' };
+function cwIsOvAlert_(a) { return a.type === 'ovcheck' || a.type === 'ovreport'; }
 function cwAlertsHtml_(list, F) {
   if (!list || !list.length) return '';
-  var late = list.filter(function (a) { return a.late; }), wait = list.filter(function (a) { return !a.late; });
+  var ov = list.filter(cwIsOvAlert_), sup = list.filter(function (a) { return !cwIsOvAlert_(a); });
+  var late = sup.filter(function (a) { return a.late; }), wait = sup.filter(function (a) { return !a.late; });
   function rows(arr, color) {
     return arr.map(function (a) {
       return '<tr><td style="padding:7px 0;border-top:1px solid ' + color + '33;' + F + 'font-size:12px;color:#2d2a26;line-height:1.5;">' +
         '<b>' + _esc(a.about || 'No building given') + '</b> <span style="color:' + color + ';font-weight:bold;">' + _esc(cwAge_(a.hrs)) + '</span>' +
-        '<br><span style="color:#636466;">' + (a.type === 'shop' ? 'Shop order' : 'Supply report') + (a.from ? ' from ' + _esc(a.from) : '') + (a.fsm ? ' &middot; FSM ' + _esc(a.fsm) : '') + '</span>' +
+        '<br><span style="color:#636466;">' + _esc(CW_ALERT_KIND[a.type] || a.type) + (a.from ? ' from ' + _esc(a.from) : '') + (a.fsm ? ' &middot; FSM ' + _esc(a.fsm) : '') + '</span>' +
         '<br>' + _esc(a.summary.length > 160 ? a.summary.slice(0, 157) + '...' : a.summary) + '</td></tr>';
     }).join('');
   }
@@ -3025,11 +3028,14 @@ function cwAlertsHtml_(list, F) {
       'These have been sitting more than a day and nobody has marked them. Go mark each one Ordered, Sent to client or Not needed.' + (late.some(function (a) { return a.type === 'shop'; }) ? shop : '')) +
     box(wait, '#B8860B', '#FFF8E5', wait.length + ' waiting on you',
       'Have you ordered these supplies for your account or your vendors? Mark them once you have.') +
+    box(ov, '#7A1F7A', '#F6EEF6', ov.length + ' waiting on the Ovation Hub',
+      'Porter checklists to approve, and reports or requests from Ovation staff or the porters. Open each one in the review queue, then mark it on the Alerts card.') +
     '<p style="margin:0 0 6px;"><a href="' + CW_ALERTS_URL + '" style="display:inline-block;background:#D22730;color:#ffffff;' + F + 'font-size:13px;font-weight:bold;text-decoration:none;padding:10px 18px;border-radius:4px;">Open the Alerts card &rarr;</a></p>';
 }
 function cwAlertsPlain_(list) {
   if (!list || !list.length) return '';
-  var late = list.filter(function (a) { return a.late; }), wait = list.filter(function (a) { return !a.late; });
+  var ov = list.filter(cwIsOvAlert_), sup = list.filter(function (a) { return !cwIsOvAlert_(a); });
+  var late = sup.filter(function (a) { return a.late; }), wait = sup.filter(function (a) { return !a.late; });
   var l = [];
   function add(arr, head) {
     if (!arr.length) return;
@@ -3039,6 +3045,7 @@ function cwAlertsPlain_(list) {
   }
   add(late, late.length + ' PAST DUE. Nobody has marked these. Mark each one Ordered, Sent to client or Not needed.');
   add(wait, wait.length + ' WAITING ON YOU. Have you ordered these supplies for your account or your vendors?');
+  add(ov, ov.length + ' WAITING ON THE OVATION HUB. Porter checklists to approve and reports to act on. Open the review queue, then mark each one on the Alerts card.');
   l.push('Alerts card: ' + CW_ALERTS_URL, '', '');
   return l.join('\n');
 }
@@ -3053,7 +3060,7 @@ function cwSendAlertReminder_(open, when) {
     var mine = cwAlertsFor_(to, late);
     if (!mine.length) return;
     cwSend_({ to: to, name: CW_DIGEST_SENDER,
-      subject: '[' + mine.length + ' past due] Supplies nobody has marked - ' + when,
+      subject: '[' + mine.length + ' past due] Alerts nobody has marked - ' + when,
       htmlBody: cwDigestHtml_('Supply reminder', when, [], 'Nothing new came in, but these are still open on the Ops Hub.', mine),
       body: cwAlertsPlain_(mine) });
     sent++;

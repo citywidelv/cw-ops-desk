@@ -32,6 +32,11 @@
 // Anyone can reassign an alert on the hub (alerts_assign, Alert Assign tab); replies
 // follow their posting. Kinds alerts_acct_list / alerts_acct_import / alerts_acct_set /
 // alerts_assign are served from AccountFsm.gs.
+// Oct 23 2026: Ovation Hub items (Ovation.gs ovAlertItems_): every New porter checklist (type
+// ovcheck, key ovc:<id>, one button Approved) and every New report or porter emergency /
+// maintenance request (type ovreport, key ovr:<id>, Reviewed / Scheduled / Done). A check-off
+// here writes the status onto the CW Ovation Hub book through ovAlertSet_; marking on
+// review.html drops the item from this list. Open items ride the daily digests until marked.
 // ============================================================
 var AL_TAB = 'Alert Status';
 var AL_HEAD = ['alert_key', 'type', 'status', 'handled_by', 'handled_at', 'summary'];
@@ -49,7 +54,12 @@ var AL_STATUS = {
   workreq: ['Scheduled', 'Dispatched', 'Done', 'Not ours'],
   workdone: ['Reviewed'],
   review: ['Reviewed'],
-  ticket: []   // Oct 15 2026: work ticket billing queue summary (WorkTicketsHub.gs); check-off happens on work-tickets.html
+  ticket: [],   // Oct 15 2026: work ticket billing queue summary (WorkTicketsHub.gs); check-off happens on work-tickets.html
+  // Oct 23 2026: Ovation Hub (Ovation.gs ovAlertItems_). A porter checklist waiting for the FSM's
+  // approval, and a report (Ovation staff, or a porter emergency / maintenance request). Marking
+  // here writes the status onto the CW Ovation Hub book, so review.html agrees.
+  ovcheck: ['Approved'],
+  ovreport: ['Reviewed', 'Scheduled', 'Done']
 };
 var AL_JF_TYPES = { workreq: 1, workdone: 1, review: 1 };
 var AL_FILL_CLOSE = 'Posting filled';   // reply status written when its posting is filled
@@ -420,6 +430,8 @@ function alList_(d) {
   if (typeof jfAlertItems_ === 'function') { try { items = items.concat(jfAlertItems_(accounts, idx)); } catch (e) { /* feeds unavailable: the rest of the list still renders */ } }
   // Oct 15 2026: one line per FSM for work tickets waiting to be billed (WorkTicketsHub.gs)
   if (typeof wtAlertItems_ === 'function') { try { items = items.concat(wtAlertItems_()); } catch (e) { /* queue unavailable: the rest still renders */ } }
+  // Oct 23 2026: Ovation Hub checklists to approve and reports to act on (Ovation.gs)
+  if (typeof ovAlertItems_ === 'function') { try { items = items.concat(ovAlertItems_()); } catch (e) { /* Ovation book unavailable: the rest still renders */ } }
   // Reassignments made on the hub (Alert Assign tab). Replies follow their posting.
   var asg = {};
   try { asg = afAssignMap_(afTab_(cwSS_(), AF_ASSIGN_TAB, AF_ASSIGN_HEAD)); } catch (e) { asg = {}; }
@@ -472,7 +484,7 @@ function alSet_(d) {
     keys.slice(0, 200).forEach(function (k) {
       k = alStr_(k);
       if (!k) return;
-      var type = k.indexOf('resp:') === 0 ? 'response' : k.indexOf('sup:') === 0 ? 'supply' : k.indexOf('shop:') === 0 ? 'shop' : k.indexOf('post:') === 0 ? 'posting' : k.indexOf('ni:') === 0 ? 'night' : '';
+      var type = k.indexOf('resp:') === 0 ? 'response' : k.indexOf('sup:') === 0 ? 'supply' : k.indexOf('shop:') === 0 ? 'shop' : k.indexOf('post:') === 0 ? 'posting' : k.indexOf('ni:') === 0 ? 'night' : k.indexOf('ovc:') === 0 ? 'ovcheck' : k.indexOf('ovr:') === 0 ? 'ovreport' : '';
       if (!type && k.indexOf('jf:') === 0) {
         // a Jotform feed item: the status names its type; a reopen keeps the type already on the row
         type = (status && AL_JF_TYPES[valid[status]]) ? valid[status] : (map[k] && AL_JF_TYPES[alJfRowType_(sh, map[k].row)] ? alJfRowType_(sh, map[k].row) : 'review');
@@ -484,6 +496,7 @@ function alSet_(d) {
       map[k] = { row: row, status: status, by: by, at: now };
       saved.push({ key: k, status: status, by: status ? by : '', at: status ? alIso_(now) : '', at_nice: status ? alNice_(now) : '' });
       if (type === 'shop') { try { alShopSync_(k, status); } catch (e) {} }
+      if ((type === 'ovcheck' || type === 'ovreport') && typeof ovAlertSet_ === 'function') { try { ovAlertSet_(k, status, by); } catch (e) {} }
       if (type === 'posting') {
         try { alPostingFilled_(k.slice(5), !!status); } catch (e) {}
         try { saved = saved.concat(status ? alCloseReplies_(sh, map, alRepliesFor_(k.slice(5)), by, now) : alReopenReplies_(sh, map, k.slice(5))); } catch (e) {}
