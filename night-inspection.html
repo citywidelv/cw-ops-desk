@@ -469,7 +469,7 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 "use strict";
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
 var DBIS = "https://script.google.com/macros/s/AKfycbwQKATsO_nRIKKaCJYqtjVDn3kPs5h71ChFdGudR8zYkxSeLOKufEvlRXWNNMxfG-oIKQ/exec";
-var DRAFT_KEY = "niDraft", WHO_KEY = "niWho", MKT_KEY = "niMarket", CTX_KEY = "niCtx";
+var DRAFT_KEY = "niDraft", WHO_KEY = "niWho", MKT_KEY = "niMarket", CTX_KEY = "niCtx2", HIST_KEY = "niHist";
 var LOW = 8;
 var PASS = "", CTX = null, HS = [];   // HS = hot spots for the picked building
 var SMALL = {};                        // photo id -> 900px data URI, memory only
@@ -627,7 +627,7 @@ chipGroup("mktChips", "data-m", function(){ return S.market; }, function(v){
 function setMarket(v){
   S.market = v; ls(function(){ localStorage.setItem(MKT_KEY, v); });
   paintChips("mktChips", "data-m", S.market);
-  if (CTX){ CTX = { ok:true, region:CTX.region, accounts:[], vendors:[], night_managers:CTX.night_managers||[], fsms:CTX.fsms||[], last_vendor:{}, prior_complaints:{}, roster:{}, vendor_roster:{}, account_checks:{} }; }
+  if (CTX){ CTX = { ok:true, region:CTX.region, accounts:[], vendors:[], night_managers:CTX.night_managers||[], fsms:CTX.fsms||[], last_vendor:{}, prior_complaints:{}, roster:{}, vendor_roster:{}, account_checks:{}, _hist:false }; }
   ACC = []; VEN = [];
   pickAccount(null); pickVendor(null); loadCtx(true);
 }
@@ -1316,8 +1316,8 @@ function paintCrewNames(){
   if (vend.length){
     var all = CREW_ALL || vend.length <= 12;
     var shown = all ? vend : vend.slice(0, 12);
-    html += '<div class="crewhead">' + (site.length ? 'Other names ' : 'Names ') + esc(vname) + ' has turned in to us. Tick who you saw.</div>'
-      + shown.map(function(x){ return tick(x.n, x.bc==="Pending" ? "check pending" : ""); }).join("")
+    html += '<div class="crewhead">' + (site.length ? 'Other names ' : 'Names ') + esc(vname) + ' has on file with us. Tick who you saw.</div>'
+      + shown.map(function(x){ return tick(x.n, x.bc==="Pending" ? "check pending" : (x.role||"").toLowerCase()); }).join("")
       + (all ? "" : '<button class="linkbtn" type="button" id="crewMore">Show all ' + vend.length + ' names</button>');
   }
   if (html){
@@ -1328,9 +1328,12 @@ function paintCrewNames(){
     var more = $("crewMore"); if (more) more.addEventListener("click", function(){ CREW_ALL = true; paintCrewNames(); });
     $("crewNewL").textContent = "Anyone new? Add their name."; show("crewNewL", true);
     if (!S.crew_names.length) S.crew_names = [""];
+  } else if (CTX && !CTX._hist && S.vendor_name){
+    $("crewTitle").textContent = "Who was on the crew tonight?";
+    $("crewSub").textContent = "Loading the names " + S.vendor_name + " has on file...";
   } else {
     $("crewTitle").textContent = "Who was on the crew? Ask their names.";
-    $("crewSub").textContent = (S.vendor_name ? "No names on file yet for " + S.vendor_name + " here. " : "First inspection here. ") + "Add every name you can get. First and last name.";
+    $("crewSub").textContent = (S.vendor_name ? "No names on file yet for " + S.vendor_name + ". " : "First inspection here. ") + "Add every name you can get. First and last name.";
     $("crewKnown").innerHTML = ""; show("crewNewL", false);
     if (!S.crew_names.length) S.crew_names = [""];
   }
@@ -1360,21 +1363,54 @@ $("aiBtn").addEventListener("click", function(){
 $("howtoBtn").addEventListener("click", function(){ show("howto", $("howto").classList.contains("hidden")); });
 
 /* ---------- context ---------- */
+// Two calls. ni_context is the fast one (buildings, companies, people, tonight's
+// route; the server caches it) and paints the pickers. ni_history (last company
+// per building, past complaints, the crew names on each vendor's profile) comes
+// second and fills in behind. Both are kept in localStorage so a repeat visit
+// paints at once and refreshes quietly.
 function loadCtx(force){
   var mkt = S.market;
   var cached = ls(function(){ return JSON.parse(localStorage.getItem(CTX_KEY+"_"+mkt) || "null"); });
   if (cached && cached.market && cached.market !== mkt) cached = null;
-  if (cached && !force && Date.now() - cached._at < 6*60*60*1000){ useCtx(cached); }
+  var hcached = ls(function(){ return JSON.parse(localStorage.getItem(HIST_KEY+"_"+mkt) || "null"); });
+  if (hcached && hcached.market && hcached.market !== mkt) hcached = null;
+  if (cached && !force && Date.now() - cached._at < 6*60*60*1000){ useCtx(cached); if (hcached) useHist(hcached); }
   $("acctHint").textContent = cached && !force ? "" : "Loading the building list...";
   post(WEBHOOK, { kind:"ni_context", market:mkt }).then(function(r){
     if (mkt !== S.market) return; // the user switched markets while this was in flight
     if (!r || !r.ok){ if (r && CWAuth.isPassError(r.error)) { CWAuth.locked("ops", r.error); return; } if (!cached) $("acctHint").textContent = (r && r.error) || "Could not load the lists. Type the names by hand."; return; }
     r._at = Date.now(); ls(function(){ localStorage.setItem(CTX_KEY+"_"+mkt, JSON.stringify(r)); });
     useCtx(r); if ($("acctHint").textContent.indexOf("Loading")===0) $("acctHint").textContent = "";
+    if (hcached && CTX && !CTX._hist) useHist(hcached);
+    loadHist(mkt);
   }).catch(function(){ if (!cached) $("acctHint").textContent = "Could not load the lists. Check your signal. You can still type the names by hand with Can't find it."; });
 }
+function loadHist(mkt){
+  post(WEBHOOK, { kind:"ni_history", market:mkt }).then(function(h){
+    if (mkt !== S.market || !h || !h.ok) return;
+    h._at = Date.now(); ls(function(){ localStorage.setItem(HIST_KEY+"_"+mkt, JSON.stringify(h)); });
+    useHist(h);
+  }).catch(function(){ if (CTX && !CTX._hist){ CTX._hist = true; paintCrewNames(); } });
+}
+function useHist(h){
+  if (!CTX) return;
+  CTX.last_vendor = h.last_vendor || {}; CTX.prior_complaints = h.prior_complaints || {};
+  CTX.roster = h.roster || {}; CTX.vendor_roster = h.vendor_roster || {}; CTX._hist = true;
+  if (S.account_name){
+    var key = S.account_id, nkey = String(S.account_name).toLowerCase();
+    if (!S.vendor_name){
+      var lv = CTX.last_vendor[key] || CTX.last_vendor[nkey];
+      if (lv){ var m = VEN.filter(function(v){ return (lv.id && v.id===lv.id) || v.dba===lv.dba; })[0]; pickVendor(m || {id:lv.id, dba:lv.dba, owner:lv.owner, label: lv.dba + (lv.owner?' - '+lv.owner:''), matched:false}); $("vendHint").textContent = "Same company as last time. Tap Change if that is wrong."; }
+    }
+    if (!S.prior_complaints){ S.prior_complaints = CTX.prior_complaints[key] || CTX.prior_complaints[nkey] || ""; try { paintStd(); } catch(e){} }
+  }
+  paintCrewNames();
+}
 function useCtx(r){
+  var keep = CTX && CTX._hist ? { last_vendor:CTX.last_vendor, prior_complaints:CTX.prior_complaints, roster:CTX.roster, vendor_roster:CTX.vendor_roster } : null;
   CTX = r;
+  if (keep){ CTX.last_vendor = keep.last_vendor; CTX.prior_complaints = keep.prior_complaints; CTX.roster = keep.roster; CTX.vendor_roster = keep.vendor_roster; CTX._hist = true; }
+  else { CTX.last_vendor = CTX.last_vendor || {}; CTX.prior_complaints = CTX.prior_complaints || {}; CTX.roster = CTX.roster || {}; CTX.vendor_roster = CTX.vendor_roster || {}; CTX._hist = false; }
   VEN = (r.vendors||[]).slice(); VEN.forEach(function(v){ v._s = (v.label||"").toLowerCase(); });
   sortAccounts(); fillWho(); paintFsm(); paintCrewNames(); paintRoute(); paintAsk();
   if (S.nm_name) { $("whoSel").value = S.nm_name; }

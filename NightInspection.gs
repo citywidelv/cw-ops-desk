@@ -15,7 +15,11 @@
 //
 // Kinds (team passcode on every one):
 //   ni_setup    idempotent; creates the sheet, the Inspections tab, the Drive root
-//   ni_context  accounts + vendors + night managers + FSMs + last vendor per account
+//   ni_context  accounts + vendors + night managers + FSMs + tonight's route (pickers
+//               cached 10 min in CacheService; fresh:true bypasses)
+//   ni_history  last vendor per building, prior complaints, crew tick lists (Oct 24 2026;
+//               cached 10 min, busted by ni_submit / ni_edit). Was inside ni_context,
+//               which made the page wait 15s for the building list
 //   ni_photo    one resized photo, filed to _Incoming now so a dead tab never loses it
 //   ni_submit   moves the photos, builds the PDF, writes the row. Duplicate draft_id
 //               returns the first row instead of writing a second.
@@ -182,6 +186,7 @@ function niDispatch(data) {
     if (kind.indexOf('ni_route_') === 0) return nrDispatch_(data);
     if (kind === 'ni_setup') return niSetup_(data);
     if (kind === 'ni_context') return niContext_(data);
+    if (kind === 'ni_history') return niHistory_(data);
     if (kind === 'ni_photo') return niPhoto_(data);
     if (kind === 'ni_submit') return niSubmit_(data);
     if (kind === 'ni_request') return niRequest_(data);
@@ -210,154 +215,46 @@ function niSetup_(data) {
 
 // ------------------------------------------------------------ context -----
 
-// Everything the page needs for one market in one call. Accounts: Active (or
-// blank status), not hidden. Vendors: live janitorial vendors in the market,
-// labelled "DBA - Owner". People: Staff tab rows by role. last_vendor maps
-// account_id -> the vendor used on that account's most recent recap, which is
-// how the page prefills the cleaning company. Internal page; a full picker is
-// correct here.
+// Oct 24 2026: ni_context is the fast call. Pickers (accounts, vendors, people)
+// come from a 10-minute CacheService copy, so the building list paints in about
+// a second instead of fifteen. Tonight's route is read live because the FSM may
+// still be editing it. Everything historical (last vendor per building, prior
+// complaints, crew tick lists) moved to ni_history, which the page asks for
+// second. Internal page; a full picker is correct here.
+var NI_CACHE_TTL = 600;
+function niCacheGet_(key) {
+  try {
+    var c = CacheService.getScriptCache().get(key);
+    if (!c) return null;
+    return JSON.parse(Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(c), 'application/x-gzip')).getDataAsString());
+  } catch (e) { return null; }
+}
+function niCachePut_(key, obj) {
+  try {
+    var packed = Utilities.base64Encode(Utilities.gzip(Utilities.newBlob(JSON.stringify(obj))).getBytes());
+    if (packed.length < 95000) CacheService.getScriptCache().put(key, packed, NI_CACHE_TTL);
+  } catch (e) {}
+}
+// Called after a recap lands or is edited so the next ni_history sees it.
+function niCacheBust_(mkt) {
+  try { CacheService.getScriptCache().removeAll(['ni_history_' + mkt]); } catch (e) {}
+}
+function niPickersCached_(mkt, fresh) {
+  var hit = fresh ? null : niCacheGet_('ni_pickers_' + mkt);
+  if (hit) { hit.cached = true; return hit; }
+  var out = niPickers_(mkt);
+  out.generated = new Date().toISOString();
+  out.cached = false;
+  niCachePut_('ni_pickers_' + mkt, out);
+  return out;
+}
+
 function niContext_(data) {
   var mkt = niMarket_(data.market);
-  var region = NI_MARKETS[mkt];
-  var out = { ok: true, market: mkt, region: region, today: Utilities.formatDate(new Date(), NI_TZ, 'yyyy-MM-dd'),
-    accounts: [], vendors: [], night_managers: [], fsms: [], last_vendor: {}, prior_complaints: {}, roster: {}, vendor_roster: {}, warnings: [] };
-
-  try {
-    actAccountRows_(actSS_()).forEach(function (r) {
-      if (actRegion_(r.region) !== region) return;
-      if (actStr_(r.hide).toUpperCase() === 'TRUE') return;
-      var st = actStr_(r.status);
-      if (st && st !== 'Active') return;
-      out.accounts.push({ id: actStr_(r.account_id), name: actStr_(r.name), fsm: actStr_(r.fsm), night_manager: actStr_(r.night_manager),
-        industry: actStr_(r.industry), address: [actStr_(r.address1), actStr_(r.city)].filter(String).join(', ') });
-    });
-    out.accounts.sort(function (a, b) { return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1; });
-  } catch (e) { out.warnings.push('accounts: ' + e.message); }
-
-  try {
-    vdAllRows_(vdSS_()).forEach(function (r) {
-      if (!vdStr_(r.dba_name) || vdTrue_(r.hide)) return;
-      if (VD_LIVE_STATUS.indexOf(vdStr_(r.status)) < 0) return;
-      if (!vdInRegion_(vdRegion_(r.region), mkt)) return;
-      var slugs = vdSlugs_(r.service_types);
-      if (slugs.length && slugs.indexOf(VD_JANITORIAL) < 0) return;
-      var owner = vdStr_(r.contact_name);
-      out.vendors.push({ id: vdStr_(r.vendor_id), dba: vdStr_(r.dba_name), owner: owner, label: vdStr_(r.dba_name) + (owner ? ' - ' + owner : '') });
-    });
-    out.vendors.sort(function (a, b) { return a.label.toLowerCase() < b.label.toLowerCase() ? -1 : 1; });
-  } catch (e) { out.warnings.push('vendors: ' + e.message); }
-
-  try {
-    var sh = staffSS_().getSheetByName('Staff');
-    var v = sh ? sh.getDataRange().getValues() : [];
-    for (var i = 1; i < v.length; i++) {
-      if (!v[i][0] || String(v[i][5]).toUpperCase() === 'FALSE') continue;
-      var p = { name: String(v[i][0]).replace(/\s+/g, ' ').trim(), email: String(v[i][4] || '').trim(), market: String(v[i][2] || '').trim(), role: String(v[i][1] || '').trim() };
-      var inMkt = p.market === 'Both' || p.market === region;
-      if (p.role === 'Night Manager') out.night_managers.push(p);
-      else if (/Facility Solutions Manager|Director of Operations|General Manager/.test(p.role)) { p.in_market = inMkt; out.fsms.push(p); }
-    }
-    out.fsms.sort(function (a, b) { if (a.in_market !== b.in_market) return a.in_market ? -1 : 1; return a.name < b.name ? -1 : 1; });
-  } catch (e) { out.warnings.push('staff: ' + e.message); }
-
-  // Oct 21 2026: names attached to the cleaning company itself, so the crew step
-  // can list who that vendor has turned in to us once the vendor is picked, not
-  // only who was seen at this building before. Keyed by vendor_id and by
-  // lowercase DBA. Each entry is {n, bc}; bc is 'Cleared', 'Pending' or '' (no
-  // background check on file). Sources: the Vendor Directory background check
-  // tabs, the Account Cleaner Tracker roster by company, and prior recaps.
-  var vrAdd = function (key, name, bc) {
-    key = String(key || '').trim(); name = String(name || '').replace(/\s+/g, ' ').trim();
-    if (!key || name.length < 2) return;
-    var list = out.vendor_roster[key] || (out.vendor_roster[key] = []);
-    var low = name.toLowerCase(), hit = null;
-    list.some(function (x) { if (x.n.toLowerCase() === low) { hit = x; return true; } return false; });
-    if (hit) { if (bc === 'Cleared' || (bc === 'Pending' && !hit.bc)) hit.bc = bc; return; }
-    list.push({ n: name, bc: bc || '' });
-  };
-  var vrBoth = function (id, dba, name, bc) { if (id) vrAdd(id, name, bc); if (dba) vrAdd(String(dba).toLowerCase(), name, bc); };
-  var vrIdByName = {}, vrDbaById = {};
-  out.vendors.forEach(function (v) { vrIdByName[v.dba.toLowerCase()] = v.id; vrDbaById[v.id] = v.dba; });
-
-  try {
-    var isheet = niTab_(niSS_());
-    var head = niHead_(isheet);
-    var last = isheet.getLastRow();
-    if (last > 1) {
-      var start = Math.max(2, last - 1500);
-      var vals = isheet.getRange(start, 1, last - start + 1, head.length).getValues();
-      var cA = head.indexOf('account_id'), cAN = head.indexOf('account_name'), cV = head.indexOf('vendor_name'), cVI = head.indexOf('vendor_id'), cVO = head.indexOf('vendor_owner');
-      var cCN = head.indexOf('crew_names');
-      var cCF = head.indexOf('complaint_flag'), cCW = head.indexOf('complaint_what'), cCAr = head.indexOf('complaint_areas'), cSub = head.indexOf('submitted_at'), cSF = head.indexOf('standards_failed');
-      var cutoff = Date.now() - 90 * 86400000;
-      for (var k = vals.length - 1; k >= 0; k--) {
-        var key = niStr_(vals[k][cA]) || niStr_(vals[k][cAN]).toLowerCase();
-        if (!key) continue;
-        if (!out.last_vendor[key] && niStr_(vals[k][cV])) out.last_vendor[key] = { id: niStr_(vals[k][cVI]), dba: niStr_(vals[k][cV]), owner: niStr_(vals[k][cVO]) };
-        if (cCN >= 0 && niStr_(vals[k][cCN])) niStr_(vals[k][cCN]).split('\n').forEach(function (n) { niRosterAdd_(out.roster, key, n); if (cAN >= 0) niRosterAdd_(out.roster, niStr_(vals[k][cAN]).toLowerCase(), n); vrBoth(niStr_(vals[k][cVI]), niStr_(vals[k][cV]), n, ''); });
-        // Past complaints and failed standards at this building in the last 90 days feed a checklist line.
-        var when = vals[k][cSub] instanceof Date ? vals[k][cSub].getTime() : Date.parse(niStr_(vals[k][cSub]).replace(' ', 'T'));
-        if (isNaN(when)) when = Date.now();   // unreadable stamp: treat as recent rather than drop it
-        if (when && when > cutoff) {
-          var bits = [];
-          if (niStr_(vals[k][cCF]).toUpperCase() === 'TRUE') bits.push(niStr_(vals[k][cCAr]) || niStr_(vals[k][cCW]).slice(0, 60));
-          if (cSF >= 0 && niStr_(vals[k][cSF])) niStr_(vals[k][cSF]).split('\n').forEach(function (l) { var q = l.split('|')[0].trim(); if (q) bits.push(q); });
-          bits = bits.filter(String);
-          if (bits.length) { var cur = out.prior_complaints[key] || ''; bits.forEach(function (b) { if (cur.indexOf(b) < 0) cur = cur ? cur + '; ' + b : b; }); out.prior_complaints[key] = cur.slice(0, 240); }
-        }
-      }
-    }
-  } catch (e) { out.warnings.push('last_vendor: ' + e.message); }
-
-  // Crew names already on the Account Cleaner Tracker roster, keyed by building name.
-  // The page shows these first ("the names we have for cleaners at this site") so
-  // the night manager ticks who was there and only types a name that is new.
-  try {
-    if (typeof acRows_ === 'function') {
-      var rh = AC_ROS_HEAD, g = function (x, f) { return Array.isArray(x) ? x[rh.indexOf(f)] : x[f]; };
-      acRows_(AC_ROS, AC_ROS_HEAD).forEach(function (x) {
-        var st = String(g(x, 'status') || '');
-        if (/removed/i.test(st)) return;
-        var n = (String(g(x, 'cleaner_first') || '') + ' ' + String(g(x, 'cleaner_last') || '')).trim();
-        var acct = String(g(x, 'account_matched') || g(x, 'account_raw') || '').toLowerCase().trim();
-        if (n && acct) niRosterAdd_(out.roster, acct, n);
-      });
-    }
-  } catch (e) { out.warnings.push('roster: ' + e.message); }
-
-  // Cleaner Tracker roster by company (the names vendors turned in on the roster form).
-  try {
-    if (typeof acRows_ === 'function') {
-      var rh2 = AC_ROS_HEAD, g2 = function (x, f) { return Array.isArray(x) ? x[rh2.indexOf(f)] : x[f]; };
-      acRows_(AC_ROS, AC_ROS_HEAD).forEach(function (x) {
-        if (/removed/i.test(String(g2(x, 'status') || ''))) return;
-        var n = (String(g2(x, 'cleaner_first') || '') + ' ' + String(g2(x, 'cleaner_last') || '')).trim();
-        var co = String(g2(x, 'company_matched') || '').trim();
-        if (!n || !co) return;
-        vrBoth(vrIdByName[co.toLowerCase()] || '', co, n, '');
-      });
-    }
-  } catch (e) { out.warnings.push('vendor_roster_ac: ' + e.message); }
-
-  // Background check tabs: everyone turned in for a check, cleared or pending.
-  // Removed people and anyone who did not clear never reach the page.
-  try {
-    var vss = vdSS_();
-    VD_BC_TABS.forEach(function (b) {
-      var sh = vss.getSheetByName(b.name);
-      if (!sh) return;
-      vdRows_(sh).rows.forEach(function (r) {
-        var name = [vdStr_(r.first_name), vdStr_(r.last_name)].filter(String).join(' ');
-        if (!name) return;
-        var st = vdStr_(r.status), res = vdBcRes_(r.result);
-        if (st === 'Removed' || res === 'Not clear') return;
-        var id = vdStr_(r.vendor_id) || vrIdByName[vdStr_(r.vendor).toLowerCase()] || '';
-        var dba = vrDbaById[id] || vdStr_(r.vendor);
-        if (!id && !dba) return;
-        vrBoth(id, dba, name, (st === 'Pending' || res === 'Pending') ? 'Pending' : 'Cleared');
-      });
-    });
-  } catch (e) { out.warnings.push('vendor_roster_bc: ' + e.message); }
+  var out = niPickersCached_(mkt, !!data.fresh);
+  out.ok = true;
+  out.today = Utilities.formatDate(new Date(), NI_TZ, 'yyyy-MM-dd');
+  out.warnings = out.warnings || [];
 
   // Tonight's route from the FSMs, plus every standing per-building checklist.
   // The page filters the stops once the night manager picks their name. A
@@ -375,7 +272,205 @@ function niContext_(data) {
     }
   } catch (e) { out.warnings.push('route: ' + e.message); }
 
+  // Pages built before Oct 24 2026 expected the history inside this call.
+  if (data.with_history) {
+    var h = niHistoryCached_(mkt, !!data.fresh);
+    ['last_vendor', 'prior_complaints', 'roster', 'vendor_roster'].forEach(function (k) { out[k] = h[k] || {}; });
+    (h.warnings || []).forEach(function (w) { out.warnings.push(w); });
+  } else {
+    out.history = 'ni_history';
+  }
   return niOut_(out);
+}
+
+// ------------------------------------------------------------ history -----
+
+function niHistory_(data) {
+  var mkt = niMarket_(data.market);
+  return niOut_(niHistoryCached_(mkt, !!data.fresh));
+}
+function niHistoryCached_(mkt, fresh) {
+  var hit = fresh ? null : niCacheGet_('ni_history_' + mkt);
+  if (hit) { hit.cached = true; return hit; }
+  var out = niHistoryBuild_(mkt);
+  niCachePut_('ni_history_' + mkt, out);
+  return out;
+}
+
+// Name matching for crew lists: "nadia" matches "Nadia Lopez", "lopez nadia"
+// matches too, "maria" alone matches only when one Maria is on the list.
+function niNameNorm_(s) { return String(s || '').toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim(); }
+function niNameSame_(a, b) {
+  var ta = niNameNorm_(a).split(' ').filter(String), tb = niNameNorm_(b).split(' ').filter(String);
+  if (!ta.length || !tb.length) return false;
+  if (ta.join(' ') === tb.join(' ')) return true;
+  var hits = ta.filter(function (t) { return tb.indexOf(t) >= 0; }).length;
+  return hits >= Math.min(2, ta.length) && hits >= 1;
+}
+// The profile spelling of a typed name, or '' when it is not on the list or is
+// ambiguous (a lone first name two people share).
+function niCanon_(list, typed) {
+  if (!list || !list.length) return '';
+  var hits = list.filter(function (x) { return niNameSame_(typed, x.n); });
+  if (hits.length === 1) return hits[0].n;
+  if (hits.length > 1) {
+    var exact = hits.filter(function (x) { return niNameNorm_(x.n) === niNameNorm_(typed); });
+    return exact.length ? exact[0].n : '';
+  }
+  return '';
+}
+
+// Oct 24 2026. The crew tick lists are built from the people the vendor has on
+// its profile, in the spelling the vendor gave us: the Vendor Directory
+// background check tabs (Cleared and Pending; Removed and Not clear never reach
+// the page), the Account Cleaner Tracker roster rows the admin has reviewed
+// (status Active), and the Vendor Contacts tab (owners, managers, supervisors
+// who may be on site). Names night managers typed on earlier recaps are no
+// longer offered as tick boxes: that is where the misspelled and first-name-only
+// entries came from. They still decide the "seen at this building" ordering
+// when they match a profile name, and a typed name that matches nobody still
+// flows to the tracker as Needs Review and to the morning crew-check email.
+// vendor_roster: vendor_id and lowercase DBA -> [{n, bc, role}], bc 'Cleared' |
+// 'Pending' | '', role 'Owner' | 'Manager' | 'Supervisor' | ''.
+// roster: account_id and lowercase account name -> [profile names seen there].
+function niHistoryBuild_(mkt) {
+  var out = { ok: true, market: mkt, last_vendor: {}, prior_complaints: {}, roster: {}, vendor_roster: {},
+    generated: new Date().toISOString(), cached: false, warnings: [] };
+  var vendors = [];
+  try { vendors = niPickersCached_(mkt, false).vendors || []; } catch (e) { out.warnings.push('vendors: ' + e.message); }
+  var vrIdByName = {}, vrDbaById = {};
+  vendors.forEach(function (v) { vrIdByName[v.dba.toLowerCase()] = v.id; vrDbaById[v.id] = v.dba; });
+
+  var vrAdd = function (key, name, bc, role) {
+    key = String(key || '').trim(); name = String(name || '').replace(/\s+/g, ' ').trim();
+    if (!key || name.length < 2) return;
+    var list = out.vendor_roster[key] || (out.vendor_roster[key] = []);
+    var low = name.toLowerCase(), hit = null;
+    list.some(function (x) { if (x.n.toLowerCase() === low) { hit = x; return true; } return false; });
+    if (hit) {
+      if (bc === 'Cleared' || (bc === 'Pending' && !hit.bc)) hit.bc = bc;
+      if (role && !hit.role) hit.role = role;
+      return;
+    }
+    list.push({ n: name, bc: bc || '', role: role || '' });
+  };
+  var vrBoth = function (id, dba, name, bc, role) { if (id) vrAdd(id, name, bc, role); if (dba) vrAdd(String(dba).toLowerCase(), name, bc, role); };
+  var vrList = function (id, dba) { return (id && out.vendor_roster[id]) || out.vendor_roster[String(dba || '').toLowerCase()] || []; };
+
+  // 1. Background check tabs: everyone turned in for a check, cleared or pending.
+  try {
+    var vss = vdSS_();
+    VD_BC_TABS.forEach(function (b) {
+      var sh = vss.getSheetByName(b.name);
+      if (!sh) return;
+      vdRows_(sh).rows.forEach(function (r) {
+        var name = [vdStr_(r.first_name), vdStr_(r.last_name)].filter(String).join(' ');
+        if (!name) return;
+        var st = vdStr_(r.status), res = vdBcRes_(r.result);
+        if (st === 'Removed' || res === 'Not clear') return;
+        var id = vdStr_(r.vendor_id) || vrIdByName[vdStr_(r.vendor).toLowerCase()] || '';
+        var dba = vrDbaById[id] || vdStr_(r.vendor) || vdStr_(r.roster_company_as_typed);
+        if (!id && !dba) return;
+        vrBoth(id, dba, name, (st === 'Pending' || res === 'Pending') ? 'Pending' : 'Cleared', '');
+      });
+    });
+  } catch (e) { out.warnings.push('vendor_roster_bc: ' + e.message); }
+
+  // 2. Vendor Contacts: owners, managers and supervisors the vendor listed.
+  try {
+    if (typeof VS_TABS !== 'undefined') {
+      var csh = vdSS_().getSheetByName(VS_TABS.CONTACTS);
+      if (csh) vdRows_(csh).rows.forEach(function (r) {
+        if (vdStr_(r.removed)) return;
+        var n = vdStr_(r.name), role = vdStr_(r.role);
+        if (!n) return;
+        var id = vdStr_(r.vendor_id), dba = vrDbaById[id] || vdStr_(r.vendor);
+        if (!id && !dba) return;
+        vrBoth(id, dba, n, '', role ? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase() : '');
+      });
+    }
+  } catch (e) { out.warnings.push('vendor_roster_contacts: ' + e.message); }
+
+  // 3. Cleaner Tracker roster by company, reviewed rows only. Needs Review rows
+  // are the names night managers typed; they are not offered back.
+  var acByBuilding = [];
+  try {
+    if (typeof acRows_ === 'function') {
+      var rh = AC_ROS_HEAD, g = function (x, f) { return Array.isArray(x) ? x[rh.indexOf(f)] : x[f]; };
+      acRows_(AC_ROS, AC_ROS_HEAD).forEach(function (x) {
+        var st = String(g(x, 'status') || '');
+        if (!/^active$/i.test(st)) return;
+        var n = (String(g(x, 'cleaner_first') || '') + ' ' + String(g(x, 'cleaner_last') || '')).trim();
+        var co = String(g(x, 'company_matched') || '').trim();
+        if (!n || !co) return;
+        var id = vrIdByName[co.toLowerCase()] || '';
+        vrBoth(id, co, n, '', '');
+        var acct = String(g(x, 'account_matched') || g(x, 'account_raw') || '').toLowerCase().trim();
+        if (acct) acByBuilding.push({ acct: acct, id: id, dba: co, n: n });
+      });
+    }
+  } catch (e) { out.warnings.push('vendor_roster_ac: ' + e.message); }
+
+  // 4. Recaps: last vendor per building, prior complaints, and which profile
+  // names were seen at which building. Only the columns needed are read; the
+  // summary and photo columns are what made the old whole-row read slow.
+  try {
+    var isheet = niTab_(niSS_());
+    var head = niHead_(isheet);
+    var last = isheet.getLastRow();
+    if (last > 1) {
+      var start = Math.max(2, last - 1500), n = last - start + 1;
+      var want = ['account_id', 'account_name', 'vendor_name', 'vendor_id', 'vendor_owner', 'crew_names',
+        'complaint_flag', 'complaint_what', 'complaint_areas', 'submitted_at', 'standards_failed'];
+      var cols = {};
+      want.forEach(function (h) { cols[h] = head.indexOf(h); });
+      var idx = want.map(function (h) { return cols[h]; }).filter(function (i) { return i >= 0; }).sort(function (a, b) { return a - b; });
+      // Read in clusters so two narrow ranges replace one 90-column read.
+      var data = {}, c0 = idx[0], c1 = idx[0];
+      var flush = function () {
+        var block = isheet.getRange(start, c0 + 1, n, c1 - c0 + 1).getValues();
+        for (var c = c0; c <= c1; c++) data[c] = block.map(function (row) { return row[c - c0]; });
+      };
+      for (var q = 1; q < idx.length; q++) { if (idx[q] - c1 > 8) { flush(); c0 = idx[q]; } c1 = idx[q]; }
+      flush();
+      var col = function (h, k) { var c = cols[h]; return c >= 0 ? data[c][k] : ''; };
+      var cutoff = Date.now() - 90 * 86400000;
+      for (var k = n - 1; k >= 0; k--) {
+        var key = niStr_(col('account_id', k)) || niStr_(col('account_name', k)).toLowerCase();
+        if (!key) continue;
+        var vid = niStr_(col('vendor_id', k)), vdba = niStr_(col('vendor_name', k));
+        if (!out.last_vendor[key] && vdba) out.last_vendor[key] = { id: vid, dba: vdba, owner: niStr_(col('vendor_owner', k)) };
+        var crew = niStr_(col('crew_names', k));
+        if (crew) {
+          var plist = vrList(vid, vdba);
+          crew.split('\n').forEach(function (t) {
+            var canon = niCanon_(plist, t);
+            if (!canon) return;
+            niRosterAdd_(out.roster, key, canon);
+            var an = niStr_(col('account_name', k)).toLowerCase();
+            if (an) niRosterAdd_(out.roster, an, canon);
+          });
+        }
+        // Past complaints and failed standards at this building in the last 90 days feed a checklist line.
+        var subv = col('submitted_at', k);
+        var when = subv instanceof Date ? subv.getTime() : Date.parse(niStr_(subv).replace(' ', 'T'));
+        if (isNaN(when)) when = Date.now();   // unreadable stamp: treat as recent rather than drop it
+        if (when && when > cutoff) {
+          var bits = [];
+          if (niStr_(col('complaint_flag', k)).toUpperCase() === 'TRUE') bits.push(niStr_(col('complaint_areas', k)) || niStr_(col('complaint_what', k)).slice(0, 60));
+          var sf = niStr_(col('standards_failed', k));
+          if (sf) sf.split('\n').forEach(function (l) { var qq = l.split('|')[0].trim(); if (qq) bits.push(qq); });
+          bits = bits.filter(String);
+          if (bits.length) { var cur = out.prior_complaints[key] || ''; bits.forEach(function (b) { if (cur.indexOf(b) < 0) cur = cur ? cur + '; ' + b : b; }); out.prior_complaints[key] = cur.slice(0, 240); }
+        }
+      }
+    }
+  } catch (e) { out.warnings.push('last_vendor: ' + e.message); }
+
+  // 5. Reviewed tracker rows carry the building they were turned in for.
+  acByBuilding.forEach(function (x) { niRosterAdd_(out.roster, x.acct, x.n); });
+
+  return out;
 }
 
 function niRosterAdd_(map, key, name) {
@@ -536,6 +631,7 @@ function niSubmit_(data) {
     var answered = null;
     try { if (typeof nrAnswer_ === 'function') answered = nrAnswer_(r); } catch (re) {}
 
+    niCacheBust_(mkt);
     return niOut_({ ok: true, inspection_id: id, pdf_url: pdf.url, photo_count: links.length, flags: r.flags, route: answered });
   } finally { lock.releaseLock(); }
 }
@@ -798,7 +894,7 @@ function niFindRow_(sh, head, id) {
 }
 
 // Buildings, cleaning companies, night managers and FSMs for one market.
-// Same filters as niContext_, without the 1,500-row history read, so the edit page opens fast.
+// Oct 24 2026: ni_context, ni_get and ni_history all read this through niPickersCached_.
 function niPickers_(mkt) {
   var region = NI_MARKETS[mkt];
   var out = { market: mkt, region: region, accounts: [], vendors: [], night_managers: [], fsms: [], warnings: [] };
@@ -808,7 +904,8 @@ function niPickers_(mkt) {
       if (actStr_(r.hide).toUpperCase() === 'TRUE') return;
       var st = actStr_(r.status);
       if (st && st !== 'Active') return;
-      out.accounts.push({ id: actStr_(r.account_id), name: actStr_(r.name), fsm: actStr_(r.fsm), address: [actStr_(r.address1), actStr_(r.city)].filter(String).join(', ') });
+      out.accounts.push({ id: actStr_(r.account_id), name: actStr_(r.name), fsm: actStr_(r.fsm), night_manager: actStr_(r.night_manager),
+        industry: actStr_(r.industry), address: [actStr_(r.address1), actStr_(r.city)].filter(String).join(', ') });
     });
     out.accounts.sort(function (a, b) { return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1; });
   } catch (e) { out.warnings.push('accounts: ' + e.message); }
@@ -850,7 +947,7 @@ function niGet_(data) {
   var row = {};
   head.forEach(function (h, j) { if (h) row[h] = (h === 'device') ? '' : niStr_(vals[j]); });
   niTidy_(row);
-  var out = niPickers_(niMarket_(row.market));
+  var out = niPickersCached_(niMarket_(row.market), false);
   out.ok = true; out.row = row; out.editable = NI_EDITABLE; out.reasons = NI_REASONS; out.low_score = NI_LOW_SCORE;
   return niOut_(out);
 }
@@ -983,6 +1080,7 @@ function niEdit_(data) {
       var safe = log.map(function (row) { return row.map(function (c) { c = String(c); return /^[=+\-@]/.test(c) ? "'" + c : c; }); });
       lt.getRange(lt.getLastRow() + 1, 1, safe.length, NI_EDIT_HEADERS.length).setValues(safe);
     }
+    niCacheBust_(niMarket_(r.market));
     return niOut_({ ok: true, inspection_id: id, changed: log.length, pdf_url: pdf.url, flags: r.flags, crew_unverified: r.crew_unverified });
   } finally { lock.releaseLock(); }
 }
