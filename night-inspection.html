@@ -1387,7 +1387,8 @@ function loadCtx(force){
 }
 function loadHist(mkt){
   post(WEBHOOK, { kind:"ni_history", market:mkt }).then(function(h){
-    if (mkt !== S.market || !h || !h.ok) return;
+    if (mkt !== S.market) return;
+    if (!h || !h.ok){ if (CTX && !CTX._hist){ CTX._hist = true; paintCrewNames(); } return; }
     h._at = Date.now(); ls(function(){ localStorage.setItem(HIST_KEY+"_"+mkt, JSON.stringify(h)); });
     useHist(h);
   }).catch(function(){ if (CTX && !CTX._hist){ CTX._hist = true; paintCrewNames(); } });
@@ -1410,7 +1411,7 @@ function useCtx(r){
   var keep = CTX && CTX._hist ? { last_vendor:CTX.last_vendor, prior_complaints:CTX.prior_complaints, roster:CTX.roster, vendor_roster:CTX.vendor_roster } : null;
   CTX = r;
   if (keep){ CTX.last_vendor = keep.last_vendor; CTX.prior_complaints = keep.prior_complaints; CTX.roster = keep.roster; CTX.vendor_roster = keep.vendor_roster; CTX._hist = true; }
-  else { CTX.last_vendor = CTX.last_vendor || {}; CTX.prior_complaints = CTX.prior_complaints || {}; CTX.roster = CTX.roster || {}; CTX.vendor_roster = CTX.vendor_roster || {}; CTX._hist = false; }
+  else { CTX.last_vendor = CTX.last_vendor || {}; CTX.prior_complaints = CTX.prior_complaints || {}; CTX.roster = CTX.roster || {}; CTX.vendor_roster = CTX.vendor_roster || {}; CTX._hist = !r.history; /* a backend that still bundles the history in ni_context */ }
   VEN = (r.vendors||[]).slice(); VEN.forEach(function(v){ v._s = (v.label||"").toLowerCase(); });
   sortAccounts(); fillWho(); paintFsm(); paintCrewNames(); paintRoute(); paintAsk();
   if (S.nm_name) { $("whoSel").value = S.nm_name; }
