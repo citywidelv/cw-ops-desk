@@ -20,7 +20,8 @@
 // gets it; no deploy needed. Seeded Oct 8 2026 per TJ:
 //   Las Vegas        To CWLV_FSMs@   cc TJ, Robert Krause
 //   Northern Nevada  To Jeremy Walker  cc TJ
-//   Crew checks      To Angel Nieves   cc TJ   (Oct 21 2026: crew names with no background check)
+//   Crew checks      To Angel Nieves   cc TJ   (Oct 21 2026: crew names with no background check;
+//                    Oct 28 2026: re-checked at send time, cleared never listed, pending listed as submitted)
 //
 // Window: each market keeps a cutoff in script property NID_LAST_<lv|nnv>
 // (epoch ms). A run covers submitted_at >= last cutoff and < this run's
@@ -496,36 +497,62 @@ function nidCrewRecipient_() {
   return { to: NID_CREW_SEED[1], cc: NID_CREW_SEED[2] };
 }
 
-// rows: hub recaps from both markets. Returns [{vendor, owner, market, names:[], visits:[{account, when, nm, pdf, names}]}]
+// rows: hub recaps from both markets. Oct 28 2026: every crew name is re-checked
+// HERE, at send time, against a freshly built vendor roster (the same roster the
+// inspection page shows as tick boxes), not read back from the crew_unverified
+// column written at 2am. A check Angel cleared during the day never shows up
+// as missing the next morning, and the matching is one path end to end.
+// Returns [{vendor, owner, market, need:[{name, why}], pending:[name], visits:[...]}]
+// Only names with a status of Not on file or On profile, no check go in need.
 function nidCrewGroups_(rows) {
+  var rosters = {};
+  var rosterFor = function (market) {
+    var mkt = /^northern/i.test(market) ? 'nnv' : 'lv';
+    if (!rosters[mkt]) { try { rosters[mkt] = niHistoryCached_(mkt, true).vendor_roster || {}; } catch (e) { rosters[mkt] = {}; } }
+    return rosters[mkt];
+  };
+  var why = function (c) {
+    if (c.status === NI_CREW_PROFILE) return 'on the vendor profile' + (c.role ? ' as ' + c.role.toLowerCase() : '') + ', no background check on file';
+    return 'not on this vendor\'s profile at all';
+  };
   var by = {}, order = [];
   rows.forEach(function (r) {
     if (r._src === 'jotform') return;
-    var names = nidStr_(r.crew_unverified).split('\n').map(function (n) { return n.trim(); }).filter(Boolean);
-    if (!names.length) return;
+    if (!nidStr_(r.crew_names) || nidStr_(r.crew_seen) !== 'Yes') return;
+    var checks = niCrewClassify_(rosterFor(nidStr_(r.market)), r);
+    var need = checks.filter(function (c) { return c.status === NI_CREW_NONE || c.status === NI_CREW_PROFILE; });
+    var pend = checks.filter(function (c) { return c.status === NI_CREW_PENDING; });
+    if (!need.length && !pend.length) return;
     var vendor = nidStr_(r.vendor_name) || 'Company not given';
     var k = vendor.toLowerCase() + '|' + nidStr_(r.market);
-    if (!by[k]) { by[k] = { vendor: vendor, owner: nidStr_(r.vendor_owner), market: nidStr_(r.market), names: [], visits: [] }; order.push(k); }
+    if (!by[k]) { by[k] = { vendor: vendor, owner: nidStr_(r.vendor_owner), market: nidStr_(r.market), need: [], pending: [], visits: [] }; order.push(k); }
     var g = by[k];
-    names.forEach(function (n) { if (!g.names.some(function (x) { return x.toLowerCase() === n.toLowerCase(); })) g.names.push(n); });
-    g.visits.push({ account: nidStr_(r.account_name), when: nidWhen_(r, true), nm: nidStr_(r.nm_name), pdf: nidStr_(r.pdf_url), names: names });
+    var seen = function (list, n) { return list.some(function (x) { return (x.name || x).toLowerCase() === n.toLowerCase(); }); };
+    need.forEach(function (c) { if (!seen(g.need, c.name)) g.need.push({ name: c.name, why: why(c) }); });
+    pend.forEach(function (c) { if (!seen(g.pending, c.canon || c.name)) g.pending.push(c.canon || c.name); });
+    g.visits.push({ account: nidStr_(r.account_name), when: nidWhen_(r, true), nm: nidStr_(r.nm_name), pdf: nidStr_(r.pdf_url),
+      names: need.map(function (c) { return c.name; }).concat(pend.map(function (c) { return c.canon || c.name; })) });
   });
   return order.map(function (k) { return by[k]; });
 }
 
 function nidCrewBuild_(groups, test) {
   var F = CW_HTML_F;
-  var total = groups.reduce(function (s, g) { return s + g.names.length; }, 0);
+  var total = groups.reduce(function (s, g) { return s + g.need.length; }, 0);
+  var pendTotal = groups.reduce(function (s, g) { return s + g.pending.length; }, 0);
   var html = '<p style="margin:0 0 14px;' + F + 'font-size:14px;line-height:1.55;color:#2d2a26;">' +
-    'Night managers met ' + nidE_(nidPlural_(total, 'crew member')) + ' last night with no background check on file for their company.</p>' +
-    '<p style="margin:0 0 16px;' + F + 'font-size:14px;line-height:1.55;color:#2d2a26;">For each name:<br>' +
+    'Night managers met ' + nidE_(nidPlural_(total, 'crew member')) + ' last night with no background check on file for their company.' +
+    (pendTotal ? ' ' + nidE_(nidPlural_(pendTotal, 'name has', 'names have')) + ' a check already submitted and waiting on the result; those are listed for reference only.' : '') + '</p>' +
+    '<p style="margin:0 0 16px;' + F + 'font-size:14px;line-height:1.55;color:#2d2a26;">For each name that needs a check:<br>' +
     '1. Check the Background Checks log. If the check is there, attach it to the vendor.<br>' +
     '2. If it is not, reach out to the vendor. Ask them to submit a background check, or to request that we run one.</p>';
   groups.forEach(function (g) {
-    html += '<div style="margin:0 0 12px;border:1px solid #E5E5E5;border-left:4px solid #D22730;padding:12px 14px;">' +
+    html += '<div style="margin:0 0 12px;border:1px solid #E5E5E5;border-left:4px solid ' + (g.need.length ? '#D22730' : '#BBBBBB') + ';padding:12px 14px;">' +
       '<div style="' + F + 'font-size:15px;font-weight:bold;color:#2d2a26;">' + nidE_(g.vendor) + (g.owner ? ' <span style="font-weight:normal;color:#636466;">- ' + nidE_(g.owner) + '</span>' : '') + '</div>' +
       '<div style="' + F + 'font-size:11px;color:#636466;margin:2px 0 8px;">' + nidE_(g.market) + '</div>' +
-      '<div style="' + F + 'font-size:14px;color:#2d2a26;line-height:1.6;"><b>Names:</b> ' + nidE_(g.names.join(', ')) + '</div>' +
+      (g.need.length ? '<div style="' + F + 'font-size:14px;color:#2d2a26;line-height:1.6;"><b>Needs a check:</b><br>' +
+        g.need.map(function (x) { return nidE_(x.name) + ' <span style="color:#636466;">(' + nidE_(x.why) + ')</span>'; }).join('<br>') + '</div>' : '') +
+      (g.pending.length ? '<div style="' + F + 'font-size:13px;color:#636466;line-height:1.6;margin-top:6px;"><b>Already submitted, waiting on the result:</b> ' + nidE_(g.pending.join(', ')) + '</div>' : '') +
       g.visits.map(function (v) {
         return '<div style="' + F + 'font-size:12px;color:#636466;line-height:1.5;margin-top:4px;">' + nidE_(v.account) + ' &middot; ' + nidE_(v.when) + (v.nm ? ' &middot; ' + nidE_(v.nm) : '') +
           (v.pdf ? ' &middot; <a href="' + nidE_(v.pdf) + '" style="color:#D22730;">Recap PDF</a>' : '') + '</div>';
@@ -534,19 +561,24 @@ function nidCrewBuild_(groups, test) {
   html += cwButton_('Open the Background Checks log', NID_CREW_BC);
   var subject = (test ? '[TEST] ' : '') + 'Background checks needed: ' + nidPlural_(total, 'crew name') + ' from last night';
   var body = subject + '\n\n' + groups.map(function (g) {
-    return g.vendor + (g.owner ? ' - ' + g.owner : '') + ' (' + g.market + '): ' + g.names.join(', ') + '\n' +
+    return g.vendor + (g.owner ? ' - ' + g.owner : '') + ' (' + g.market + ')\n' +
+      (g.need.length ? '  Needs a check: ' + g.need.map(function (x) { return x.name + ' (' + x.why + ')'; }).join('; ') + '\n' : '') +
+      (g.pending.length ? '  Already submitted, waiting on the result: ' + g.pending.join(', ') + '\n' : '') +
       g.visits.map(function (v) { return '  ' + v.account + ', ' + v.when + (v.nm ? ', ' + v.nm : '') + (v.pdf ? ', ' + v.pdf : ''); }).join('\n');
   }).join('\n\n') + '\n\nCheck the Background Checks log first. If the check is there, attach it to the vendor. If not, reach out to the vendor and ask them to submit a background check or request that we run one.\n' + NID_CREW_BC;
   return { subject: subject, body: body, htmlBody: cwShell_('Background checks needed', 'from last night\'s recaps', html, test ? 'TEST send. The real email goes to the Crew checks row on the Digest tab.' : undefined) };
 }
 
 // Called from niDigestRun with every hub recap the roll-up just covered.
+// No email when every name is cleared, or when the only names left are
+// already submitted and waiting; there is nothing for the ops admin to do.
 function nidCrewSend_(rows, test) {
   var groups = nidCrewGroups_(rows);
-  if (!groups.length) return 'crew checks: none needed';
+  var needAny = groups.some(function (g) { return g.need.length; });
+  if (!groups.length || !needAny) return 'crew checks: none needed' + (groups.length ? ' (' + groups.reduce(function (s, g) { return s + g.pending.length; }, 0) + ' pending only)' : '');
   var rc = test ? { to: NID_TEST_TO, cc: '' } : nidCrewRecipient_();
   if (!rc) return 'crew checks: recipient row is off';
   var m = nidCrewBuild_(groups, !!test);
   cwSend_({ to: rc.to, cc: rc.cc, subject: m.subject, body: m.body, htmlBody: m.htmlBody, name: NID_CREW_SENDER, replyTo: test ? NID_TEST_TO : 'tjroberts@gocitywide.com' });
-  return 'crew checks: ' + groups.length + ' vendor(s) to ' + rc.to + (rc.cc ? ' cc ' + rc.cc : '');
+  return 'crew checks: ' + groups.length + ' vendor(s), ' + groups.reduce(function (s, g) { return s + g.need.length; }, 0) + ' name(s) to ' + rc.to + (rc.cc ? ' cc ' + rc.cc : '');
 }

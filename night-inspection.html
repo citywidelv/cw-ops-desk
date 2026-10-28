@@ -222,6 +222,7 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <label class="f" id="reqNameL">Company name</label><input type="text" id="reqName">
 <div id="reqOwnerW"><label class="f">Owner's name</label><input type="text" id="reqOwner"></div>
 <div class="hint" id="reqPreview"></div>
+<div id="reqMaybe" class="hidden"><div class="hint" id="reqMaybeL" style="margin-top:8px"></div><div class="chips" id="reqMaybeList"></div></div>
 <div class="chips" style="margin-top:10px"><button class="chip" id="reqSend" type="button">Use this name and tell the office</button></div>
 <div class="err" id="reqErr"></div>
 </div>
@@ -628,7 +629,7 @@ function setMarket(v){
   S.market = v; ls(function(){ localStorage.setItem(MKT_KEY, v); });
   paintChips("mktChips", "data-m", S.market);
   if (CTX){ CTX = { ok:true, region:CTX.region, accounts:[], vendors:[], night_managers:CTX.night_managers||[], fsms:CTX.fsms||[], last_vendor:{}, prior_complaints:{}, roster:{}, vendor_roster:{}, account_checks:{}, _hist:false }; }
-  ACC = []; VEN = [];
+  ACC = []; VEN = []; ROUTE = null;
   pickAccount(null); pickVendor(null); loadCtx(true);
 }
 
@@ -713,11 +714,38 @@ function paintReq(){
   var n = $("reqName").value.trim(), o = $("reqOwner").value.trim();
   $("reqPreview").textContent = n ? "Will be sent as: " + (REQ.type==="vendor" && o ? n + " - " + o : n) : "";
 }
-$("reqName").addEventListener("input", paintReq); $("reqOwner").addEventListener("input", paintReq);
+$("reqName").addEventListener("input", function(){ REQ_SURE = false; show("reqMaybe", false); paintReq(); }); $("reqOwner").addEventListener("input", paintReq);
+// Close matches from the list already on the phone. Most "not in the system"
+// emails the office got were buildings that were in the list under a slightly
+// different name, typed while the list was still loading.
+function reqMatches(n){
+  var t = n.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(function(w){ return w.length > 2 && ["the","and","inc","llc","of","at","building","office","suite"].indexOf(w) < 0; });
+  if (!t.length) return [];
+  var pool = REQ.type === "vendor" ? VEN : ACC;
+  return pool.map(function(x){ var hay = (x._s||"").toLowerCase(); var hits = t.filter(function(w){ return hay.indexOf(w) >= 0; }).length; return { x:x, hits:hits }; })
+    .filter(function(m){ return m.hits > 0 && (m.hits >= Math.min(2, t.length)); })
+    .sort(function(a,b){ return b.hits - a.hits; }).slice(0, 4).map(function(m){ return m.x; });
+}
+var REQ_SURE = false;
 $("reqSend").addEventListener("click", function(){
   var n = $("reqName").value.trim(), o = $("reqOwner").value.trim();
   $("reqErr").textContent = "";
   if (!n){ $("reqErr").textContent = "Type the name first."; return; }
+  var maybe = REQ_SURE ? [] : reqMatches(n);
+  if (maybe.length){
+    REQ_SURE = true;
+    $("reqMaybeL").textContent = "Is it one of these? Tap it. If not, tap the red button again.";
+    $("reqMaybeList").innerHTML = maybe.map(function(x){ return '<button type="button" class="chip" data-mi="' + esc(x.id || x.name || x.label) + '">' + esc(REQ.type === "vendor" ? x.label : x.name) + '</button>'; }).join("");
+    Array.prototype.forEach.call($("reqMaybeList").querySelectorAll("button"), function(b){ b.addEventListener("click", function(){
+      var key = b.getAttribute("data-mi");
+      if (REQ.type === "vendor"){ var v = VEN.filter(function(x){ return (x.id || x.label) === key; })[0]; if (v) pickVendor(v); }
+      else { var a = ACC.filter(function(x){ return (x.id || x.name) === key; })[0]; if (a) pickAccount(a); }
+      show("reqMaybe", false); show("reqPanel", false); $("reqName").value = ""; $("reqOwner").value = ""; REQ_SURE = false;
+    }); });
+    show("reqMaybe", true);
+    return;
+  }
+  REQ_SURE = false; show("reqMaybe", false);
   if (REQ.type==="vendor") pickVendor({ id:"", dba:n, owner:o, label: o ? n+" - "+o : n, matched:false });
   else pickAccount({ id:"", name:n, typed:true });
   show("reqPanel", false); $("reqName").value=""; $("reqOwner").value="";
@@ -1363,27 +1391,52 @@ $("aiBtn").addEventListener("click", function(){
 $("howtoBtn").addEventListener("click", function(){ show("howto", $("howto").classList.contains("hidden")); });
 
 /* ---------- context ---------- */
-// Two calls. ni_context is the fast one (buildings, companies, people, tonight's
-// route; the server caches it) and paints the pickers. ni_history (last company
-// per building, past complaints, the crew names on each vendor's profile) comes
-// second and fills in behind. Both are kept in localStorage so a repeat visit
-// paints at once and refreshes quietly.
+// Three calls, fired together. ni_context (buildings, companies, people; the
+// server keeps it warm) paints the pickers. ni_route brings tonight's stops.
+// ni_history (last company per building, past complaints, the crew names on
+// each vendor's profile) fills in behind. The stored copy from the last visit
+// is painted FIRST, however old it is, so the building list is there the
+// moment the page opens; the fresh copy replaces it quietly when it lands.
+// Oct 28 2026: this used to wait for the server whenever the stored copy was
+// over six hours old, and the route rode inside ni_context, which cost 15 s on
+// a server cache miss. Night managers typed building names by hand rather than
+// wait, and the office got "building not in the system" emails for buildings
+// that were.
 function loadCtx(force){
   var mkt = S.market;
   var cached = ls(function(){ return JSON.parse(localStorage.getItem(CTX_KEY+"_"+mkt) || "null"); });
   if (cached && cached.market && cached.market !== mkt) cached = null;
   var hcached = ls(function(){ return JSON.parse(localStorage.getItem(HIST_KEY+"_"+mkt) || "null"); });
   if (hcached && hcached.market && hcached.market !== mkt) hcached = null;
-  if (cached && !force && Date.now() - cached._at < 6*60*60*1000){ useCtx(cached); if (hcached) useHist(hcached); }
+  if (cached && !force){
+    // Yesterday's route must not show as tonight's. The route call below fills it in.
+    cached.route = []; cached.route_date = ""; cached.account_checks = {};
+    useCtx(cached); if (hcached) useHist(hcached);
+  }
   $("acctHint").textContent = cached && !force ? "" : "Loading the building list...";
-  post(WEBHOOK, { kind:"ni_context", market:mkt }).then(function(r){
+  post(WEBHOOK, { kind:"ni_context", market:mkt, lite:true }).then(function(r){
     if (mkt !== S.market) return; // the user switched markets while this was in flight
     if (!r || !r.ok){ if (r && CWAuth.isPassError(r.error)) { CWAuth.locked("ops", r.error); return; } if (!cached) $("acctHint").textContent = (r && r.error) || "Could not load the lists. Type the names by hand."; return; }
     r._at = Date.now(); ls(function(){ localStorage.setItem(CTX_KEY+"_"+mkt, JSON.stringify(r)); });
     useCtx(r); if ($("acctHint").textContent.indexOf("Loading")===0) $("acctHint").textContent = "";
     if (hcached && CTX && !CTX._hist) useHist(hcached);
-    loadHist(mkt);
   }).catch(function(){ if (!cached) $("acctHint").textContent = "Could not load the lists. Check your signal. You can still type the names by hand with Can't find it."; });
+  loadRoute(mkt);
+  loadHist(mkt);
+}
+var ROUTE = null; // tonight's route from ni_route, kept apart so a context refresh never wipes it
+function loadRoute(mkt){
+  post(WEBHOOK, { kind:"ni_route", market:mkt }).then(function(x){
+    if (mkt !== S.market) return;
+    if (!x || !x.ok) return;
+    ROUTE = { route: x.route || [], route_date: x.route_date || "", account_checks: x.account_checks || {} };
+    useRoute();
+  }).catch(function(){});
+}
+function useRoute(){
+  if (!CTX || !ROUTE) return;
+  CTX.route = ROUTE.route; CTX.route_date = ROUTE.route_date; CTX.account_checks = ROUTE.account_checks;
+  paintRoute(); paintAsk();
 }
 function loadHist(mkt){
   post(WEBHOOK, { kind:"ni_history", market:mkt }).then(function(h){
@@ -1412,6 +1465,7 @@ function useCtx(r){
   CTX = r;
   if (keep){ CTX.last_vendor = keep.last_vendor; CTX.prior_complaints = keep.prior_complaints; CTX.roster = keep.roster; CTX.vendor_roster = keep.vendor_roster; CTX._hist = true; }
   else { CTX.last_vendor = CTX.last_vendor || {}; CTX.prior_complaints = CTX.prior_complaints || {}; CTX.roster = CTX.roster || {}; CTX.vendor_roster = CTX.vendor_roster || {}; CTX._hist = !r.history; /* a backend that still bundles the history in ni_context */ }
+  if (ROUTE && (r.lite || !(r.route||[]).length)){ CTX.route = ROUTE.route; CTX.route_date = ROUTE.route_date; CTX.account_checks = ROUTE.account_checks; }
   VEN = (r.vendors||[]).slice(); VEN.forEach(function(v){ v._s = (v.label||"").toLowerCase(); });
   sortAccounts(); fillWho(); paintFsm(); paintCrewNames(); paintRoute(); paintAsk();
   if (S.nm_name) { $("whoSel").value = S.nm_name; }

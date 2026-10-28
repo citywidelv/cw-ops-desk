@@ -15,11 +15,13 @@
 //
 // Kinds (team passcode on every one):
 //   ni_setup    idempotent; creates the sheet, the Inspections tab, the Drive root
-//   ni_context  accounts + vendors + night managers + FSMs + tonight's route (pickers
-//               cached 10 min in CacheService; fresh:true bypasses)
+//   ni_context  accounts + vendors + night managers + FSMs (pickers cached 6 h in
+//               CacheService and rebuilt every 15 min by niWarmCache; fresh:true bypasses).
+//               lite:true (the page since Oct 28 2026) leaves tonight's route to ni_route.
+//   ni_route    tonight's route and the standing per-building checks, read live (Oct 28 2026)
 //   ni_history  last vendor per building, prior complaints, crew tick lists (Oct 24 2026;
-//               cached 10 min, busted by ni_submit / ni_edit). Was inside ni_context,
-//               which made the page wait 15s for the building list
+//               cached 6 h, rebuilt by niWarmCache, patched in place by ni_submit / ni_edit).
+//               Was inside ni_context, which made the page wait 15s for the building list
 //   ni_photo    one resized photo, filed to _Incoming now so a dead tab never loses it
 //   ni_submit   moves the photos, builds the PDF, writes the row. Duplicate draft_id
 //               returns the first row instead of writing a second.
@@ -89,7 +91,12 @@ var NI_HEADERS = [
   // appended Sep 15 2026 (route out)
   'route_stop_id', 'route_answers',
   // appended Oct 21 2026 (recap edits, ni_edit)
-  'edited_at', 'edited_by'
+  'edited_at', 'edited_by',
+  // appended Oct 28 2026: one line per crew name, "Name | Cleared" / "Pending" /
+  // "On profile, no check" / "Not on file". crew_unverified keeps only the names
+  // that need a check (the last two), so a cleared or pending person never
+  // reaches the morning crew-check email.
+  'crew_check'
 ];
 var NI_REQ_HEADERS = ['when', 'market', 'type', 'name', 'owner', 'label', 'nm_name', 'sent_to', 'status'];
 
@@ -186,6 +193,7 @@ function niDispatch(data) {
     if (kind.indexOf('ni_route_') === 0) return nrDispatch_(data);
     if (kind === 'ni_setup') return niSetup_(data);
     if (kind === 'ni_context') return niContext_(data);
+    if (kind === 'ni_route') return niRoute_(data);
     if (kind === 'ni_history') return niHistory_(data);
     if (kind === 'ni_photo') return niPhoto_(data);
     if (kind === 'ni_submit') return niSubmit_(data);
@@ -221,7 +229,32 @@ function niSetup_(data) {
 // still be editing it. Everything historical (last vendor per building, prior
 // complaints, crew tick lists) moved to ni_history, which the page asks for
 // second. Internal page; a full picker is correct here.
-var NI_CACHE_TTL = 600;
+// Oct 28 2026: measured live, a cache miss cost the page 15 s for the building
+// list and 6 s for the crew names, and with 4 night managers filing 3 to 8
+// recaps a night most first loads landed on a miss. The caches now hold 6 hours
+// (the CacheService ceiling) and niWarmCache rebuilds both every 15 minutes
+// from a time trigger (niWarmInstall), so a night manager never pays the build.
+// A new building or company shows up on the page within 15 minutes.
+var NI_CACHE_TTL = 21600;
+var NI_WARM_FN = 'niWarmCache';
+function niWarmCache() {
+  var out = [];
+  ['lv', 'nnv'].forEach(function (mkt) {
+    try { var p = niPickersCached_(mkt, true); out.push(mkt + ' pickers ' + (p.accounts || []).length + ' buildings / ' + (p.vendors || []).length + ' companies'); }
+    catch (e) { out.push(mkt + ' pickers failed: ' + e.message); }
+    try { var h = niHistoryCached_(mkt, true); out.push(mkt + ' history ' + Object.keys(h.vendor_roster || {}).length + ' roster keys'); }
+    catch (e2) { out.push(mkt + ' history failed: ' + e2.message); }
+  });
+  Logger.log(out.join('; '));
+  return out.join('; ');
+}
+// One-time. Run from Runner.gs (cwRunNow). Safe to run again.
+function niWarmInstall() {
+  var have = ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === NI_WARM_FN; });
+  if (have.length) return 'warm trigger already there (' + have.length + '); ' + niWarmCache();
+  ScriptApp.newTrigger(NI_WARM_FN).timeBased().everyMinutes(15).create();
+  return 'warm trigger installed, every 15 minutes; ' + niWarmCache();
+}
 function niCacheGet_(key) {
   try {
     var c = CacheService.getScriptCache().get(key);
@@ -235,9 +268,35 @@ function niCachePut_(key, obj) {
     if (packed.length < 95000) CacheService.getScriptCache().put(key, packed, NI_CACHE_TTL);
   } catch (e) {}
 }
-// Called after a recap lands or is edited so the next ni_history sees it.
-function niCacheBust_(mkt) {
-  try { CacheService.getScriptCache().removeAll(['ni_history_' + mkt]); } catch (e) {}
+// Called after a recap lands or is edited. Patches the cached history in place
+// (last company at this building, names seen here, past complaints) instead of
+// throwing the cache away, which used to hand the next page load a 6 s rebuild.
+// The 15-minute warm rebuild keeps the patch honest.
+function niCacheBust_(mkt) { niHistoryPatch_(mkt, null); }
+function niHistoryPatch_(mkt, r) {
+  try {
+    var h = niCacheGet_('ni_history_' + mkt);
+    if (!h || !r) return;
+    var key = niStr_(r.account_id) || niStr_(r.account_name).toLowerCase();
+    var an = niStr_(r.account_name).toLowerCase();
+    if (!key) return;
+    h.last_vendor = h.last_vendor || {}; h.roster = h.roster || {}; h.prior_complaints = h.prior_complaints || {}; h.vendor_roster = h.vendor_roster || {};
+    if (r.vendor_name) h.last_vendor[key] = { id: niStr_(r.vendor_id), dba: niStr_(r.vendor_name), owner: niStr_(r.vendor_owner) };
+    var plist = (r.vendor_id && h.vendor_roster[r.vendor_id]) || h.vendor_roster[niStr_(r.vendor_name).toLowerCase()] || [];
+    niStr_(r.crew_names).split('\n').forEach(function (t) {
+      var canon = niCanon_(plist, t);
+      if (!canon) return;
+      niRosterAdd_(h.roster, key, canon);
+      if (an) niRosterAdd_(h.roster, an, canon);
+    });
+    var bits = [];
+    if (niStr_(r.complaint_flag).toUpperCase() === 'TRUE') bits.push(niStr_(r.complaint_areas) || niStr_(r.complaint_what).slice(0, 60));
+    niStr_(r.standards_failed).split('\n').forEach(function (l) { var qq = l.split('|')[0].trim(); if (qq) bits.push(qq); });
+    bits = bits.filter(String);
+    if (bits.length) { var cur = h.prior_complaints[key] || ''; bits.forEach(function (b) { if (cur.indexOf(b) < 0) cur = cur ? cur + '; ' + b : b; }); h.prior_complaints[key] = cur.slice(0, 240); }
+    h.patched = new Date().toISOString();
+    niCachePut_('ni_history_' + mkt, h);
+  } catch (e) {}
 }
 function niPickersCached_(mkt, fresh) {
   var hit = fresh ? null : niCacheGet_('ni_pickers_' + mkt);
@@ -256,21 +315,18 @@ function niContext_(data) {
   out.today = Utilities.formatDate(new Date(), NI_TZ, 'yyyy-MM-dd');
   out.warnings = out.warnings || [];
 
-  // Tonight's route from the FSMs, plus every standing per-building checklist.
-  // The page filters the stops once the night manager picks their name. A
-  // recap filed after midnight still answers the route written the afternoon
-  // before, which is what nrNightDate_ handles. sent_only: a route the FSM
-  // saved but has not sent is a private draft and stays off this page.
+  // Tonight's route is a live read (about 2 s). The page since Oct 28 2026
+  // sends lite:true and asks ni_route for it in parallel; older pages still get
+  // it here.
   out.route_date = '';
   out.route = [];
   out.account_checks = {};
-  try {
-    if (typeof nrNightDate_ === 'function') {
-      out.route_date = nrNightDate_();
-      var rl = JSON.parse(nrList_({ market: mkt, report_date: out.route_date, sent_only: true }).getContent());
-      if (rl && rl.ok) { out.route = rl.stops || []; out.account_checks = rl.checks || {}; }
-    }
-  } catch (e) { out.warnings.push('route: ' + e.message); }
+  if (data.lite) { out.lite = true; out.route_kind = 'ni_route'; }
+  else {
+    var rt = niRouteBuild_(mkt);
+    out.route_date = rt.route_date; out.route = rt.route; out.account_checks = rt.account_checks;
+    (rt.warnings || []).forEach(function (w) { out.warnings.push(w); });
+  }
 
   // Pages built before Oct 24 2026 expected the history inside this call.
   if (data.with_history) {
@@ -281,6 +337,31 @@ function niContext_(data) {
     out.history = 'ni_history';
   }
   return niOut_(out);
+}
+
+// ------------------------------------------------------------ route -------
+
+// Tonight's route from the FSMs, plus every standing per-building checklist.
+// The page filters the stops once the night manager picks their name. A
+// recap filed after midnight still answers the route written the afternoon
+// before, which is what nrNightDate_ handles. sent_only: a route the FSM
+// saved but has not sent is a private draft and stays off this page.
+function niRoute_(data) {
+  var mkt = niMarket_(data.market);
+  var out = niRouteBuild_(mkt);
+  out.ok = true; out.market = mkt;
+  return niOut_(out);
+}
+function niRouteBuild_(mkt) {
+  var out = { route_date: '', route: [], account_checks: {}, warnings: [] };
+  try {
+    if (typeof nrNightDate_ === 'function') {
+      out.route_date = nrNightDate_();
+      var rl = JSON.parse(nrList_({ market: mkt, report_date: out.route_date, sent_only: true }).getContent());
+      if (rl && rl.ok) { out.route = rl.stops || []; out.account_checks = rl.checks || {}; }
+    }
+  } catch (e) { out.warnings.push('route: ' + e.message); }
+  return out;
 }
 
 // ------------------------------------------------------------ history -----
@@ -574,9 +655,9 @@ function niSubmit_(data) {
     if (r.crew_seen !== 'Yes') { r.crew_uniform = ''; r.crew_uniform_note = ''; }
     if (r.crew_uniform === 'Yes') r.crew_uniform_note = '';
     if (r.crew_seen !== 'Yes') r.crew_names = '';
-    r.crew_unverified = '';
+    r.crew_unverified = ''; r.crew_check = '';
     if (r.crew_names) {
-      try { var crew = niCrew_(r); r.crew_unverified = crew.unverified.join('\n'); } catch (ce) { r.crew_unverified = ''; }
+      try { niCrew_(r); } catch (ce) { r.crew_unverified = ''; r.crew_check = ''; }
     }
 
     var stem = reportDate + ' - ' + (niSafe_(r.account_name) || 'Building') + ' - ' + (niSafe_(r.vendor_name) || 'No company') + ' - '
@@ -631,8 +712,8 @@ function niSubmit_(data) {
     var answered = null;
     try { if (typeof nrAnswer_ === 'function') answered = nrAnswer_(r); } catch (re) {}
 
-    niCacheBust_(mkt);
-    return niOut_({ ok: true, inspection_id: id, pdf_url: pdf.url, photo_count: links.length, flags: r.flags, route: answered });
+    niHistoryPatch_(mkt, r);
+    return niOut_({ ok: true, inspection_id: id, pdf_url: pdf.url, photo_count: links.length, flags: r.flags, route: answered, crew_check: r.crew_check });
   } finally { lock.releaseLock(); }
 }
 
@@ -681,16 +762,44 @@ function niRequest_(data) {
 // ------------------------------------------------------------ crew --------
 
 // Crew names the night manager collected. Two jobs:
-//  1. Background checks: compare each name with the cleared list for that
-//     vendor (vdCleared_, Vendor Directory BC tabs). Names not found come back
-//     as unverified so the morning roll-up can ask the vendor for the check.
+//  1. Background checks (Oct 28 2026): each name is matched against the SAME
+//     roster the page showed as tick boxes (ni_history vendor_roster: the
+//     Vendor Directory background check tabs, the Vendor Contacts tab and the
+//     reviewed Account Cleaner Tracker rows). Until this date the check ran
+//     through vdCleared_, a second matching path keyed only on vendor_id, so a
+//     person the hub showed as cleared could still be emailed to the ops admin
+//     as "no background check". One path now. Each name gets a status:
+//       Cleared               on the BC tab, cleared          -> no email
+//       Pending               on the BC tab, check submitted  -> email says so, no ask
+//       On profile, no check  tracker or contacts, no BC row  -> needs a check
+//       Not on file           nobody by that name on this vendor -> needs a check
+//     crew_check holds every line; crew_unverified only the last two.
 //  2. Roster: a name not yet on the Account Cleaner Tracker roster for that
 //     vendor is appended to the Events tab as an 'add' with status Needs
 //     Review and source night-inspection. The BOM reviews it like any vendor
 //     submission. No email is sent from here.
+var NI_CREW_CLEARED = 'Cleared', NI_CREW_PENDING = 'Pending', NI_CREW_PROFILE = 'On profile, no check', NI_CREW_NONE = 'Not on file';
+// One name against one vendor's roster entries [{n, bc, role}]. Returns
+// { status, canon, role }. The roster, not the typed spelling, wins on canon.
+function niCrewStatus_(plist, typed) {
+  var canon = niCanon_(plist || [], typed);
+  if (!canon) return { status: NI_CREW_NONE, canon: '', role: '' };
+  var hit = (plist || []).filter(function (x) { return x.n === canon; })[0] || {};
+  var st = hit.bc === 'Cleared' ? NI_CREW_CLEARED : (hit.bc === 'Pending' ? NI_CREW_PENDING : NI_CREW_PROFILE);
+  return { status: st, canon: canon, role: hit.role || '' };
+}
+// Every name on a recap, classified. roster is a vendor_roster map (from
+// niHistoryCached_); fresh callers (the 7am digest) pass a freshly built one.
+function niCrewClassify_(roster, r) {
+  var names = String(r.crew_names || '').split('\n').map(function (n) { return n.replace(/\s+/g, ' ').trim(); }).filter(function (n) { return n.length > 1; });
+  var vid = niStr_(r.vendor_id), vdba = niStr_(r.vendor_name).toLowerCase();
+  var plist = (vid && roster && roster[vid]) || (roster && roster[vdba]) || [];
+  return names.map(function (n) { var c = niCrewStatus_(plist, n); c.name = n; return c; });
+}
 function niCrew_(r) {
   var names = String(r.crew_names || '').split('\n').map(function (n) { return n.replace(/\s+/g, ' ').trim(); }).filter(function (n) { return n.length > 1; });
-  var out = { names: names, unverified: [], added: 0 };
+  var out = { names: names, unverified: [], pending: [], checks: [], added: 0 };
+  r.crew_unverified = ''; r.crew_check = '';
   if (!names.length) return out;
   var norm = function (s) { return String(s || '').toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim(); };
   var tokens = function (s) { return norm(s).split(' ').filter(String); };
@@ -703,20 +812,18 @@ function niCrew_(r) {
     return hitsA >= Math.min(2, ta.length) && hitsA >= 1;
   };
 
-  // 1. background checks
-  var cleared = [];
-  try {
-    var vss = vdSS_();
-    var vendors = vdAllRows_(vss).filter(function (v) { return v.dba_name; });
-    var byId = vdCleared_(vss, vendors);
-    var vid = r.vendor_id;
-    if (!vid && r.vendor_name) { var m = vendors.filter(function (v) { return norm(v.dba_name) === norm(r.vendor_name); })[0]; if (m) vid = m.vendor_id; }
-    cleared = (vid && byId[vid]) ? byId[vid].map(function (c) { return c.name; }) : [];
-  } catch (e) {}
-  names.forEach(function (n) {
-    var ok = cleared.some(function (c) { return same(n, c); });
-    if (!ok) out.unverified.push(n);
+  // 1. background checks, against the roster the page showed
+  var roster = {};
+  try { roster = niHistoryCached_(niMarket_(r.market), false).vendor_roster || {}; } catch (e) {}
+  out.checks = niCrewClassify_(roster, r);
+  var status = {};
+  out.checks.forEach(function (c) {
+    status[c.name] = c.status;
+    if (c.status === NI_CREW_PENDING) out.pending.push(c.name);
+    else if (c.status !== NI_CREW_CLEARED) out.unverified.push(c.name);
   });
+  r.crew_unverified = out.unverified.join('\n');
+  r.crew_check = out.checks.map(function (c) { return c.name + ' | ' + c.status + (c.role ? ' (' + c.role + ')' : ''); }).join('\n');
 
   // 2. roster (Account Cleaner Tracker)
   try {
@@ -739,7 +846,7 @@ function niCrew_(r) {
         submitter_name: r.nm_name, submitter_email: r.nm_email, submitter_phone: '',
         cleaner_first: first, cleaner_last: last, cleaner_key: vendorKey + '::' + acKey_(n),
         account_raw: r.account_name, account_matched: r.account_matched === 'TRUE' ? r.account_name : '', match_confidence: r.account_matched === 'TRUE' ? 'high' : 'none',
-        background_check: out.unverified.indexOf(n) >= 0 ? 'Not on file' : 'Yes', role: 'Cleaner',
+        background_check: status[n] === NI_CREW_CLEARED ? 'Yes' : (status[n] === NI_CREW_PENDING ? 'Pending' : 'Not on file'), role: 'Cleaner',
         note_1: 'Met on site by the night manager. Recap ' + r.inspection_id + '.',
         status: 'Needs Review', region: r.market, source: 'night-inspection'
       });
@@ -752,6 +859,11 @@ function niCrew_(r) {
 
 // ------------------------------------------------------------ PDF ---------
 
+// Names on a recap whose check is submitted and waiting, from the crew_check column.
+function niCrewPendingList_(r) {
+  return niStr_(r.crew_check).split('\n').filter(function (l) { return l.indexOf('| ' + NI_CREW_PENDING) > 0; })
+    .map(function (l) { return l.split('|')[0].trim(); }).join('\n');
+}
 function niPdf_(r, embeds, stem, mkt, reportDate, more) {
   var e = niEsc_;
   more = Number(more) || 0;
@@ -785,7 +897,7 @@ function niPdf_(r, embeds, stem, mkt, reportDate, more) {
       row('Hot spots on file', r.hotspots_shown), row('Hot spots checked', r.hotspots_checked),
       row('Soap and paper towels full', r.dispensers_ok), row('Trash all out', r.trash_ok), row('Restrooms done right', r.restrooms_ok),
       row('Saw the crew', r.crew_seen), row('Right uniform', r.crew_uniform), row('What was off', r.crew_uniform_note),
-      row('Crew on site', r.crew_names), row('No background check on file', r.crew_unverified)])
+      row('Crew on site', r.crew_names), row('Background check pending', niCrewPendingList_(r)), row('No background check on file', r.crew_unverified)])
     + sec('Standards' + (r.standards_met ? ' (' + r.standards_met + ' met)' : ''), [row('Checked', r.standards), row('Did not meet standard, what was done', r.standards_failed), row('Past complaint areas', r.prior_complaints)])
     + sec('What the FSM asked for', [row('Answers', r.route_answers)])
     + sec('Closet', [row('Closet checked', r.closet_checked), row('Organized', r.closet_organized), row('SDS present', r.sds_present), row('Chemicals labelled', r.chemicals_labelled),
@@ -1016,8 +1128,8 @@ function niEdit_(data) {
     if (r.crew_uniform === 'Yes') r.crew_uniform_note = '';
     var crewTouched = ['vendor_id', 'vendor_name', 'crew_names', 'crew_seen'].some(function (k) { return keys.indexOf(k) >= 0; });
     if (crewTouched) {
-      r.crew_unverified = '';
-      if (r.crew_names) { try { r.crew_unverified = niCrew_(r).unverified.join('\n'); } catch (ce) {} }
+      r.crew_unverified = ''; r.crew_check = '';
+      if (r.crew_names) { try { niCrew_(r); } catch (ce) {} }
     }
     var now = new Date();
     r.edited_at = Utilities.formatDate(now, NI_TZ, 'yyyy-MM-dd HH:mm');
@@ -1080,8 +1192,8 @@ function niEdit_(data) {
       var safe = log.map(function (row) { return row.map(function (c) { c = String(c); return /^[=+\-@]/.test(c) ? "'" + c : c; }); });
       lt.getRange(lt.getLastRow() + 1, 1, safe.length, NI_EDIT_HEADERS.length).setValues(safe);
     }
-    niCacheBust_(niMarket_(r.market));
-    return niOut_({ ok: true, inspection_id: id, changed: log.length, pdf_url: pdf.url, flags: r.flags, crew_unverified: r.crew_unverified });
+    niHistoryPatch_(niMarket_(r.market), r);
+    return niOut_({ ok: true, inspection_id: id, changed: log.length, pdf_url: pdf.url, flags: r.flags, crew_unverified: r.crew_unverified, crew_check: r.crew_check });
   } finally { lock.releaseLock(); }
 }
 
