@@ -48,6 +48,10 @@ textarea.big{min-height:200px}
 .tile b{display:block;font-size:16px}
 .tile small{display:block;font-size:12px;color:var(--grey);margin-top:2px}
 .tile.on{border-color:var(--red);background:#fdf3f3;box-shadow:inset 0 0 0 1px var(--red)}
+.ordhead{font-size:13px;font-weight:700;color:var(--grey);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.04em}
+.tile.ord{border-style:dashed}
+.ordgo{display:block;text-align:center;text-decoration:none;line-height:52px;margin-top:12px}
+.ordwarn{background:#f4f4f4;border-left:4px solid var(--red);border-radius:8px;padding:12px;font-size:15px;margin-top:10px}
 .tick{display:flex;align-items:flex-start;gap:12px;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff;margin-bottom:8px;cursor:pointer;font-size:15px;line-height:1.4;font-weight:400}
 .tick input{width:24px;height:24px;flex:none;margin-top:1px;accent-color:var(--red)}
 .tick.on{border-color:var(--red);background:#fdf3f3}
@@ -247,6 +251,11 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <button class="tile" data-r="Photos from crew" type="button"><b>Photos from crew</b><small>You did not go. The crew sent pictures</small></button>
 </div>
 <label class="tick" id="cflagRow" style="margin-top:14px"><input type="checkbox" id="cflag"><span>The client also complained tonight</span></label>
+<div class="ordhead">Or place an order</div>
+<div class="tiles" id="orders">
+<button class="tile ord" data-o="building" type="button"><b>Order building supplies</b><small>Paper, soap, liners for the building</small></button>
+<button class="tile ord" data-o="crew" type="button"><b>Order crew supplies</b><small>Chemicals or equipment for the IC</small></button>
+</div>
 </div>
 <div class="card" id="timingCard">
 <label class="f">When you got there</label>
@@ -270,6 +279,19 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 <label class="f">Who did you talk to?</label><input type="text" id="call_who" placeholder="Name and who they are">
 <label class="f">What was the call about?</label><textarea id="call_about"></textarea>
 <label class="f">What happens next?</label><input type="text" id="call_next" placeholder="Example: crew goes back tomorrow night">
+</div>
+<div class="card" id="ordCard">
+<div id="ordCrew">
+<label class="f">Order crew supplies for the IC</label>
+<div class="ordwarn"><b>Fill in all of the IC's information.</b> Use the IC's company name, the owner's name, their email and their phone. Not yours. The order confirmation goes to the email you type in.</div>
+<a class="btn pri ordgo" href="https://citywidelv.github.io/cw-vendor-hub/shop/" target="_blank" rel="noopener">Open the vendor shop</a>
+</div>
+<div id="ordBldg">
+<label class="f">Order building supplies</label>
+<a class="btn pri ordgo" href="https://citywidelv.github.io/cw-vendor-hub/building-supplies.html" target="_blank" rel="noopener">Open building supplies</a>
+</div>
+<div class="hint" style="margin-top:12px">An order is not a recap. If you also visited a building tonight, pick a reason above.</div>
+<button class="linkbtn" id="ordDone" type="button">Done ordering. Start a new report</button>
 </div>
 <div class="err" id="err2"></div>
 </section>
@@ -494,7 +516,7 @@ function fresh(){
   return { draft_id: uid(), screen: 1, started: Date.now(),
     market: ls(function(){ return localStorage.getItem(MKT_KEY); }) || "lv",
     nm_name:"", nm_email:"", account_id:"", account_name:"", account_matched:false, vendor_id:"", vendor_name:"", vendor_owner:"", vendor_matched:false,
-    fsm:"", arrival: nowHM(), departure:"", reason:"", complaint_flag:false, timing:"", why_early:"",
+    fsm:"", arrival: nowHM(), departure:"", reason:"", order:"", complaint_flag:false, timing:"", why_early:"",
     newstart_night:"", initial_clean_paid:"", checklist_items:[], wo_what:"", wo_done:"", call_who:"", call_about:"", call_next:"",
     hotspots_shown:"", hotspots_checked:[], dispensers_ok:false, trash_ok:false, restrooms_ok:false, standards:{}, std_fix:{}, prior_complaints:"",
     route_stop_id:"", route_from:"", route_inst:"", route_items:[], ask:{}, ask_note:{},
@@ -537,13 +559,16 @@ function showsTimes(){ return R()!=="Phone only" && R()!=="Photos from crew"; }
 function screen3Needed(){ return R()!=="Phone only"; }
 
 function applyRules(){
-  show("cflagRow", R()!=="Client complained");
+  show("cflagRow", R()!=="Client complained" && !S.order);
   show("timingCard", inBuilding());
   show("earlyW", inBuilding() && S.timing==="Before the crew");
   show("nsCard", R()==="New building");
   show("icW", R()==="New building" && S.newstart_night==="Night 1");
   show("woCard", R()==="Work order");
   show("phCard", R()==="Phone only");
+  show("ordCard", !!S.order && !R());
+  show("ordCrew", S.order==="crew"); show("ordBldg", S.order==="building");
+
   show("arrCard", showsTimes());
   show("depCard", showsTimes());
   show("hsCard", showsHotspots());
@@ -945,6 +970,7 @@ function paintProg(){
   show("sdone", isDone); show("nav", !isDone);
   $("back").disabled = idx <= 0;
   $("next").textContent = idx === vis.length-1 ? "Send report" : "Next";
+  $("next").classList.toggle("hidden", S.screen===2 && !!S.order && !R());
   if (S.screen===5 && showsTimes() && !S.departure){ S.departure = nowHM(); $("departure").value = S.departure; save(); }
   if (S.screen===1) paintRoute();
   if (S.screen===3) { paintNs(); paintStd(); paintAsk(); }
@@ -959,7 +985,7 @@ function validate(n){
     if (!S.account_name) return e.textContent = "Pick the building, or tap Can't find it.";
   }
   if (n===2){
-    if (!S.reason) return e.textContent = "Pick why you were there.";
+    if (!S.reason) return e.textContent = S.order ? "An order is not a recap. Pick a reason above to file one." : "Pick why you were there.";
     if (inBuilding() && !S.timing) return e.textContent = "Say when you got there.";
     if (R()==="New building" && !S.newstart_night) return e.textContent = "Which night is it?";
     if (R()==="New building" && S.newstart_night==="Night 1" && !S.initial_clean_paid) return e.textContent = "Did the client pay for an initial clean?";
@@ -1043,7 +1069,7 @@ $("departure2").addEventListener("change", function(){ S.departure = this.value;
 /* ---------- submit ---------- */
 function payload(){
   var b = {};
-  Object.keys(S).forEach(function(k){ if (k!=="photos" && k!=="screen" && k!=="started") b[k] = S[k]; });
+  Object.keys(S).forEach(function(k){ if (k!=="photos" && k!=="screen" && k!=="started" && k!=="order") b[k] = S[k]; });
   b.kind = "ni_submit"; b.report_date = todayISO(); b.source = "night-inspection.html"; b.device = navigator.userAgent.slice(0, 120);
   b.hotspots_checked = S.hotspots_checked.join("\n"); b.checklist_items = S.checklist_items.join("\n");
   ["closet_organized","sds_present","chemicals_labelled","chemicals_on_hand","equipment_ok","envirox_low"].forEach(function(k){ b[k] = S[k] ? "Yes" : (inBuilding() ? "No" : ""); });
@@ -1101,6 +1127,8 @@ function fail(msg){
   $("err6").textContent = msg + " Nothing is lost. It will try again on its own in 20 seconds, or tap Send again.";
   clearTimeout(retryT); retryT = setTimeout(function(){ if (S.screen===6 && !done) submit(); }, 20000);
 }
+chipGroup("orders", "data-o", function(){ return S.order; }, function(v){ S.order = v; S.reason = ""; S.complaint_flag = false; paintReason(); });
+$("ordDone").addEventListener("click", function(){ $("another").click(); window.scrollTo(0,0); });
 $("another").addEventListener("click", function(){
   var who = { name:S.nm_name, email:S.nm_email }, mkt = S.market;
   done = false; S = fresh(); S.nm_name = who.name; S.nm_email = who.email; S.market = mkt; SMALL = {}; HS = [];
@@ -1114,7 +1142,7 @@ function bindAll(){
   if (S.vendor_name){ $("vendName").innerHTML = esc(S.vendor_name + (S.vendor_owner ? " - " + S.vendor_owner : "")); show("vendPicked", true); show("vendPick", false); } else { show("vendPicked", false); show("vendPick", true); }
   paintFsm();
   $("arrival").value = S.arrival || ""; $("departure").value = S.departure || "";
-  paintChips("reasons", "data-r", S.reason); $("cflag").checked = !!S.complaint_flag; $("cflagRow").classList.toggle("on", !!S.complaint_flag);
+  paintChips("reasons", "data-r", S.reason); paintChips("orders", "data-o", S.order||""); $("cflag").checked = !!S.complaint_flag; $("cflagRow").classList.toggle("on", !!S.complaint_flag);
   paintChips("timing", "data-t", S.timing); $("why_early").value = S.why_early || "";
   paintChips("nsNight", "data-n", S.newstart_night); paintChips("icPaid", "data-v", S.initial_clean_paid);
   paintChips("woDone", "data-v", S.wo_done); paintChips("crewSeen", "data-v", S.crew_seen); paintChips("crewUni", "data-v", S.crew_uniform);
@@ -1145,7 +1173,7 @@ $("arrival").addEventListener("change", function(){ S.arrival = this.value; save
 $("departure").addEventListener("change", function(){ S.departure = this.value; save(); });
 $("why_early").addEventListener("change", function(){ S.why_early = this.value; save(); });
 $("cflag").addEventListener("change", function(){ S.complaint_flag = this.checked; $("cflagRow").classList.toggle("on", this.checked); applyRules(); save(); });
-chipGroup("reasons", "data-r", function(){ return S.reason; }, function(v){ S.reason = v; if (v==="Client complained") S.complaint_flag = true; paintNs(); renderPhotoRows(); paintProg(); });
+chipGroup("reasons", "data-r", function(){ return S.reason; }, function(v){ S.reason = v; S.order = ""; paintChips("orders", "data-o", ""); if (v==="Client complained") S.complaint_flag = true; paintNs(); renderPhotoRows(); paintProg(); });
 chipGroup("timing", "data-t", function(){ return S.timing; }, function(v){ S.timing = v; });
 chipGroup("nsNight", "data-n", function(){ return S.newstart_night; }, function(v){ S.newstart_night = v; paintNs(); });
 chipGroup("icPaid", "data-v", function(){ return S.initial_clean_paid; }, function(v){ S.initial_clean_paid = v; paintNs(); });
