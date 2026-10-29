@@ -27,6 +27,7 @@
  *     ov_properties    -> Properties tab (contacts per property)
  *     ov_property_set  -> upsert one property's contact / fsm
  *     ov_config        -> read the Config tab
+ *     ov_config_set    -> save whitelisted Config keys (OV_CONFIG_EDITABLE) from recipients.html (Oct 29 2026)
  *     ov_digest_list   -> everything not yet sent to a property (checklists + reports), for digest.html
  *     ov_digest_send   -> one property's weekly digest: HTML email + one PDF per item, marks each Sent
  *     ov_mgr_setpass   -> sets script property OV_MGR_PASSCODE (team passcode only)
@@ -78,7 +79,9 @@ var OV_REPORT_HEADERS = ['id', 'created_at', 'property', 'submitter', 'role', 'p
 var OV_CHECK_HEADERS = ['id', 'created_at', 'service_date', 'weekday', 'property', 'porter', 'shift_start', 'shift_end',
   'areas_done', 'areas_na', 'tasks_checked', 'tasks_total', 'photos', 'followups', 'supplies', 'status', 'fsm_notes',
   'sent_at', 'sent_to', 'json_file', 'pdf_file', 'updated_at'];
-var OV_PROP_HEADERS = ['property', 'group', 'type', 'address', 'awarded', 'start', 'porter_days', 'contact_name', 'contact_email', 'cc_email', 'fsm', 'fsm_email', 'notes'];
+// Oct 29 2026 (TJ): vendor_name / vendor_email per property = the porter vendor's site manager who gets the
+// daily summary of what was submitted for that property. Appended at the end so existing rows keep their columns.
+var OV_PROP_HEADERS = ['property', 'group', 'type', 'address', 'awarded', 'start', 'porter_days', 'contact_name', 'contact_email', 'cc_email', 'fsm', 'fsm_email', 'notes', 'vendor_name', 'vendor_email'];
 var OV_CONFIG_HEADERS = ['key', 'value', 'what it does'];
 
 // Seed list. The page carries the same list baked in (ov-shared.js) so it paints with no
@@ -131,8 +134,16 @@ var OV_CONFIG_SEED = [
   ['sender_name', 'City Wide Facility Solutions', 'Display name on emails sent from the review queue.'],
   ['reply_to', 'lvservicecall@gocitywide.com', 'Reply-to on emails sent to the property when the FSM has no email on the Properties tab.'],
   ['cc_always', '', 'Always CC these addresses on PDFs sent to the property. Comma separated.'],
-  ['emergency_notify', '', 'Extra addresses emailed on a porter EMERGENCY report, on top of report_notify and the property FSM. Comma separated.']
+  ['emergency_notify', '', 'Extra addresses emailed on a porter EMERGENCY report, on top of report_notify and the property FSM. Comma separated.'],
+  // Oct 29 2026 (TJ): daily summary to the porter vendor's site manager, plus the Friday digest reminder to City Wide.
+  ['vendor_default_name', 'Luigi', 'Site manager name used when a property has no vendor on the Properties tab.'],
+  ['vendor_default_email', 'uniquecleaning.usa@gmail.com', 'Site manager email used when a property has no vendor_email on the Properties tab. Gets the daily summary for those properties.'],
+  ['vendor_daily_cc', 'jschmidt@gocitywide.com, rkrause@gocitywide.com', 'City Wide people copied on every daily vendor summary. Comma separated.'],
+  ['vendor_daily_live', 'FALSE', 'TRUE sends the daily vendor summary to the vendor. Anything else sends it to tjroberts@gocitywide.com as a test.'],
+  ['weekly_reminder_to', 'jschmidt@gocitywide.com, rkrause@gocitywide.com', 'Who gets the Friday reminder to send the weekly digests (Ovation and Ken\'s). Comma separated. Blank = nobody.'],
+  ['vendor_daily_last', '', 'Set by the script. When the daily vendor summary last ran.']
 ];
+var OV_CONFIG_EDITABLE = ['report_notify', 'emergency_notify', 'cc_always', 'reply_to', 'sender_name', 'vendor_default_name', 'vendor_default_email', 'vendor_daily_cc', 'vendor_daily_live', 'weekly_reminder_to'];
 function ovConfigEnsure_() { try { ovConfig_(); } catch (e) {} }
 
 function ovTeamPass_() {
@@ -196,6 +207,7 @@ function ovDispatch(d) {
     if (kind === 'ov_properties') return ovProperties_(d);
     if (kind === 'ov_property_set') return ovPropertySet_(d);
     if (kind === 'ov_config') return ovOut_({ ok: true, config: ovConfig_() });
+    if (kind === 'ov_config_set') return ovConfigSet_(d);
     if (kind === 'ov_digest_list') return ovDigestList_(d);
     if (kind === 'ov_digest_send') return ovDigestSend_(d);
     return ovOut_({ ok: false, error: 'Unknown ov kind' });
@@ -236,7 +248,17 @@ function ovTab_(name, headers, seed) {
 }
 function ovReports_() { return ovTab_(OV_TAB_REPORTS, OV_REPORT_HEADERS); }
 function ovChecks_() { return ovTab_(OV_TAB_CHECKS, OV_CHECK_HEADERS); }
-function ovProps_() { return ovTab_(OV_TAB_PROPS, OV_PROP_HEADERS, OV_PROPERTIES_SEED); }
+function ovProps_() {
+  var sh = ovTab_(OV_TAB_PROPS, OV_PROP_HEADERS, OV_PROPERTIES_SEED);
+  // Headers added after the tab was created (vendor_name, vendor_email) get written once.
+  try {
+    var head = sh.getRange(1, 1, 1, OV_PROP_HEADERS.length).getValues()[0];
+    for (var i = 0; i < OV_PROP_HEADERS.length; i++) {
+      if (!head[i]) sh.getRange(1, i + 1).setValue(OV_PROP_HEADERS[i]).setFontWeight('bold').setBackground('#D22730').setFontColor('#FFFFFF');
+    }
+  } catch (e) {}
+  return sh;
+}
 function ovConfigTab_() { return ovTab_(OV_TAB_CONFIG, OV_CONFIG_HEADERS, OV_CONFIG_SEED); }
 
 function ovFolder_() {
@@ -632,10 +654,35 @@ function ovPropertySet_(d) {
     for (var i = 0; i < names.length; i++) if (String(names[i][0]).trim().toLowerCase() === name.toLowerCase()) { r = i + 2; break; }
   }
   if (!r) { r = last + 1; sh.getRange(r, 1).setValue(name); }
-  ['contact_name', 'contact_email', 'cc_email', 'fsm', 'fsm_email', 'notes'].forEach(function (k) {
+  ['contact_name', 'contact_email', 'cc_email', 'fsm', 'fsm_email', 'notes', 'vendor_name', 'vendor_email'].forEach(function (k) {
     if (d[k] !== undefined) sh.getRange(r, OV_PROP_HEADERS.indexOf(k) + 1).setValue(ovStr_(d[k], 300));
   });
   return ovOut_({ ok: true, property: name });
+}
+// Oct 29 2026: hub-wide addresses editable from recipients.html. Whitelisted keys only.
+function ovConfigWrite_(key, value) {
+  var sh = ovConfigTab_();
+  var last = sh.getLastRow();
+  var keys = last < 2 ? [] : sh.getRange(2, 1, last - 1, 1).getValues();
+  for (var i = 0; i < keys.length; i++) {
+    if (String(keys[i][0]).trim() === key) { sh.getRange(i + 2, 2).setValue(value); return; }
+  }
+  var seed = OV_CONFIG_SEED.filter(function (s) { return s[0] === key; })[0];
+  sh.appendRow([key, value, seed ? seed[2] : '']);
+}
+function ovConfigSet_(d) {
+  var vals = d.values;
+  if (typeof vals === 'string') { try { vals = JSON.parse(vals); } catch (e) { vals = null; } }
+  if (!vals || typeof vals !== 'object') return ovOut_({ ok: false, error: 'Nothing to save' });
+  var saved = [];
+  Object.keys(vals).forEach(function (k) {
+    if (OV_CONFIG_EDITABLE.indexOf(k) < 0) return;
+    var v = ovStr_(vals[k], 500).trim();
+    if (k === 'vendor_daily_live') v = /^(true|yes|y|1)$/i.test(v) ? 'TRUE' : 'FALSE';
+    ovConfigWrite_(k, v);
+    saved.push(k);
+  });
+  return ovOut_({ ok: true, saved: saved, config: ovConfig_() });
 }
 
 // ------------------------------------------------- porter-facing views --
@@ -1258,6 +1305,161 @@ function ovBuildPdfRun(id) {
   var blob = ovBuildPdf_(type, doc, 'Editor test');
   var f = ovStorePdf_(type, sh, headers, r, blob);
   Logger.log('PDF ' + f.getName() + ' ' + blob.getBytes().length + ' bytes ' + f.getUrl());
+}
+
+// ------------------------------------- daily vendor summary + Friday reminder (Oct 29 2026) --
+// TJ: every day, the porter vendor's site manager (Luigi for now, per property on the Properties tab,
+// vendor_default_email otherwise) gets one email listing what came in on the Ovation Hub for their
+// properties since the last run, with City Wide (Config!vendor_daily_cc) copied. Checklists still send
+// nothing on submit; this is the one email the vendor gets. Ovation staff contact details never ride
+// in it (same rule as the porter feed). Time-based triggers run the saved code, so this needs no deploy.
+var OV_MGR_URL = 'https://citywidelv.github.io/ovation-hub/manager.html';
+var OV_DIGEST_URL = 'https://citywidelv.github.io/ovation-hub/digest.html';
+var OV_KENS_REVIEW_URL = 'https://citywidelv.github.io/kens-hub/review.html';
+var OV_VENDOR_HOUR = 7;      // 7 AM Pacific, covers the previous day's checklists (porters submit at end of shift)
+var OV_REMINDER_HOUR = 8;    // Friday 8 AM Pacific
+
+function ovVendorDaily() {
+  var cfg = ovConfig_();
+  var live = /^(true|yes|y|1)$/i.test(String(cfg.vendor_daily_live || ''));
+  var since = Date.parse(String(cfg.vendor_daily_last || '')) || (Date.now() - 24 * 3600000);
+  var now = new Date();
+  var props = ovRows_(ovProps_(), OV_PROP_HEADERS);
+  var byName = {}; props.forEach(function (p) { byName[String(p.property).trim().toLowerCase()] = p; });
+  function vendorOf(property) {
+    var p = byName[String(property || '').trim().toLowerCase()] || {};
+    var email = ovEmails_(p.vendor_email)[0] || ovEmails_(cfg.vendor_default_email)[0] || '';
+    return { email: email.toLowerCase(), name: String(p.vendor_name || (p.vendor_email ? '' : cfg.vendor_default_name) || '').trim() };
+  }
+  function fresh(r) { var t = Date.parse(String(r.created_at || '')); return t && t > since; }
+  var checks = ovRows_(ovChecks_(), OV_CHECK_HEADERS).filter(fresh);
+  var reports = ovRows_(ovReports_(), OV_REPORT_HEADERS).filter(fresh);
+  // Awarded properties whose porter has started should have a checklist. Flag the ones that do not.
+  var today = Utilities.formatDate(now, 'America/Los_Angeles', 'yyyy-MM-dd');
+  var expected = props.filter(function (p) {
+    var aw = /^(y|yes|true|1)$/i.test(String(p.awarded || '').trim());
+    var start = String(p.start || '').slice(0, 10);
+    return aw && Number(p.porter_days) > 0 && start && start <= today;
+  });
+  // Group by vendor email.
+  var groups = {};
+  function grp(email, name) { if (!groups[email]) groups[email] = { email: email, name: name, props: {} }; return groups[email]; }
+  function slot(email, name, property) { var g = grp(email, name); if (!g.props[property]) g.props[property] = { checks: [], reports: [], expected: false }; return g.props[property]; }
+  checks.forEach(function (r) { var v = vendorOf(r.property); if (v.email) slot(v.email, v.name, String(r.property)).checks.push(r); });
+  reports.forEach(function (r) { var v = vendorOf(r.property); if (v.email) slot(v.email, v.name, String(r.property)).reports.push(r); });
+  expected.forEach(function (p) { var v = vendorOf(p.property); if (v.email) slot(v.email, v.name, String(p.property)).expected = true; });
+  var cc = ovEmails_(cfg.vendor_daily_cc);
+  var sent = 0;
+  Object.keys(groups).forEach(function (email) {
+    var g = groups[email];
+    var names = Object.keys(g.props).sort();
+    var nChecks = 0, nReports = 0, missing = [];
+    names.forEach(function (n) { var s = g.props[n]; nChecks += s.checks.length; nReports += s.reports.length; if (s.expected && !s.checks.length) missing.push(n); });
+    if (!nChecks && !nReports && !missing.length) return;
+    var html = ovVendorDailyHtml_(g, names, cfg);
+    var plain = ovVendorDailyPlain_(g, names);
+    var when = Utilities.formatDate(now, 'America/Los_Angeles', 'EEE MMM d');
+    var bits = [];
+    if (nChecks) bits.push(nChecks + (nChecks === 1 ? ' checklist' : ' checklists'));
+    if (nReports) bits.push(nReports + (nReports === 1 ? ' report' : ' reports'));
+    if (missing.length) bits.push(missing.length + ' missing checklist');
+    var subject = (live ? '' : '[TEST to TJ, would go to ' + email + '] ') + 'Ovation Hub daily summary - ' + when + ' (' + bits.join(', ') + ')';
+    var opts = { to: live ? email : OV_EDITOR, subject: subject, body: plain, htmlBody: html, name: cfg.sender_name || 'City Wide Facility Solutions' };
+    if (live && cc.length) opts.cc = cc.join(',');
+    var rt = ovEmails_(cfg.reply_to)[0]; if (rt) opts.replyTo = rt;
+    if (typeof cwMail_ === 'function') cwMail_('ovation_vendor_daily', opts); else MailApp.sendEmail(opts);
+    sent++;
+  });
+  ovConfigWrite_('vendor_daily_last', now.toISOString());
+  Logger.log('ovVendorDaily: ' + sent + ' email(s), ' + checks.length + ' checklists, ' + reports.length + ' reports since ' + new Date(since).toISOString() + (live ? '' : ' [TEST mode, sent to TJ]'));
+  return sent;
+}
+function ovVendorDailyHtml_(g, names, cfg) {
+  var F = 'font-family:Verdana,Arial,sans-serif;';
+  var inner = '<p style="margin:0 0 12px;' + F + 'font-size:14px;color:#2d2a26;line-height:1.5;">' + (g.name ? ovEsc_(g.name) + ', here' : 'Here') + ' is what came in on the Ovation Hub for your properties.</p>';
+  names.forEach(function (n) {
+    var s = g.props[n];
+    inner += '<p style="margin:16px 0 6px;' + F + 'font-size:15px;font-weight:bold;color:#2d2a26;border-bottom:2px solid #D22730;padding-bottom:4px;">' + ovEsc_(n) + '</p>';
+    if (s.expected && !s.checks.length) {
+      inner += '<div style="background:#FDF1F2;border:2px solid #D22730;border-radius:6px;padding:10px 14px;margin:0 0 10px;' + F + 'font-size:13px;font-weight:bold;color:#D22730;">No porter checklist was submitted.</div>';
+    }
+    s.checks.sort(function (a, b) { return String(a.service_date).localeCompare(String(b.service_date)); }).forEach(function (r) {
+      var line = ovDay_(r.service_date) + ' - ' + ovEsc_(r.porter || 'Porter') + (r.shift_start ? ', ' + ovEsc_(r.shift_start) + ' to ' + ovEsc_(r.shift_end || '') : '');
+      var facts = [(r.areas_done || 0) + ' areas serviced', (r.tasks_checked || 0) + ' of ' + (r.tasks_total || 0) + ' tasks', (r.photos || 0) + (Number(r.photos) === 1 ? ' photo' : ' photos')];
+      var st = String(r.status || 'New');
+      inner += '<div style="border:1px solid #E5E5E5;border-left:4px solid #D22730;border-radius:0 6px 6px 0;padding:10px 14px;margin:0 0 8px;">' +
+        '<p style="margin:0 0 4px;' + F + 'font-size:13px;font-weight:bold;color:#2d2a26;">Checklist: ' + line + ' <span style="font-weight:normal;color:#636466;font-size:11px;">' + ovEsc_(st === 'New' ? 'Waiting on approval' : st) + '</span></p>' +
+        '<p style="margin:0;' + F + 'font-size:12px;color:#636466;">' + ovEsc_(facts.join(' - ')) + '</p>' +
+        (r.followups ? '<p style="margin:6px 0 0;' + F + 'font-size:12px;color:#2d2a26;"><b>Reported to the property:</b> ' + ovEsc_(ovStr_(r.followups, 300)) + '</p>' : '') +
+        (r.supplies ? '<p style="margin:4px 0 0;' + F + 'font-size:12px;color:#2d2a26;"><b>Supplies low:</b> ' + ovEsc_(ovStr_(r.supplies, 200)) + '</p>' : '') + '</div>';
+    });
+    s.reports.forEach(function (r) {
+      var em = ovIsEmergency_(r), who = ovIsManagerReport_(r) ? 'Site manager' : ovIsPorterReport_(r) ? 'Porter' : 'Ovation staff';
+      inner += '<div style="border:1px solid #E5E5E5;border-left:4px solid ' + (em ? '#D22730' : '#7A1F7A') + ';border-radius:0 6px 6px 0;padding:10px 14px;margin:0 0 8px;">' +
+        '<p style="margin:0 0 4px;' + F + 'font-size:13px;font-weight:bold;color:#2d2a26;">' + (em ? 'EMERGENCY - ' : '') + ovEsc_(String(r.mode || 'Report')) + (r.category ? ': ' + ovEsc_(r.category) : '') + ' <span style="font-weight:normal;color:#636466;font-size:11px;">' + ovEsc_(who) + ', ' + ovEsc_(ovNice_(r.created_at)) + (r.status && r.status !== 'New' ? ', ' + ovEsc_(r.status) : '') + '</span></p>' +
+        (r.summary ? '<p style="margin:0;' + F + 'font-size:12px;color:#2d2a26;line-height:1.5;">' + ovEsc_(ovStr_(r.summary, 300)) + '</p>' : '') +
+        (r.urgency && !em ? '<p style="margin:4px 0 0;' + F + 'font-size:12px;color:#636466;">' + ovEsc_(r.urgency) + '</p>' : '') + '</div>';
+    });
+  });
+  if (typeof cwShell_ === 'function' && typeof cwButton_ === 'function') {
+    inner += cwButton_('Open the Manager Desk', OV_MGR_URL);
+    return cwShell_('Ovation Hub', 'Daily summary', inner, 'Sent every morning by City Wide Facility Solutions. Reply to this email to reach City Wide. GoCityWide.com');
+  }
+  return '<div style="' + F + 'font-size:14px;color:#2D2A26;">' + inner + '<p><a href="' + OV_MGR_URL + '" style="background:#D22730;color:#fff;text-decoration:none;font-weight:bold;padding:10px 16px;border-radius:6px;display:inline-block">Open the Manager Desk</a></p></div>';
+}
+function ovVendorDailyPlain_(g, names) {
+  var l = ['Ovation Hub daily summary', ''];
+  names.forEach(function (n) {
+    var s = g.props[n];
+    l.push(n.toUpperCase());
+    if (s.expected && !s.checks.length) l.push('  No porter checklist was submitted.');
+    s.checks.forEach(function (r) { l.push('  Checklist ' + ovDay_(r.service_date) + ' - ' + (r.porter || 'Porter') + ' - ' + (r.tasks_checked || 0) + ' of ' + (r.tasks_total || 0) + ' tasks, ' + (r.photos || 0) + ' photos' + (r.followups ? ' - Reported: ' + ovStr_(r.followups, 200) : '')); });
+    s.reports.forEach(function (r) { l.push('  ' + (ovIsEmergency_(r) ? 'EMERGENCY - ' : '') + (r.mode || 'Report') + (r.category ? ': ' + r.category : '') + (r.summary ? ' - ' + ovStr_(r.summary, 200) : '')); });
+    l.push('');
+  });
+  l.push('Manager Desk: ' + OV_MGR_URL);
+  return l.join('\n');
+}
+
+// Friday: remind City Wide to send this week's digests. Ovation's weekly digest to the property is a
+// manual send from digest.html; the Ken's Hub digests go out on their own schedule, so that link is
+// a check, not a send.
+function ovFridayReminder() {
+  var now = new Date();
+  if (Utilities.formatDate(now, 'America/Los_Angeles', 'u') !== '5') { Logger.log('ovFridayReminder: not Friday'); return 0; }
+  var cfg = ovConfig_();
+  var to = ovEmails_(cfg.weekly_reminder_to);
+  if (!to.length) { Logger.log('ovFridayReminder: weekly_reminder_to is blank'); return 0; }
+  var open = 0, byProp = {};
+  try {
+    var d = JSON.parse(ovDigestList_({}).getContent());
+    (d.checklists || []).concat(d.reports || []).forEach(function (x) { open++; byProp[x.property] = (byProp[x.property] || 0) + 1; });
+  } catch (e) {}
+  var F = 'font-family:Verdana,Arial,sans-serif;';
+  var props = Object.keys(byProp).sort();
+  var inner = '<p style="margin:0 0 12px;' + F + 'font-size:14px;font-weight:bold;color:#2d2a26;">Send this week\'s digests today.</p>' +
+    '<p style="margin:0 0 6px;' + F + 'font-size:13px;color:#2d2a26;line-height:1.5;"><b>Ovation.</b> ' + (open ? open + (open === 1 ? ' item is' : ' items are') + ' waiting to go to the property' + (props.length ? ' (' + props.map(function (p) { return ovEsc_(p) + ' ' + byProp[p]; }).join(', ') + ')' : '') + '.' : 'Nothing is waiting to go to a property.') + ' Tick the items and send one digest per property.</p>' +
+    (typeof cwButton_ === 'function' ? cwButton_('Open the Ovation weekly digest', OV_DIGEST_URL) : '<p><a href="' + OV_DIGEST_URL + '">Open the Ovation weekly digest</a></p>') +
+    '<p style="margin:18px 0 6px;' + F + 'font-size:13px;color:#2d2a26;line-height:1.5;"><b>Ken\'s Foods.</b> The daily and weekly Ken\'s digests send on their own. Open the review page and check the week before the Monday roll-up goes out.</p>' +
+    (typeof cwButton_ === 'function' ? cwButton_('Open the Ken\'s Hub review', OV_KENS_REVIEW_URL) : '<p><a href="' + OV_KENS_REVIEW_URL + '">Open the Ken\'s Hub review</a></p>');
+  var html = (typeof cwShell_ === 'function') ? cwShell_('Weekly digests', 'Friday reminder', inner) : '<div style="' + F + '">' + inner + '</div>';
+  var plain = 'Send this week\'s digests today.\n\nOvation: ' + open + ' item(s) waiting. ' + OV_DIGEST_URL + '\nKen\'s Foods: check the week. ' + OV_KENS_REVIEW_URL;
+  var opts = { to: to.join(','), subject: 'Friday: send the Ovation and Ken\'s weekly digests' + (open ? ' (' + open + ' Ovation ' + (open === 1 ? 'item' : 'items') + ' waiting)' : ''), body: plain, htmlBody: html, name: cfg.sender_name || 'City Wide Facility Solutions' };
+  if (typeof cwMail_ === 'function') cwMail_('ovation_friday_reminder', opts); else MailApp.sendEmail(opts);
+  Logger.log('ovFridayReminder: sent to ' + to.join(','));
+  return 1;
+}
+
+// Run once from the editor (Runner.gs cwRunNow pattern). Replaces any earlier copies of the two triggers.
+function ovInstallTriggers() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    var f = t.getHandlerFunction();
+    if (f === 'ovVendorDaily' || f === 'ovFridayReminder') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('ovVendorDaily').timeBased().atHour(OV_VENDOR_HOUR).nearMinute(5).everyDays(1).inTimezone('America/Los_Angeles').create();
+  ScriptApp.newTrigger('ovFridayReminder').timeBased().onWeekDay(ScriptApp.WeekDay.FRIDAY).atHour(OV_REMINDER_HOUR).nearMinute(5).inTimezone('America/Los_Angeles').create();
+  ovConfigEnsure_();
+  Logger.log('Ovation triggers installed: ovVendorDaily daily ' + OV_VENDOR_HOUR + ':05, ovFridayReminder Fri ' + OV_REMINDER_HOUR + ':05 (Pacific)');
 }
 
 // Run helper (Runner.gs cwRunNow pattern): provisions the book and folder without a page.
