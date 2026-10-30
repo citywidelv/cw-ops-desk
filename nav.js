@@ -1,7 +1,7 @@
 /* nav.js for the Ops Hub. Seeded from the page menu on 2026-09-13 by Claude.
    The Site Admin hub (cw-admin-hub/site-admin.html) republishes this file; do not edit by hand.
    The page keeps its own MENU as a fallback if this file is missing or malformed.
-   Edited by hand 2026-10-22b (Accounts & Buildings > Client Hubs: Ovation Hub, Ovation Review Queue), 2026-10-22 (Work Tickets > Handyman Work Orders and Handyman Order Form hidden, nothing deleted), 2026-10-20 (Accounts & Buildings > Account Changes hidden, nothing deleted), 2026-10-15 (Work Tickets > Tickets to Bill) and 2026-09-25 (menu cleanup: one home per tool, short labels with tag chips; Opportunities promoted, Work Tickets under Accounts): before the next Site Admin publish, click Import live menu. */
+   Edited by hand 2026-10-30 (Accounts & Buildings > Accounts Map > Las Vegas repointed to the new City Wide account map), 2026-10-22b (Accounts & Buildings > Client Hubs: Ovation Hub, Ovation Review Queue), 2026-10-22 (Work Tickets > Handyman Work Orders and Handyman Order Form hidden, nothing deleted), 2026-10-20 (Accounts & Buildings > Account Changes hidden, nothing deleted), 2026-10-15 (Work Tickets > Tickets to Bill) and 2026-09-25 (menu cleanup: one home per tool, short labels with tag chips; Opportunities promoted, Work Tickets under Accounts): before the next Site Admin publish, click Import live menu. */
 window.CW_NAV = {
  "hub": "ops",
  "label": "Ops Hub",
@@ -326,7 +326,7 @@ window.CW_NAV = {
      "items": [
       {
        "label": "Las Vegas",
-       "href": "https://www.google.com/maps/d/viewer?mid=1ewhUmSrFCo0--ALiJP0O1pLTbH0qlk4"
+       "href": "https://www.google.com/maps/d/viewer?mid=1Fx5coF_k41C2q5j_D4Ps_ty3G-MEYUo"
       },
       {
        "label": "Northern Nevada",
