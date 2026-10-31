@@ -569,6 +569,9 @@ function obVendorEval_(data) {
   var clean = {};
   VD_HEADERS.forEach(function (h) { if (v[h] !== undefined && v[h] !== null) clean[h] = String(v[h]).slice(0, 4000); });
   clean.business_address = vdStr_(v.business_address).slice(0, 300);
+  // Oct 31 2026: not a directory column, so carry it past the VD_HEADERS filter
+  // for the evaluation record, PDF and team email. Never written to the directory.
+  clean.ledger_email = vdStr_(v.ledger_email).slice(0, 160);
 
   var ss = vdSS_();
   if (!vdVendorSheets_(ss).length) vdSetup_({});

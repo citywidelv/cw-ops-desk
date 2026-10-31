@@ -55,7 +55,10 @@ var VEV_CONFIRM_VENDOR = false;
 var VEV_HEADERS = [
   'eval_id', 'received', 'market', 'vendor_id', 'vendor', 'legal_name', 'contact_name',
   'email', 'phone', 'action', 'services', 'service_types', 'years_in_business',
-  'crew_ft', 'crew_pt', 'flags', 'flag_count', 'pdf_url', 'pdf_name', 'source'
+  'crew_ft', 'crew_pt', 'flags', 'flag_count', 'pdf_url', 'pdf_name', 'source',
+  // Oct 31 2026 (TJ): the email the vendor wants monthly payments sent to.
+  // Appended at the end so the header self heal never moves existing data.
+  'ledger_email'
 ];
 
 // The ten yes / no questions, in the order the form asks them, with the wording
@@ -345,6 +348,7 @@ function vevPdf_(rec) {
     + row('Mobile', v.phone)
     + row('Business phone', v.business_phone)
     + row('Email', v.email)
+    + row('Email for monthly payments', v.ledger_email)
     + row('Business address', v.business_address)
     + row('Website', v.website)
     + row('Cities the crew works in', v.metro_areas)
@@ -464,7 +468,7 @@ function vevEmailHtml_(rec) {
     + 'border-left:4px solid #D22730;padding-left:9px;margin:0 0 10px;">Who to call</div>'
     + '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
     + cell('Contact', v.contact_name) + cell('Mobile', v.phone) + cell('Business phone', v.business_phone)
-    + cell('Email', v.email) + cell('Address', v.business_address) + cell('Website', v.website)
+    + cell('Email', v.email) + cell('Payments email', v.ledger_email) + cell('Address', v.business_address) + cell('Website', v.website)
     + cell('Legal name', v.legal_name) + cell('License number', v.license_no)
     + cell('Years in business', v.years_in_business)
     + cell('Crew', (vevStr_(v.crew_ft) || '0') + ' full time, ' + (vevStr_(v.crew_pt) || '0') + ' part time')
@@ -517,6 +521,7 @@ function vevEmailText_(rec) {
   L.push('  Contact: ' + vevStr_(v.contact_name));
   L.push('  Mobile: ' + vevStr_(v.phone) + (vevStr_(v.business_phone) ? '   Business: ' + vevStr_(v.business_phone) : ''));
   L.push('  Email: ' + vevStr_(v.email));
+  L.push('  Payments email: ' + (vevStr_(v.ledger_email) || 'not given'));
   if (vevStr_(v.business_address)) L.push('  Address: ' + vevStr_(v.business_address));
   if (vevStr_(v.website)) L.push('  Website: ' + vevStr_(v.website));
   if (vevStr_(v.legal_name)) L.push('  Legal name: ' + vevStr_(v.legal_name));
@@ -602,7 +607,8 @@ function vevAppendRow_(sh, rec) {
     action: rec.action, services: rec.services, service_types: vevStr_(v.service_types),
     years_in_business: vevStr_(v.years_in_business), crew_ft: vevStr_(v.crew_ft), crew_pt: vevStr_(v.crew_pt),
     flags: rec.flags.map(function (f) { return f.q + ' = ' + f.a; }).join(' | '),
-    flag_count: rec.flags.length, pdf_url: rec.pdf_url, pdf_name: rec.pdf_name, source: rec.source
+    flag_count: rec.flags.length, pdf_url: rec.pdf_url, pdf_name: rec.pdf_name, source: rec.source,
+    ledger_email: vevStr_(v.ledger_email)
   };
   sh.appendRow(VEV_HEADERS.map(function (h) { return vals[h] == null ? '' : String(vals[h]); }));
 }
