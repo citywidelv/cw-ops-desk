@@ -78,7 +78,9 @@ var OV_REPORT_HEADERS = ['id', 'created_at', 'property', 'submitter', 'role', 'p
   'subcategory', 'urgency', 'summary', 'status', 'fsm_notes', 'sent_at', 'sent_to', 'photos', 'json_file', 'pdf_file', 'updated_at'];
 var OV_CHECK_HEADERS = ['id', 'created_at', 'service_date', 'weekday', 'property', 'porter', 'shift_start', 'shift_end',
   'areas_done', 'areas_na', 'tasks_checked', 'tasks_total', 'photos', 'followups', 'supplies', 'status', 'fsm_notes',
-  'sent_at', 'sent_to', 'json_file', 'pdf_file', 'updated_at'];
+  'sent_at', 'sent_to', 'json_file', 'pdf_file', 'updated_at', 'focus'];
+// Oct 30 2026 (checklist v2): 'focus' is one line of what the porter reported ("Restrooms spot check x3 - Pool full clean").
+// It sits last so the older columns keep their positions; ovChecks_ writes the header once if the tab predates it.
 // Oct 29 2026 (TJ): vendor_name / vendor_email per property = the porter vendor's site manager who gets the
 // daily summary of what was submitted for that property. Appended at the end so existing rows keep their columns.
 var OV_PROP_HEADERS = ['property', 'group', 'type', 'address', 'awarded', 'start', 'porter_days', 'contact_name', 'contact_email', 'cc_email', 'fsm', 'fsm_email', 'notes', 'vendor_name', 'vendor_email'];
@@ -247,7 +249,17 @@ function ovTab_(name, headers, seed) {
   return sh;
 }
 function ovReports_() { return ovTab_(OV_TAB_REPORTS, OV_REPORT_HEADERS); }
-function ovChecks_() { return ovTab_(OV_TAB_CHECKS, OV_CHECK_HEADERS); }
+function ovChecks_() {
+  var sh = ovTab_(OV_TAB_CHECKS, OV_CHECK_HEADERS);
+  try {
+    if (sh.getMaxColumns() < OV_CHECK_HEADERS.length) sh.insertColumnsAfter(sh.getMaxColumns(), OV_CHECK_HEADERS.length - sh.getMaxColumns());
+    var head = sh.getRange(1, 1, 1, OV_CHECK_HEADERS.length).getValues()[0];
+    for (var i = 0; i < OV_CHECK_HEADERS.length; i++) {
+      if (!head[i]) sh.getRange(1, i + 1).setValue(OV_CHECK_HEADERS[i]).setFontWeight('bold').setBackground('#D22730').setFontColor('#FFFFFF');
+    }
+  } catch (e) {}
+  return sh;
+}
 function ovProps_() {
   var sh = ovTab_(OV_TAB_PROPS, OV_PROP_HEADERS, OV_PROPERTIES_SEED);
   // Headers added after the tab was created (vendor_name, vendor_email) get written once.
@@ -350,17 +362,45 @@ function ovReportMeta_(doc) {
     updated_at: ovNow_()
   };
 }
+// Checklist v2 (Oct 30 2026): doc.v >= 2. areas[].on = the porter got to it; status full / spot / none;
+// times '' | '1'..'3' | '4+'; tasks [{t, n}] = what they touched on a spot check; rotation [{t, area}].
+function ovIsV2_(doc) { return !!(doc && Number(doc.v) >= 2); }
+var OV_STATUS_LABEL = { full: 'Full clean', spot: 'Spot check', none: 'Checked, no cleaning needed' };
+function ovTimesText_(t) { t = String(t || ''); if (!t) return ''; return t === '1' ? 'once' : t === '2' ? 'twice' : t === '3' ? '3 times' : '4 or more times'; }
+function ovAreaLine_(a) { var s = OV_STATUS_LABEL[a.status] || 'Serviced'; var t = ovTimesText_(a.times); return s + (t ? ' - ' + t : ''); }
+function ovFocusText_(doc) {
+  if (!ovIsV2_(doc)) return '';
+  return (doc.areas || []).filter(function (a) { return a.on; }).map(function (a) {
+    var short = String(a.name || '').split(',')[0].split(' & ')[0];
+    var st = a.status === 'full' ? 'full clean' : a.status === 'spot' ? 'spot check' : a.status === 'none' ? 'checked' : 'serviced';
+    var t = a.times && a.times !== '1' ? ' x' + a.times : '';
+    return short + ' ' + st + t;
+  }).join(' - ');
+}
+// One line for lists and emails: the v2 focus line, else the old "x of y tasks".
+function ovTasksLine_(r) { return r.focus ? String(r.focus) : ((r.tasks_checked || 0) + ' of ' + (r.tasks_total || 0) + ' tasks'); }
 function ovCheckMeta_(doc) {
   var areas = doc.areas || [];
-  var done = 0, na = 0, checked = 0, total = 0, photos = 0;
-  areas.forEach(function (a) {
-    if (a.na) { na++; return; }
-    done++;
-    (a.tasks || []).forEach(function (t) { total++; if (t.done) checked++; });
-    photos += (a.photos || []).length;
-  });
+  var done = 0, na = 0, checked = 0, total = 0, photos = 0, focus = '';
+  if (ovIsV2_(doc)) {
+    areas.forEach(function (a) {
+      if (!a.on) { na++; return; }
+      done++;
+      (a.tasks || []).forEach(function (t) { total++; checked++; });
+      photos += (a.photos || []).length;
+    });
+    focus = ovStr_(ovFocusText_(doc), 400);
+  } else {
+    areas.forEach(function (a) {
+      if (a.na) { na++; return; }
+      done++;
+      (a.tasks || []).forEach(function (t) { total++; if (t.done) checked++; });
+      photos += (a.photos || []).length;
+    });
+  }
   photos += (doc.photos || []).length;
   return {
+    focus: focus,
     id: ovStr_(doc.id, 60),
     created_at: ovStr_(doc.created_at || ovNow_(), 40),
     service_date: ovStr_(doc.service_date, 20),
@@ -462,14 +502,16 @@ function ovList_(d) {
   var rows = ovRows_(sh, ovHeadersFor_(type));
   var status = String(d.status || '');
   var property = String(d.property || '');
+  var since = String(d.since || '').slice(0, 10);   // yyyy-mm-dd; blank = everything ever filed
   rows = rows.filter(function (r) {
     if (status && String(r.status) !== status) return false;
     if (property && String(r.property) !== property) return false;
+    if (since && String(type === 'checklist' ? r.service_date : r.created_at).slice(0, 10) < since) return false;
     return true;
   });
   rows.forEach(function (r) { delete r._row; delete r.json_file; r.has_pdf = !!r.pdf_file; delete r.pdf_file; });
   rows.sort(function (a, b) { return String(b.created_at).localeCompare(String(a.created_at)); });
-  var limit = Number(d.limit) || 300;
+  var limit = Math.min(Number(d.limit) || 300, 3000);
   if (rows.length > limit) rows = rows.slice(0, limit);
   return ovOut_({ ok: true, type: type, rows: rows, url: sh.getParent().getUrl() });
 }
@@ -741,7 +783,7 @@ function ovFeedPhoto_(d) {
   if (!ok) return ovOut_({ ok: false, error: 'Photo not found' });
   return ovOut_({ ok: true, fileId: fileId, data: 'data:image/jpeg;base64,' + Utilities.base64Encode(file.getBlob().getBytes()) });
 }
-var OV_LIB_COLS = ['id', 'created_at', 'service_date', 'weekday', 'property', 'porter', 'areas_done', 'areas_na', 'tasks_checked', 'tasks_total', 'photos', 'status', 'sent_at'];
+var OV_LIB_COLS = ['id', 'created_at', 'service_date', 'weekday', 'property', 'porter', 'areas_done', 'areas_na', 'tasks_checked', 'tasks_total', 'photos', 'status', 'sent_at', 'focus'];
 function ovLibrary_(d) {
   var sh = ovChecks_();
   var rows = ovRows_(sh, OV_CHECK_HEADERS);
@@ -984,7 +1026,7 @@ function ovAlertItems_() {
     if (String(r.status || 'New') !== 'New') return;
     var s = stamp(r.created_at);
     if (!s.fresh) return;
-    var bits = [ovDay_(r.service_date), (r.areas_done || 0) + ' areas serviced', (r.tasks_checked || 0) + ' of ' + (r.tasks_total || 0) + ' tasks', (r.photos || 0) + (Number(r.photos) === 1 ? ' photo' : ' photos')];
+    var bits = [ovDay_(r.service_date), (r.areas_done || 0) + ' areas serviced', ovTasksLine_(r), (r.photos || 0) + (Number(r.photos) === 1 ? ' photo' : ' photos')];
     if (r.followups) bits.push('Reported to the property: ' + ovStr_(r.followups, 160));
     if (r.supplies) bits.push('Supplies low: ' + ovStr_(r.supplies, 100));
     items.push({
@@ -1047,18 +1089,26 @@ function ovSetStatus_(id, status, by) {
 
 // ------------------------------------------------ weekly digest to the property --
 var OV_SENT_DONE = { sent: 1 };
+// Oct 30 2026 (TJ): past reports never disappear. all=1 lists sent items too (so a day or a week can be
+// resent); since=yyyy-mm-dd narrows the range. Default stays "unsent only", which is the Friday job.
 function ovDigestList_(d) {
   var props = ovPropIndex_();
-  function keep(r) { return String(r.status || 'New').toLowerCase() !== 'sent'; }
-  var checks = ovRows_(ovChecks_(), OV_CHECK_HEADERS).filter(keep).map(function (r) {
+  var all = String(d.all || '') === '1' || d.all === true;
+  var since = String(d.since || '').slice(0, 10);
+  function keep(r, dateStr) {
+    if (!all && String(r.status || 'New').toLowerCase() === 'sent') return false;
+    if (since && String(dateStr || '').slice(0, 10) < since) return false;
+    return true;
+  }
+  var checks = ovRows_(ovChecks_(), OV_CHECK_HEADERS).filter(function (r) { return keep(r, r.service_date); }).map(function (r) {
     return { id: r.id, type: 'checklist', property: r.property, service_date: r.service_date, weekday: r.weekday, day: ovDay_(r.service_date),
-      porter: r.porter, status: r.status || 'New', areas_done: r.areas_done, areas_na: r.areas_na, tasks_checked: r.tasks_checked, tasks_total: r.tasks_total,
-      photos: r.photos, followups: ovStr_(r.followups, 200), supplies: ovStr_(r.supplies, 120), has_pdf: !!r.pdf_file, created_at: r.created_at };
+      porter: r.porter, status: r.status || 'New', areas_done: r.areas_done, areas_na: r.areas_na, tasks_checked: r.tasks_checked, tasks_total: r.tasks_total, focus: r.focus || '',
+      photos: r.photos, followups: ovStr_(r.followups, 200), supplies: ovStr_(r.supplies, 120), has_pdf: !!r.pdf_file, created_at: r.created_at, sent_at: r.sent_at || '' };
   });
-  var reports = ovRows_(ovReports_(), OV_REPORT_HEADERS).filter(keep).filter(function (r) { return !ovIsManagerReport_(r); }).map(function (r) {   // manager supply requests are City Wide business, never sent to the property
+  var reports = ovRows_(ovReports_(), OV_REPORT_HEADERS).filter(function (r) { return keep(r, r.created_at); }).filter(function (r) { return !ovIsManagerReport_(r); }).map(function (r) {   // manager supply requests are City Wide business, never sent to the property
     return { id: r.id, type: 'report', property: r.property, created_at: r.created_at, day: ovNice_(r.created_at), service_date: String(r.created_at || '').slice(0, 10),
       submitter: r.submitter, role: r.role, mode: r.mode, category: r.category, subcategory: r.subcategory, urgency: r.urgency, status: r.status || 'New',
-      summary: ovStr_(r.summary, 200), photos: r.photos, has_pdf: !!r.pdf_file, porter: ovIsPorterReport_(r), emergency: ovIsEmergency_(r) };
+      summary: ovStr_(r.summary, 200), photos: r.photos, has_pdf: !!r.pdf_file, porter: ovIsPorterReport_(r), emergency: ovIsEmergency_(r), sent_at: r.sent_at || '' };
   });
   var names = {};
   checks.concat(reports).forEach(function (x) { names[String(x.property)] = 1; });
@@ -1114,9 +1164,9 @@ function ovDigestSend_(d) {
   var dates = checks.map(function (x) { return String(x.row.service_date); }).concat(reports.map(function (x) { return String(x.row.created_at).slice(0, 10); })).filter(Boolean).sort();
   var span = dates.length ? (dates[0] === dates[dates.length - 1] ? ovDay_(dates[0]) : ovDay_(dates[0]).replace(/^\w+, /, '') + ' to ' + ovDay_(dates[dates.length - 1]).replace(/^\w+, /, '')) : '';
   var subject = ovStr_(d.subject || ('City Wide weekly service report - ' + property + (span ? ' - ' + span : '')), 200);
-  var msg = ovStr_(d.message || ('Hello,\n\nAttached are the day porter service reports for ' + property + (span ? ' for ' + span : '') + '. Each day is its own PDF with the areas serviced, the tasks completed and photos from the shift.\n\nReply to this email with any questions.\n\nThank you,\nCity Wide Facility Solutions'), 5000);
+  var msg = ovStr_(d.message || ('Hello,\n\nAttached are the day porter service reports for ' + property + (span ? ' for ' + span : '') + '. Each day is its own PDF with the areas the porter focused on, the kind of clean each one got and photos from the shift.\n\nReply to this email with any questions.\n\nThank you,\nCity Wide Facility Solutions'), 5000);
   var html = ovDigestHtml_(property, span, msg, checks, reports, by);
-  var plain = msg + '\n\n' + checks.map(function (x) { return '* ' + ovDay_(x.row.service_date) + ' - ' + x.row.porter + ' - ' + x.row.areas_done + ' areas, ' + x.row.tasks_checked + ' of ' + x.row.tasks_total + ' tasks' + (x.row.followups ? ' - ' + x.row.followups : ''); })
+  var plain = msg + '\n\n' + checks.map(function (x) { return '* ' + ovDay_(x.row.service_date) + ' - ' + x.row.porter + ' - ' + x.row.areas_done + ' areas, ' + ovTasksLine_(x.row) + (x.row.followups ? ' - ' + x.row.followups : ''); })
     .concat(reports.map(function (x) { return '* ' + ovNice_(x.row.created_at) + ' - ' + x.row.mode + (x.row.category ? ': ' + x.row.category : '') + (x.doc.response ? ' - City Wide: ' + x.doc.response : ''); })).join('\n');
   var opts = { to: to.join(','), subject: subject, body: plain, htmlBody: html, name: cfg.sender_name || 'City Wide Facility Solutions', attachments: attachments };
   if (cc.length) opts.cc = cc.join(',');
@@ -1156,8 +1206,8 @@ function ovDigestHtml_(property, span, msg, checks, reports, by) {
     checks.forEach(function (x) {
       var r = x.row;
       inner += card(ovDay_(r.service_date), 'Porter ' + r.porter, [
-        ['Areas serviced', (r.areas_done || 0) + (r.areas_na ? ' (' + r.areas_na + ' not serviced that day)' : '')],
-        ['Daily tasks', (r.tasks_checked || 0) + ' of ' + (r.tasks_total || 0) + ' completed'],
+        ['Areas serviced', (r.areas_done || 0) + (r.areas_na ? ' (' + r.areas_na + (r.focus ? ' not reached that day)' : ' not serviced that day)') : '')],
+        [r.focus ? 'Focus' : 'Daily tasks', r.focus ? r.focus : ((r.tasks_checked || 0) + ' of ' + (r.tasks_total || 0) + ' completed')],
         ['Photos', r.photos || 0],
         ['Reported to the property', r.followups], ['Supplies running low', r.supplies], ['Note from City Wide', x.doc.fsm_notes]
       ]);
@@ -1241,7 +1291,35 @@ function ovBuildPdf_(type, doc, by) {
   function metaRows(pairs) { return '<table class="meta">' + pairs.filter(function (p) { return p[1]; }).map(function (p) { return '<tr><td class="k">' + e(p[0]) + '</td><td class="v">' + e(p[1]) + '</td></tr>'; }).join('') + '</table>'; }
   var sections = [];   // each: { html, photos:[pid...] } so a retry can drop photos evenly
   var html = head;
-  if (isCheck) {
+  if (isCheck && ovIsV2_(doc)) {
+    var areasOn = (doc.areas || []).filter(function (a) { return a.on; });
+    var nFull = 0, nSpot = 0, nChk = 0;
+    areasOn.forEach(function (a) { if (a.status === 'full') nFull++; else if (a.status === 'spot') nSpot++; else if (a.status === 'none') nChk++; });
+    var sumBits = [];
+    if (nFull) sumBits.push(nFull + ' full clean' + (nFull > 1 ? 's' : '')); if (nSpot) sumBits.push(nSpot + ' spot check' + (nSpot > 1 ? 's' : '')); if (nChk) sumBits.push(nChk + ' checked, no cleaning needed');
+    html += '<h1>' + e(doc.property) + '</h1>' + metaRows([['Date', (doc.weekday ? doc.weekday + ', ' : '') + doc.service_date], ['Address', prop.address], ['Porter', doc.porter],
+      ['Shift', doc.shift_start ? doc.shift_start + (doc.shift_end ? ' to ' + doc.shift_end : '') : ''], ['Areas reported', areasOn.length + ' of ' + (doc.areas || []).length + (sumBits.length ? ' (' + sumBits.join(', ') + ')' : '')]]);
+    if (doc.fsm_notes) html += '<h2>Note from City Wide</h2><div class="para">' + e(doc.fsm_notes) + '</div>';
+    var defs = {}; (typeof OV_AREA_SCOPE !== 'undefined' ? OV_AREA_SCOPE : []).forEach(function (x) { defs[x.key] = x; });
+    areasOn.forEach(function (a) {
+      var s = '<h2>' + e(a.name) + ' <span class="sub">' + e(ovAreaLine_(a)) + '</span></h2>';
+      var rows = '';
+      if (a.status === 'full' && defs[a.key]) rows += '<tr><td class="s ok">Full clean</td><td class="sub">A full clean covers: ' + e(defs[a.key].daily.join('; ')) + '.</td></tr>';
+      else if (a.status === 'full') rows += '<tr><td class="s ok">Full clean</td><td class="sub">Full service of the whole area per the scope of work.</td></tr>';
+      if (a.status === 'none') rows += '<tr><td class="s ok">Checked</td><td class="sub">No cleaning was needed at the time.</td></tr>';
+      (a.tasks || []).forEach(function (t) { rows += '<tr><td class="s ok">Done</td><td>' + e(t.t) + (Number(t.n) > 1 ? ' <span class="sub">(' + e(t.n) + ' times)</span>' : '') + '</td></tr>'; });
+      if (rows) s += '<table class="tasks">' + rows + '</table>';
+      s += (a.floors ? '<div class="sub" style="margin-top:3px">Floors: <b>' + e(a.floors) + '</b></div>' : '') + (a.note ? '<div class="note">Note: ' + e(a.note) + '</div>' : '');
+      sections.push({ html: s, photos: (a.photos || []).map(function (p) { return p.pid; }) });
+    });
+    if ((doc.rotation || []).length) sections.push({ html: '<h2>Weekly and monthly items done today</h2><table class="tasks">' + doc.rotation.map(function (r) { return '<tr><td class="s ok">Done</td><td>' + e(r.t) + ' <span class="sub">(' + e(r.area) + ')</span></td></tr>'; }).join('') + '</table>', photos: [] });
+    var notReached = (doc.areas || []).filter(function (a) { return !a.on; });
+    if (notReached.length) sections.push({ html: '<h2>Not reached today</h2><div class="sub">' + e(notReached.map(function (a) { return a.name; }).join(', ')) + '</div>', photos: [] });
+    if (doc.followups || (doc.followup_tags || []).length || (doc.photos || []).length) {
+      sections.push({ html: '<h2>Reported to the property</h2>' + ((doc.followup_tags || []).length ? '<div><b>' + e(doc.followup_tags.join(' | ')) + '</b></div>' : '') + (doc.followups ? '<div class="para">' + e(doc.followups) + '</div>' : ''), photos: (doc.photos || []).map(function (p) { return p.pid; }) });
+    }
+    if (doc.supplies) sections.push({ html: '<h2>Supplies running low</h2><div class="para">' + e(doc.supplies) + '</div>', photos: [] });
+  } else if (isCheck) {
     var areasIn = (doc.areas || []).filter(function (a) { return !a.na; });
     var tDone = 0, tAll = 0; areasIn.forEach(function (a) { (a.tasks || []).forEach(function (t) { if (t.f === 'daily') { tAll++; if (t.done) tDone++; } }); });
     var passes = (doc.passes || []).filter(function (p) { return p.done; }).map(function (p) { return String(p.t).replace(/\s*\(.*\)$/, ''); });
@@ -1313,6 +1391,20 @@ function ovBuildPdfRun(id) {
 // properties since the last run, with City Wide (Config!vendor_daily_cc) copied. Checklists still send
 // nothing on submit; this is the one email the vendor gets. Ovation staff contact details never ride
 // in it (same rule as the porter feed). Time-based triggers run the saved code, so this needs no deploy.
+// Daily scope per area, mirrored from ov-shared.js OV.AREAS (Oct 21 2026 Aspire at Redwood scope). The server PDF
+// prints this under a "Full clean" so the property sees what that word covers. Keep in step with the page.
+var OV_AREA_SCOPE = [
+  { key: 'restrooms', daily: ['Waste emptied, liners replaced', 'Toilets, urinals and sinks cleaned and disinfected', 'Counters and fixtures cleaned and disinfected', 'Mirrors wiped', 'Partitions and doors spot cleaned', 'Dispensers checked and refilled', 'Floors swept or dust mopped', 'Floors damp mopped and sanitized', 'Checks done at start, middle and end of shift'] },
+  { key: 'clubhouse', daily: ['Waste emptied, liners replaced as needed', 'Furniture, counters and tables wiped', 'Fitness equipment handles, seats and benches wiped and disinfected', 'Fitness room mirrors wiped', 'Coffee bar and kitchenette counters wiped', 'Microwave exterior wiped', 'Glass doors spot cleaned', 'Floors vacuumed or dust mopped', 'Floors damp mopped', 'Administration office serviced as assigned'] },
+  { key: 'lobbies', daily: ['Waste emptied, liners replaced as needed', 'Entry and door glass spot cleaned', 'Doors, frames and push plates spot cleaned', 'Mailbox fronts and package counters dusted', 'Lobby floors vacuumed or dust mopped', 'Lobby floors damp mopped', 'Hallway high-traffic floors vacuumed or dust mopped', 'Hallway high-traffic floors damp mopped', 'Walls spot cleaned at entries and high-traffic areas'] },
+  { key: 'elevators', daily: ['Buttons and handrails cleaned and disinfected', 'Cab walls and doors spot cleaned', 'Cab floors vacuumed or dust mopped', 'Cab floors damp mopped'] },
+  { key: 'pool', daily: ['Litter and debris picked up on the pool deck', 'Lounge chairs and tables wiped', 'Waste emptied, liners replaced as needed', 'Grill grates scraped, exteriors wiped, grease trays emptied', 'Pool gate handles and touch points cleaned and disinfected'] },
+  { key: 'pet', daily: ['Pet waste stations emptied and cleaned, liners replaced', 'Waste bag dispensers refilled', 'Pet waste picked up from turf, gravel and walkways', 'Pet relief areas sanitized', 'Litter and debris picked up around pet areas', 'Missing or damaged signage reported'] },
+  { key: 'walkways', daily: ['Litter and debris picked up along walkways, stairwells, courtyards and entries', 'Walkways and entries swept', 'Outdoor furniture at entrances wiped', 'Stairwells checked and litter picked up'] },
+  { key: 'trash', daily: ['Loose trash around dumpsters and enclosures picked up', 'Dumpsters checked for overflow', 'Dumpster access checked before pickup', 'Bins positioned for pickup and returned (pickup days)', 'Waste bags moved in a brute can or cart, not carried over clean floors'] },
+  { key: 'all', daily: ['Horizontal surfaces up to 3 ft dusted (counters, tables, ledges, mailbox tops)', 'Touch points cleaned and disinfected', 'Soda spills and sticky residue addressed'] },
+  { key: 'closet', daily: ['Equipment and chemicals stored in the closet', 'Chemicals labeled and stored per the label', 'SDS on site for every product'] }
+];
 var OV_MGR_URL = 'https://citywidelv.github.io/ovation-hub/manager.html';
 var OV_DIGEST_URL = 'https://citywidelv.github.io/ovation-hub/digest.html';
 var OV_KENS_REVIEW_URL = 'https://citywidelv.github.io/kens-hub/review.html';
@@ -1385,7 +1477,7 @@ function ovVendorDailyHtml_(g, names, cfg) {
     }
     s.checks.sort(function (a, b) { return String(a.service_date).localeCompare(String(b.service_date)); }).forEach(function (r) {
       var line = ovDay_(r.service_date) + ' - ' + ovEsc_(r.porter || 'Porter') + (r.shift_start ? ', ' + ovEsc_(r.shift_start) + ' to ' + ovEsc_(r.shift_end || '') : '');
-      var facts = [(r.areas_done || 0) + ' areas serviced', (r.tasks_checked || 0) + ' of ' + (r.tasks_total || 0) + ' tasks', (r.photos || 0) + (Number(r.photos) === 1 ? ' photo' : ' photos')];
+      var facts = [(r.areas_done || 0) + ' areas serviced', ovTasksLine_(r), (r.photos || 0) + (Number(r.photos) === 1 ? ' photo' : ' photos')];
       var st = String(r.status || 'New');
       inner += '<div style="border:1px solid #E5E5E5;border-left:4px solid #D22730;border-radius:0 6px 6px 0;padding:10px 14px;margin:0 0 8px;">' +
         '<p style="margin:0 0 4px;' + F + 'font-size:13px;font-weight:bold;color:#2d2a26;">Checklist: ' + line + ' <span style="font-weight:normal;color:#636466;font-size:11px;">' + ovEsc_(st === 'New' ? 'Waiting on approval' : st) + '</span></p>' +
@@ -1413,7 +1505,7 @@ function ovVendorDailyPlain_(g, names) {
     var s = g.props[n];
     l.push(n.toUpperCase());
     if (s.expected && !s.checks.length) l.push('  No porter checklist was submitted.');
-    s.checks.forEach(function (r) { l.push('  Checklist ' + ovDay_(r.service_date) + ' - ' + (r.porter || 'Porter') + ' - ' + (r.tasks_checked || 0) + ' of ' + (r.tasks_total || 0) + ' tasks, ' + (r.photos || 0) + ' photos' + (r.followups ? ' - Reported: ' + ovStr_(r.followups, 200) : '')); });
+    s.checks.forEach(function (r) { l.push('  Checklist ' + ovDay_(r.service_date) + ' - ' + (r.porter || 'Porter') + ' - ' + ovTasksLine_(r) + ', ' + (r.photos || 0) + ' photos' + (r.followups ? ' - Reported: ' + ovStr_(r.followups, 200) : '')); });
     s.reports.forEach(function (r) { l.push('  ' + (ovIsEmergency_(r) ? 'EMERGENCY - ' : '') + (r.mode || 'Report') + (r.category ? ': ' + r.category : '') + (r.summary ? ' - ' + ovStr_(r.summary, 200) : '')); });
     l.push('');
   });
