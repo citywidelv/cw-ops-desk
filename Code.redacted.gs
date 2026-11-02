@@ -3029,8 +3029,9 @@ function cwSendMarketDigest_(mode, opts) {
     var html = cwDigestHtml_(label, when, mine, note, alerts, night ? night.html : '', weekly ? "This week's inspections" : "Last night's inspections");
     var plain = cwAlertsPlain_(alerts) + (night && night.text ? night.text + '\n\n' : '') + cwDigestPlain_(label, when, mine);
     var total = mine.length + nCount;
+    var late = alerts.filter(function (a) { return a.late && !cwIsOvAlert_(a); }).length;   // matches the red box; Ovation items are 'waiting', not past due
     cwSend_({ to: to, name: CW_DIGEST_SENDER,
-      subject: (test ? '[TEST] ' : '') + (alerts.filter(function (a) { return a.late; }).length ? '[' + alerts.filter(function (a) { return a.late; }).length + ' past due] ' : '') +
+      subject: (test ? '[TEST] ' : '') + (late ? '[' + late + ' past due] ' : '') +
         'City Wide ' + m.name + ' ' + (weekly ? 'weekly' : 'daily') + ' rollup - ' + when + ' (' + total + (total === 1 ? ' item)' : ' items)'),
       htmlBody: html, body: plain });
     if (night) { crewRows = crewRows.concat(night.rows || []); commits.push(night.commit); }
