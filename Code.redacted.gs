@@ -2526,6 +2526,8 @@ function doPost(e){
   try { cwMaybeDigest_(); } catch(_cwd){}
   var d = null;
   try { d = JSON.parse(e.postData.contents); } catch(err){ d = null; }
+  if (d && Array.isArray(d)) return aqPandaHook_(d);                           // Oct 3 2026: PandaDoc webhook delivery (AdminQueue.gs)
+  if (d && String(d.kind||'').indexOf('aq_') === 0) return aqDispatch(d);    // Oct 3 2026: Ops Admin task queue (AdminQueue.gs)
   if (d && d.kind && String(d.kind).indexOf('vio_') === 0) return vioDispatch(d);
   if (d && String(d.kind||"").indexOf('ins_') === 0) return insDispatch(d);
   if (d && d.kind === 'vd_eval') return obDispatch(d);                       // Sep 19 2026: Vendor Evaluation page -> Onboarding.gs
@@ -2545,7 +2547,13 @@ if (d && String(d.kind||'').indexOf('vm_') === 0) return vmDispatch(d);
   if (d && String(d.kind||'').indexOf('vp_') === 0) return vpDispatch(d);   // Vendor Profile (VendorProfile.gs, read only)
   if (d && String(d.kind||'').indexOf('vev_') === 0) return vevDispatch(d);   // VendorEval.gs, Sep 22 2026
   if (d && String(d.kind||'').indexOf('vs_') === 0) return vsDispatch(d);   // VendorSelf.gs, Sep 23 2026
-  if (d && String(d.kind||'').indexOf('uo_') === 0) return uoDispatch(d);   // Uniform Orders (uo_ block at the end of AdminRecords.gs), Sep 24 2026
+  if (d && String(d.kind||'').indexOf('uo_') === 0) return uoDispatch(d);   // Uniform Orders (UniformOrders.gs), Sep 24 2026
+  if (d && String(d.kind||'').indexOf('shop_') === 0) return shopDispatch(d);   // Vendor shop orders (ShopOrders.gs), Oct 2 2026
+  if (d && String(d.kind||'').indexOf('rq_') === 0) return rqDispatch(d);   // Vendor Recruiting queue (Recruiting.gs), Oct 1 2026
+  if (d && String(d.kind||'').indexOf('jf_') === 0) return jfDispatch(d);   // Jotform feeds on the hub (JotformFeeds.gs), Sep 24 2026
+  if (d && String(d.kind||'').indexOf('bs_') === 0) return bsvDispatch(d);   // Building Surveys cloud copy (BuildingSurveys.gs), Sep 25 2026
+  if (d && String(d.kind||'').indexOf('wt_') === 0) return wtDispatch(d);   // Work ticket billing queue (WorkTicketsHub.gs), Oct 15 2026
+  if (d && String(d.kind||'').indexOf('ov_') === 0) return ovDispatch(d);   // Oct 22 2026: Ovation Hub (Ovation.gs), own passcode OV_PASSCODE
   return doPostBase(e);
 }
 
@@ -2555,8 +2563,8 @@ if (d && String(d.kind||'').indexOf('vm_') === 0) return vmDispatch(d);
 // Every internal / confirmation send routes through cwMail_(tag, opts).
 // Mode per tag comes from the SendConfig sheet tab, else CW_DEFAULT_MODE:
 //   send   = MailApp now
-//   digest = queue to the Digest tab; goes out in the 10am and 6pm digests
-//   weekly = queue; goes out only in the Monday 8am weekly rollup
+//   digest = queue to the Digest tab; goes out in the next rollup (one a day per market)
+//   weekly = queue; goes out only in the Monday weekly rollup
 //   skip   = drop (the page already showed an on-screen receipt)
 // Hard rules that no config can change:
 //   * a message carrying an attachment always sends now (a digest cannot
@@ -2565,11 +2573,11 @@ if (d && String(d.kind||'').indexOf('vm_') === 0) return vmDispatch(d);
 //     so digest or skip can never lose a submission
 //   * any error inside the router falls back to a plain MailApp send
 // The digest runs from cwDigestTick(): a time trigger if one is installed,
-// and opportunistically from doGet / doPost (first hit after 10am, after 6pm,
-// and Monday after 10am). Marker cells J1 / K1 on the Digest tab make each
-// slot fire once, and a script lock stops two hits from sending twice.
-// Weekly rollup (Monday 8am) recaps everything queued in the last 7 days,
-// digested or immediate, so one email shows the whole week.
+// and opportunistically from doGet / doPost (first hit after digest_hour).
+// Marker cells K1 / L1 / M1 on the Digest tab make each day fire once, and a
+// script lock stops two hits from sending twice. Nov 2 2026 per TJ: ONE rollup a
+// day per market (Las Vegas, Northern Nevada) to fixed lists on SendConfig; on
+// Monday the weekly rollup (last 7 days) goes out instead of the daily.
 // ============================================================
 var CW_DEFAULT_MODE = {
   posting: 'digest', response: 'digest', cleaner: 'digest',
@@ -2587,7 +2595,11 @@ var CW_TAG_LABEL = {
   uniform_int: 'Uniform requests', work_ticket_return: 'Work tickets needing a return trip', invoice_int: 'Vendor invoices', invup_int: 'Vendor invoices (uploaded)',
   coiupload_int: 'Insurance and compliance uploads', supply_int: 'Building supply reports',
   envirox: 'EnvirOx orders', profile_int: 'Vendor profile change requests', profile_alert: 'Profile change alerts to vendors',
-  snow_int: 'Snow reports', uniform_conf: 'Uniform request confirmations'
+  snow_int: 'Snow reports', uniform_conf: 'Uniform request confirmations',
+  ni_request: 'Night inspection requests', ni_route: 'Night manager route outs', shop_int: 'Vendor shop orders',
+  ovation: 'Ovation Hub requests', ovation_friday_reminder: 'Ovation reminders', ob_bc_request: 'Background check requests',
+  vd_eval: 'Vendor evaluations', inventory: 'Office inventory counts', inventory_move: 'Office inventory moves',
+  aq_badge_nnv: 'Badge requests', dne_active: 'Do not email list'
 };
 
 function cwSendCfg_() {
@@ -2836,6 +2848,15 @@ function cwQueueDigest_(tag, opts, cadence) {
 }
 
 // ------------------------------------------------------------ the tick -----
+// Nov 2 2026 per TJ: ONE rollup email per market per day. Every day at
+// digest_hour the daily goes out (Las Vegas and Northern Nevada separately). On
+// digest_weekly_day (1 = Monday) the WEEKLY rollup goes out in that same slot
+// and the daily does not. Recipients are fixed lists on SendConfig
+// (digest_lv_to, digest_nnv_to) and no longer mirror who each notice went to, so
+// nothing rolls up to night managers, vendors, accounting or the service inboxes;
+// those still get their immediate notices the moment they happen.
+// Marker cells: K1 = last day a rollup went out (dYYYYMMDD), L1 = last weekly
+// (wYYYYMMDD), M1 = epoch ms of the last rollup run (window for immediate rows).
 // Cheap when nothing is due: a 10 minute cache memo, then two cell reads.
 function cwDigestTick() {
   var cache = null;
@@ -2849,20 +2870,17 @@ function cwDigestTick() {
     var ymd = Utilities.formatDate(now, 'America/Los_Angeles', 'yyyyMMdd');
     var hour = Number(Utilities.formatDate(now, 'America/Los_Angeles', 'H'));
     var dow = Utilities.formatDate(now, 'America/Los_Angeles', 'u');  // 1 = Monday
-    var slot = hour >= 18 ? '18' : (hour >= 10 ? '10' : '');   // Oct 20 2026 per Robert: 10 AM and 6 PM (was 8 AM and 4 PM)
+    var hr = Number(cwDigestCfg_('digest_hour')); if (!(hr >= 0 && hr <= 23)) hr = 10;
+    var wday = String(cwDigestCfg_('digest_weekly_day') || '1');
     var sCell = sh.getRange(CW_DIGEST_SLOT_CELL), wCell = sh.getRange(CW_DIGEST_WEEK_CELL);
-    if (slot) {
-      var key = 'd' + ymd + '-' + slot;
-      if (String(sCell.getValue()) !== key) {
-        sCell.setValue(key);
-        try { out.push('slot ' + slot + ': ' + cwSendSlotDigest_(slot)); } catch (e1) { out.push('slot error ' + e1); }
-      }
-    }
-    if (dow === '1' && hour >= 10) {
-      var wkey = 'w' + ymd;
-      if (String(wCell.getValue()) !== wkey) {
-        wCell.setValue(wkey);
-        try { out.push('weekly: ' + cwSendWeeklyRollup_()); } catch (e2) { out.push('weekly error ' + e2); }
+    if (hour >= hr) {
+      var weekly = (dow === wday);
+      var key = (weekly ? 'w' : 'd') + ymd;
+      var cell = weekly ? wCell : sCell;
+      if (String(cell.getValue()) !== key) {
+        cell.setValue(key);
+        if (weekly) sCell.setValue('d' + ymd);   // the weekly IS the day's rollup; no daily behind it
+        try { out.push((weekly ? 'weekly: ' : 'daily: ') + cwSendMarketDigest_(weekly ? 'weekly' : 'daily')); } catch (e1) { out.push((weekly ? 'weekly' : 'daily') + ' error ' + e1); }
       }
     }
     if (cache) { try { cache.put('cwDigestChecked', '1', 600); } catch (cp) {} }
@@ -2902,36 +2920,134 @@ function cwGroupByTo_(rows) {
 // Not a fit, or its posting marked filled) stays out of the digest, and so does a new
 // posting that was already marked filled. Those rows are marked sent without being emailed,
 // so only replies and postings still open on the hub reach the FSMs.
-function cwSendSlotDigest_(slot) {
-  var sh = cwDigestSheet_();
-  var all = cwRows_(sh).filter(function (r) { return !r.sent && r.cadence === 'daily'; });
-  var skip = cwDigestHandled_(all);
-  var rows = all.filter(function (r) { return !skip[r.i]; });
-  all.forEach(function (r) { if (skip[r.i]) sh.getRange(r.i + 1, 6).setValue(true); });
-  var skipped = Object.keys(skip).length;
-  var tail = skipped ? ' (' + skipped + ' left out, already handled on the hub)' : '';
-  var open = cwOpenSupplyAlerts_();
-  var label = slot === '18' ? 'Evening digest' : (slot === 'now' ? 'Digest' : 'Morning digest');
-  var when = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'EEE MMM d') + (slot === '18' ? ', 6 PM' : (slot === 'now' ? ', ' + Utilities.formatDate(new Date(), 'America/Los_Angeles', 'h:mm a') : ', 10 AM'));
-  if (!rows.length) return (slot === '18' ? 'nothing to send' : cwSendAlertReminder_(open, when)) + tail;
-  var sentCount = 0;
-  cwGroupByTo_(rows).forEach(function (g) {
-    var cc = Object.keys(g.cc).join(',');
-    var mine = cwAlertsFor_(g.to, open);
-    var late = mine.filter(function (a) { return a.late; }).length;
-    var html = cwDigestHtml_(label, when, g.rows, 'Items since the last digest. Full records are in the sheets linked on each item.', mine);
-    cwSend_({ to: g.to, cc: cc, name: CW_DIGEST_SENDER,
-      subject: (late ? '[' + late + ' past due] ' : '') + 'City Wide ' + label.toLowerCase() + ' - ' + when + ' (' + g.rows.length + (g.rows.length === 1 ? ' item)' : ' items)'),
-      htmlBody: html, body: cwAlertsPlain_(mine) + cwDigestPlain_(label, when, g.rows) });
-    sentCount++;
-  });
-  rows.forEach(function (r) { sh.getRange(r.i + 1, 6).setValue(true); });
-  return 'sent ' + rows.length + ' item(s) in ' + sentCount + ' email(s)' + tail;
+// Nov 2 2026: the one rollup, per market. mode = 'daily' or 'weekly'.
+// Daily = every unsent queued row (daily or weekly cadence) plus every immediate
+// row since the last rollup, so the email has everything in it. Weekly = the same
+// plus everything from the last 7 days. Both open with the alerts block and last
+// night's inspections (this week's, on the weekly). opts.test sends everything to
+// CW_TEST_TO and marks nothing.
+var CW_DIGEST_LAST_CELL = 'M1';   // epoch ms of the last rollup run
+var CW_DIGEST_DEFAULT = {
+  digest_lv_to: 'CWLV_FSMs@gocitywide.com, tjroberts@gocitywide.com',
+  digest_nnv_to: 'jeremy.walker@gocitywide.com, tjroberts@gocitywide.com',
+  digest_hour: '10',
+  digest_weekly_day: '1'
+};
+var CW_DIGEST_MARKETS = [
+  { key: 'LV', name: 'Las Vegas', cfg: 'digest_lv_to', nid: 'lv' },
+  { key: 'NNV', name: 'Northern Nevada', cfg: 'digest_nnv_to', nid: 'nnv' }
+];
+// Rows that are vendor- or client-facing never belong in a team rollup.
+var CW_DIGEST_SKIP_TAGS = ['ovation_send', 'ovation_digest', 'ovation_vendor_daily', 'vd_eval_vendor', 'profile_alert', 'vs_link', 'vs_edit'];
+// Section order in the email: what an FSM acts on first, admin records last.
+var CW_TAG_ORDER = ['ni_request', 'response', 'posting', 'work_ticket', 'work_ticket_return', 'supply_int', 'shop_int', 'ovation', 'ovation_friday_reminder',
+  'cleaner', 'uniform_int', 'snow_int', 'envirox', 'ni_route', 'ob_bc_request', 'vd_eval', 'coiupload_int', 'profile_int', 'invoice_int', 'invup_int',
+  'inventory', 'inventory_move', 'aq_badge_nnv', 'dne_active'];
+function cwDigestCfg_(k) {
+  var v = ''; try { v = cwSendCfg_()[k]; } catch (e) { v = ''; }
+  return (v !== undefined && v !== null && String(v) !== '') ? String(v) : CW_DIGEST_DEFAULT[k];
 }
-// Digest rows the hub already closed, keyed by Digest row index. A reply is handled when the
-// Alert Status tab holds any status for resp:<id> (Responded to, Not a fit, Posting filled)
-// or its posting has Filled checked. A posting is handled when Filled is checked. Any failure
-// here returns nothing, so the digest sends everything the way it did before.
+// Which market a Digest row belongs to: 'LV', 'NNV' or '' (both).
+// details.region first, then the addresses it went to, then the building name
+// against the Account Directory (work tickets carry no region).
+var CW_LV_ADDR = /lvservicecall|lvcompliance|cwlvinvoices|cwlvquotes|cwlv_|lasvegas|jschmidt|brett\.stephens|alejandro\.manon|allison\.donavan|rkrause|amber\.|nennis|evangelina/i;
+var CW_NNV_ADDR = /rnservicecall|rncompliance|cwrninvoices|cwrnquotes|cwnnv_|northernnevada|jeremy\.walker|ayshea|justin\.olier/i;
+function cwRowMarket_(r, acctMap) {
+  var d = r.details || {};
+  var reg = String(d.region || '').toLowerCase();
+  if (reg) {
+    if (/both/.test(reg)) return '';
+    if (/north|reno|sparks|carson|nnv/.test(reg)) return 'NNV';
+    if (/vegas|^lv$/.test(reg)) return 'LV';
+  }
+  var addr = String(r.to || '') + ',' + String(r.cc || '');
+  var lv = CW_LV_ADDR.test(addr), nn = CW_NNV_ADDR.test(addr);
+  if (lv && !nn) return 'LV';
+  if (nn && !lv) return 'NNV';
+  if (acctMap) {
+    var t = String(d.title || '').toLowerCase().replace(/\s+-\s+return trip needed$/, '').trim();
+    if (t && acctMap[t]) return acctMap[t];
+    var best = '';
+    Object.keys(acctMap).some(function (n) { if (n.length >= 6 && t.indexOf(n) === 0) { best = acctMap[n]; return true; } return false; });
+    if (best) return best;
+  }
+  return '';
+}
+function cwAccountMarketMap_() {
+  var map = {};
+  try {
+    actAccountRows_(actSS_()).forEach(function (r) {
+      var n = actStr_(r.name).toLowerCase().trim();
+      if (n) map[n] = actRegion_(r.region) === 'Northern Nevada' ? 'NNV' : 'LV';
+    });
+  } catch (e) {}
+  return map;
+}
+// A Digest row that belongs in a team rollup: internal recipient, not a
+// confirmation to the submitter, not a test, not on the skip list.
+function cwDigestInclude_(r) {
+  var tag = String(r.tag || '');
+  if (!tag || /_conf$/.test(tag) || CW_DIGEST_SKIP_TAGS.indexOf(tag) >= 0) return false;
+  if (!/@(gocitywide\.com|cwfs-nv\.com)/i.test(String(r.to || '') + ',' + String(r.cc || ''))) return false;
+  if (/^\[test|^test \||zz selftest|\[test to /i.test(String(r.subject || ''))) return false;
+  return true;
+}
+function cwSendMarketDigest_(mode, opts) {
+  opts = opts || {};
+  var test = !!opts.test;
+  var weekly = mode === 'weekly';
+  var sh = cwDigestSheet_();
+  var now = new Date();
+  var lastRun = Number(sh.getRange(CW_DIGEST_LAST_CELL).getValue()) || (now.getTime() - 24 * 3600000);
+  var since = new Date(weekly ? now.getTime() - 7 * 24 * 3600000 : lastRun);
+  var all = cwRows_(sh);
+  var rows = all.filter(function (r) {
+    if (r.cadence === 'immediate') return r.queued >= since;
+    return !r.sent || (weekly && r.queued >= since);
+  });
+  var skip = cwDigestHandled_(rows.filter(function (r) { return !r.sent; }));
+  rows = rows.filter(function (r) { return !skip[r.i] && cwDigestInclude_(r); });
+  rows.sort(function (a, b) { return a.queued - b.queued; });
+  var acctMap = cwAccountMarketMap_();
+  var open = cwOpenSupplyAlerts_();
+  var when = weekly
+    ? 'week of ' + Utilities.formatDate(since, 'America/Los_Angeles', 'MMM d') + ' to ' + Utilities.formatDate(now, 'America/Los_Angeles', 'MMM d')
+    : Utilities.formatDate(now, 'America/Los_Angeles', 'EEE MMM d');
+  var note = weekly
+    ? 'Everything that came through in the last 7 days. Items marked "sent immediately" already reached the people who handle them when they happened.'
+    : 'Everything since the last rollup. Items marked "sent immediately" already reached the people who handle them when they happened.';
+  var out = [], crewRows = [], commits = [];
+  CW_DIGEST_MARKETS.forEach(function (m) {
+    var mine = rows.filter(function (r) { var k = cwRowMarket_(r, acctMap); return !k || k === m.key; });
+    var alerts = open.filter(function (a) { return !a.market || a.market === m.key; });
+    var night = null;
+    try { night = nidBlock_(m.name, m.nid, weekly ? since.getTime() : 0); } catch (ne) { out.push(m.name + ': inspections block failed ' + ne); }
+    var nCount = night ? night.count : 0;
+    if (!mine.length && !alerts.length && !nCount) { out.push(m.name + ': nothing to send'); return; }
+    var to = test ? CW_TEST_TO : cwDigestCfg_(m.cfg);
+    var label = (weekly ? 'Weekly rollup' : 'Daily rollup') + ' - ' + m.name;
+    var html = cwDigestHtml_(label, when, mine, note, alerts, night ? night.html : '', weekly ? "This week's inspections" : "Last night's inspections");
+    var plain = cwAlertsPlain_(alerts) + (night && night.text ? night.text + '\n\n' : '') + cwDigestPlain_(label, when, mine);
+    var total = mine.length + nCount;
+    cwSend_({ to: to, name: CW_DIGEST_SENDER,
+      subject: (test ? '[TEST] ' : '') + (alerts.filter(function (a) { return a.late; }).length ? '[' + alerts.filter(function (a) { return a.late; }).length + ' past due] ' : '') +
+        'City Wide ' + m.name + ' ' + (weekly ? 'weekly' : 'daily') + ' rollup - ' + when + ' (' + total + (total === 1 ? ' item)' : ' items)'),
+      htmlBody: html, body: plain });
+    if (night) { crewRows = crewRows.concat(night.rows || []); commits.push(night.commit); }
+    out.push(m.name + ': ' + mine.length + ' item(s), ' + nCount + ' inspection(s), ' + alerts.length + ' alert(s) to ' + to);
+  });
+  if (!test) {
+    rows.forEach(function (r) { if (!r.sent) sh.getRange(r.i + 1, 6).setValue(true); });
+    Object.keys(skip).forEach(function (i) { sh.getRange(Number(i) + 1, 6).setValue(true); });
+    sh.getRange(CW_DIGEST_LAST_CELL).setValue(now.getTime());
+    commits.forEach(function (c) { try { c(); } catch (ce) { out.push('inspection cutoff failed ' + ce); } });
+    try { if (typeof nidCrewSend_ === 'function') out.push(nidCrewSend_(crewRows, false)); } catch (ce2) { out.push('crew checks failed: ' + ce2); }
+  }
+  return out.join(' | ');
+}
+// Kept for old notes and Run helpers; both now send the one rollup.
+function cwSendSlotDigest_(slot) { return cwSendMarketDigest_('daily'); }
+
 function cwDigestHandled_(rows) {
   var skip = {};
   try {
@@ -3068,42 +3184,35 @@ function cwSendAlertReminder_(open, when) {
   return 'reminder: ' + late.length + ' past due in ' + sent + ' email(s)';
 }
 
-// Monday rollup: everything queued in the last 7 days (digested or immediate)
-// plus any unsent weekly-cadence rows, grouped the same way.
-function cwSendWeeklyRollup_() {
-  var sh = cwDigestSheet_();
-  var since = new Date(Date.now() - 7 * 24 * 3600 * 1000);
-  var all = cwRows_(sh);
-  var rows = all.filter(function (r) { return (r.cadence === 'weekly' && !r.sent) || (r.queued >= since); });
-  if (!rows.length) return 'nothing to send';
-  var when = 'week of ' + Utilities.formatDate(since, 'America/Los_Angeles', 'MMM d') + ' to ' + Utilities.formatDate(new Date(), 'America/Los_Angeles', 'MMM d');
-  var sentCount = 0;
-  cwGroupByTo_(rows).forEach(function (g) {
-    var html = cwDigestHtml_('Weekly rollup', when, g.rows, 'Everything that came through in the last 7 days, including notices that were sent right away. Items marked "sent immediately" already reached you when they happened.');
-    cwSend_({ to: g.to, cc: Object.keys(g.cc).join(','), name: CW_DIGEST_SENDER,
-      subject: 'City Wide weekly rollup - ' + when + ' (' + g.rows.length + (g.rows.length === 1 ? ' item)' : ' items)'),
-      htmlBody: html, body: cwDigestPlain_('Weekly rollup', when, g.rows) });
-    sentCount++;
-  });
-  rows.forEach(function (r) { if (!r.sent) sh.getRange(r.i + 1, 6).setValue(true); });
-  return 'sent ' + rows.length + ' item(s) in ' + sentCount + ' email(s)';
-}
+// Kept for old notes and Run helpers; sends the one weekly rollup (Nov 2 2026).
+function cwSendWeeklyRollup_() { return cwSendMarketDigest_('weekly'); }
 
 // -------------------------------------------------------------- HTML -----
-function cwDigestHtml_(label, when, rows, note, alerts) {
+// nightHtml / nightLabel (Nov 2 2026): the night inspections block rides inside the
+// rollup, right after the alerts, so the 7 AM night email is no longer separate.
+function cwDigestHtml_(label, when, rows, note, alerts, nightHtml, nightLabel) {
   var F = 'font-family:Verdana,Arial,sans-serif;';
   var alertBlock = cwAlertsHtml_(alerts, F);
   var byTag = {}; var order = [];
   rows.forEach(function (r) { if (!byTag[r.tag]) { byTag[r.tag] = []; order.push(r.tag); } byTag[r.tag].push(r); });
+  order.sort(function (a, b) {
+    var ia = CW_TAG_ORDER.indexOf(a), ib = CW_TAG_ORDER.indexOf(b);
+    if (ia < 0) ia = 999; if (ib < 0) ib = 999;
+    return ia - ib || (a < b ? -1 : a > b ? 1 : 0);
+  });
   var chips = order.map(function (t) {
     return '<td style="padding:0 8px 8px 0;"><div style="' + F + 'font-size:12px;color:#2d2a26;background:#F5F5F5;border:1px solid #E5E5E5;border-radius:6px;padding:8px 12px;white-space:nowrap;">' +
       '<b style="color:#D22730;font-size:16px;">' + byTag[t].length + '</b>&nbsp; ' + _esc(CW_TAG_LABEL[t] || t) + '</div></td>';
   }).join('');
+  var h2 = function (txt, n) {
+    return '<h2 style="margin:26px 0 10px;' + F + 'font-size:14px;font-weight:bold;color:#2d2a26;border-bottom:2px solid #D22730;padding-bottom:5px;text-transform:uppercase;letter-spacing:0.04em;">' +
+      _esc(txt) + (n !== undefined ? ' <span style="color:#636466;font-weight:normal;text-transform:none;letter-spacing:0;">(' + n + ')</span>' : '') + '</h2>';
+  };
   var sections = order.map(function (t) {
     var items = byTag[t].map(function (r) { return cwDigestItem_(r, F); }).join('');
-    return '<h2 style="margin:26px 0 10px;' + F + 'font-size:14px;font-weight:bold;color:#2d2a26;border-bottom:2px solid #D22730;padding-bottom:5px;text-transform:uppercase;letter-spacing:0.04em;">' +
-      _esc(CW_TAG_LABEL[t] || t) + ' <span style="color:#636466;font-weight:normal;text-transform:none;letter-spacing:0;">(' + byTag[t].length + ')</span></h2>' + items;
+    return h2(CW_TAG_LABEL[t] || t, byTag[t].length) + items;
   }).join('');
+  var nightBlock = nightHtml ? h2(nightLabel || 'Night inspections') + nightHtml : '';
   return '' +
     '<table bgcolor="#f4f4f4" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td align="center" style="padding:20px 0;">' +
     '<table bgcolor="#ffffff" border="0" cellpadding="0" cellspacing="0" width="680" style="max-width:680px;">' +
@@ -3111,10 +3220,11 @@ function cwDigestHtml_(label, when, rows, note, alerts) {
     '<tr><td style="padding:18px 30px 0;"><div style="background:#2d2a26;color:#ffffff;' + F + 'font-size:15px;font-weight:bold;padding:12px 16px;letter-spacing:0.5px;">' +
     _esc(label.toUpperCase()) + ' <span style="font-weight:normal;color:#cfcdca;">&middot; ' + _esc(when) + '</span></div></td></tr>' +
     (alertBlock ? '<tr><td style="padding:16px 30px 0;">' + alertBlock + '</td></tr>' : '') +
+    (nightBlock ? '<tr><td style="padding:0 30px 0;">' + nightBlock + '</td></tr>' : '') +
     '<tr><td style="padding:16px 30px 0;"><p style="margin:0 0 12px;' + F + 'font-size:12px;color:#636466;line-height:1.5;">' + _esc(note) + '</p>' +
-    '<table border="0" cellpadding="0" cellspacing="0"><tr>' + chips + '</tr></table></td></tr>' +
+    (chips ? '<table border="0" cellpadding="0" cellspacing="0"><tr>' + chips + '</tr></table>' : '<p style="margin:0;' + F + 'font-size:12px;color:#636466;">No new notices.</p>') + '</td></tr>' +
     '<tr><td style="padding:0 30px 30px;">' + sections +
-    '<p style="margin:26px 0 0;' + F + 'font-size:11px;line-height:1.6;color:#999999;">Sent by the City Wide platform digest. Which notices are immediate and which roll up here is set on the SendConfig tab of the CW Solicitations sheet. GoCityWide.com</p>' +
+    '<p style="margin:26px 0 0;' + F + 'font-size:11px;line-height:1.6;color:#999999;">Sent by the City Wide platform digest. One rollup a day per market; the Monday rollup covers the whole week. Who gets it and when is set on the SendConfig tab of the CW Email Digest sheet. GoCityWide.com</p>' +
     '</td></tr></table></td></tr></table>';
 }
 
@@ -3154,27 +3264,44 @@ function cwDigestPlain_(label, when, rows) {
 }
 
 // ----------------------------------------------- editor Run helpers -----
-// Optional time triggers (need the script.scriptapp scope once). The tick is
-// idempotent, so triggers and the opportunistic path can both run.
+// One time trigger at digest_hour (needs the script.scriptapp scope once). The tick
+// is idempotent, so the trigger and the opportunistic doPost path can both run.
+// Nov 2 2026: also removes the old 6 PM tick and the separate 7 AM night
+// inspection trigger (niDigestRun); both now ride inside the one rollup.
 function cwInstallDigestTrigger() {
   var trigs = ScriptApp.getProjectTriggers();
   var out = [];
   trigs.forEach(function (t) {
     var h = t.getHandlerFunction();
-    // Oct 20 2026: every run replaces the ticks, so a time change only needs this run again
-    if (h === 'cwSendDailyDigest' || h === 'cwSendWeeklyDigest' || h === 'cwDigestTick') { ScriptApp.deleteTrigger(t); out.push('removed old ' + h); }
+    if (h === 'cwSendDailyDigest' || h === 'cwSendWeeklyDigest' || h === 'cwDigestTick' || h === 'niDigestRun') { ScriptApp.deleteTrigger(t); out.push('removed old ' + h); }
   });
-  ScriptApp.newTrigger('cwDigestTick').timeBased().atHour(10).nearMinute(5).everyDays(1).inTimezone('America/Los_Angeles').create();
-  ScriptApp.newTrigger('cwDigestTick').timeBased().atHour(18).nearMinute(5).everyDays(1).inTimezone('America/Los_Angeles').create();
-  out.push('installed 10am + 6pm ticks');
+  var hr = Number(cwDigestCfg_('digest_hour')); if (!(hr >= 0 && hr <= 23)) hr = 10;
+  ScriptApp.newTrigger('cwDigestTick').timeBased().atHour(hr).nearMinute(5).everyDays(1).inTimezone('America/Los_Angeles').create();
+  out.push('installed one tick at ' + hr + ':05 Pacific');
   Logger.log(out.join(', ')); return out.join(', ');
 }
-// Force the current slot's digest now (ignores the once-per-slot marker). Marks rows sent.
-function cwSendDigestNow() { var r = cwSendSlotDigest_('now'); Logger.log(r); return r; }
-function cwSendWeeklyNow() { var r = cwSendWeeklyRollup_(); Logger.log(r); return r; }
+// Force a rollup now (ignores the once-per-day marker). Marks rows sent.
+function cwSendDigestNow() { var r = cwSendMarketDigest_('daily'); Logger.log(r); return r; }
+function cwSendWeeklyNow() { var r = cwSendMarketDigest_('weekly'); Logger.log(r); return r; }
 // Backward-compatible names (old triggers, old notes)
 function cwSendDailyDigest() { return cwSendDigestNow(); }
 function cwSendWeeklyDigest() { return cwSendWeeklyNow(); }
+// Previews: both markets to tjroberts@ only, nothing marked, no cutoff moved.
+// Writes the four rollup settings to SendConfig if they are missing (so they can be
+// edited from the Site Admin); existing rows are left alone. Safe to run again.
+function cwDigestSetup() {
+  var ss = cwSS_(); var sh = ss.getSheetByName('SendConfig');
+  if (!sh) { sh = ss.insertSheet('SendConfig'); sh.appendRow(['tag', 'mode']); }
+  var have = {}; var v = sh.getDataRange().getValues();
+  for (var i = 1; i < v.length; i++) have[String(v[i][0]).trim()] = i + 1;
+  var added = [];
+  Object.keys(CW_DIGEST_DEFAULT).forEach(function (k) { if (!have[k]) { sh.appendRow([k, CW_DIGEST_DEFAULT[k]]); added.push(k + '=' + CW_DIGEST_DEFAULT[k]); } });
+  var s = 'SendConfig rollup rows added: ' + (added.join(', ') || 'none') + '. Current: ' + JSON.stringify({ lv: cwDigestCfg_('digest_lv_to'), nnv: cwDigestCfg_('digest_nnv_to'), hour: cwDigestCfg_('digest_hour'), weekly_day: cwDigestCfg_('digest_weekly_day') });
+  Logger.log(s); return s;
+}
+function cwDigestPreview() { var r = cwSendMarketDigest_('daily', { test: true }); Logger.log(r); return r; }
+function cwWeeklyPreview() { var r = cwSendMarketDigest_('weekly', { test: true }); Logger.log(r); return r; }
+
 function cwDigestStatus() {
   var sh = cwDigestSheet_();
   var rows = cwRows_(sh);
@@ -3211,23 +3338,9 @@ function cwDigestOff() {
   Logger.log(out.join(',')); return out.join(',');
 }
 
-// Queues two sample rows addressed to `to` and sends a digest with ONLY those rows, so the
-// engine can be proven without emailing the service inboxes. Rows are marked sent.
-function cwDigestSelfTest(to) {
-  to = to || CW_TEST_TO;
-  var sh = cwDigestSheet_();
-  cwQueueDigest_('posting', { to: to, subject: 'ZZ SELFTEST posting', body: 'selftest', digest: { title: 'ZZ SELFTEST posting - Night clean, Spring Valley', id: 'LV-TEST', region: 'Las Vegas',
-    fields: [['Posting', 'LV-TEST'], ['Type', 'recurring'], ['Pay', '$1,200 per month'], ['Posted by', 'Ops Hub']], links: [['Live board', BOARD_URL]] } }, 'daily');
-  cwQueueDigest_('response', { to: to, subject: 'ZZ SELFTEST response', body: 'selftest', digest: { title: 'ZZ SELFTEST interest: Sample Crew LLC for Night clean', id: 'R-TEST', region: 'Las Vegas',
-    fields: [['Contact', 'Sample Vendor <vendor@example.com> 702-555-0100'], ['Earliest start', 'Next week'], ['Crew size', '2']], links: [['Responses sheet', cwSS_().getUrl()]] } }, 'daily');
-  var rows = cwRows_(sh).filter(function (r) { return !r.sent && r.cadence === 'daily' && r.to.toLowerCase() === String(to).toLowerCase() && /ZZ SELFTEST/.test(r.subject); });
-  var when = Utilities.formatDate(new Date(), 'America/Los_Angeles', 'EEE MMM d h:mm a');
-  cwSend_({ to: to, name: CW_DIGEST_SENDER, subject: 'City Wide digest SELF-TEST - ' + when + ' (' + rows.length + ' items)',
-    htmlBody: cwDigestHtml_('Self-test digest', when, rows, 'Two sample items queued by cwDigestSelfTest. Real digests go out at 10 AM and 6 PM.'), body: cwDigestPlain_('Self-test digest', when, rows) });
-  rows.forEach(function (r) { sh.getRange(r.i + 1, 6).setValue(true); });
-  var s = 'self-test digest sent to ' + to + ' with ' + rows.length + ' rows';
-  Logger.log(s); return s;
-}
+// Nov 2 2026: self-test is the daily preview (both markets to CW_TEST_TO, nothing marked).
+function cwDigestSelfTest(to) { return cwDigestPreview(); }
+
 
 function handleInvoiceMailLog(data){
   var out={ok:false};

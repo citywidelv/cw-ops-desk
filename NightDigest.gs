@@ -231,7 +231,18 @@ function nidSort_(rows) {
 }
 
 // --------------------------------------------------------------- email -----
+// Nov 2 2026: the body is built by nidInner_ so the daily / weekly rollup in Code.gs
+// (cwSendMarketDigest_) can carry the same block inside its own email. nidBuild_ is the
+// standalone 7 AM email, kept for niDigestRun / niDigestPreview.
 function nidBuild_(mkt, key, rows, sinceMs, test) {
+  var inner = nidInner_(mkt, key, rows, sinceMs);
+  var label = 'Night Inspections';
+  var sub = mkt + ' \u00b7 ' + nidFmt_(new Date().getTime(), 'EEE MMM d');
+  var subject = (test ? '[TEST] ' : '') + 'Night Inspections | ' + mkt + ' | ' + nidPlural_(rows.length, 'recap') +
+    (inner.hot ? ', ' + inner.hot + ' need a look' : '');
+  return { subject: subject, htmlBody: cwShell_(label, sub, inner.html, 'Sent from the City Wide Nevada team platform. Covers recaps filed on the hub and on the Jotform. GoCityWide.com'), body: inner.text };
+}
+function nidInner_(mkt, key, rows, sinceMs) {
   var F = CW_HTML_F;
   var hubUrl = NID_HUB + '?m=' + key;
   var hot = rows.filter(function (r) { return nidHot_(r).length; });
@@ -289,11 +300,6 @@ function nidBuild_(mkt, key, rows, sinceMs, test) {
   html += cwButton_('Open every recap in the Ops Hub', hubUrl);
   html += '<p style="margin:14px 0 0;' + F + 'font-size:12px;line-height:1.55;color:#636466;">The hub asks for the team password the first time on a new device. Each PDF opens straight from Drive.</p>';
 
-  var label = 'Night Inspections';
-  var sub = mkt + ' · ' + nidFmt_(new Date().getTime(), 'EEE MMM d');
-  var subject = (test ? '[TEST] ' : '') + 'Night Inspections | ' + mkt + ' | ' + nidPlural_(rows.length, 'recap') +
-    (hot.length ? ', ' + hot.length + ' need a look' : '');
-
   var text = [nidPlural_(rows.length, 'inspection') + srcLine + ' since ' + sinceNice + '.',
     hot.length ? hot.length + ' need a look.' : 'Nothing flagged.', ''];
   rows.forEach(function (r) {
@@ -303,7 +309,29 @@ function nidBuild_(mkt, key, rows, sinceMs, test) {
   });
   text.push('', 'Review them in the Ops Hub ' + hubUrl);
 
-  return { subject: subject, htmlBody: cwShell_(label, sub, html, 'Sent every morning at 7 from the City Wide Nevada team platform. Covers recaps filed on the hub and on the Jotform. GoCityWide.com'), body: text.join('\n') };
+  return { html: html, text: text.join('\n'), hot: hot.length };
+}
+
+// Nov 2 2026: the block the daily / weekly rollup carries. sinceMs = 0 uses the
+// market cutoff (NID_LAST_<key>, hub rows) and the Jotform sent list, exactly like
+// the 7 AM run did; a value (the weekly) uses that window instead. Nothing moves
+// until commit() runs, which the rollup calls after a real (non-test) send.
+function nidBlock_(mkt, key, sinceMs) {
+  var props = PropertiesService.getScriptProperties();
+  var pk = 'NID_LAST_' + key;
+  var first = Utilities.parseDate(NID_FIRST_CUTOFF, NI_TZ, 'yyyy-MM-dd HH:mm').getTime();
+  var cutoff = Math.floor(new Date().getTime() / 60000) * 60000;
+  var since = Number(sinceMs) || Number(props.getProperty(pk)) || first;
+  var rows = nidRows_(mkt, since, cutoff);
+  var sent = nidJfSent_(key), jf = [];
+  try { jf = nidJfRows_(mkt, key, function (x) { return sinceMs ? (!x.ts || x.ts >= since) : !sent[x.id]; }); } catch (je) {}
+  var all = nidSort_(rows.concat(jf));
+  var inner = all.length ? nidInner_(mkt, key, all, since) : { html: '', text: '', hot: 0 };
+  return { count: all.length, hot: inner.hot, rows: rows, html: inner.html, text: inner.text, commit: function () {
+    props.setProperty(pk, String(cutoff));
+    jf.forEach(function (r) { sent[r._id] = cutoff; });
+    nidJfSave_(key, sent);
+  } };
 }
 
 function nidScore_(r) {
@@ -435,7 +463,15 @@ function niDigestPreview() {
   return out.join('\n');
 }
 
-// One-time setup. Safe to run again.
+// Nov 2 2026: the 7 AM email is retired; its block rides in the daily / weekly rollup
+// (cwSendMarketDigest_ in Code.gs). cwInstallDigestTrigger removes the niDigestRun
+// trigger. This helper does only that, for a run on its own.
+function niDigestRetire() {
+  var out = [];
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === NID_FN) { ScriptApp.deleteTrigger(t); out.push('removed 7am trigger'); } });
+  Logger.log(out.join(', ') || 'no 7am trigger to remove'); return out.join(', ') || 'no 7am trigger to remove';
+}
+// One-time setup. Safe to run again. (Installs the standalone 7 AM trigger; not used since Nov 2 2026.)
 function niDigestInstall() {
   var out = [];
   nidConfigTab_(); out.push('Digest tab ready');

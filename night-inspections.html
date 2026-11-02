@@ -353,9 +353,13 @@ function loadStops(seq, mkt, win){
 }
 function words(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").split(/\s+/).filter(String); }
 // Same person: first names match and last initials match, or last names match.
-// Covers "Amber S." on the Jotform against "Amber Sturdivant" on the Staff tab.
+// Covers "Amber S." on the Jotform against the Staff tab. NAME_ALIAS maps a name that
+// changed (Nov 2 2026: Amber Sturdivant is now Amber Gekas) so old recaps still match.
+var NAME_ALIAS = { "amber s": "amber gekas", "amber sturdivant": "amber gekas" };
 function samePerson(a, b){
   var x = words(a), y = words(b); if (!x.length || !y.length) return false;
+  if (NAME_ALIAS[x.join(" ")]) x = words(NAME_ALIAS[x.join(" ")]);
+  if (NAME_ALIAS[y.join(" ")]) y = words(NAME_ALIAS[y.join(" ")]);
   if (x.join(" ") === y.join(" ")) return true;
   var xl = x[x.length-1], yl = y[y.length-1];
   if (x.length > 1 && y.length > 1 && xl.length > 2 && xl === yl) return true;
