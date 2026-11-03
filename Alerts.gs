@@ -37,6 +37,8 @@
 // maintenance request (type ovreport, key ovr:<id>, Reviewed / Scheduled / Done). A check-off
 // here writes the status onto the CW Ovation Hub book through ovAlertSet_; marking on
 // review.html drops the item from this list. Open items ride the daily digests until marked.
+// Nov 2 2026: type ovreported (key ovf:<checklist id>) = the "Things to report to the property" section of a
+// porter checklist, its own alert so the FSM sees what was reported; Property notified / Resolved.
 // ============================================================
 var AL_TAB = 'Alert Status';
 var AL_HEAD = ['alert_key', 'type', 'status', 'handled_by', 'handled_at', 'summary'];
@@ -59,7 +61,10 @@ var AL_STATUS = {
   // approval, and a report (Ovation staff, or a porter emergency / maintenance request). Marking
   // here writes the status onto the CW Ovation Hub book, so review.html agrees.
   ovcheck: ['Approved'],
-  ovreport: ['Reviewed', 'Scheduled', 'Done']
+  ovreport: ['Reviewed', 'Scheduled', 'Done'],
+  // Nov 2 2026: the "Things to report to the property" section of an Ovation porter checklist (key ovf:<id>).
+  // The FSM tells the property, then marks it. Mirrored to the CW Ovation Hub book by ovAlertSet_.
+  ovreported: ['Property notified', 'Resolved']
 };
 var AL_JF_TYPES = { workreq: 1, workdone: 1, review: 1 };
 var AL_FILL_CLOSE = 'Posting filled';   // reply status written when its posting is filled
@@ -471,8 +476,10 @@ function alSet_(d) {
   var status = alStr_(d.status);
   if (status === 'Open') status = '';
   var by = alStr_(d.by).slice(0, 60) || 'Unknown';
-  var valid = {};
-  Object.keys(AL_STATUS).forEach(function (t) { AL_STATUS[t].forEach(function (s) { valid[s] = t; }); });
+  // status -> every type that uses it. Scheduled, Done and Reviewed belong to more than one type (workreq,
+  // workdone, review, ovreport), so a single owner per status silently rejected marks on the other types.
+  var valid = {}, owners = {};
+  Object.keys(AL_STATUS).forEach(function (t) { AL_STATUS[t].forEach(function (s) { valid[s] = valid[s] || t; owners[s] = owners[s] || {}; owners[s][t] = 1; }); });
   if (status && !valid[status]) return { ok: false, error: 'Unknown status ' + status };
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -484,19 +491,22 @@ function alSet_(d) {
     keys.slice(0, 200).forEach(function (k) {
       k = alStr_(k);
       if (!k) return;
-      var type = k.indexOf('resp:') === 0 ? 'response' : k.indexOf('sup:') === 0 ? 'supply' : k.indexOf('shop:') === 0 ? 'shop' : k.indexOf('post:') === 0 ? 'posting' : k.indexOf('ni:') === 0 ? 'night' : k.indexOf('ovc:') === 0 ? 'ovcheck' : k.indexOf('ovr:') === 0 ? 'ovreport' : '';
+      var type = k.indexOf('resp:') === 0 ? 'response' : k.indexOf('sup:') === 0 ? 'supply' : k.indexOf('shop:') === 0 ? 'shop' : k.indexOf('post:') === 0 ? 'posting' : k.indexOf('ni:') === 0 ? 'night' : k.indexOf('ovc:') === 0 ? 'ovcheck' : k.indexOf('ovr:') === 0 ? 'ovreport' : k.indexOf('ovf:') === 0 ? 'ovreported' : '';
       if (!type && k.indexOf('jf:') === 0) {
         // a Jotform feed item: the status names its type; a reopen keeps the type already on the row
-        type = (status && AL_JF_TYPES[valid[status]]) ? valid[status] : (map[k] && AL_JF_TYPES[alJfRowType_(sh, map[k].row)] ? alJfRowType_(sh, map[k].row) : 'review');
+        var rowType = map[k] ? alJfRowType_(sh, map[k].row) : '';
+        if (status && owners[status][rowType]) type = rowType;
+        else if (status) type = Object.keys(owners[status]).filter(function (t) { return AL_JF_TYPES[t]; })[0] || '';
+        else type = AL_JF_TYPES[rowType] ? rowType : 'review';
       }
       if (!type) return;
-      if (status && valid[status] !== type) return; // status must fit the item
+      if (status && !owners[status][type]) return; // status must fit the item
       var row = map[k] ? map[k].row : alNextRow_(sh);
       sh.getRange(row, 1, 1, AL_HEAD.length).setValues([[k, type, status, status ? by : '', status ? now : '', alStr_(d.summary).slice(0, 200)]]);
       map[k] = { row: row, status: status, by: by, at: now };
       saved.push({ key: k, status: status, by: status ? by : '', at: status ? alIso_(now) : '', at_nice: status ? alNice_(now) : '' });
       if (type === 'shop') { try { alShopSync_(k, status); } catch (e) {} }
-      if ((type === 'ovcheck' || type === 'ovreport') && typeof ovAlertSet_ === 'function') { try { ovAlertSet_(k, status, by); } catch (e) {} }
+      if ((type === 'ovcheck' || type === 'ovreport' || type === 'ovreported') && typeof ovAlertSet_ === 'function') { try { ovAlertSet_(k, status, by); } catch (e) {} }
       if (type === 'posting') {
         try { alPostingFilled_(k.slice(5), !!status); } catch (e) {}
         try { saved = saved.concat(status ? alCloseReplies_(sh, map, alRepliesFor_(k.slice(5)), by, now) : alReopenReplies_(sh, map, k.slice(5))); } catch (e) {}

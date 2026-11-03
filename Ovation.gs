@@ -78,9 +78,12 @@ var OV_REPORT_HEADERS = ['id', 'created_at', 'property', 'submitter', 'role', 'p
   'subcategory', 'urgency', 'summary', 'status', 'fsm_notes', 'sent_at', 'sent_to', 'photos', 'json_file', 'pdf_file', 'updated_at'];
 var OV_CHECK_HEADERS = ['id', 'created_at', 'service_date', 'weekday', 'property', 'porter', 'shift_start', 'shift_end',
   'areas_done', 'areas_na', 'tasks_checked', 'tasks_total', 'photos', 'followups', 'supplies', 'status', 'fsm_notes',
-  'sent_at', 'sent_to', 'json_file', 'pdf_file', 'updated_at', 'focus'];
+  'sent_at', 'sent_to', 'json_file', 'pdf_file', 'updated_at', 'focus', 'followup_tags', 'followup_status'];
 // Oct 30 2026 (checklist v2): 'focus' is one line of what the porter reported ("Restrooms spot check x3 - Pool full clean").
 // It sits last so the older columns keep their positions; ovChecks_ writes the header once if the tab predates it.
+// Nov 2 2026 (Jake's team): 'followup_tags' = the "Things to report to the property" chips the porter tapped, joined
+// with " | "; 'followup_status' = what the FSM marked on the Ops Hub Alerts card for that report (Property notified /
+// Resolved). Both appended last for the same reason.
 // Oct 29 2026 (TJ): vendor_name / vendor_email per property = the porter vendor's site manager who gets the
 // daily summary of what was submitted for that property. Appended at the end so existing rows keep their columns.
 var OV_PROP_HEADERS = ['property', 'group', 'type', 'address', 'awarded', 'start', 'porter_days', 'contact_name', 'contact_email', 'cc_email', 'fsm', 'fsm_email', 'notes', 'vendor_name', 'vendor_email'];
@@ -411,6 +414,8 @@ function ovCheckMeta_(doc) {
     shift_end: ovStr_(doc.shift_end, 12),
     areas_done: done, areas_na: na, tasks_checked: checked, tasks_total: total, photos: photos,
     followups: ovStr_(doc.followups, 400),
+    followup_tags: ovStr_((doc.followup_tags || []).filter(Boolean).join(' | '), 300),
+    followup_status: ovStr_(doc.followup_status, 30),
     supplies: ovStr_(doc.supplies, 400),
     status: ovStr_(doc.status || 'New', 30),
     fsm_notes: ovStr_(doc.fsm_notes, 2000),
@@ -493,7 +498,49 @@ function ovPhotoPut_(d) {
   var existing = folder.getFilesByName(name);
   while (existing.hasNext()) { existing.next().setTrashed(true); }
   var file = folder.createFile(Utilities.newBlob(bytes, 'image/jpeg', name));
+  try { ovPhotoNote_(type, id, pid, file.getId()); } catch (e2) {}
   return ovOut_({ ok: true, pid: pid, fileId: file.getId() });
+}
+// Nov 2 2026: the photo's Drive file id is written onto the submission (doc.photo_files[pid]) the moment it lands.
+// Every page used to find photos with a Drive title search (searchFiles "title contains"), and Drive's search
+// index lags new files by minutes, so a photo that had uploaded fine still showed "not uploaded" to whoever
+// opened the report right after the porter submitted it. The noted id needs no search.
+function ovPhotoNote_(type, id, pid, fileId) {
+  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    var sh = ovSheetFor_(type), headers = ovHeadersFor_(type), r = ovFindRow_(sh, id);
+    if (!r) return false;
+    var jf = String(sh.getRange(r, headers.indexOf('json_file') + 1).getValue() || '');
+    if (!jf) return false;
+    var f = DriveApp.getFileById(jf), doc = JSON.parse(f.getBlob().getDataAsString());
+    doc.photo_files = doc.photo_files || {};
+    doc.photo_files[pid] = fileId;
+    f.setContent(JSON.stringify(doc));
+    return true;
+  } finally { lock.releaseLock(); }
+}
+// pid -> Drive file id for one submission. The ids noted on the submission come first (no index lag), then an
+// exact-name lookup for any pid the submission lists without an id, then the old title search for the rest.
+function ovPhotoMap_(type, id, doc) {
+  var files = {}, folder = null;
+  try { folder = ovFolderFor_(type); } catch (e0) { folder = null; }
+  if (doc && doc.photo_files) Object.keys(doc.photo_files).forEach(function (pid) { if (/^ph_[\w-]{1,40}$/.test(pid) && doc.photo_files[pid]) files[pid] = String(doc.photo_files[pid]); });
+  if (folder && doc) {
+    var listed = [];
+    (doc.photos || []).forEach(function (p) { listed.push(String(p && p.pid || '')); });
+    (doc.areas || []).forEach(function (a) { (a.photos || []).forEach(function (p) { listed.push(String(p && p.pid || '')); }); });
+    listed.forEach(function (pid) {
+      if (!pid || files[pid] || !/^ph_[\w-]{1,40}$/.test(pid)) return;
+      try { var ex = folder.getFilesByName(id + '_' + pid + '.jpg'); if (ex.hasNext()) files[pid] = ex.next().getId(); } catch (e1) {}
+    });
+  }
+  if (folder) {
+    try {
+      var it = folder.searchFiles("title contains '" + id + "_ph_' and trashed = false");
+      while (it.hasNext()) { var f = it.next(); var mm = f.getName().match(/_(ph_[\w-]+)\.jpg$/); if (mm && !files[mm[1]]) files[mm[1]] = f.getId(); }
+    } catch (e) {}
+  }
+  return files;
 }
 
 function ovList_(d) {
@@ -530,15 +577,7 @@ function ovGet_(d) {
   if (!fileId) return ovOut_({ ok: false, error: 'No saved data' });
   var doc = JSON.parse(DriveApp.getFileById(fileId).getBlob().getDataAsString());
   // Photo files, by pid, so the page can fetch only what it shows.
-  var files = {};
-  try {
-    var it = ovFolderFor_(type).searchFiles("title contains '" + id + "_ph_' and trashed = false");
-    while (it.hasNext()) {
-      var f = it.next();
-      var mm = f.getName().match(/_(ph_[\w-]+)\.jpg$/);
-      if (mm) files[mm[1]] = f.getId();
-    }
-  } catch (e) {}
+  var files = ovPhotoMap_(type, id, doc);
   delete index.json_file;
   var pdfUrl = '';
   if (index.pdf_file) { try { pdfUrl = DriveApp.getFileById(String(index.pdf_file)).getUrl(); } catch (e2) { pdfUrl = ''; } }
@@ -568,6 +607,15 @@ function ovUpdate_(d) {
     doc = JSON.parse(DriveApp.getFileById(fileId).getBlob().getDataAsString());
   }
   ovStripBytes_(doc);
+  // Nov 2 2026: photo ids noted on the stored copy survive a save from a page that loaded before the photos landed.
+  try {
+    var storedId = String(sh.getRange(r, headers.indexOf('json_file') + 1).getValue() || '');
+    if (storedId) {
+      var stored = JSON.parse(DriveApp.getFileById(storedId).getBlob().getDataAsString());
+      if (stored.photo_files) { doc.photo_files = doc.photo_files || {}; Object.keys(stored.photo_files).forEach(function (pid) { if (!doc.photo_files[pid]) doc.photo_files[pid] = stored.photo_files[pid]; }); }
+      if (stored.followup_status !== undefined && doc.followup_status === undefined) { doc.followup_status = stored.followup_status; doc.followup_by = stored.followup_by; doc.followup_at = stored.followup_at; }
+    }
+  } catch (e0) {}
   if (d.status) doc.status = ovStr_(d.status, 30);
   if (d.fsm_notes !== undefined) doc.fsm_notes = ovStr_(d.fsm_notes, 2000);
   if (d.reviewed_by) doc.reviewed_by = ovStr_(d.reviewed_by, 120);
@@ -579,6 +627,7 @@ function ovUpdate_(d) {
       var folder = ovFolderFor_(type);
       drop.forEach(function (pid) {
         if (!/^ph_[\w-]{1,40}$/.test(String(pid))) return;
+        if (doc.photo_files && doc.photo_files[pid]) { try { DriveApp.getFileById(String(doc.photo_files[pid])).setTrashed(true); } catch (e3) {} delete doc.photo_files[pid]; }
         var it = folder.getFilesByName(id + '_' + pid + '.jpg');
         while (it.hasNext()) it.next().setTrashed(true);
       });
@@ -763,11 +812,7 @@ function ovFeedGet_(d) {
   if (!fileId) return ovOut_({ ok: false, error: 'No saved data' });
   var doc = JSON.parse(DriveApp.getFileById(fileId).getBlob().getDataAsString());
   doc.status = String(sh.getRange(r, OV_REPORT_HEADERS.indexOf('status') + 1).getValue() || doc.status || 'New');
-  var files = {};
-  try {
-    var it = ovFolderFor_('report').searchFiles("title contains '" + id + "_ph_' and trashed = false");
-    while (it.hasNext()) { var f = it.next(); var mm = f.getName().match(/_(ph_[\w-]+)\.jpg$/); if (mm) files[mm[1]] = f.getId(); }
-  } catch (e) {}
+  var files = ovPhotoMap_('report', id, doc);
   return ovOut_({ ok: true, doc: ovAnonDoc_(doc), photo_files: files });
 }
 function ovFeedPhoto_(d) {
@@ -1037,6 +1082,31 @@ function ovAlertItems_() {
       link: OV_REVIEW_URL + '?t=checklist&id=' + encodeURIComponent(r.id), ref: String(r.id)
     });
   });
+  // Nov 2 2026 (Jake's team): the "Things to report to the property" section at the bottom of the porter checklist
+  // is its own alert (type ovreported, key ovf:<checklist id>) so the FSM sees what the porter reported without
+  // opening every checklist, and it stays on the card after the checklist itself is approved. Marked on the card
+  // as Property notified / Resolved (Alerts.gs AL_STATUS); the mark is mirrored onto the Checklists tab and the
+  // saved JSON by ovAlertSet_. Hidden once the FSM marks it, like every other alert.
+  ovRows_(ovChecks_(), OV_CHECK_HEADERS).forEach(function (r) {
+    var tags = String(r.followup_tags || '').trim(), text = String(r.followups || '').trim();
+    if (!tags && !text) return;
+    if (String(r.followup_status || '').trim()) return;
+    var s = stamp(r.created_at);
+    if (!s.fresh) return;
+    var bits = [];
+    if (tags) bits.push(tags.split(/\s*\|\s*/).filter(Boolean).join(', '));
+    if (text) bits.push(ovStr_(text, 240));
+    bits.push(ovDay_(r.service_date) + ' checklist');
+    var urgent = /safety hazard|water leak|pest/i.test(tags);
+    items.push({
+      key: 'ovf:' + r.id, type: 'ovreported', fsm: fsmOf(r.property), region: 'Las Vegas',
+      when: s.when, when_nice: s.nice,
+      from: String(r.porter || 'Porter'), about: String(r.property || ''),
+      summary: (urgent ? 'ATTENTION - ' : '') + bits.join(' - '), email: '', phone: '',
+      urgent: urgent,
+      link: OV_REVIEW_URL + '?t=checklist&id=' + encodeURIComponent(r.id), ref: String(r.id)
+    });
+  });
   ovRows_(ovReports_(), OV_REPORT_HEADERS).forEach(function (r) {
     if (String(r.status || 'New') !== 'New') return;
     var s = stamp(r.created_at);
@@ -1060,10 +1130,34 @@ function ovAlertItems_() {
 // Hub check-off -> Ovation sheet. Approved on a checklist is stored as Reviewed (the status
 // review.html already filters on). An undo (blank status) puts it back to New.
 function ovAlertSet_(key, status, by) {
-  var m = String(key || '').match(/^ov([cr]):(.+)$/);
+  var m = String(key || '').match(/^ov([crf]):(.+)$/);
   if (!m) return false;
+  if (m[1] === 'f') return ovSetFollowupStatus_(m[2], status, by);
   var sheetStatus = !status ? 'New' : (status === 'Approved' ? 'Reviewed' : status);
   return ovSetStatus_(m[2], sheetStatus, by);
+}
+// Nov 2 2026: the "reported to the property" alert's mark lives in its own column so approving the checklist
+// and handling what was reported stay independent. A blank status (undo on the card) puts it back on the card.
+function ovSetFollowupStatus_(id, status, by) {
+  if (ovTypeOf_(id) !== 'checklist') return false;
+  var sh = ovChecks_(), headers = OV_CHECK_HEADERS;
+  var r = ovFindRow_(sh, id);
+  if (!r) return false;
+  var now = ovNow_();
+  sh.getRange(r, headers.indexOf('followup_status') + 1).setValue(ovStr_(status, 30));
+  sh.getRange(r, headers.indexOf('updated_at') + 1).setValue(now);
+  try {
+    var fileId = String(sh.getRange(r, headers.indexOf('json_file') + 1).getValue() || '');
+    if (fileId) {
+      var f = DriveApp.getFileById(fileId);
+      var doc = JSON.parse(f.getBlob().getDataAsString());
+      doc.followup_status = ovStr_(status, 30);
+      doc.followup_by = status ? ovStr_(by, 120) : '';
+      doc.followup_at = status ? now : '';
+      f.setContent(JSON.stringify(doc));
+    }
+  } catch (e) {}
+  return true;
 }
 function ovSetStatus_(id, status, by) {
   var type = ovTypeOf_(id);
@@ -1253,17 +1347,14 @@ function ovLogoData_(key, url) {
     return data;
   } catch (e3) { return ''; }
 }
-function ovPhotoFiles_(type, id) {
-  var files = {};
-  try {
-    var it = ovFolderFor_(type).searchFiles("title contains '" + id + "_ph_' and trashed = false");
-    while (it.hasNext()) { var f = it.next(); var mm = f.getName().match(/_(ph_[\w-]+)\.jpg$/); if (mm) files[mm[1]] = f; }
-  } catch (e) {}
+function ovPhotoFiles_(type, id, doc) {
+  var files = {}, ids = ovPhotoMap_(type, id, doc);
+  Object.keys(ids).forEach(function (pid) { try { var f = DriveApp.getFileById(ids[pid]); if (f && !f.isTrashed()) files[pid] = f; } catch (e) {} });
   return files;
 }
 function ovBuildPdf_(type, doc, by) {
   var e = ovEsc_;
-  var files = ovPhotoFiles_(type, String(doc.id));
+  var files = ovPhotoFiles_(type, String(doc.id), doc);
   var photoData = {};
   function pdata(pid) {
     if (photoData[pid] !== undefined) return photoData[pid];

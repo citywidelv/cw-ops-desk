@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
-<!-- build 2026-10-23-ovation: Alerts card carries Ovation Hub items (types ovcheck / ovreport from Ovation.gs ovAlertItems_) under Requests and reports: porter checklists to approve (one button, Approved) and Ovation staff reports plus porter emergencies / maintenance requests (Reviewed / Scheduled / Done). An EMERGENCY summary paints red. Same alerts_list / alerts_set payloads.
+<!-- build 2026-11-02-reported: Alerts card also carries type ovreported, the "Things to report to the property" section of an Ovation porter checklist (Property notified / Resolved), so the FSM sees what the porter reported without opening every checklist.
+     build 2026-10-23-ovation: Alerts card carries Ovation Hub items (types ovcheck / ovreport from Ovation.gs ovAlertItems_) under Requests and reports: porter checklists to approve (one button, Approved) and Ovation staff reports plus porter emergencies / maintenance requests (Reviewed / Scheduled / Done). An EMERGENCY summary paints red. Same alerts_list / alerts_set payloads.
      build 2026-10-18-alerts: Alerts card redesigned. Six tiles (All alerts, Work tickets, Property supplies, Vendor supplies, Opportunity responses, Requests and reports), Mine / See all, No FSM matched always at the bottom. One row per work ticket with the supplies strip (YES with cost and receipt count, or NO) and a View full ticket PDF button (PDF Link column written by the Work Tickets script, per-ticket items from WorkTicketsHub.gs wtAlertItems_; the old rolled-up "N work tickets to bill" line still renders until that deploys). Work ticket reassigns post wt_assign. Same alerts_list / alerts_set / alerts_assign payloads. -->
 <!-- build 2026-10-22-ovation: Accounts & Buildings > Client Hubs cascade (Ovation Hub at /ovation-hub/, its own passcode for Ovation staff and porters; Ovation Review Queue, team passcode). Backend Ovation.gs, ov_ kinds. -->
 <!-- build 2026-10-15-queue: Work tickets billing queue (work-tickets.html, WorkTicketsHub.gs wt_ kinds). The Alerts card shows one "N work tickets to bill" line per FSM (type ticket, no status buttons, Mark all skips it) linking to the queue; menu Accounts & Buildings > Work Tickets > Tickets to Bill. -->
@@ -1746,8 +1747,8 @@ vend:    { label:"Vendor supplies",       sub:"Shop orders for their own kit",  
 opp:     { label:"Opportunity responses", sub:"Vendors replying to postings",      empty:["No replies waiting.", "Vendor replies to open postings land here."] },
 req:     { label:"Requests and reports",  sub:"Client asks, night reports, Ovation", empty:["Nothing to review.", "Client work requests, night manager reports, forms to review and Ovation Hub checklists and reports land here."] }
 };
-var AL_TYPE_BUCKET = { ticket:"tickets", workdone:"tickets", supply:"prop", shop:"vend", posting:"opp", response:"opp", night:"req", workreq:"req", review:"req", ovcheck:"req", ovreport:"req" };
-var AL_KIND = { response:"Vendor reply", supply:"Property supplies", shop:"Vendor shop order", posting:"Open posting", night:"Night manager report", workreq:"Client work request", workdone:"Completed work order (form)", review:"Form to review", ticket:"Work ticket", ovcheck:"Ovation porter checklist to approve", ovreport:"Ovation report or request" };
+var AL_TYPE_BUCKET = { ticket:"tickets", workdone:"tickets", supply:"prop", shop:"vend", posting:"opp", response:"opp", night:"req", workreq:"req", review:"req", ovcheck:"req", ovreport:"req", ovreported:"req" };
+var AL_KIND = { response:"Vendor reply", supply:"Property supplies", shop:"Vendor shop order", posting:"Open posting", night:"Night manager report", workreq:"Client work request", workdone:"Completed work order (form)", review:"Form to review", ticket:"Work ticket", ovcheck:"Ovation porter checklist to approve", ovreport:"Ovation report or request", ovreported:"Ovation porter reported to the property" };
 var AL_VIEWKEY = "cwAlertsView", AL_TILEKEY = "cwAlertsTile";
 function alBucket(it){ return AL_TYPE_BUCKET[it.type] || "req"; }
 function alView(){ try{ return localStorage.getItem(AL_VIEWKEY) === "all" ? "all" : "mine"; }catch(e){ return "mine"; } }
@@ -1887,7 +1888,7 @@ out.push('<a class="aact" href="tel:' + esc(digits) + '">' + AL_ICON.phone + 'Ca
 }
 if(it.link){
 var lbl = it.type === "response" ? (/responses\.html/.test(it.link) ? "Open reply" : (/^Quoted\s/.test(it.summary || "") ? "Open quote" : "Open PDF"))
-: it.type === "posting" ? "Open replies page" : it.type === "ticket" ? "Open the billing queue" : it.type === "night" ? "Open report" : (it.type === "workreq" || it.type === "workdone" || it.type === "review") ? "Open submission" : it.type === "supply" ? "Open report" : it.type === "shop" ? "Open order" : it.type === "ovcheck" ? "Open checklist in review queue" : it.type === "ovreport" ? "Open in review queue" : "Open sheet";
+: it.type === "posting" ? "Open replies page" : it.type === "ticket" ? "Open the billing queue" : it.type === "night" ? "Open report" : (it.type === "workreq" || it.type === "workdone" || it.type === "review") ? "Open submission" : it.type === "supply" ? "Open report" : it.type === "shop" ? "Open order" : it.type === "ovcheck" ? "Open checklist in review queue" : it.type === "ovreport" ? "Open in review queue" : it.type === "ovreported" ? "Open the checklist" : "Open sheet";
 out.push('<a class="aact" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + AL_ICON.open + esc(lbl) + '</a>');
 }
 return out;
