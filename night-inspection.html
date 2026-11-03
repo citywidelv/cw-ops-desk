@@ -288,7 +288,8 @@ details summary{cursor:pointer;font-weight:700;font-size:14px;padding:8px 0}
 </div>
 <div id="ordBldg">
 <label class="f">Order building supplies</label>
-<a class="btn pri ordgo" href="https://citywidelv.github.io/cw-vendor-hub/building-supplies.html" target="_blank" rel="noopener">Open building supplies</a>
+<div class="sub">Your name and market carry over. The form opens already set to <b id="ordBldgMkt"></b>.</div>
+<a class="btn pri ordgo" id="ordBldgGo" href="https://citywidelv.github.io/cw-vendor-hub/building-supplies.html" target="_blank" rel="noopener">Open building supplies</a>
 </div>
 <div class="hint" style="margin-top:12px">An order is not a recap. If you also visited a building tonight, pick a reason above.</div>
 <button class="linkbtn" id="ordDone" type="button">Done ordering. Start a new report</button>
@@ -568,6 +569,14 @@ function applyRules(){
   show("phCard", R()==="Phone only");
   show("ordCard", !!S.order && !R());
   show("ordCrew", S.order==="crew"); show("ordBldg", S.order==="building");
+  /* Nov 3 2026: carry who, market and building into the supplies report so the night
+     manager never picks a region. A wrong Region pick routed three LV reports to NNV. */
+  if (S.order==="building"){
+    var mk = S.market==="nnv" ? "Northern Nevada" : "Las Vegas";
+    var q = "?lock=1&region=" + encodeURIComponent(mk) + "&name=" + encodeURIComponent(S.nm_name||"") + "&email=" + encodeURIComponent(S.nm_email||"") + "&building=" + encodeURIComponent(S.account_name||"");
+    $("ordBldgGo").href = "https://citywidelv.github.io/cw-vendor-hub/building-supplies.html" + q;
+    $("ordBldgMkt").textContent = mk;
+  }
 
   show("arrCard", showsTimes());
   show("depCard", showsTimes());

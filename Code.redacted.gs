@@ -577,6 +577,108 @@ function _invoiceEmail(id, d, lines, total, forVendor) {
 }
 
 // -------------------------------------------- building supply reports --
+// Nov 3 2026: the region on a supply report comes from the ACCOUNT, not the dropdown.
+// A Las Vegas night manager picked Northern Nevada three times and the reports
+// routed north with no FSM. Match the building against every account first; when
+// it matches an account that has a region, that region wins. The dropdown only
+// decides when nothing matches. Returns { region, acct } where acct may be null.
+function supplyRegion_(building, picked) {
+  var region = String(picked || '').trim();
+  var acct = null;
+  try {
+    var m = afMatch_(String(building || ''), '', afIndex_());
+    if (m && m.acct) {
+      acct = m.acct;
+      if (acct.region) region = String(acct.region);
+    }
+  } catch (e) {}
+  if (!REGION_EMAIL[region]) region = 'Las Vegas';
+  return { region: region, acct: acct };
+}
+
+// Work email of a roster person (FSM key -> Staff tab email). '' when unknown.
+function supplyFsmEmail_(fsmKey) {
+  try {
+    var f = FSM_ROSTER[fsmKey];
+    if (!f) return '';
+    var want = String(f.name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    var sh = staffSS_().getSheetByName('Staff');
+    if (!sh) return '';
+    var v = sh.getDataRange().getValues();
+    for (var i = 1; i < v.length; i++) {
+      var nm = String(v[i][0] || '').toLowerCase().replace(/\s+/g, ' ').trim();
+      if (nm && nm === want && String(v[i][4] || '').indexOf('@') > 0) return String(v[i][4]).trim();
+    }
+  } catch (e) {}
+  return '';
+}
+
+// Resend the team notice for supply reports already on the sheet, to the market
+// service inbox for the row's CURRENT region plus the matched FSM. Run from
+// Runner.gs: supplyResend_(['SUP-...','SUP-...']). Logs one line per id.
+function supplyResend_(ids) {
+  var ss = supSS_();
+  var sh = ss.getSheetByName(SUP_TAB);
+  if (!sh) { Logger.log('no ' + SUP_TAB + ' tab'); return; }
+  var vals = sh.getDataRange().getValues();
+  var head = vals[0].map(function (h) { return String(h || '').trim(); });
+  var col = function (n) { return head.indexOf(n); };
+  var want = {};
+  (ids || []).forEach(function (x) { want[String(x).trim()] = 1; });
+  for (var i = 1; i < vals.length; i++) {
+    var id = String(vals[i][col('order_id')] || '').trim();
+    if (!want[id]) continue;
+    var r = {};
+    head.forEach(function (h, c) { r[h] = vals[i][c]; });
+    var items = [];
+    try { items = JSON.parse(String(r.items || '[]')) || []; } catch (e) {}
+    items = items.map(function (it) { return { name: String(it.name || ''), qty: Number(it.qty) || 1, price: Number(it.price) || 0 }; });
+    var d = { requester: String(r.requester || ''), email: String(r.email || ''), phone: String(r.phone || ''),
+              building: String(r.building || ''), region: String(r.region || ''), comments: String(r.comments || ''), items: items };
+    var when = r.received instanceof Date ? r.received : new Date();
+    var sr = supplyRegion_(d.building, d.region);
+    var to = REGION_EMAIL[sr.region] || REGION_EMAIL['Las Vegas'];
+    var fsmEmail = sr.acct && sr.acct.fsm ? supplyFsmEmail_(sr.acct.fsm) : '';
+    var lines = items.map(function (x) { return x.qty + ' x ' + x.name; }).join('\n');
+    try {
+      cwSend_({
+        to: to,
+        cc: fsmEmail || '',
+        replyTo: d.email,
+        subject: 'Supplies needed: ' + d.building + ' [' + id + ']',
+        htmlBody: _supplyEmail(id, d, items, when, false),
+        body: d.requester + ' was in ' + d.building + ' on ' + _supplyDay(when) +
+          ' and reported that the following items are needed.\n\n' + lines +
+          (d.comments ? '\n\nNote: ' + d.comments : '') + '\n\nReference ' + id
+      });
+      Logger.log(id + ' resent to ' + to + (fsmEmail ? ' cc ' + fsmEmail : ' (no FSM email)') + ' as ' + sr.region + (sr.acct ? ' / ' + sr.acct.name : ''));
+    } catch (e) { Logger.log(id + ' FAILED ' + e); }
+  }
+}
+
+// Nov 3 2026: the Nov 2 resend hit a used-up Gmail day quota. This runs on an hourly
+// trigger (installed by supplyResendInstall), sends the pending ids once quota is back,
+// then removes its own trigger. Pending ids live in script property SUP_RESEND_IDS.
+var SUP_RESEND_FN = 'supplyResendRetry';
+function supplyResendInstall(ids) {
+  PropertiesService.getScriptProperties().setProperty('SUP_RESEND_IDS', JSON.stringify(ids || []));
+  var has = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === SUP_RESEND_FN; });
+  if (!has) ScriptApp.newTrigger(SUP_RESEND_FN).timeBased().everyHours(1).create();
+  Logger.log('resend retry installed for ' + (ids || []).length + ' ids');
+}
+function supplyResendRetry() {
+  var props = PropertiesService.getScriptProperties();
+  var ids = [];
+  try { ids = JSON.parse(props.getProperty('SUP_RESEND_IDS') || '[]'); } catch (e) {}
+  var drop = function () { ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === SUP_RESEND_FN) ScriptApp.deleteTrigger(t); }); props.deleteProperty('SUP_RESEND_IDS'); };
+  if (!ids.length) { drop(); return; }
+  var q = -1; try { q = MailApp.getRemainingDailyQuota(); } catch (e) {}
+  if (q >= 0 && q < ids.length + 2) { Logger.log('quota ' + q + ', waiting'); return; }
+  supplyResend_(ids);
+  drop();
+  Logger.log('resend done, trigger removed');
+}
+
 // Sep 17 2026: this is a REPORT that a building needs supplies, not an order.
 // The team email is written so an FSM can forward it straight to the client:
 // reporter NAME only, no email, no phone, no pricing, no internal links.
@@ -599,6 +701,10 @@ function handleSupplyOrder(data) {
   }
   if (!items.length) { out.error = 'No items selected'; return _json(out); }
 
+  // Nov 3 2026: region comes from the matched account, the dropdown is the fallback.
+  var sr = supplyRegion_(data.building, data.region);
+  data.region = sr.region;
+
   var ss = supSS_();
   var sp = ss.getSheetByName(SUP_TAB);
   if (!sp) { setupInvoicing(); sp = ss.getSheetByName(SUP_TAB); }
@@ -616,10 +722,12 @@ function handleSupplyOrder(data) {
   sp.getRange(_nextRow(sp), 1, 1, row.length).setValues([row]);
 
   var to = REGION_EMAIL[data.region] || REGION_EMAIL['Las Vegas'];
+  var fsmCc = sr.acct && sr.acct.fsm ? supplyFsmEmail_(sr.acct.fsm) : '';
   var lines = items.map(function (x) { return x.qty + ' x ' + x.name; }).join('\n');
   try {
     cwMail_('supply_int', {
       to: to,
+      cc: fsmCc || '',
       replyTo: String(data.email),
       subject: 'Supplies needed: ' + data.building + ' [' + id + ']',
       htmlBody: _supplyEmail(id, data, items, now, false),
