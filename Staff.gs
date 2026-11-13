@@ -11,8 +11,8 @@ var STAFF_TERRITORIES = ['North', 'West', 'Southwest', 'Southeast', 'Citywide'];
      var STAFF_SEED = [
   ['Allison Donavan', 'Facility Solutions Manager', 'Las Vegas', '(949) 291-0549', 'Allison.Donavan@gocitywide.com', 'TRUE', 'North'],
   ['Alex Manon', 'Facility Solutions Manager', 'Las Vegas', '(805) 340-3380', 'alejandro.manon@gocitywide.com', 'TRUE', 'West'],
-  ['Brett Stephens', 'Facility Solutions Manager', 'Las Vegas', '(702) 529-2292', 'brett.stephens@gocitywide.com', 'TRUE', 'Southeast'],
-  ['Jake Schmidt', 'Facility Solutions Manager', 'Las Vegas', '(702) 529-2292', 'jschmidt@gocitywide.com', 'TRUE', 'Southwest'],
+  ['Brett Stephens', 'Facility Solutions Manager', 'Las Vegas', '(702) 738-8855', 'brett.stephens@gocitywide.com', 'TRUE', 'Southeast'],
+  ['Jake Schmidt', 'Facility Solutions Manager', 'Las Vegas', '(702) 610-8787', 'jschmidt@gocitywide.com', 'TRUE', 'Southwest'],
   ['Sam Morse', 'Facility Solutions Manager', 'Northern Nevada', '(775) 842-5591', 'smorse@gocitywide.com', 'TRUE', ''],
   ['Jeremy Walker', 'General Manager', 'Northern Nevada', '(775) 217-7280', '', 'TRUE', ''],
   ['Robert Krause', 'Director of Operations', 'Las Vegas', '(702) 544-0492', 'RKrause@gocitywide.com', 'TRUE', 'Citywide'],
