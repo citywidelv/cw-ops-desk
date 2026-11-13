@@ -444,6 +444,10 @@ function setAuto(id, val){
   if (!cur || cur === AUTO[id]) el.value = val;
   AUTO[id] = val;
 }
+// Fallback phone when the person has no phone on the team directory: the market's ops hotline.
+var OPS_HOTLINE = { "Las Vegas": "(702) 483-1874", "Northern Nevada": "(775) 453-4718" };
+function hotline(){ return OPS_HOTLINE[state.region] || OPS_HOTLINE["Las Vegas"]; }
+function isHotline(x){ for (var m in OPS_HOTLINE) if (OPS_HOTLINE[m] === x) return true; return false; }
 function fillContact(k){
   var f = FSM_ROSTER[k], note = document.getElementById("dirNote");
   if (!f) return;
@@ -455,14 +459,15 @@ function fillContact(k){
   var p = DIR.state === "ok" ? dirFind(f.name) : null;
   setAuto("contact_name", f.name);
   setAuto("contact_email", p ? p.email : "");
-  setAuto("contact_phone", p ? p.phone : "");
-  if (DIR.state !== "ok") { note.textContent = "Could not load the team directory. Type the email and phone this time."; return; }
-  var miss = [];
-  if (p && !p.email) miss.push("email");
-  if (p && !p.phone) miss.push("phone");
-  note.innerHTML = !p ? esc(f.name) + " is not on the team directory. Type the email and phone this time."
-    : miss.length ? esc(f.name) + " has no " + miss.join(" or ") + " on the team directory. Type it here, and fix it on the <a href=\"https://citywidelv.github.io/cw-admin-hub/records.html?s=staff\" target=\"_blank\" rel=\"noopener\">Team roster</a> for next time."
-    : "Filled from the team directory. Wrong info? Fix it on the <a href=\"https://citywidelv.github.io/cw-admin-hub/records.html?s=staff\" target=\"_blank\" rel=\"noopener\">Team roster</a>.";
+  setAuto("contact_phone", (p && p.phone) ? p.phone : hotline());
+  if (DIR.state !== "ok") { note.textContent = "Could not load the team directory. Type the email this time. The phone is set to the " + state.region + " ops hotline."; return; }
+  var fix = " Fix it on the <a href=\"https://citywidelv.github.io/cw-admin-hub/records.html?s=staff\" target=\"_blank\" rel=\"noopener\">Team roster</a> for next time.";
+  var hl = (!p || !p.phone) ? " The phone is set to the " + esc(state.region) + " ops hotline." : "";
+  if (!p) { note.innerHTML = esc(f.name) + " is not on the team directory. Type the email this time." + hl; return; }
+  if (!p.email && !p.phone) { note.innerHTML = esc(f.name) + " has no email or phone on the team directory. Type the email here." + hl + fix; return; }
+  if (!p.email) { note.innerHTML = esc(f.name) + " has no email on the team directory. Type it here." + fix; return; }
+  if (!p.phone) { note.innerHTML = esc(f.name) + " has no phone on the team directory." + hl + fix; return; }
+  note.innerHTML = "Filled from the team directory. Wrong info? Fix it on the <a href=\"https://citywidelv.github.io/cw-admin-hub/records.html?s=staff\" target=\"_blank\" rel=\"noopener\">Team roster</a>.";
 }
 function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function loadDirectory(){
@@ -753,7 +758,11 @@ function updatePreview() {
 ["trade", "facility", "area"].forEach(function (id) {
   document.getElementById(id).addEventListener("input", updatePreview);
 });
-segInit("segRegion", "region");
+segInit("segRegion", "region", function(){
+  // Keep a hotline default in step with the market picked.
+  var el = document.getElementById("contact_phone");
+  if (el && isHotline(el.value.trim()) && el.value.trim() === AUTO.contact_phone) { el.value = hotline(); AUTO.contact_phone = el.value; }
+});
 segInit("segType", "type", updateType);
 segInit("segPay", "pay_type", updatePay);
 segInit("segMode", "mode", updateModeFields);
