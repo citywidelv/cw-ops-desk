@@ -3068,6 +3068,7 @@ function cwRowMarket_(r, acctMap) {
     if (/north|reno|sparks|carson|nnv/.test(reg)) return 'NNV';
     if (/vegas|^lv$/.test(reg)) return 'LV';
   }
+  if (/^work_ticket/.test(String(r.tag || '')) && d.id) { var wm = cwWorkTicketMarket_(String(d.id), acctMap); if (wm) return wm; }   // Nov 15 2026
   var addr = String(r.to || '') + ',' + String(r.cc || '');
   var lv = CW_LV_ADDR.test(addr), nn = CW_NNV_ADDR.test(addr);
   if (lv && !nn) return 'LV';
@@ -3201,12 +3202,43 @@ function cwOpenSupplyAlerts_() {
       try { if (it.when) t = Utilities.parseDate(it.when, 'America/Los_Angeles', "yyyy-MM-dd'T'HH:mm:ss"); } catch (pe) { t = null; }
       var hrs = t ? (Date.now() - t.getTime()) / 3600000 : 999;
       var f = (it.fsm && typeof FSM_ROSTER !== 'undefined' && FSM_ROSTER[it.fsm]) ? FSM_ROSTER[it.fsm].name : '';
-      out.push({ type: it.type, market: cwMarketKey_(it.region), about: String(it.about || ''), from: String(it.from || ''),
+      out.push({ type: it.type, market: cwFsmMarket_(it.fsm) || cwMarketKey_(it.region), about: String(it.about || ''), from: String(it.from || ''),
         summary: String(it.summary || ''), when: String(it.when_nice || ''), hrs: hrs, late: hrs >= CW_STALE_HOURS, fsm: f });
     });
   } catch (e) {}
   out.sort(function (a, b) { return b.hrs - a.hrs; });
   return out;
+}
+// Nov 15 2026 (TJ): an item belongs to its FSM's market. A vendor can pick the wrong
+// region at shop checkout (Sparkling Cleaning picked Northern Nevada on Jake's orders),
+// and a work ticket carries no region at all (Wabtec exists in both markets).
+function cwFsmMarket_(k) {
+  k = String(k || '').toLowerCase();
+  if (!k || typeof FSM_ROSTER === 'undefined' || !FSM_ROSTER[k]) return '';
+  var reg = String(FSM_ROSTER[k].region || '');
+  if (/&|\band\b/i.test(reg)) return '';   // covers both markets
+  return cwMarketKey_(reg);
+}
+function cwAddrMarket_(a) {
+  a = String(a || '').toLowerCase();
+  if (/\b(reno|sparks|carson|fernley|minden|gardnerville|dayton)\b|\b89[45]\d\d\b/.test(a)) return 'NNV';
+  if (/las vegas|henderson|\b89[01]\d\d\b/.test(a)) return 'LV';
+  return '';
+}
+// Work ticket id -> market, from the ticket row: its Account (exact directory name),
+// then its FSM, then its address. Built once per run.
+var CW_WT_MARKET_CACHE = null;
+function cwWorkTicketMarket_(id, acctMap) {
+  if (!CW_WT_MARKET_CACHE) {
+    CW_WT_MARKET_CACHE = {};
+    try {
+      (wtAll_().tickets || []).forEach(function (t) {
+        var acc = String(t.account || '').toLowerCase().trim();
+        CW_WT_MARKET_CACHE[t.id] = (acctMap && acc && acctMap[acc]) || cwFsmMarket_(t.fsm) || cwAddrMarket_(t.address) || '';
+      });
+    } catch (e) {}
+  }
+  return CW_WT_MARKET_CACHE[id] || '';
 }
 function cwMarketKey_(s) {
   s = String(s || '').toLowerCase();
