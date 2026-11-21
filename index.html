@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
-<!-- build 2026-11-02-reported: Alerts card also carries type ovreported, the "Things to report to the property" section of an Ovation porter checklist (Property notified / Resolved), so the FSM sees what the porter reported without opening every checklist.
+<!-- build 2026-11-21-overhaul: home page overhaul, appearance and layout only, no payload or script change. Alerts are first (hero, photo band, helper card and the full poster removed). You are (#alwho) moved to the page header. Search results open in a panel under the search box with arrow keys, Enter and Escape. Each menu opens as one panel with its groups side by side, aria-expanded on the buttons (CWNav.cascadeGroups / bind / place no longer used here; MENU and nav.js CW_NAV contract unchanged). Quick links show the first 4 plus All N. New Add vendor or building panel: vd_save (Prospect) and vd_act_account_save, both existing kinds; file uploads link to vendor-import.html and Admin Hub account-fsm.html. Alert rows lost the coloured stripe and got a category icon; tiles lost the dot and subtitle. Tokens: six step type scale 12/13/15/17/21/28, 44px controls, radius 6/11/18. Same alerts_list / alerts_set / alerts_assign / wt_assign payloads and the same data-* click contract.
+     build 2026-11-02-reported: Alerts card also carries type ovreported, the "Things to report to the property" section of an Ovation porter checklist (Property notified / Resolved), so the FSM sees what the porter reported without opening every checklist.
      build 2026-10-23-ovation: Alerts card carries Ovation Hub items (types ovcheck / ovreport from Ovation.gs ovAlertItems_) under Requests and reports: porter checklists to approve (one button, Approved) and Ovation staff reports plus porter emergencies / maintenance requests (Reviewed / Scheduled / Done). An EMERGENCY summary paints red. Same alerts_list / alerts_set payloads.
      build 2026-10-18-alerts: Alerts card redesigned. Six tiles (All alerts, Work tickets, Property supplies, Vendor supplies, Opportunity responses, Requests and reports), Mine / See all, No FSM matched always at the bottom. One row per work ticket with the supplies strip (YES with cost and receipt count, or NO) and a View full ticket PDF button (PDF Link column written by the Work Tickets script, per-ticket items from WorkTicketsHub.gs wtAlertItems_; the old rolled-up "N work tickets to bill" line still renders until that deploys). Work ticket reassigns post wt_assign. Same alerts_list / alerts_set / alerts_assign payloads. -->
 <!-- build 2026-10-22-ovation: Accounts & Buildings > Client Hubs cascade (Ovation Hub at /ovation-hub/, its own passcode for Ovation staff and porters; Ovation Review Queue, team passcode). Backend Ovation.gs, ov_ kinds. -->
@@ -50,141 +51,170 @@ build 2026-08-07b: ops wall space now carries TJ's "Lead with gratitude" wall ar
 rebuilt as native HTML from his Wall Art PDF (crisper + responsive vs embedding
 the image). Small pointer link to the Team Wall kept under the art. -->
 <style>
+/* Ops Hub home. Overhaul build 2026-11-21. Tokens and the six step type scale are the
+   pattern for the other hubs: 12 caption, 13 UI, 15 body, 17 lead, 21 h2, 28 h1. Spacing on a
+   4px grid. Radius 6 controls, 11 cards, 18 pills. Red is for the primary action, billing and
+   urgent only. No stripes down one side of a card. Every control is 44px tall. */
 :root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;
---border:#E5E5E5;--gold:#E5B423;
+--border:#E5E5E5;--line:#BDBBB8;--gold:#E5B423;--red-tint:#FDF1F1;
+--fs-caption:12px;--fs-ui:13px;--fs-body:15px;--fs-lead:17px;--fs-h2:21px;--fs-h1:28px;
+--r-ctl:6px;--r-card:11px;--r-pill:18px;
 --shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06);
---shadow-lift:0 4px 10px rgba(45,42,38,.10),0 10px 28px rgba(45,42,38,.10)}
+--shadow-lift:0 4px 10px rgba(45,42,38,.10),0 12px 28px rgba(45,42,38,.12)}
 *{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
 body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;
-color:var(--black);background:var(--light);font-size:14px;line-height:1.6}
-a{color:var(--red)}
+color:var(--black);background:var(--light);font-size:var(--fs-body);line-height:1.6}
+::selection{background:var(--red);color:#fff}
+a{color:var(--red);text-underline-offset:3px}
+h1,h2,h3{line-height:1.25}
+button,select,input{font-family:inherit}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+[hidden]{display:none !important}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- header: logo, search, portal, sign out ---------- */
 .head{background:#fff;position:sticky;top:0;z-index:50;box-shadow:0 1px 8px rgba(45,42,38,.10)}
-.head .bar{max-width:1160px;margin:0 auto;padding:0 20px;height:60px;display:flex;
-align-items:center;gap:14px}
-.head img{height:36px;width:auto;max-width:none;flex:none}
-.head .t{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-color:var(--grey);border-left:2px solid var(--border);padding-left:14px;white-space:nowrap}
-.hsearch{flex:1;display:flex;max-width:420px;margin-left:auto;position:relative}
-.hsearch svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--grey)}
-.hsearch input{width:100%;font-family:inherit;font-size:13px;border:1.5px solid var(--border);
-border-radius:18px;padding:8px 32px 8px 34px;background:var(--light);outline:none}
-.hsearch input:focus{border-color:var(--red);background:#fff}
-.hsearch .x{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;
-background:none;color:var(--grey);font-size:14px;cursor:pointer;padding:4px 6px;display:none}
-.hsearch .x.show{display:block}
-.head .badge{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-background:var(--black);color:#fff;border-left:3px solid var(--gold);padding:4px 10px;white-space:nowrap}
-.head .out{font-size:12px;font-weight:700;color:var(--grey);cursor:pointer;text-decoration:none;
-border:1px solid var(--border);border-radius:18px;padding:0 14px;min-height:36px;display:inline-flex;align-items:center;background:var(--light);white-space:nowrap}
-.head .out:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.head .bar{max-width:1160px;margin:0 auto;padding:0 20px;min-height:60px;display:flex;align-items:center;gap:16px}
+.head .bar img{height:34px;width:auto;max-width:none;flex:none;display:block}
+.head .t{font-size:var(--fs-ui);font-weight:700;color:var(--grey);border-left:1px solid var(--border);padding-left:16px;white-space:nowrap}
+.hsearch{position:relative;flex:1 1 280px;max-width:460px;margin-left:auto}
+.hsearch>svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--grey);pointer-events:none}
+.hsearch input{width:100%;font-size:16px;min-height:44px;border:1px solid var(--line);border-radius:var(--r-ctl);padding:0 44px 0 38px;background:#fff;color:var(--black)}
+.hsearch input::placeholder{color:var(--grey)}
+.hsearch input::-webkit-search-cancel-button{display:none}
+.hsearch .x{position:absolute;right:0;top:0;width:44px;height:44px;border:none;background:none;color:var(--grey);cursor:pointer;display:none;align-items:center;justify-content:center}
+.hsearch .x.show{display:flex}
+.hsearch kbd{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-family:inherit;font-size:var(--fs-caption);font-weight:700;color:var(--grey);border:1px solid var(--border);border-radius:4px;padding:0 7px;line-height:20px;pointer-events:none}
+.hsearch .x.show+kbd{display:none}
+.spanel{position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--border);border-radius:var(--r-card);box-shadow:var(--shadow-lift);z-index:80;padding:6px;max-height:min(420px,70vh);overflow-y:auto}
+.srow{display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 10px;border-radius:var(--r-ctl);text-decoration:none;font-size:var(--fs-ui);font-weight:700;color:var(--black)}
+.srow svg{color:var(--red);flex:none}
+.srow .path{margin-left:auto;font-weight:400;color:var(--grey);font-size:var(--fs-caption);text-align:right}
+.srow[aria-selected="true"]{background:var(--light);outline:2px solid var(--black);outline-offset:-2px}
+.noresults{padding:16px 12px;font-size:var(--fs-ui);color:var(--grey)}
+.noresults b{display:block;color:var(--black);font-size:var(--fs-body)}
+.head .out{font-size:var(--fs-ui);font-weight:700;color:var(--black);text-decoration:none;min-height:44px;display:inline-flex;align-items:center;padding:0 12px;border:1px solid var(--border);border-radius:var(--r-ctl);background:#fff;white-space:nowrap}
 
-/* nav bar: cascading dropdowns (static menu tree in this repo) */
-nav.mainnav{background:var(--black);border-bottom:3px solid var(--red)}
-.nav-in{max-width:1160px;margin:0 auto;padding:0 12px;display:flex;align-items:stretch;
-gap:2px;flex-wrap:wrap}
-.nitem{position:relative;flex:none}
-.nbtn{background:none;border:none;color:#fff;font-family:inherit;font-size:12px;min-height:44px;touch-action:manipulation;-webkit-tap-highlight-color:rgba(210,39,48,.25);font-weight:700;
-letter-spacing:.04em;text-transform:uppercase;padding:12px 13px;display:flex;align-items:center;
-gap:7px;white-space:nowrap;cursor:pointer}
-.nbtn svg{opacity:.9;flex:none}
-.nbtn .caret{font-size:8px;opacity:.8}
-.nbtn:hover,.nbtn.open{background:var(--red)}
-.nmenu{display:none;position:absolute;top:100%;left:0;width:max-content;min-width:250px;max-width:360px;background:#fff;
-border:1px solid var(--border);border-top:3px solid var(--red);border-radius:0 0 10px 10px;
-box-shadow:var(--shadow-lift);padding:6px 0;z-index:70}
-.nmenu.show{display:block}
-.nmenu a{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;
-color:var(--black);text-decoration:none;padding:10px 16px;min-height:40px}
-.nmenu a:hover{background:var(--light);color:var(--red)}
-.nmenu a svg{color:var(--red);flex:none}
-.nmenu a .tag{margin-left:auto;padding-left:12px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);flex:none}
-.nmenu a:hover .tag{color:var(--red)}
-.nmenu .ghead{font-weight:700;color:var(--grey);font-size:12px;padding:9px 16px 3px;
-text-transform:uppercase;letter-spacing:.08em}
-.nmenu .ghead:not(:first-child){border-top:1px solid var(--border);margin-top:5px}
-.nsub{position:relative}
-.nsub>a.subbtn{justify-content:space-between}
-.nsub>a.subbtn::after{content:"\25B8";color:var(--grey);font-size:10px;margin-left:10px}
-.nsubmenu{display:none;position:absolute;left:100%;top:-7px;width:max-content;min-width:250px;max-width:360px;background:#fff;
-border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lift);
-padding:6px 0;z-index:80}
-.nsubmenu.show{display:block}
-@media(hover:hover){
-.nitem:hover>.nmenu{display:block}
-.nsub:hover>.nsubmenu{display:block}
-}
-/* Sep 24 2026: panels are kept on screen by CWNav.place. flip = open to the left instead of
-the right (or hug the right edge for a top dropdown); scroll = taller than the screen. */
-.nmenu.flip{left:auto;right:0}
-.nsubmenu.flip{left:auto;right:100%}
-.nsub.flip>a.subbtn::after{content:"\25C2"}
-.nmenu.scroll,.nsubmenu.scroll{overflow-y:auto;overscroll-behavior:contain}
+/* ---------- menu bar: one panel per menu, groups side by side ---------- */
+nav.mainnav{background:var(--black);border-bottom:3px solid var(--red);position:relative}
+.nav-in{max-width:1160px;margin:0 auto;padding:0 8px;display:flex;overflow-x:auto;scrollbar-width:none}
+.nav-in::-webkit-scrollbar{display:none}
+.nbtn{background:none;border:none;color:#fff;font-size:var(--fs-ui);font-weight:700;min-height:48px;padding:0 14px;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;cursor:pointer;flex:none;text-decoration:none;-webkit-tap-highlight-color:rgba(210,39,48,.25)}
+.nbtn svg{flex:none}
+.nbtn[aria-expanded="true"]{background:var(--red)}
+.nbtn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.npanel{position:absolute;left:0;right:0;top:100%;background:#fff;border-bottom:1px solid var(--border);box-shadow:var(--shadow-lift);z-index:70;max-height:calc(100vh - 130px);overflow-y:auto;overscroll-behavior:contain}
+.npin{max-width:1160px;margin:0 auto;padding:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:20px 24px}
+.npin h3{font-size:var(--fs-caption);letter-spacing:.06em;text-transform:uppercase;color:var(--grey);padding:0 8px 4px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.npin a{display:flex;align-items:center;gap:8px;min-height:40px;padding:4px 8px;border-radius:var(--r-ctl);text-decoration:none;font-size:var(--fs-ui);font-weight:700;line-height:1.3;color:var(--black)}
+.npin a .tag{margin-left:auto;padding-left:10px;font-size:var(--fs-caption);font-weight:400;color:var(--grey);white-space:nowrap}
+.navfade{position:absolute;right:0;top:0;height:48px;width:36px;background:linear-gradient(90deg,rgba(45,42,38,0),var(--black));pointer-events:none;display:none}
 
-/* ---------- Hero: Las Vegas + Reno skyline, greyscale per brand ---------- */
+/* ---------- page ---------- */
 .wrap{max-width:1160px;margin:0 auto;padding:0 20px}
-.hero{position:relative;color:#fff;background:linear-gradient(180deg,#26231f 0%,var(--black) 70%);
-overflow:hidden}
-.hero .sky{position:absolute;left:0;right:0;bottom:0;width:100%;height:132px;display:block;
-pointer-events:none;opacity:.9}
-.hero .wrap{position:relative;z-index:1;padding-top:44px;padding-bottom:118px;
-display:flex;align-items:center;gap:48px}
-.hero .htext{flex:1;min-width:0}
-.hero .hphoto{flex:none;width:400px;display:grid;gap:10px;position:relative;z-index:2}
-.hero .hphoto .ph1{aspect-ratio:16/10;border-radius:14px;overflow:hidden;
-border:1px solid rgba(255,255,255,.14);box-shadow:0 22px 55px rgba(0,0,0,.5)}
-.hero .hphoto .ph1 img{width:100%;height:100%;object-fit:cover;object-position:center 22%;display:block}
-.hero .hphoto .pcap{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
-color:#8f8b85;text-align:right;white-space:nowrap}
-.hero .hphoto .pcap b{color:#cfcdc9}
-@media(max-width:940px){.hero .hphoto{display:none}}
-.hero h1{font-size:clamp(22px,3.2vw,29px);line-height:1.25;letter-spacing:.01em}
-.hero h1::after{content:"";display:block;width:56px;height:4px;background:var(--red);
-border-radius:2px;margin-top:11px}
-.hero p{color:#cfcdc9;margin-top:10px;max-width:600px;font-size:13.5px}
-.hero .cities{margin-top:14px;font-size:10.5px;font-weight:700;letter-spacing:.22em;
-text-transform:uppercase;color:#8f8b85}
-.hero .cities b{color:#fff;font-weight:700}
-.hero .cities .dot{color:var(--red);padding:0 8px}
-
-/* ---------- Most Used quick bar, overlapping the hero ---------- */
-.quick{position:relative;z-index:5;margin-top:-52px}
-.quick .qcard{background:#fff;border:1px solid var(--border);border-radius:14px;
-box-shadow:var(--shadow-lift);padding:16px 18px 14px}
-.quick .qhead{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
-.quick .qhead h2{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
-color:var(--grey)}
-.quick .qhead .bar-accent{flex:none;width:18px;height:3px;background:var(--red);border-radius:2px;
-align-self:center}
-.qrow{display:flex;flex-wrap:wrap;gap:9px}
-.qbtn{position:relative;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;min-height:44px;
-color:var(--black);text-decoration:none;border:1.5px solid var(--border);border-radius:10px;
-padding:9px 13px;background:#fff;transition:all .15s;white-space:nowrap}
+.main{padding-top:20px;padding-bottom:32px;display:grid;gap:16px}
+.phead{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap}
+.phead h1{font-size:var(--fs-h2)}
+.phead .psub{font-size:var(--fs-ui);color:var(--grey)}
+.who{margin-left:auto;display:flex;align-items:center;gap:8px}
+.who label{font-size:var(--fs-ui);font-weight:700;color:var(--grey)}
+.who select{font-size:16px;font-weight:700;min-height:44px;border:1px solid var(--black);border-radius:var(--r-ctl);padding:0 12px;background:#fff;color:var(--black);max-width:240px}
+.who select.need{border-color:var(--red);box-shadow:0 0 0 3px rgba(210,39,48,.18)}
+.qrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.qrow .ql{font-size:var(--fs-ui);font-weight:700;color:var(--grey);margin-right:4px}
+.qbtn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:var(--r-ctl);background:#fff;font-size:var(--fs-ui);font-weight:700;text-decoration:none;white-space:nowrap;cursor:pointer;color:var(--black)}
 .qbtn svg{color:var(--red);flex:none}
-.qbtn:hover{border-color:var(--red);color:var(--red);box-shadow:var(--shadow)}
 .qbtn.primary{background:var(--red);border-color:var(--red);color:#fff}
-.qbtn.primary svg{color:#fff}
-.qbtn.primary:hover{background:var(--red-dark);border-color:var(--red-dark);color:#fff}
-.qbtn .pill{font-size:9.5px;font-weight:700;background:var(--black);color:#fff;border-radius:9px;
-padding:2px 8px;display:none}
-.qbtn .pill.show{display:inline-block}
+.qbtn.add{background:var(--black);border-color:var(--black);color:#fff}
+.qbtn.primary svg,.qbtn.add svg{color:#fff}
+.qbtn .pill{font-weight:400;color:var(--grey);display:none}
+.qbtn .pill.show{display:inline}
+.qbtn.more{border-style:dashed;color:var(--grey);background:none}
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r-card)}
+.btn{font-size:var(--fs-ui);font-weight:700;min-height:44px;padding:0 14px;border-radius:var(--r-ctl);border:1px solid var(--line);background:#fff;color:var(--black);display:inline-flex;align-items:center;gap:8px;text-decoration:none;white-space:nowrap;cursor:pointer;line-height:1}
+.btn.main{background:var(--black);border-color:var(--black);color:#fff}
+.btn.text{border-color:transparent;background:none;color:var(--grey);text-decoration:underline;text-underline-offset:3px;padding:0 4px}
+.btn[disabled]{opacity:.55;cursor:wait}
+.strip{display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;padding:14px 20px}
+.strip .st{flex:1 1 260px;min-width:0}
+.strip h2{font-size:var(--fs-body)}
+.strip p{font-size:var(--fs-ui);color:var(--grey)}
+.strip .sb{display:flex;gap:8px;flex-wrap:wrap}
+details.card summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:52px;padding:0 20px;font-size:var(--fs-ui);font-weight:700}
+details.card summary::-webkit-details-marker{display:none}
+details.card summary svg{flex:none;color:var(--grey);transition:transform 120ms ease-out}
+details.card[open] summary svg{transform:rotate(90deg)}
+details.card summary .when{font-weight:400;color:var(--grey);margin-left:auto}
+.dbody{padding:0 20px 20px;font-size:var(--fs-ui);display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px 28px}
+.dbody h3{font-size:var(--fs-ui);margin-bottom:4px}
+.dbody ul{list-style:none}
+.dbody li{padding:6px 0;border-top:1px solid var(--border)}
+.dbody li:first-child{border-top:none}
+.dbody .to{color:var(--grey)}
+.dbody .tip{grid-column:1 / -1;max-width:74ch}
+.swap{padding:20px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:16px 32px;align-items:center}
+.swap h2{font-size:var(--fs-h2)}
+.swap p{font-size:var(--fs-ui);color:var(--grey);margin-top:6px}
+.swap dl{display:grid;gap:10px;font-size:var(--fs-ui)}
+.swap dt{color:var(--grey);text-decoration:line-through}
+.swap dd{font-weight:700;font-size:var(--fs-body)}
+.swap a{font-size:var(--fs-caption);color:var(--grey);font-weight:700}
 
-/* ---------- Feature band: Building Information Sheets ---------- */
-.feature{margin-top:18px}
-.fcard{display:flex;align-items:center;gap:22px;background:#fff;border:1px solid var(--border);
-border-left:5px solid var(--red);border-radius:14px;box-shadow:var(--shadow);padding:18px 22px;
-flex-wrap:wrap}
-.fcard .ficon{width:44px;height:44px;border-radius:10px;background:var(--red);color:#fff;
-display:flex;align-items:center;justify-content:center;flex:none}
-.fcard .ftext{flex:1;min-width:240px}
-.fcard h3{font-size:15px;margin-bottom:2px}
-.fcard p{font-size:12.5px;color:var(--grey)}
-.fcard .fbtns{display:flex;gap:10px;flex-wrap:wrap}
-.fbtn{font-size:12.5px;font-weight:700;text-decoration:none;border-radius:10px;padding:10px 16px;
-white-space:nowrap;transition:all .15s}
-.fbtn.solid{background:var(--black);color:#fff}
-.fbtn.solid:hover{background:var(--red)}
-.fbtn.line{border:1.5px solid var(--border);color:var(--black);background:#fff}
-.fbtn.line:hover{border-color:var(--red);color:var(--red)}
+/* ---------- add a vendor or building ---------- */
+.addp{padding:16px 20px 20px}
+.aphead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.aphead h2{font-size:var(--fs-lead);margin-right:auto}
+.seg{display:inline-flex;border:1px solid var(--black);border-radius:var(--r-ctl);overflow:hidden;flex-wrap:wrap}
+.seg button{font-size:var(--fs-ui);font-weight:700;border:none;background:#fff;color:var(--black);min-height:44px;padding:0 14px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--black)}
+.seg button[aria-pressed="true"]{background:var(--black);color:#fff}
+.addp .lead{font-size:var(--fs-ui);color:var(--grey);margin-top:12px;max-width:74ch}
+.frm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px;margin-top:12px}
+.frm .f{min-width:0}
+.frm .f.w2{grid-column:span 2}
+.frm label{display:block;font-size:var(--fs-ui);font-weight:700}
+.frm label i{font-style:normal;color:var(--red-dark)}
+.frm input,.frm select{width:100%;font-size:16px;min-height:44px;border:1px solid var(--line);border-radius:var(--r-ctl);padding:0 12px;background:#fff;color:var(--black);margin-top:4px}
+.frm [aria-invalid="true"]{border-color:var(--red);background:var(--red-tint)}
+.frm .e{font-size:var(--fs-caption);color:var(--red-dark);font-weight:700;margin-top:2px}
+.acts2{display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center;margin-top:16px}
+.acts2 .hint{font-size:var(--fs-ui);color:var(--grey)}
+.amsg{border:1px solid var(--black);border-radius:var(--r-ctl);padding:10px 12px;font-size:var(--fs-ui);margin-top:12px;background:var(--light)}
+.amsg.bad{border-color:var(--red);background:var(--red-tint)}
+
+/* ---------- gate ---------- */
+.gate{position:fixed;inset:0;z-index:100;background:var(--black);display:flex;align-items:center;justify-content:center;padding:20px}
+.gate.hidden,#app.hidden{display:none}
+.gate .box{background:#fff;border-radius:var(--r-card);box-shadow:var(--shadow-lift);padding:32px 28px 28px;max-width:420px;width:100%;text-align:center}
+.gate img{height:40px;width:auto;margin-bottom:16px}
+.gate h1{font-size:var(--fs-h2);margin-bottom:4px}
+.gate p{font-size:var(--fs-ui);color:var(--grey);margin-bottom:20px}
+.gate input{width:100%;font-size:16px;text-align:center;border:1px solid var(--line);border-radius:var(--r-ctl);min-height:48px;padding:0 14px;background:#fff}
+.gate button{width:100%;margin-top:12px;font-size:var(--fs-body);font-weight:700;background:var(--red);color:#fff;border:none;border-radius:var(--r-ctl);min-height:48px;cursor:pointer}
+.gate button[disabled]{opacity:.55;cursor:wait}
+.gate .err{color:var(--red-dark);font-size:var(--fs-ui);font-weight:700;margin-top:12px;min-height:20px}
+.gate .note{font-size:var(--fs-caption);color:var(--grey);margin-top:12px}
+.gate .backlink{display:inline-flex;align-items:center;min-height:44px;font-size:var(--fs-ui);font-weight:700;color:var(--grey)}
+
+.totop{position:fixed;right:20px;bottom:20px;z-index:45;display:none;background:var(--black);color:#fff;border:none;border-radius:50%;width:48px;height:48px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.28);align-items:center;justify-content:center}
+.totop.show{display:flex}
+.foot{border-top:1px solid var(--border);background:#fff}
+.foot .fin{max-width:1160px;margin:0 auto;padding:16px 20px;display:flex;gap:6px 16px;flex-wrap:wrap;font-size:var(--fs-caption);color:var(--grey)}
+.foot b{color:var(--black)}
+.foot a{color:var(--grey);font-weight:700}
+
+.btn,.qbtn,.nbtn,.atile,.out,.seg button{transition:transform 90ms ease-out,background-color 120ms ease-out,border-color 120ms ease-out,color 120ms ease-out}
+@media(hover:hover){
+.btn:hover,.qbtn:hover,.head .out:hover{border-color:var(--black)}
+.btn.main:hover,.qbtn.add:hover{background:var(--red);border-color:var(--red)}
+.qbtn.primary:hover,.gate button:hover{background:var(--red-dark);border-color:var(--red-dark)}
+.btn.text:hover{color:var(--red);border-color:transparent}
+.npin a:hover,.srow:hover{background:var(--light)}
+.nbtn:hover{background:var(--red)}
+.totop:hover{background:var(--red)}
+.foot a:hover,.swap a:hover,.gate .backlink:hover{color:var(--red)}
+}
 
 /* ---------- Alerts: work tickets, property supplies, vendor supplies, opportunity replies,
 requests and reports, by FSM (Sep 2026, redesigned Oct 18 2026) ----------
@@ -211,17 +241,17 @@ Type scale 12 / 13 / 15 / 16, 4px spacing grid, radius 8 / 12 / 14. */
 .aseg button.on{background:var(--black);color:#fff}
 .ahead .arefresh{font-family:inherit;font-size:13px;font-weight:700;color:var(--grey);border:1.5px solid var(--border);border-radius:10px;background:#fff;padding:0 14px;min-height:44px;cursor:pointer;transition:transform 90ms ease-out,color 120ms ease-out,border-color 120ms ease-out}
 .ahead .arefresh:active{transform:scale(.97)}
-.aneed{display:block;background:#fdf8ea;border-left:4px solid var(--gold);padding:12px 20px;font-size:13px;font-weight:700;color:var(--black)}
+.aneed{display:block;background:var(--light);border:1px solid var(--black);border-radius:8px;margin:0 20px 12px;padding:12px 16px;font-size:13px;font-weight:700;color:var(--black)}
 .anote{flex-basis:100%;font-size:12px;font-weight:700;color:var(--red);text-align:right}
 .aempty{text-align:center;color:var(--grey);font-size:13px;padding:28px 16px;border:1px dashed var(--border);border-radius:12px;margin-top:8px}
 .aempty b{display:block;color:var(--black);font-size:15px;margin-bottom:2px}
 /* tiles: one per bucket, the number first */
 .atiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;padding:16px 20px 4px}
-.atile{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;border:1.5px solid var(--border);border-radius:12px;background:#fff;padding:14px 14px 12px;min-height:104px;cursor:pointer;color:var(--black);position:relative;font-family:inherit;transition:border-color 120ms ease-out,transform 90ms ease-out}
+.atile{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;border:1.5px solid var(--border);border-radius:12px;background:#fff;padding:14px 14px 12px;min-height:88px;cursor:pointer;color:var(--black);position:relative;font-family:inherit;transition:border-color 120ms ease-out,transform 90ms ease-out}
 .atile:active{transform:scale(.985)}
-.atile .tn{font-size:30px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.atile .tn{font-size:28px;font-variant-numeric:tabular-nums;font-weight:700;line-height:1;letter-spacing:-.02em}
 .atile .tl{font-size:13px;font-weight:700;line-height:1.25;margin-top:3px}
-.atile .ts{font-size:11px;color:var(--grey);line-height:1.3}
+.atile .ts{font-size:12px;color:var(--grey);line-height:1.3}
 .atile .tm{position:absolute;top:12px;right:12px;width:10px;height:10px;border-radius:50%}
 .atile.on{background:var(--black);border-color:var(--black);color:#fff}
 .atile.on .ts{color:#D9D7D2}
@@ -238,7 +268,7 @@ Type scale 12 / 13 / 15 / 16, 4px spacing grid, radius 8 / 12 / 14. */
 @keyframes alsk{0%{background-position:100% 50%}100%{background-position:0 50%}}
 @media(prefers-reduced-motion:reduce){.skel{animation:none;background:#EFEFEF}}
 .askel .st{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;padding:16px 0 12px}
-.askel .st .skel{height:104px;border-radius:12px}
+.askel .st .skel{height:88px;border-radius:12px}
 .askel .sb{border:1px solid var(--border);border-radius:12px;margin-top:8px;padding:16px 18px}
 .askel .sb .skel{height:12px;margin-bottom:10px}
 .askel .sb .skel.t{height:16px;width:40%}
@@ -252,23 +282,26 @@ Type scale 12 / 13 / 15 / 16, 4px spacing grid, radius 8 / 12 / 14. */
 .agh .sub{text-transform:none;letter-spacing:0;font-weight:400}
 .aunm{margin-top:18px;border-top:1px solid var(--border);padding-top:4px}
 /* one row per alert: colour stripe, main, actions */
-.ablk{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:0 16px;border:1px solid var(--border);border-radius:12px;margin-top:8px;background:#fff;overflow:hidden}
-.ablk .stripe{background:var(--border)}
+.ablk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 16px;border:1px solid var(--border);border-radius:12px;margin-top:8px;background:#fff;overflow:hidden}
+.ablk .stripe{display:none}
 .ablk.tickets .stripe{background:var(--red)}
 .ablk.prop .stripe{background:#C8961E}
 .ablk.vend .stripe{background:#0F7C8C}
 .ablk.opp .stripe{background:#1F5FA8}
 .ablk.req .stripe{background:#7A1F7A}
-.ablk .bmain{padding:14px 0 14px 14px;min-width:0}
+.ablk .bmain{padding:14px 0 14px 16px;min-width:0}
 .ablk .bside{padding:14px 14px 14px 0;display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:0}
-.bkind{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);line-height:1.3}
+.bkind{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);line-height:1.3}
 .bkind .owner{font-weight:400;letter-spacing:0;text-transform:none}
-.btitle{font-size:16px;font-weight:700;line-height:1.3;margin-top:3px;overflow-wrap:anywhere}
-.btitle .bint{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-left:8px;vertical-align:2px;white-space:nowrap}
+.btitle{font-size:17px;font-weight:700;line-height:1.3;margin-top:3px;overflow-wrap:anywhere}
+.btitle .bint{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-left:8px;vertical-align:2px;white-space:nowrap}
 .bsub{font-size:13px;color:var(--black);margin-top:3px;overflow-wrap:anywhere}
 .bsub b{font-weight:700}
 .bsum{font-size:13px;color:var(--black);margin-top:3px;overflow-wrap:anywhere}
-.bsum.urgent{color:var(--red);font-weight:700;border-left:3px solid var(--red);padding-left:8px}
+.bsum.urgent{color:var(--red-dark);font-weight:700}
+.ablk:has(.bsum.urgent){border-color:var(--red);background:var(--red-tint)}
+.bflag{background:var(--red);color:#fff;border-radius:4px;padding:0 7px;letter-spacing:0;text-transform:none}
+.bkind svg{flex:none}
 .bmeta{font-size:12px;color:var(--grey);margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 14px}
 .bmeta b{color:var(--black)}
 .bmeta a{color:var(--grey);font-weight:700}
@@ -276,11 +309,11 @@ Type scale 12 / 13 / 15 / 16, 4px spacing grid, radius 8 / 12 / 14. */
 .sup{display:flex;align-items:center;gap:10px;margin-top:10px;border-radius:8px;padding:9px 12px;font-size:13px;font-weight:700;line-height:1.3;max-width:560px}
 .sup svg{width:18px;height:18px;flex:none}
 .sup small{display:block;font-weight:400;font-size:12px}
-.sup.yes{background:#FFF1F1;color:#B01F27;border:1px solid #F3C8CB}
+.sup.yes{background:var(--light);color:var(--black);border:1px solid var(--border)}
 .sup.no{background:var(--light);color:var(--black);border:1px solid var(--border)}
 .sup.missing{background:#B01F27;color:#fff;border:1px solid #B01F27}
 .sup.missing small{color:#FFD9DB}
-.sup.unk{background:#FFF8E6;color:#7A5A00;border:1px solid #EBD39A}
+.sup.unk{background:#fff;color:var(--black);border:1px solid var(--black)}
 .bside .bcount{font-size:13px;font-weight:700;color:var(--black);white-space:nowrap}
 .bside .bcount.zero{color:var(--grey);font-weight:400}
 .bside .bhint{font-size:12px;color:var(--grey);text-align:right;max-width:260px}
@@ -288,7 +321,7 @@ Type scale 12 / 13 / 15 / 16, 4px spacing grid, radius 8 / 12 / 14. */
 .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 .acts .cgrp,.acts .sgrp{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .acts .sep{width:1px;height:24px;background:var(--border);flex:none}
-.abtn,.aact{font-family:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:0 14px;cursor:pointer;min-height:40px;white-space:nowrap;border:1.5px solid var(--border);background:#fff;color:var(--black);display:inline-flex;align-items:center;gap:6px;text-decoration:none;line-height:1;transition:transform 90ms ease-out,background 120ms ease-out,color 120ms ease-out,border-color 120ms ease-out}
+.abtn,.aact{font-family:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:0 14px;cursor:pointer;min-height:44px;white-space:nowrap;border:1.5px solid var(--border);background:#fff;color:var(--black);display:inline-flex;align-items:center;gap:6px;text-decoration:none;line-height:1;transition:transform 90ms ease-out,background 120ms ease-out,color 120ms ease-out,border-color 120ms ease-out}
 .aact{color:var(--grey);border-color:var(--border)}
 .aact svg,.abtn svg{width:14px;height:14px;flex:none}
 .abtn.main{background:var(--black);border-color:var(--black);color:#fff}
@@ -305,14 +338,14 @@ Type scale 12 / 13 / 15 / 16, 4px spacing grid, radius 8 / 12 / 14. */
 }
 /* replies inside a posting */
 .areplies{grid-column:1 / -1;border-top:1px solid var(--border);background:#fcfbf8}
-.areplies .rhead{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);padding:10px 18px 0}
+.areplies .rhead{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);padding:10px 18px 0}
 .arep{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:8px 16px;align-items:center;padding:12px 14px 12px 18px;border-top:1px solid var(--border)}
 .rhead+.arep{border-top:none}
 .arep .rwho{min-width:0}
-.arep .rco{font-size:14px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+.arep .rco{font-size:15px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
 .arep .rname{font-size:12px;color:var(--grey);margin-top:2px}
 .arep .rwhen{font-size:12px;color:var(--grey);margin-top:2px}
-.arep .rquote{font-size:14px;font-weight:700;color:var(--black);line-height:1.3;overflow-wrap:anywhere}
+.arep .rquote{font-size:15px;font-weight:700;color:var(--black);line-height:1.3;overflow-wrap:anywhere}
 .arep .rquote.soft{font-weight:400;color:var(--grey)}
 .arep .rquote small{display:block;font-size:12px;font-weight:400;color:var(--grey);margin-top:2px}
 .arep.done{background:var(--light)}
@@ -324,27 +357,27 @@ Type scale 12 / 13 / 15 / 16, 4px spacing grid, radius 8 / 12 / 14. */
 /* handled state */
 .adone{font-size:13px;font-weight:700;color:var(--black);text-align:right;line-height:1.4}
 .adone small{display:block;font-size:12px;font-weight:400;color:var(--grey)}
-.undo{margin-left:8px;font-size:12px;color:var(--grey);cursor:pointer;background:none;border:none;font-family:inherit;font-weight:700;text-decoration:underline;padding:8px 0;min-height:40px}
+.undo{margin-left:8px;font-size:12px;color:var(--grey);cursor:pointer;background:none;border:none;font-family:inherit;font-weight:700;text-decoration:underline;padding:8px 0;min-height:44px}
 .ablk.done{background:var(--light)}
 .ablk.done .btitle,.ablk.done .bsub,.ablk.done .bsum{color:var(--grey)}
 .ablk.done .stripe{background:var(--border)}
 .afoot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 20px 16px;flex-wrap:wrap;border-top:1px solid var(--border);background:#FAFAFA}
-.afoot .showdone{background:none;border:none;font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);cursor:pointer;text-decoration:underline;padding:8px 0;min-height:40px}
-.afoot .markall{font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);border:1px solid var(--border);border-radius:8px;background:#fff;padding:0 12px;min-height:40px;cursor:pointer;margin-left:auto}
+.afoot .showdone{background:none;border:none;font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);cursor:pointer;text-decoration:underline;padding:8px 0;min-height:44px}
+.afoot .markall{font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);border:1px solid var(--border);border-radius:8px;background:#fff;padding:0 12px;min-height:44px;cursor:pointer;margin-left:auto}
 .adonelist{padding:0 20px 16px}
 .adonelist .agh{padding-top:8px}
 /* who owns it, and the reassign panel (Sep 23 2026) */
 .bown{font-size:12px;color:var(--grey);margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
 .bown b{color:var(--black)}
 .bown .warn{color:var(--red);font-weight:700}
-.areasb{font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);background:none;border:none;text-decoration:underline;cursor:pointer;padding:6px 0;min-height:32px}
+.areasb{font-family:inherit;font-size:12px;font-weight:700;color:var(--grey);background:none;border:none;text-decoration:underline;cursor:pointer;padding:6px 0;min-height:44px}
 .arp{grid-column:1 / -1;border-top:1px solid var(--border);background:#fcfbf8;padding:14px 18px 16px;display:grid;gap:12px}
 .arp .rl{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);margin-bottom:6px}
 .arp .cands{display:flex;flex-wrap:wrap;gap:8px}
-.arp .cand{font-family:inherit;font-size:13px;text-align:left;border:1.5px solid var(--border);border-radius:8px;background:#fff;padding:8px 12px;cursor:pointer;min-height:40px;color:var(--black);max-width:100%}
+.arp .cand{font-family:inherit;font-size:13px;text-align:left;border:1.5px solid var(--border);border-radius:8px;background:#fff;padding:8px 12px;cursor:pointer;min-height:44px;color:var(--black);max-width:100%}
 .arp .cand small{display:block;font-size:12px;color:var(--grey)}
 .arp .cand.on{border-color:var(--red);box-shadow:0 0 0 3px rgba(210,39,48,.14)}
-.arp input[type=search],.arp select{font-family:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;background:#fff;min-height:42px;width:100%;max-width:420px;color:var(--black)}
+.arp input[type=search],.arp select{font-family:inherit;font-size:16px;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;background:#fff;min-height:44px;width:100%;max-width:420px;color:var(--black)}
 .arp input[type=search]:focus,.arp select:focus{outline:none;border-color:var(--red)}
 .arp .ares{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .arp .chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;cursor:pointer}
@@ -359,41 +392,18 @@ Type scale 12 / 13 / 15 / 16, 4px spacing grid, radius 8 / 12 / 14. */
 .atile .tm.req{background:#7A1F7A}
 .atile .tm.all{background:var(--black)}
 .atile.on .tm.all{background:#fff}
-.astatus{padding:8px 20px;font-size:12px;color:var(--grey);border-top:1px solid var(--border);min-height:32px}
+.astatus{padding:8px 20px;font-size:12px;color:var(--grey);border-top:1px solid var(--border);min-height:36px}
 .astatus .err{color:var(--red);font-weight:700}
-.anew{border-top:3px solid var(--red);background:var(--light);padding:16px 20px 20px}
-.anew h3{font-size:15px}
-.anew h3::after{content:"";display:block;width:34px;height:3px;background:var(--red);border-radius:2px;margin-top:8px}
-.anew p{font-size:13px;color:var(--black);margin-top:8px;max-width:74ch}
 /* Sep 25 2026 menu cleanup notice */
-.anew .nkick{display:inline-flex;align-items:center;gap:8px;background:var(--red);color:#fff;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border-radius:18px;padding:5px 12px;margin-bottom:10px}
-.anew .nkick .dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px rgba(255,255,255,.25)}
-.anew .nhead{font-size:20px;font-weight:700;color:var(--black);line-height:1.2;margin-top:2px}
-.anew .nhead em{font-style:normal;color:var(--red)}
-.anew .ngrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:14px}
-.anew .ncard{background:#fff;border:1px solid var(--border);border-left:4px solid var(--red);border-radius:10px;padding:12px 14px}
-.anew .ncard h4{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--red);margin-bottom:6px}
-.anew .ncard ul{list-style:none;margin:0;padding:0}
-.anew .ncard li{font-size:13px;color:var(--black);padding:4px 0;border-top:1px solid var(--light)}
-.anew .ncard li:first-child{border-top:none}
-.anew .ncard li b{color:var(--black)}
-.anew .ncard li .to{color:var(--grey)}
-.anew .ncard li .to::before{content:"\2192";margin:0 6px;color:var(--red);font-weight:700}
-.anew .nsearch{margin-top:14px;background:var(--black);color:#fff;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.anew .nsearch b{color:var(--gold)}
-.anew .nsearch kbd{display:inline-block;background:#3d3934;color:#fff;border-radius:5px;padding:2px 8px;font-family:inherit;font-weight:700;font-size:12px}
-.anew .nsearch p{color:#e6e4e1;margin:0;font-size:13px;max-width:none}
-.anew > p{max-width:none}
-.anew .nchip{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);border:1px solid var(--border);border-radius:4px;padding:1px 6px;margin-left:4px;vertical-align:1px}
 @media(max-width:640px){
 .ahead .awho{margin-left:0;width:100%}
 .ahead select{font-size:16px;max-width:none;flex:1}
 .atiles,.askel .st{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding-left:14px;padding-right:14px}
-.atile{min-height:92px;padding:12px}
-.atile .tn{font-size:26px}
+.atile{min-height:72px;padding:8px}
+.atile .tn{font-size:21px}
 .alist,.alead,.adonelist,.afoot,.askel{padding-left:14px;padding-right:14px}
-.ablk{grid-template-columns:4px minmax(0,1fr)}
-.ablk .bside{grid-column:2;padding:0 14px 14px 14px;align-items:flex-start}
+.ablk{grid-template-columns:minmax(0,1fr)}
+.ablk .bside{grid-column:1;padding:0 14px 14px 16px;align-items:flex-start}
 .acts{flex-direction:column;align-items:stretch;justify-content:flex-start}
 .acts .sep{display:none}
 .acts .cgrp,.acts .sgrp{justify-content:flex-start}
@@ -402,179 +412,55 @@ Type scale 12 / 13 / 15 / 16, 4px spacing grid, radius 8 / 12 / 14. */
 .adone{text-align:left}
 }
 
-/* ---------- FSM photo band ---------- */
-.photoband{padding:30px 0 40px}
-.photoband .pb{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.photoband figure{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);
-box-shadow:var(--shadow);margin:0;aspect-ratio:16/9;background:var(--black)}
-.photoband img{width:100%;height:100%;object-fit:cover;display:block}
-.photoband figcaption{position:absolute;left:0;right:0;bottom:0;padding:26px 16px 11px;
-background:linear-gradient(180deg,rgba(20,18,16,0) 0%,rgba(20,18,16,.82) 100%);
-color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
-@media(max-width:760px){.photoband .pb{grid-template-columns:1fr}}
 
-/* ---------- The Ops Wall ---------- */
-.wallzone{padding:22px 0 8px}
-.wallgrid{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
-.wcard{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
-.whead{display:flex;align-items:center;gap:10px;padding:15px 20px 12px;border-bottom:1px solid var(--border)}
-.whead .bar-accent{flex:none;width:18px;height:3px;background:var(--red);border-radius:2px}
-.whead h2{font-size:15px}
-.whead .sub{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--grey);
-letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
-.composer{display:flex;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);
-align-items:flex-start;flex-wrap:wrap}
-.composer .cav{width:38px;height:38px;border-radius:50%;background:var(--black);color:#fff;
-display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none}
-.composer .cfields{flex:1;min-width:220px;display:flex;flex-direction:column;gap:8px}
-.composer input,.composer textarea{font-family:inherit;font-size:13px;border:1.5px solid var(--border);
-border-radius:8px;padding:9px 12px;background:var(--light);outline:none;width:100%;resize:vertical}
-.composer input:focus,.composer textarea:focus{border-color:var(--red);background:#fff}
-.composer input{max-width:240px}
-.composer textarea{min-height:44px}
-.composer .crow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.composer button{font-family:inherit;font-size:12.5px;font-weight:700;background:var(--red);
-color:#fff;border:none;border-radius:8px;padding:10px 18px;cursor:pointer}
-.composer button:hover{background:var(--red-dark)}
-.composer button[disabled]{opacity:.5;cursor:wait}
-.composer .werr{font-size:11.5px;font-weight:700;color:var(--red)}
-#wposts{padding:6px 0 8px;max-height:520px;overflow-y:auto}
-.wpost{display:flex;gap:12px;padding:13px 20px;border-bottom:1px solid var(--light)}
-.wpost:last-child{border-bottom:none}
-.wpost .pav{width:38px;height:38px;border-radius:50%;background:var(--grey);color:#fff;
-display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none}
-.wpost.pinned{background:#fdf8ea;border-left:4px solid var(--gold)}
-.wpost.pinned .pav{background:var(--black)}
-.wpost .pbody{flex:1;min-width:0}
-.wpost .pmeta{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.wpost .pname{font-size:13px;font-weight:700}
-.wpost .pdate{font-size:10.5px;color:var(--grey)}
-.wpost .ppin{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-background:var(--gold);color:var(--black);border-radius:8px;padding:1px 7px}
-.wpost .pmsg{font-size:13px;color:var(--black);margin-top:2px;overflow-wrap:break-word}
-.wempty{text-align:center;color:var(--grey);font-size:12.5px;padding:30px 20px}
-.wempty b{display:block;color:var(--black);font-size:13.5px;margin-bottom:4px}
+.alerts{margin-top:0}
+.acard{box-shadow:none;border-radius:11px}
+.atile .tm,.atile .ts{display:none}
+.atile .tl{display:flex;align-items:center;gap:6px;margin-top:4px}
+.atile .tl svg{flex:none;color:var(--grey)}
+.atile.on .tl svg{color:#fff}
+.ahead .acount{font-variant-numeric:tabular-nums}
+@media(max-width:640px){.aneed{margin:0 14px 12px}.atile .tl{font-size:12px}.atile .tl svg{display:none}}
 
-/* ---------- Ops Wall art: "Lead with gratitude" ---------- */
-.poster{padding:12px 8px 6px;max-width:560px;margin:0 auto}
-.poster .picon{width:62px;height:62px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;margin-bottom:20px}
-.poster .pkick{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--grey)}
-.poster .pbig{font-size:clamp(34px,5.2vw,50px);line-height:1.05;color:var(--black);margin-top:10px;font-weight:700}
-.poster .pbig .dot{color:var(--red)}
-.poster .prule{width:88px;height:5px;background:var(--red);border-radius:2px;margin:16px 0 22px}
-.poster .plead{font-size:15.5px;line-height:1.7;color:var(--black)}
-.poster .strike{color:var(--grey);text-decoration:line-through;text-decoration-thickness:2px}
-.poster .pkick2{margin:26px 0 4px}
-.pswap .from{font-size:14px;margin-top:14px}
-.pswap .to{font-size:17px;font-weight:700;margin-top:2px}
-.pswap .to.big{font-size:21px;color:var(--red)}
-.pswap .arrow{color:var(--red);font-weight:700;margin-right:9px}
-.poster .pdiv{border-top:1px solid var(--border);margin:24px 0 18px}
-.poster .pclose{font-size:18.5px;font-weight:700;line-height:1.5}
-.poster .pclose em{font-style:normal;color:var(--red)}
-.poster .pfoot{text-align:center;margin-top:26px;padding-top:20px;border-top:1px solid var(--border)}
-.poster .pfoot img{height:38px;width:auto;display:inline-block}
-.poster .pfoot .pkick{display:block;margin-top:12px;letter-spacing:.22em}
-.poster .pnote{text-align:center;margin-top:16px}
-.poster .pnote a{font-size:11px;color:var(--grey);font-weight:700;text-decoration:none}
-.poster .pnote a:hover{color:var(--red)}
-
-/* helper card next to the wall */
-.helper{background:var(--black);color:#fff;border-radius:14px;box-shadow:var(--shadow);
-padding:20px 22px;position:relative;overflow:hidden}
-.helper h3{font-size:14px;margin-bottom:6px}
-.helper h3::after{content:"";display:block;width:34px;height:3px;background:var(--red);
-border-radius:2px;margin-top:8px}
-.helper p{font-size:12px;color:#cfcdc9;margin-top:8px}
-.helper .keys{margin-top:12px;font-size:11.5px;color:#cfcdc9}
-.helper .keys b{display:inline-block;background:#3d3934;color:#fff;border-radius:5px;
-padding:1px 8px;font-size:11px;margin-right:6px}
-.helper ul{list-style:none;margin-top:10px}
-.helper li{font-size:12px;color:#e6e4e1;padding:3px 0}
-.helper li span{color:var(--gold);font-weight:700}
-
-/* search results (replaces the wall while searching) */
-#searchzone{display:none}
-#searchzone.show{display:block}
-#wallgrid.hidden{display:none}
-.scard{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);
-padding:6px 0 8px}
-.srow{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:var(--black);
-text-decoration:none;padding:9px 20px}
-.srow:hover{background:var(--light);color:var(--red)}
-.srow svg{color:var(--red);flex:none}
-.srow .path{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--grey);
-letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-.noresults{display:none;text-align:center;color:var(--grey);padding:40px 20px}
-.noresults b{display:block;color:var(--black);font-size:15px;margin-bottom:6px}
-.noresults.show{display:block}
-
-.totop{position:fixed;right:22px;bottom:22px;z-index:45;display:none;background:var(--black);
-color:#fff;border:none;border-radius:50%;width:46px;height:46px;font-size:17px;font-weight:700;
-cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.28)}
-.totop:hover{background:var(--red)}
-.totop.show{display:block}
-.foot{border-top:1px solid var(--border);margin-top:26px;background:#fff}
-.foot .fin{max-width:1160px;margin:0 auto;padding:20px;display:flex;align-items:center;gap:14px;
-font-size:12px;color:var(--grey);flex-wrap:wrap}
-.foot .fin a{color:var(--grey);font-weight:700;font-style:italic;text-decoration:none}
-.foot .fin a:hover{color:var(--red)}
-.foot b{color:var(--black)}
-.foot .fr{margin-left:auto;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
-.foot .fr span{color:var(--red);padding:0 6px}
-
-/* Gate (unchanged behavior) */
-.gate{position:fixed;inset:0;z-index:100;background:linear-gradient(rgba(45,42,38,.92),rgba(45,42,38,.88)),
-url('https://emailer.emfluence.com/clients/citywide/uploadedfiles/2020_Rebrand/Image_Library/bigstock-Ceo-Office-Interior-With-Glass-430518427_small.jpg') center/cover;
-display:flex;align-items:center;justify-content:center;padding:20px}
-.gate.hidden{display:none}
-.gate .box{background:#fff;border-radius:14px;box-shadow:var(--shadow-lift);
-border-top:5px solid var(--red);padding:34px 30px 30px;max-width:420px;width:100%;text-align:center}
-.gate img{height:40px;width:auto;margin-bottom:18px}
-.gate h1{font-size:20px;margin-bottom:6px}
-.gate p{font-size:13px;color:var(--grey);margin-bottom:20px}
-.gate input{width:100%;font-family:inherit;font-size:16px;text-align:center;letter-spacing:.04em;
-border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;background:#fff}
-.gate input:focus{outline:none;border-color:var(--red)}
-.gate button{width:100%;margin-top:12px;font-family:inherit;font-size:15px;font-weight:700;
-background:var(--red);color:#fff;border:none;border-radius:8px;padding:13px;cursor:pointer}
-.gate button:hover{background:var(--red-dark)}
-.gate button[disabled]{opacity:.5;cursor:wait}
-.gate .err{color:var(--red);font-size:12.5px;font-weight:700;margin-top:12px;min-height:16px}
-.gate .note{font-size:11px;color:var(--grey);margin-top:16px}
-.gate .backlink{display:inline-block;margin-top:14px;font-size:11.5px;font-weight:700;
-color:var(--grey);text-decoration:none}
-.gate .backlink:hover{color:var(--red)}
-#app.hidden{display:none}
-
+/* ---------- responsive ---------- */
 @media(max-width:900px){
-.wallgrid{grid-template-columns:1fr}
-}
-@media(max-width:820px){
-.nav-in{flex-wrap:nowrap;overflow-x:auto;padding:0 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.nav-in::-webkit-scrollbar{display:none}
-.nbtn{padding:0 10px;font-size:12px;gap:5px}
-.nmenu{position:fixed;left:10px;right:10px;width:auto;max-width:none;border-radius:10px;
-border-top:3px solid var(--red);max-height:65vh;overflow-y:auto;z-index:120}
-.nmenu.portal{position:fixed}
-.nsubmenu{position:static;border:none;box-shadow:none;padding:0 0 4px 14px;display:none}
-.nsubmenu.show{display:block}
-.head .t,.head .badge{display:none}
-.hsearch{max-width:none}
+.swap{grid-template-columns:1fr}
+.frm{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:640px){
-/* phones: the bar wraps (logo and pills, then the search on its own row) and only the
-   nav stays pinned, so the sticky strip is 44px instead of a quarter of the screen */
+/* phones: the bar wraps (logo and links, then search on its own row) and only the menu stays pinned */
 .head{position:static;box-shadow:none}
 nav.mainnav{position:sticky;top:0;z-index:50}
-.head .bar{height:auto;flex-wrap:wrap;padding:8px 12px;row-gap:8px;gap:8px}
-.head img{height:28px}
-.head .out{margin-left:auto}
-.head #signout{order:10;margin-left:0}
-.hsearch{order:9;flex:1 1 auto;min-width:0;margin-left:0}
-.hero .wrap{padding-bottom:104px}
-.quick{margin-top:-40px}
-.fcard{gap:14px}
+.head .bar{flex-wrap:wrap;padding:8px 12px;gap:8px;min-height:0}
+.head .bar img{height:22px}
+.head .t{display:none}
+.head .out{padding:0 8px;font-size:var(--fs-caption)}
+.head .out.portal{margin-left:auto}
+.hsearch{order:9;flex:1 1 100%;max-width:none;margin-left:0}
+.hsearch kbd{display:none}
+.navfade{display:block}
+.npanel{max-height:60vh}
+.npin{grid-template-columns:1fr;padding:12px;gap:12px}
+.npin a{min-height:44px}
+.wrap{padding:0 12px}
+.main{padding-top:12px;padding-bottom:24px;gap:12px}
+.phead .psub{display:none}
+.who{margin-left:0;width:100%}
+.who select{flex:1;max-width:none}
+.qrow{flex-wrap:nowrap;overflow-x:auto;margin:0 -12px;padding:0 12px;scrollbar-width:none}
+.qrow::-webkit-scrollbar{display:none}
+.qrow .ql{display:none}
+.strip,.swap,.addp{padding:12px}
+.strip .sb .btn,.acts2 .btn{flex:1 1 auto;justify-content:center}
+.frm{grid-template-columns:1fr}
+.frm .f.w2{grid-column:auto}
+.addp .seg{display:grid;grid-template-columns:1fr 1fr;width:100%}
+.addp .seg button,.addp .seg button+button{border:0;box-shadow:0 0 0 .5px var(--black)}
+details.card summary{padding:0 12px}
+.dbody{padding:0 12px 12px}
+}
+@media(prefers-reduced-motion:reduce){
+.btn,.qbtn,.nbtn,.atile,.out,.seg button,details.card summary svg{transition:none}
 }
 </style>
 <link rel="icon" href="favicon.ico" sizes="any">
@@ -591,11 +477,12 @@ nav.mainnav{position:sticky;top:0;z-index:50}
 <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
 <h1>Operations Hub</h1>
 <p id="gnote">Internal team access. Enter the team passcode. This browser stays signed in.</p>
+<label class="sr" for="pc">Team passcode</label>
 <input type="password" id="pc" placeholder="Team passcode" autocomplete="current-password" autofocus>
-<button id="enter">Enter</button>
-<div class="err" id="gerr"></div>
+<button id="enter" type="button">Enter</button>
+<div class="err" id="gerr" role="alert"></div>
 <div class="note">Ask TJ if you do not have the passcode.</div>
-<a class="backlink" href="https://citywidelv.github.io/">&larr; Back to the Nevada Team Portal</a>
+<a class="backlink" href="https://citywidelv.github.io/">Back to the Nevada Team Portal</a>
 </div>
 </div>
 
@@ -604,115 +491,98 @@ nav.mainnav{position:sticky;top:0;z-index:50}
 <div class="bar">
 <img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
 <span class="t">Ops Hub</span>
-<div class="hsearch">
-<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-<input id="toolsearch" type="search" placeholder="Find a tool, form, or calculator..." autocomplete="off">
-<button class="x" id="searchX">&#10005;</button>
+<div class="hsearch" role="search">
+<label class="sr" for="toolsearch">Find a tool, form or calculator</label>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+<input id="toolsearch" type="search" placeholder="Find a tool, form or calculator" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="searchresults" aria-autocomplete="list">
+<button class="x" id="searchX" type="button" aria-label="Clear search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+<kbd aria-hidden="true">/</kbd>
+<div class="spanel" id="searchzone" hidden>
+<div id="searchresults" role="listbox" aria-label="Search results"></div>
+<div class="noresults" id="noresults" hidden><b>No tool matches that.</b>Try one word, like audit, exhibit, invite, COI or route.</div>
 </div>
-<span class="badge">Internal Team Use</span>
-<a class="out" href="https://citywidelv.github.io/">&larr; Team Portal</a>
+</div>
+<a class="out portal" href="https://citywidelv.github.io/">Team Portal</a>
 <a class="out" id="signout" href="#">Sign out</a>
 </div>
-<nav class="mainnav"><div class="nav-in" id="mainnav"></div></nav>
+<nav class="mainnav" aria-label="Ops Hub menu"><div class="nav-in" id="mainnav"></div><span class="navfade" aria-hidden="true"></span><div id="navpanels"></div></nav>
 </header>
 
-<section class="hero">
-<svg class="sky" viewBox="0 0 1400 170" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-<path fill="#3f3b34" d="M660 170v-62l64-36 50 28 44-24 58 32 48-20 52 28 64-30 74 36 74-24 64 28 42-16 66 24v56z" opacity=".85"/>
-<g fill="#5c564d">
-<rect x="20" y="104" width="34" height="66"/>
-<rect x="64" y="88" width="26" height="82"/>
-<rect x="100" y="112" width="42" height="58"/>
-<rect x="166" y="40" width="6" height="130"/>
-<path d="M156 52h26l-5-14h-16z"/>
-<circle cx="169" cy="36" r="8"/>
-<rect x="167.4" y="10" width="3.2" height="20"/>
-<path d="M198 170l42-64 42 64z"/>
-<rect x="292" y="76" width="24" height="94"/>
-<rect x="322" y="94" width="32" height="76"/>
-<path d="M366 170V84l17-11 17 11v86z"/>
-<g stroke="#5c564d" fill="none" stroke-width="4.5">
-<circle cx="470" cy="96" r="44"/>
-<path d="M470 52v88M426 96h88M439 65l62 62M501 65l-62 62"/>
-</g>
-<path d="M450 170l20-62 20 62z"/>
-<rect x="530" y="98" width="28" height="72"/>
-<rect x="566" y="116" width="46" height="54"/>
-<rect x="622" y="90" width="20" height="80"/>
-</g>
-<g fill="#544e45">
-<rect x="880" y="106" width="30" height="64"/>
-<rect x="918" y="88" width="24" height="82"/>
-<rect x="950" y="112" width="38" height="58"/>
-<rect x="996" y="96" width="22" height="74"/>
-<g stroke="#6e675c" fill="none" stroke-width="5">
-<path d="M1044 170v-40a47 30 0 0 1 94 0v40"/>
-</g>
-<rect x="1040" y="120" width="8" height="12" fill="#6e675c"/>
-<rect x="1134" y="120" width="8" height="12" fill="#6e675c"/>
-<rect x="1160" y="100" width="30" height="70"/>
-<rect x="1198" y="116" width="42" height="54"/>
-<rect x="1250" y="92" width="22" height="78"/>
-<rect x="1280" y="110" width="36" height="60"/>
-<rect x="1326" y="96" width="26" height="74"/>
-<rect x="1360" y="118" width="30" height="52"/>
-</g>
-<rect x="0" y="166" width="1400" height="4" fill="#D22730"/>
-</svg>
-<div class="wrap">
-<div class="htext">
-<h1>City Wide Operations Hub</h1>
-<p>Every tool the operations team uses, one page. Use the menus above or type in the
-search box to jump straight to what you need.</p>
-<div class="cities"><b>Las Vegas</b><span class="dot">&bull;</span><b>Northern Nevada</b>
-&nbsp;&nbsp;Proudly serving the Silver State</div>
+<main class="wrap main">
+<div class="phead"><h1>Operations Hub</h1><span class="psub">Las Vegas and Northern Nevada</span>
+<div class="who"><label for="alwho">You are</label><select id="alwho"><option value="">Pick your name</option></select></div></div>
+
+<div class="qrow" id="quickrow" aria-label="Most used"></div>
+
+<section class="card addp" id="addp" aria-labelledby="addh" hidden>
+<div class="aphead"><h2 id="addh">Add a vendor or building</h2>
+<div class="seg" role="group" aria-label="What to add" id="addseg"><button type="button" data-add="v1" aria-pressed="true">One vendor</button><button type="button" data-add="vf" aria-pressed="false">Vendor file</button><button type="button" data-add="b1" aria-pressed="false">One building</button><button type="button" data-add="bf" aria-pressed="false">Building file</button></div>
+<button class="btn text" type="button" id="addclose">Close</button></div>
+
+<div data-pane="v1">
+<p class="lead">The short version. Name, market and one service put the vendor in the directory as a Prospect. Everything else can wait for the full form.</p>
+<form class="frm" id="fv1" novalidate>
+<div class="f w2"><label for="v_name">Business name <i>required</i></label><input id="v_name" autocomplete="off"><div class="e" id="v_name_e"></div></div>
+<div class="f"><label for="v_mkt">Market <i>required</i></label><select id="v_mkt"><option value="">Pick one</option><option>Las Vegas</option><option>Northern Nevada</option><option>Both</option></select><div class="e" id="v_mkt_e"></div></div>
+<div class="f"><label for="v_svc">Main service <i>required</i></label><select id="v_svc"><option value="">Loading the list</option></select><div class="e" id="v_svc_e"></div></div>
+<div class="f"><label for="v_contact">Contact name</label><input id="v_contact" autocomplete="off"></div>
+<div class="f"><label for="v_phone">Mobile phone</label><input id="v_phone" type="tel" inputmode="tel" autocomplete="off" placeholder="(702) 555-0142"></div>
+<div class="f w2"><label for="v_email">Email</label><input id="v_email" type="email" inputmode="email" autocomplete="off"><div class="e" id="v_email_e"></div></div>
+</form>
+<div class="acts2"><button class="btn main" type="submit" form="fv1" id="v_go">Add vendor</button><a class="btn" href="vendor-add.html">Use the full vendor form</a></div>
+<div class="amsg" id="v_msg" role="status" hidden></div>
 </div>
-<div class="hphoto">
-<div class="ph1"><img src="images/fsm-uniform-building.jpg" alt="Facility Solutions Manager in City Wide uniform in front of a commercial building"></div>
-<div class="pcap">Facility Solutions Managers &middot; <b>Your One Team</b></div>
+
+<div data-pane="vf" hidden>
+<p class="lead">Bulk Vendor Import takes the Jotform evaluation export, the CRM "Active &amp; In Process ICs" export, or a list of potential vendors. Every row is checked against the directory first. Nothing is written until you approve.</p>
+<div class="acts2"><a class="btn main" href="vendor-import.html">Open Bulk Vendor Import</a><span class="hint">.csv or .xlsx</span></div>
 </div>
+
+<div data-pane="b1" hidden>
+<p class="lead">Use the name exactly as it reads in CRM and Business Central. The building goes into the account directory right away, and accounting is asked to confirm the name. Add it in CRM too. Alerts and work tickets pick it up from the next CRM upload.</p>
+<form class="frm" id="fb1" novalidate>
+<div class="f w2"><label for="b_name">Account or building name <i>required</i></label><input id="b_name" autocomplete="off"><div class="e" id="b_name_e"></div></div>
+<div class="f"><label for="b_reg">Region <i>required</i></label><select id="b_reg"><option value="">Pick one</option><option>Las Vegas</option><option>Northern Nevada</option></select><div class="e" id="b_reg_e"></div></div>
+<div class="f w2"><label for="b_addr">Street address</label><input id="b_addr" autocomplete="off"></div>
+<div class="f"><label for="b_zip">ZIP code</label><input id="b_zip" inputmode="numeric" autocomplete="off" maxlength="5"></div>
+<div class="f"><label for="b_fsm">FSM</label><select id="b_fsm"><option value="">Pick one</option></select></div>
+</form>
+<div class="acts2"><button class="btn main" type="submit" form="fb1" id="b_go">Add building</button><a class="btn" href="https://citywidelv.github.io/cw-admin-hub/accounts.html">Open the Account Directory</a></div>
+<div class="amsg" id="b_msg" role="status" hidden></div>
+</div>
+
+<div data-pane="bf" hidden>
+<p class="lead">In CRM, open the view "Active Customers - JS and OS Clients" and click Export to Excel. Upload the file as CRM gives it. Las Vegas and Northern Nevada are separate files. You see a preview before anything changes.</p>
+<div class="acts2"><a class="btn main" href="https://citywidelv.github.io/cw-admin-hub/account-fsm.html">Open the CRM building upload</a><span class="hint">.xlsx, on the Admin Hub. Same passcode.</span></div>
 </div>
 </section>
 
-<div class="wrap quick" id="quickwrap">
-<div class="qcard">
-<div class="qhead"><span class="bar-accent"></span><h2>Most Used</h2></div>
-<div class="qrow" id="quickrow"></div>
-</div>
-</div>
-
-<div class="wrap feature">
-<div class="fcard">
-<span class="ficon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
-<div class="ftext"><h3>Building Information Sheets</h3>
-<p>One living sheet per account: access, schedule, alarm procedure, locations, tenants, and photos. Print-ready for walkthroughs and crew turnover.</p></div>
-<div class="fbtns">
-<a class="fbtn solid" href="building-sheets.html">Browse the Sheet Library</a>
-<a class="fbtn line" href="building-sheet.html">New / Update a Sheet</a>
-</div>
-</div>
-</div>
-
-<div class="wrap alerts" id="alerts">
-<section class="acard">
-<div class="ahead"><span class="bar-accent"></span><h2>Alerts</h2><span class="acount" id="alcount">&hellip;</span>
-<div class="awho"><label for="alwho">You are</label> <select id="alwho"><option value="">Pick your name</option></select>
-<span class="aseg" id="alseg"><button type="button" data-view="mine" class="on">Mine</button><button type="button" data-view="all">See all</button></span>
+<div class="alerts" id="alerts">
+<section class="acard" aria-labelledby="alh">
+<div class="ahead"><h2 id="alh">Alerts</h2><span class="acount" id="alcount">&hellip;</span>
+<div class="awho"><span class="aseg" id="alseg"><button type="button" data-view="mine" class="on">Mine</button><button type="button" data-view="all">See all</button></span>
 <button class="arefresh" id="alrefresh" type="button">Refresh</button></div></div>
-<div id="albody"><div class="aempty">Loading&hellip;</div></div>
+<div id="albody" aria-live="polite"><div class="aempty">Loading&hellip;</div></div>
 <div class="astatus" id="alstatus"></div>
-<div class="anew">
-<div class="nkick"><span class="dot"></span>What's new &middot; September 25</div>
-<div class="nhead">The menus got a haircut. <em>Everything is still here.</em> It is just listed once.</div>
-<p>171 menu rows became about 95. No page was removed or moved. If something you used is not where it was, it is in one of the places below, or one search away.</p>
-<div class="ngrid">
-<div class="ncard"><h4>What changed at the top</h4><ul>
-<li><b>Opportunities</b> is its own menu now. Post, Active Postings, Vendor Responses, Live Board and Edit a Posting in one place.</li>
-<li><b>Work Tickets</b> moved under <b>Accounts &amp; Buildings</b>, next to building sheets and account changes.</li>
-<li><b>Vendor Profile</b> is under Vendors. Everything about one vendor on one page.</li>
-<li>Labels are short. A small chip on the right tells you where a link goes<span class="nchip">Admin</span><span class="nchip">Vendor Hub</span><span class="nchip">Jotform</span></li>
+</section>
+</div>
+
+<section class="card strip" aria-labelledby="bsh">
+<div class="st"><h2 id="bsh">Building Information Sheets</h2><p>One living sheet per account. Access, schedule, alarm procedure, locations, tenants and photos. Print-ready for walkthroughs and crew turnover.</p></div>
+<div class="sb"><a class="btn main" href="building-sheets.html">Browse the Sheet Library</a><a class="btn" href="building-sheet.html">New or Update a Sheet</a></div>
+</section>
+
+<details class="card">
+<summary><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>What changed on the hub<span class="when">November 21</span></summary>
+<div class="dbody">
+<div><h3>New this week</h3><ul>
+<li><b>Alerts come first.</b> The photo banner is gone so your list is on the first screen.</li>
+<li><b>Pick your name once</b> at the top of the page. It drives your alerts.</li>
+<li><b>Search shows results right under the box.</b> Arrow keys and Enter work.</li>
+<li><b>Add vendor or building</b> is a button beside Post an Opportunity.</li>
+<li><b>Each menu opens as one panel</b> with every link showing.</li>
 </ul></div>
-<div class="ncard"><h4>Where things moved</h4><ul>
+<div><h3>Where things moved in September</h3><ul>
 <li><b>Vendor Resources</b> (25 links) <span class="to">Vendors &gt; Vendor Hub. Every page is a tile on the Vendor Hub home</span></li>
 <li><b>Form Submissions</b> list <span class="to">Team &amp; Admin &gt; Form Submissions. One page, every form, with counts</span></li>
 <li><b>Active Vendors</b> by type <span class="to">Vendors &gt; Directory &gt; your market. Pick Janitorial, Other Services or Prospects on the page</span></li>
@@ -720,82 +590,32 @@ search box to jump straight to what you need.</p>
 <li><b>Office Inventory</b> actions <span class="to">Team &amp; Admin &gt; Office Inventory. Count, receive and issue are buttons on the page</span></li>
 <li><b>Brady, Staples, HD Supply</b> <span class="to">Admin Hub &gt; Team &amp; Admin &gt; Ordering, and the Team Portal</span></li>
 </ul></div>
-<div class="ncard"><h4>Use the other hubs</h4><ul>
+<div><h3>Use the other hubs</h3><ul>
 <li><b>Vendor Hub</b> is for anything a vendor does. Invoices, uploads, the shop, guides, the wall. Send vendors there and go there to see what they see.</li>
 <li><b>Admin Hub</b> is the back office. Records one at a time, onboarding, background check results, uniform orders, every sheet.</li>
 <li><b>Team Portal</b> is the front door. Team apps, CRM, ordering and the Team Wall live there for every role.</li>
 <li><b>Sales Hub</b> has the calculators and the Building Survey for the sales team.</li>
 </ul></div>
+<p class="tip"><b>Fastest way to anything is the search box at the top.</b> Type one word. Audit, exhibit, invite, COI, route. It searches every menu label and shows you the path. On a computer, press / from anywhere on this page to jump to it.</p>
 </div>
-<div class="nsearch"><p><b>Fastest way to anything is the search box at the top.</b> Type one word. Audit, exhibit, invite, COI, route. It searches every menu label and shows you the path, so you never have to open a dropdown to find a tool. On a computer, press <kbd>/</kbd> from anywhere on this page to jump to it.</p></div>
-</div>
+</details>
+
+<section class="card swap" id="opswallspace" aria-labelledby="gh">
+<div><h2 id="gh">Lead with gratitude.</h2><p>&ldquo;I&rsquo;m sorry&rdquo; puts you on the defensive. &ldquo;Thank you for letting me know&rdquo; keeps you on the client&rsquo;s side of the table, equal stature, focused on the fix.</p>
+<p><a href="https://citywidelv.github.io/">Team updates now live on the Team Wall</a></p></div>
+<dl>
+<div><dt>&ldquo;I&rsquo;m sorry about that.&rdquo;</dt><dd>&ldquo;Thank you for letting me know.&rdquo;</dd></div>
+<div><dt>&ldquo;I&rsquo;m sorry you waited.&rdquo;</dt><dd>&ldquo;Thank you for your patience.&rdquo;</dd></div>
+<div><dt>&ldquo;I&rsquo;m sorry for the trouble.&rdquo;</dt><dd>&ldquo;Thank you for letting us make it right.&rdquo;</dd></div>
+</dl>
 </section>
-</div>
+</main>
 
-<div class="wrap wallzone">
-<div id="searchzone">
-<div class="scard" id="searchresults"></div>
-<div class="noresults" id="noresults"><b>No tools match.</b>Try fewer words, or clear the search.</div>
-</div>
-<div class="wallgrid" id="wallgrid">
-<section class="wcard" id="opswallspace">
-<div class="whead"><span class="bar-accent"></span><h2>The Ops Wall</h2>
-<span class="sub">For the operations team</span></div>
-<div class="poster">
-<div class="picon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h1v3l3.5-3H14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/><path d="M18 9h1a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-1v3l-3.5-3H12"/></svg></div>
-<div class="pkick">For Our Facility Solutions Managers</div>
-<div class="pbig">Lead with gratitude<span class="dot">.</span></div>
-<div class="prule"></div>
-<p class="plead"><span class="strike">&ldquo;I&rsquo;m sorry&rdquo;</span> puts you on the defensive.<br>
-<b>&ldquo;Thank you for letting me know&rdquo;</b> keeps you on the client&rsquo;s side of the table: equal stature, focused on the fix.</p>
-<div class="pkick pkick2">The Swap, In Practice</div>
-<div class="pswap">
-<div class="from"><span class="strike">&ldquo;I&rsquo;m sorry about that.&rdquo;</span></div>
-<div class="to big"><span class="arrow">&rarr;</span>&ldquo;Thank you for letting me know.&rdquo;</div>
-<div class="from"><span class="strike">&ldquo;I&rsquo;m sorry you waited.&rdquo;</span></div>
-<div class="to"><span class="arrow">&rarr;</span>&ldquo;Thank you for your patience.&rdquo;</div>
-<div class="from"><span class="strike">&ldquo;I&rsquo;m sorry for the trouble.&rdquo;</span></div>
-<div class="to"><span class="arrow">&rarr;</span>&ldquo;Thank you for letting us make it right.&rdquo;</div>
-</div>
-<div class="pdiv"></div>
-<p class="pclose">Gratitude isn&rsquo;t soft. It&rsquo;s the posture of the person <em>in control of the solution.</em></p>
-<div class="pfoot">
-<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
-<span class="pkick">Your One Point of Contact</span>
-</div>
-<div class="pnote"><a href="https://citywidelv.github.io/">Team updates now live on the Team Wall &rarr;</a></div>
-</div>
-</section>
-<aside class="helper">
-<h3>Finding your way around</h3>
-<p>Every tool, form, and calculator lives in the menus above, listed once, in the group where you would look for it:</p>
-<ul>
-<li><span>Opportunities</span> &nbsp;post, active postings, responses, the live board</li>
-<li><span>Vendors</span> &nbsp;email, profile, directory, invites, Exhibit A, violations, audits, insurance, clearance, Vendor of the Month, the Vendor Hub</li>
-<li><span>Accounts &amp; Buildings</span> &nbsp;survey, building sheets, work tickets, account changes, COI requests, maps</li>
-<li><span>Pricing &amp; Bids</span> &nbsp;every calculator</li>
-<li><span>Night Ops</span> &nbsp;inspections, route outs, the AI tool</li>
-<li><span>Team &amp; Admin</span> &nbsp;Power BI, CRM and billing, team apps, form submissions, inventory</li>
-</ul>
-<div class="keys"><b>/</b>jumps to search from anywhere</div>
-</aside>
-</div>
-</div>
-
-<button class="totop" id="totop" title="Back to top">&#8593;</button>
-
-<div class="wrap photoband" aria-hidden="true">
-<div class="pb">
-<figure><img src="images/fsm-walkthrough.jpg" alt=""><figcaption>Walk Every Building</figcaption></figure>
-<figure><img src="images/fsm-uniform-hallway.jpg" alt="" style="object-position:center 30%"><figcaption>Client Communication</figcaption></figure>
-<figure><img src="images/ops-training.jpg" alt=""><figcaption>Never Stop Learning</figcaption></figure>
-</div>
-</div>
+<button class="totop" id="totop" type="button" aria-label="Back to top"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
 
 <footer class="foot"><div class="fin">
-<b>City Wide Facility Solutions</b> &middot; Operations Hub &middot; Internal use only
-&middot; Something missing? Tell TJ. &middot; <a href="https://www.gocitywide.com" target="_blank" rel="noopener">GoCityWide.com</a>
-<span class="fr">Las Vegas<span>&bull;</span>Reno</span>
+<b>City Wide Facility Solutions</b><span>Operations Hub. Internal use only.</span><span>Something missing? Tell TJ.</span>
+<a href="https://www.gocitywide.com" target="_blank" rel="noopener">GoCityWide.com</a><span>Las Vegas and Reno</span>
 </div></footer>
 </div>
 
@@ -1403,86 +1223,69 @@ var MENU = [
 /* Site Admin (2026-09-13): nav.js publishes window.CW_NAV; the MENU above stays as the fallback. */
 if(window.CWNav){ var __m = CWNav.menuFor("ops"); if(__m) MENU = __m; }
 
-function renderMainNav(){
-function items(list, depth){
-var out = "";
-list.forEach(function(it){
-if(!it || it.hidden) return;
-if(it.ghead){ out += '<div class="ghead">' + esc(it.ghead) + '</div>'; }
-else if(it.sub){
-out += '<div class="nsub"><a class="subbtn" href="#" data-sub="1">' + esc(it.sub) + '</a>' +
-'<div class="nsubmenu">' + items(it.items, depth + 1) + '</div></div>';
-} else { out += menuLink(it.label, it.href, null, it.tag); }
+/* Nov 21 2026: each menu opens as one panel with its groups side by side. Every link is one
+click away and it behaves the same on a phone. Buttons carry aria-expanded, Escape closes and
+returns focus. The menu data contract (MENU, nav.js CW_NAV) is unchanged. */
+ICONS.chev = '<path d="M6 9l6 6 6-6"/>';
+function navLeaves(list){
+var out = [];
+(list || []).forEach(function(it){
+if(!it || it.hidden || it.ghead) return;
+if(it.sub || it.items) out = out.concat(navLeaves(it.items));
+else if(it.href) out.push(it);
 });
 return out;
 }
-var host = document.getElementById("mainnav");
-var html = "";
+function renderMainNav(){
+var host = document.getElementById("mainnav"), panels = document.getElementById("navpanels");
+var row = "", ph = "";
 MENU.forEach(function(m, mi){
-/* Sep 24 2026: a tall dropdown lists its section names and each opens to the side, so nothing
-runs off the bottom of the screen. Short menus keep their inline headings. */
-var tree = (window.CWNav && CWNav.cascadeGroups && !m.flat) ? CWNav.cascadeGroups(m.items) : m.items;
-html += '<div class="nitem"><button class="nbtn" data-dd="' + mi + '">' +
-iconSvg(m.icon, 14) + esc(m.label) + ' <span class="caret">&#9660;</span></button>' +
-'<div class="nmenu" id="dd-' + mi + '">' + items(tree, 0) + '</div></div>';
-});
-host.innerHTML = html;
-if(window.CWNav && CWNav.bind) CWNav.bind(host);   // keeps every open panel on screen (flip left, shift up, scroll)
-
-/* Phones: the open menu is moved out of the scrolling nav bar onto <body> while it is
-open (WebKit clips position:fixed inside an overflow container), then put back. */
-function isPhoneNav(){ return !!(window.matchMedia && matchMedia("(max-width:820px)").matches); }
-function portalOpen(dd, btn){
-var r = btn.getBoundingClientRect();
-dd.style.top = Math.round(r.bottom + 6) + "px";
-if(!dd._home) dd._home = dd.parentElement;
-document.body.appendChild(dd);
-dd.classList.add("portal");
+if(!m || m.hidden) return;
+if(!m.items || !m.items.length){
+if(m.href) row += '<a class="nbtn" href="' + esc(m.href) + '">' + esc(m.label) + '</a>';
+return;
 }
+row += '<button class="nbtn" type="button" aria-expanded="false" aria-controls="dd-' + mi + '" data-dd="' + mi + '">' + esc(m.label) + iconSvg("chev", 12) + '</button>';
+var groups = [], loose = { title: m.label, items: [] }, cur = null;
+m.items.forEach(function(it){
+if(!it || it.hidden) return;
+if(it.ghead){ cur = { title: it.ghead, items: [] }; groups.push(cur); }
+else if(it.sub || it.items){ groups.push({ title: it.sub || it.label, items: navLeaves(it.items) }); cur = null; }
+else if(it.href){ (cur || loose).items.push(it); }
+});
+if(loose.items.length) groups.unshift(loose);
+ph += '<div class="npanel" id="dd-' + mi + '" hidden><div class="npin">' + groups.filter(function(g){ return g.items.length; }).map(function(g){
+return '<div><h3>' + esc(g.title) + '</h3>' + g.items.map(function(x){ return menuLink(x.label, x.href, null, x.tag); }).join("") + '</div>';
+}).join("") + '</div></div>';
+});
+host.innerHTML = row; panels.innerHTML = ph;
 host.onclick = function(e){
 var btn = e.target.closest ? e.target.closest(".nbtn[data-dd]") : null;
 if(!btn) return;
-var dd = document.getElementById("dd-" + btn.getAttribute("data-dd"));
-var wasOpen = dd.classList.contains("show");
+var was = btn.getAttribute("aria-expanded") === "true";
 closeMenus();
-if(!wasOpen){
-dd.classList.add("show"); btn.classList.add("open");
-if(isPhoneNav()) portalOpen(dd, btn); else dd.style.top = "";
-}
+if(!was){ btn.setAttribute("aria-expanded", "true"); document.getElementById("dd-" + btn.getAttribute("data-dd")).hidden = false; }
 };
-window.addEventListener("resize", closeMenus);
+window.addEventListener("resize", function(){ closeMenus(); });
 }
 function menuLink(label, href, icon, tag){
 var tgt = (/^https?:/.test(href) && href.indexOf("citywidelv.github.io")<0) ? ' target="_blank" rel="noopener"' : '';
-/* Sep 25 2026: the destination hub or outside app is a small chip on the right (Admin, Vendor Hub, Jotform, Asana, Site, New), never words in the label. Same look as the Admin Hub. */
 return '<a href="' + esc(href) + '"' + tgt + '>' + (icon ? iconSvg(icon, 14) : '') + esc(label) + (tag ? '<span class="tag">' + esc(tag) + '</span>' : '') + '</a>';
 }
-function closeMenus(){
-document.querySelectorAll(".nmenu.show").forEach(function(d){ d.classList.remove("show"); d.style.top = ""; d.style.maxHeight = ""; d.classList.remove("flip", "scroll"); if(d._home) portalClose(d); });
-document.querySelectorAll(".nsubmenu.show").forEach(function(d){ d.classList.remove("show"); d.style.top = ""; d.style.left = ""; d.style.maxHeight = ""; d.classList.remove("flip", "scroll"); });
-document.querySelectorAll(".nbtn.open").forEach(function(b){ b.classList.remove("open"); });
-}
-function portalClose(dd){
-if(dd._home && dd.parentElement !== dd._home) dd._home.appendChild(dd);
-dd.classList.remove("portal"); dd.style.top = "";
+function closeMenus(focusBack){
+document.querySelectorAll('.nbtn[aria-expanded="true"]').forEach(function(b){
+b.setAttribute("aria-expanded", "false");
+var p = document.getElementById(b.getAttribute("aria-controls")); if(p) p.hidden = true;
+if(focusBack) b.focus();
+});
 }
 document.addEventListener("click", function(e){
-if(e.isTrusted === false) return;
 var t = e.target;
 if(!t || !t.closest) return;
-var sub = t.closest("a.subbtn");
-if(sub){
-e.preventDefault();
-var menu = sub.parentElement.querySelector(".nsubmenu");
-var was = menu.classList.contains("show");
-document.querySelectorAll(".nsubmenu.show").forEach(function(x){ x.classList.remove("show"); });
-if(!was) menu.classList.add("show");
-return;
-}
-if(t.closest(".nitem") || t.closest(".nmenu")) return;
-closeMenus();
+if(!t.closest("nav.mainnav")) closeMenus();
+if(!t.closest(".hsearch")) searchClose();
 });
-document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeMenus(); });
+document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeMenus(true); });
 
 /* ---------- Most Used quick bar (TJ-approved picks, July 2026) ---------- */
 var QUICK = [
@@ -1551,16 +1354,27 @@ var QUICK = [
 ];
 if(window.CWNav){ var __q = CWNav.quickFor("ops"); if(__q) QUICK = __q; }
 
+var quickAll = false;
 function renderQuick(){
-var html = "";
-QUICK.forEach(function(q){
+var list = quickAll ? QUICK : QUICK.slice(0, 4);
+var addOpenNow = !document.getElementById("addp").hidden;
+var html = '<span class="ql">Most used</span>';
+list.forEach(function(q, i){
 var tgt = (/^https?:/.test(q.href) && q.href.indexOf("citywidelv.github.io")<0) ? ' target="_blank" rel="noopener"' : '';
-html += '<a class="qbtn' + (q.primary ? ' primary' : '') + '" data-hay="' + esc(q.label.toLowerCase()) + '" href="' + esc(q.href) + '"' + tgt + '>' +
-iconSvg(q.icon, 15) + esc(q.label) +
-(q.pill ? ' <span class="pill qpill"></span>' : '') + '</a>';
+html += '<a class="qbtn' + (q.primary ? ' primary' : '') + '" href="' + esc(q.href) + '"' + tgt + '>' +
+iconSvg(q.icon, 14) + esc(q.label) +
+(q.pill ? ' <span class="pill qpill num"></span>' : '') + '</a>';
+if(i === 0) html += '<button class="qbtn add" type="button" id="addopen" aria-expanded="' + addOpenNow + '" aria-controls="addp">' + iconSvg("plus", 14) + 'Add vendor or building</button>';
 });
+if(QUICK.length > 4) html += '<button class="qbtn more" type="button" id="qmore" aria-expanded="' + quickAll + '">' + (quickAll ? 'Show fewer' : 'All ' + QUICK.length) + '</button>';
 document.getElementById("quickrow").innerHTML = html;
+if(PILL_TEXT) document.querySelectorAll(".qpill").forEach(function(p){ p.textContent = PILL_TEXT; p.classList.add("show"); });
 }
+var PILL_TEXT = "";
+document.getElementById("quickrow").addEventListener("click", function(e){
+if(e.target.closest("#qmore")){ quickAll = !quickAll; renderQuick(); document.getElementById("qmore").focus(); return; }
+if(e.target.closest("#addopen")){ addToggle(document.getElementById("addp").hidden); }
+});
 
 /* ---------- Search: indexes the dropdown menus ---------- */
 var SEARCH_INDEX = [];
@@ -1578,39 +1392,55 @@ hay: (it.label + " " + path).toLowerCase(), icon: m.icon });
 walk(m.items, m.label);
 });
 }
-function applySearch(){
-var q = (document.getElementById("toolsearch").value || "").toLowerCase().trim();
-document.getElementById("searchX").classList.toggle("show", !!q);
-var zone = document.getElementById("searchzone");
-var wall = document.getElementById("wallgrid");
-if(!q){
-zone.classList.remove("show"); wall.classList.remove("hidden");
-document.querySelectorAll("#quickrow .qbtn").forEach(function(b){ b.style.display = ""; });
-return;
+/* Nov 21 2026: results open in a panel under the search box (they used to draw far down the
+page, below the Alerts card). Arrow keys move, Enter opens, Escape clears. */
+var SEARCH_SEL = -1;
+function searchClose(){
+document.getElementById("searchzone").hidden = true;
+document.getElementById("toolsearch").setAttribute("aria-expanded", "false");
 }
+function applySearch(){
+var box = document.getElementById("toolsearch");
+var q = (box.value || "").toLowerCase().trim();
+document.getElementById("searchX").classList.toggle("show", !!q);
+if(!q){ searchClose(); return; }
 var words = q.split(/\s+/).filter(Boolean);
 function match(hay){ return words.every(function(w){ return hay.indexOf(w) >= 0; }); }
-var hits = SEARCH_INDEX.filter(function(x){ return match(x.hay); }).slice(0, 14);
+var hits = SEARCH_INDEX.filter(function(x){ return match(x.hay); }).slice(0, 12);
 var html = "";
-hits.forEach(function(h){
+hits.forEach(function(h, i){
 var tgt = (/^https?:/.test(h.href) && h.href.indexOf("citywidelv.github.io")<0) ? ' target="_blank" rel="noopener"' : '';
-html += '<a class="srow" href="' + esc(h.href) + '"' + tgt + '>' + iconSvg(h.icon, 15) +
+html += '<a class="srow" role="option" id="sopt' + i + '" aria-selected="' + (i === 0) + '" href="' + esc(h.href) + '"' + tgt + '>' + iconSvg(h.icon, 15) +
 esc(h.label) + '<span class="path">' + esc(h.path) + '</span></a>';
 });
+SEARCH_SEL = hits.length ? 0 : -1;
 document.getElementById("searchresults").innerHTML = html;
-document.getElementById("noresults").classList.toggle("show", !hits.length);
-zone.classList.add("show"); wall.classList.add("hidden");
-document.querySelectorAll("#quickrow .qbtn").forEach(function(b){
-b.style.display = match(b.getAttribute("data-hay") || "") ? "" : "none";
-});
+document.getElementById("noresults").hidden = !!hits.length;
+document.getElementById("searchzone").hidden = false;
+box.setAttribute("aria-expanded", "true");
+if(hits.length) box.setAttribute("aria-activedescendant", "sopt0"); else box.removeAttribute("aria-activedescendant");
+}
+function searchMove(d){
+var opts = document.querySelectorAll("#searchresults .srow"); if(!opts.length) return;
+SEARCH_SEL = (SEARCH_SEL + d + opts.length) % opts.length;
+opts.forEach(function(o, i){ o.setAttribute("aria-selected", i === SEARCH_SEL); });
+opts[SEARCH_SEL].scrollIntoView({ block:"nearest" });
+document.getElementById("toolsearch").setAttribute("aria-activedescendant", "sopt" + SEARCH_SEL);
 }
 document.getElementById("toolsearch").addEventListener("input", applySearch);
+document.getElementById("toolsearch").addEventListener("focus", function(){ if(this.value.trim()) applySearch(); });
+document.getElementById("toolsearch").addEventListener("keydown", function(e){
+if(e.key === "ArrowDown"){ e.preventDefault(); searchMove(1); }
+else if(e.key === "ArrowUp"){ e.preventDefault(); searchMove(-1); }
+else if(e.key === "Enter"){ var o = document.querySelector('#searchresults .srow[aria-selected="true"]'); if(o){ e.preventDefault(); o.click(); } }
+else if(e.key === "Escape"){ this.value = ""; applySearch(); }
+});
 document.getElementById("searchX").addEventListener("click", function(){
-document.getElementById("toolsearch").value = ""; applySearch();
+document.getElementById("toolsearch").value = ""; applySearch(); document.getElementById("toolsearch").focus();
 });
 document.addEventListener("keydown", function(e){
-if(e.key === "/" && document.activeElement !== document.getElementById("toolsearch") &&
-document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA"){
+var a = document.activeElement, tag = a ? a.tagName : "";
+if(e.key === "/" && tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT"){
 e.preventDefault(); document.getElementById("toolsearch").focus();
 }
 });
@@ -1626,9 +1456,8 @@ function loadPill(){
 try{
 fetch(WEBHOOK).then(function(r){return r.json();}).then(function(r){
 if(r && r.ok){
-document.querySelectorAll(".qpill").forEach(function(p){
-p.textContent = r.count + " open"; p.classList.add("show");
-});
+PILL_TEXT = r.count + " open";
+document.querySelectorAll(".qpill").forEach(function(p){ p.textContent = PILL_TEXT; p.classList.add("show"); });
 }
 }).catch(function(){});
 }catch(e){}
@@ -1801,6 +1630,14 @@ list.forEach(function(it){ var b = alBucket(it); (byB[b] = byB[b] || []).push(it
 AL_BUCKETS.forEach(function(b){ c[b] = alWeight(byB[b] || []); c.all += c[b]; });
 return c;
 }
+/* Nov 21 2026: one drawn icon per bucket replaces the coloured stripe and dot. */
+var AL_BICON = { all:"list", tickets:"ticket", prop:"bldg", vend:"bag", opp:"reply", req:"warnt" };
+ICONS.list = '<path d="M4 6h16M4 12h16M4 18h16"/>';
+ICONS.ticket = '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>';
+ICONS.bldg = '<path d="M3 9l9-5 9 5v10H3z"/><path d="M9 19v-6h6v6"/>';
+ICONS.bag = '<path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 0 1 6 0"/>';
+ICONS.reply = '<path d="M4 5h16v11H9l-5 4z"/>';
+ICONS.warnt = '<path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/>';
 function alRender(){
 var me = alWho(), sc = alScope(), tile = alTile();
 var counts = alCounts(sc.open);
@@ -1809,11 +1646,11 @@ cnt.textContent = counts.all + " open";
 cnt.classList.toggle("zero", !counts.all);
 document.getElementById("alwho").classList.toggle("need", !me);
 document.querySelectorAll("#alseg button").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-view") === (sc.all ? "all" : "mine")); });
-var html = me ? "" : '<div class="aneed">Pick your name in the top right of this card first. Then the buttons on each line will work.</div>';
+var html = me ? "" : '<div class="aneed">Pick your name at the top of the page first. Then the buttons on each line will work.</div>';
 /* tiles */
 html += '<div class="atiles">' + ["all"].concat(AL_BUCKETS).map(function(b){
 var n = counts[b];
-return '<button type="button" class="atile ' + b + (b === tile ? ' on' : '') + (n ? '' : ' zero') + '" data-tile="' + b + '"><span class="tm ' + b + '"></span><span class="tn">' + n + '</span><span class="tl">' + esc(AL_B[b].label) + '</span><span class="ts">' + esc(AL_B[b].sub) + '</span></button>';
+return '<button type="button" class="atile ' + b + (b === tile ? ' on' : '') + (n ? '' : ' zero') + '" data-tile="' + b + '" aria-pressed="' + (b === tile) + '"><span class="tn">' + n + '</span><span class="tl">' + iconSvg(AL_BICON[b], 14) + esc(AL_B[b].label) + '</span></button>';
 }).join('') + '</div>';
 /* lead line */
 var who = sc.all ? "everyone" : (alFsmName(me) || "you");
@@ -1969,7 +1806,7 @@ side = '<div class="bside">' + alActs(it) + '<span class="bhint">Ordered means C
 side = '<div class="bside">' + alActs(it) + '</div>';
 }
 var html = '<div class="ablk ' + alBucket(it) + ' ' + esc(it.type) + (it.status ? ' done' : '') + '"><div class="stripe"></div>' +
-'<div class="bmain"><span class="bkind">' + esc(kind) + ownerTag + '</span>' +
+'<div class="bmain"><span class="bkind">' + iconSvg(AL_BICON[alBucket(it)], 14) + esc(kind) + ownerTag + (it.urgent ? ' <span class="bflag">Urgent</span>' : '') + '</span>' +
 '<div class="btitle">' + esc(title) + (it.type === "posting" && it.internal ? '<span class="bint" title="Internal account name. Vendors never see this.">Internal</span>' : '') + '</div>' +
 (sub ? '<div class="bsub">' + sub + '</div>' : '') +
 (it.type !== "posting" && it.type !== "ticket" && it.summary ? '<div class="bsum' + (it.urgent ? ' urgent' : '') + '">' + esc(it.summary) + '</div>' : '') +
@@ -2222,6 +2059,91 @@ Array.prototype.forEach.call(buttons, function(b){ b.disabled = false; });
 alSay('<span class="err">Could not reach the server. Try again.</span>');
 });
 }
+
+/* ---------- Add a vendor or building (Nov 21 2026) ----------
+One panel on the home page. One vendor posts vd_save (same payload as vendor-add.html, status
+Prospect). One building posts vd_act_account_save (same as the Admin Hub Account Directory).
+The two file choices link to the pages that already do the work: vendor-import.html and the
+Admin Hub account-fsm.html. Nothing loads until the panel is opened. A hand-added building is
+NOT on the Account FSM list (alerts and work ticket lookup) until the next CRM upload. */
+var ADD = { types:null, dupV:false, dupB:false };
+function addEl(id){ return document.getElementById(id); }
+function addShow(which){
+document.querySelectorAll("#addseg button").forEach(function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-add") === which); });
+document.querySelectorAll("#addp [data-pane]").forEach(function(p){ p.hidden = p.getAttribute("data-pane") !== which; });
+}
+function addFillFsm(){
+var sel = addEl("b_fsm"), keep = sel.value, me = alByName();
+sel.innerHTML = '<option value="">Pick one</option>' + AL.roster.map(function(f){ return '<option>' + esc(f.name) + '</option>'; }).join("");
+sel.value = keep || (me && me !== "Someone else" ? me : "");
+}
+function addLoadTypes(){
+if(ADD.types) return;
+var sel = addEl("v_svc");
+alPost({ kind:"vd_types" }).then(function(r){
+if(r && r.ok && r.types && r.types.length){
+ADD.types = r.types;
+sel.innerHTML = '<option value="">Pick one</option>' + r.types.map(function(t){ return '<option value="' + esc(t.slug) + '">' + esc(t.name) + '</option>'; }).join("");
+} else { sel.innerHTML = '<option value="">List did not load</option>'; addMsg("v_msg", "The service list did not load. Close this panel and open it again, or use the full vendor form.", true); }
+}).catch(function(){ sel.innerHTML = '<option value="">List did not load</option>'; addMsg("v_msg", "Could not reach the server for the service list. Check your connection, then open this panel again.", true); });
+}
+function addToggle(open){
+addEl("addp").hidden = !open;
+renderQuick();
+if(open){ addLoadTypes(); addFillFsm(); try{ addEl("addp").scrollIntoView({ block:"nearest" }); }catch(e){} var b = document.querySelector('#addseg [aria-pressed="true"]'); if(b) b.focus(); }
+else { var o = addEl("addopen"); if(o) o.focus(); }
+}
+function addMsg(id, html, bad){ var m = addEl(id); m.innerHTML = html; m.classList.toggle("bad", !!bad); m.hidden = !html; }
+function addNeed(id, msg){ var el = addEl(id), bad = !el.value.trim(); el.setAttribute("aria-invalid", bad); addEl(id + "_e").textContent = bad ? msg : ""; return !bad; }
+function addWho(msgId){
+var by = alByName();
+if(by) return by;
+addMsg(msgId, "Pick your name at the top of the page first, so the record shows who added it.", true);
+var s = document.getElementById("alwho"); s.classList.add("need"); s.focus();
+return "";
+}
+addEl("addp").addEventListener("click", function(e){
+if(e.target.closest("#addclose")){ addToggle(false); return; }
+var a = e.target.closest("[data-add]"); if(a) addShow(a.getAttribute("data-add"));
+});
+addEl("v_name").addEventListener("input", function(){ ADD.dupV = false; });
+addEl("b_name").addEventListener("input", function(){ ADD.dupB = false; });
+addEl("fv1").addEventListener("submit", function(e){
+e.preventDefault();
+var form = this;
+var ok = [addNeed("v_name", "Enter the business name."), addNeed("v_mkt", "Pick a market."), addNeed("v_svc", "Pick the main service.")].every(Boolean);
+var em = addEl("v_email"), badEm = !!em.value.trim() && !/^\S+@\S+\.\S+$/.test(em.value.trim());
+em.setAttribute("aria-invalid", badEm); addEl("v_email_e").textContent = badEm ? "That email is missing something. Fix it or leave it blank." : "";
+if(!ok || badEm){ var first = form.querySelector('[aria-invalid="true"]'); if(first) first.focus(); return; }
+var by = addWho("v_msg"); if(!by) return;
+var name = addEl("v_name").value.trim(), go = addEl("v_go");
+go.disabled = true; go.textContent = "Adding...";
+alPost({ kind:"vd_save", allow_duplicate: ADD.dupV, vendor:{ dba_name:name, region:addEl("v_mkt").value, service_types:addEl("v_svc").value,
+contact_name:addEl("v_contact").value.trim(), email:em.value.trim(), phone:addEl("v_phone").value.trim(), status:"Prospect", added_by:by, source:"Ops Hub" } }).then(function(r){
+go.disabled = false; go.textContent = "Add vendor";
+if(r && r.ok){ ADD.dupV = false; form.reset(); addMsg("v_msg", "<b>" + esc(name) + "</b> is in the directory as a Prospect" + (r.vendor_id ? " (" + esc(r.vendor_id) + ")" : "") + ". <a href=\"vendors.html\">Open the directory</a>"); return; }
+if(r && r.duplicate){ ADD.dupV = true; addMsg("v_msg", esc(r.error || "That vendor may already be in the directory.") + " Press Add vendor again to add it anyway.", true); return; }
+if(r && r.error && CWAuth.isPassError(r.error)){ CWAuth.locked("ops", r.error); return; }
+addMsg("v_msg", "The vendor was not saved. " + esc((r && r.error) || "Try again in a minute."), true);
+}).catch(function(){ go.disabled = false; go.textContent = "Add vendor"; addMsg("v_msg", "Could not reach the server, so the vendor was not saved. Check your connection and press Add vendor again.", true); });
+});
+addEl("fb1").addEventListener("submit", function(e){
+e.preventDefault();
+var form = this;
+var ok = [addNeed("b_name", "Enter the name as it reads in CRM."), addNeed("b_reg", "Pick a region.")].every(Boolean);
+if(!ok){ form.querySelector('[aria-invalid="true"]').focus(); return; }
+var by = addWho("b_msg"); if(!by) return;
+var name = addEl("b_name").value.trim(), region = addEl("b_reg").value, go = addEl("b_go");
+go.disabled = true; go.textContent = "Adding...";
+alPost({ kind:"vd_act_account_save", by:by, source:"Ops Hub", allow_duplicate: ADD.dupB,
+account:{ name:name, region:region, status:"Active", fsm:addEl("b_fsm").value, address1:addEl("b_addr").value.trim(), zip:addEl("b_zip").value.trim() } }).then(function(r){
+go.disabled = false; go.textContent = "Add building";
+if(r && r.ok){ ADD.dupB = false; form.reset(); addFillFsm(); addMsg("b_msg", "<b>" + esc(name) + "</b> is in the " + esc(region) + " account directory" + (r.account_id ? " as " + esc(r.account_id) : "") + ". Accounting has been asked to confirm the name. Add it in CRM too, so alerts and work tickets find it after the next CRM upload."); return; }
+if(r && r.duplicate){ ADD.dupB = true; addMsg("b_msg", esc(r.error || "That name is already in the directory.") + " Press Add building again to add a second record.", true); return; }
+if(r && r.error && CWAuth.isPassError(r.error)){ CWAuth.locked("ops", r.error); return; }
+addMsg("b_msg", "The building was not saved. " + esc((r && r.error) || "Try again in a minute."), true);
+}).catch(function(){ go.disabled = false; go.textContent = "Add building"; addMsg("b_msg", "Could not reach the server, so the building was not saved. Check your connection and press Add building again.", true); });
+});
 
 function unlock(){
 renderMainNav();
