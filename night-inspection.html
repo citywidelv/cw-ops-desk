@@ -1409,7 +1409,8 @@ function paintCrewNames(){
 $("crewAdd").addEventListener("click", function(){ S.crew_names.push(""); paintCrewNames(); save(); var inps=$("crewNames").querySelectorAll("input"); inps[inps.length-1].focus(); });
 $("aiBtn").addEventListener("click", function(){
   var lines = ["Write my night manager recap for tonight from these notes.", "Reason: " + S.reason + (S.timing ? " (" + S.timing + ")" : "")];
-  if (showsScore() && S.score!=="") lines.push("Score: " + S.score + " out of 10" + (S.score_note ? ". " + S.score_note : ""));
+  if (showsHotspots() && HS.length) lines.push("Hot spots here: " + HS.join(", ") + ". I ticked: " + (S.hotspots_checked.length ? S.hotspots_checked.join(", ") : "none"));
+  if (showsScore() && S.score_note) lines.push("What was wrong: " + S.score_note);
   var ak = askItems(); if (ak.length) lines.push("FSM asked: " + ak.map(function(it){ return it.q + " = " + (S.ask[it.k]||"") + (S.ask_note[it.k] ? " (" + S.ask_note[it.k] + ")" : ""); }).join(" | "));
   if (S.route_inst) lines.push("FSM instructions: " + S.route_inst);
   if (inBuilding()){ var f = stdFailed(); lines.push(f.length ? "Did not meet standard: " + f.map(function(it){ return it.q + ". What I did: " + (S.std_fix[it.k]||""); }).join(" | ") : "All standards checked met."); }
