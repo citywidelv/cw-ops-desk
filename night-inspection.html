@@ -1408,7 +1408,7 @@ function paintCrewNames(){
 }
 $("crewAdd").addEventListener("click", function(){ S.crew_names.push(""); paintCrewNames(); save(); var inps=$("crewNames").querySelectorAll("input"); inps[inps.length-1].focus(); });
 $("aiBtn").addEventListener("click", function(){
-  var lines = ["Write my night manager recap for tonight from these notes.", "Building: " + S.account_name, "Cleaning company: " + (S.vendor_name||"unknown"), "Reason: " + S.reason + (S.timing ? " (" + S.timing + ")" : "")];
+  var lines = ["Write my night manager recap for tonight from these notes.", "Reason: " + S.reason + (S.timing ? " (" + S.timing + ")" : "")];
   if (showsScore() && S.score!=="") lines.push("Score: " + S.score + " out of 10" + (S.score_note ? ". " + S.score_note : ""));
   var ak = askItems(); if (ak.length) lines.push("FSM asked: " + ak.map(function(it){ return it.q + " = " + (S.ask[it.k]||"") + (S.ask_note[it.k] ? " (" + S.ask_note[it.k] + ")" : ""); }).join(" | "));
   if (S.route_inst) lines.push("FSM instructions: " + S.route_inst);
@@ -1422,7 +1422,7 @@ $("aiBtn").addEventListener("click", function(){
   if (S.fsm_action_needed==="Yes" && S.fsm_confirmed) lines.push("FSM must handle tomorrow: " + S.fsm_action_note);
   if (S.summary.trim()) lines.push("My own notes: " + S.summary.trim());
   var text = lines.join("\n");
-  var done = function(ok){ $("aiHint").textContent = ok ? "Your notes are copied. The AI tool is opening. Paste them in there, then paste what it writes back into the box below." : "Could not copy. Type your notes in the AI tool, then paste what it writes here."; window.open("https://chatgpt.com/g/g-681233262c3c81918605de9bd3edf7be-city-wide-night-manager-tool", "_blank"); };
+  var done = function(ok){ $("aiHint").textContent = ok ? "Your notes are copied. The AI tool is opening. Tap Try in chat (tap Install first if it asks), paste your notes, answer its questions, then paste the recap back into the box below." : "Could not copy. Type your notes in the AI tool, then paste what it writes here."; window.open("https://chatgpt.com/plugins/plugin_dae1a8b6b7b48191a110e4d88c51c485", "_blank"); };
   try { navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ done(false); }); } catch(e){ done(false); }
 });
 $("howtoBtn").addEventListener("click", function(){ show("howto", $("howto").classList.contains("hidden")); });
