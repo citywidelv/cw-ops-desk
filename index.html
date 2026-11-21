@@ -1356,7 +1356,7 @@ if(window.CWNav){ var __q = CWNav.quickFor("ops"); if(__q) QUICK = __q; }
 
 var quickAll = false;
 function renderQuick(){
-var list = quickAll ? QUICK : QUICK.slice(0, 4);
+var list = quickAll ? QUICK : QUICK.slice(0, 3);
 var addOpenNow = !document.getElementById("addp").hidden;
 var html = '<span class="ql">Most used</span>';
 list.forEach(function(q, i){
@@ -1366,7 +1366,7 @@ iconSvg(q.icon, 14) + esc(q.label) +
 (q.pill ? ' <span class="pill qpill num"></span>' : '') + '</a>';
 if(i === 0) html += '<button class="qbtn add" type="button" id="addopen" aria-expanded="' + addOpenNow + '" aria-controls="addp">' + iconSvg("plus", 14) + 'Add vendor or building</button>';
 });
-if(QUICK.length > 4) html += '<button class="qbtn more" type="button" id="qmore" aria-expanded="' + quickAll + '">' + (quickAll ? 'Show fewer' : 'All ' + QUICK.length) + '</button>';
+if(QUICK.length > 3) html += '<button class="qbtn more" type="button" id="qmore" aria-expanded="' + quickAll + '">' + (quickAll ? 'Show fewer' : 'All ' + QUICK.length) + '</button>';
 document.getElementById("quickrow").innerHTML = html;
 if(PILL_TEXT) document.querySelectorAll(".qpill").forEach(function(p){ p.textContent = PILL_TEXT; p.classList.add("show"); });
 }
