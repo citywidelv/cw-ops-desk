@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>CW Ops Hub | City Wide Operations</title>
-<!-- build 2026-11-21-overhaul: home page overhaul, appearance and layout only, no payload or script change. Alerts are first (hero, photo band, helper card and the full poster removed). You are (#alwho) moved to the page header. Search results open in a panel under the search box with arrow keys, Enter and Escape. Each menu opens as one panel with its groups side by side, aria-expanded on the buttons (CWNav.cascadeGroups / bind / place no longer used here; MENU and nav.js CW_NAV contract unchanged). Quick links show the first 4 plus All N. New Add vendor or building panel: vd_save (Prospect) and vd_act_account_save, both existing kinds; file uploads link to vendor-import.html and Admin Hub account-fsm.html. Alert rows lost the coloured stripe and got a category icon; tiles lost the dot and subtitle. Tokens: six step type scale 12/13/15/17/21/28, 44px controls, radius 6/11/18. Same alerts_list / alerts_set / alerts_assign / wt_assign payloads and the same data-* click contract.
+<!-- build 2026-11-21-overhaul: home page overhaul. FSM scorecard strip above Alerts reads sc_get (Scorecard.gs, backend v205) and never a repo file; scorecard-pull.js is the morning CRM pull. Alerts are first (hero, photo band, helper card and the full poster removed). You are (#alwho) moved to the page header. Search results open in a panel under the search box with arrow keys, Enter and Escape. Each menu opens as one panel with its groups side by side, aria-expanded on the buttons (CWNav.cascadeGroups / bind / place no longer used here; MENU and nav.js CW_NAV contract unchanged). Quick links show the first 4 plus All N. New Add vendor or building panel: vd_save (Prospect) and vd_act_account_save, both existing kinds; file uploads link to vendor-import.html and Admin Hub account-fsm.html. Alert rows lost the coloured stripe and got a category icon; tiles lost the dot and subtitle. Tokens: six step type scale 12/13/15/17/21/28, 44px controls, radius 6/11/18. Same alerts_list / alerts_set / alerts_assign / wt_assign payloads and the same data-* click contract.
      build 2026-11-02-reported: Alerts card also carries type ovreported, the "Things to report to the property" section of an Ovation porter checklist (Property notified / Resolved), so the FSM sees what the porter reported without opening every checklist.
      build 2026-10-23-ovation: Alerts card carries Ovation Hub items (types ovcheck / ovreport from Ovation.gs ovAlertItems_) under Requests and reports: porter checklists to approve (one button, Approved) and Ovation staff reports plus porter emergencies / maintenance requests (Reviewed / Scheduled / Done). An EMERGENCY summary paints red. Same alerts_list / alerts_set payloads.
      build 2026-10-18-alerts: Alerts card redesigned. Six tiles (All alerts, Work tickets, Property supplies, Vendor supplies, Opportunity responses, Requests and reports), Mine / See all, No FSM matched always at the bottom. One row per work ticket with the supplies strip (YES with cost and receipt count, or NO) and a View full ticket PDF button (PDF Link column written by the Work Tickets script, per-ticket items from WorkTicketsHub.gs wtAlertItems_; the old rolled-up "N work tickets to bill" line still renders until that deploys). Work ticket reassigns post wt_assign. Same alerts_list / alerts_set / alerts_assign payloads. -->
@@ -214,6 +214,56 @@ details.card summary .when{font-weight:400;color:var(--grey);margin-left:auto}
 .nbtn:hover{background:var(--red)}
 .totop:hover{background:var(--red)}
 .foot a:hover,.swap a:hover,.gate .backlink:hover{color:var(--red)}
+}
+
+/* ---------- FSM scorecard strip (Nov 21 2026). Data comes from sc_get, never from a repo file. ---------- */
+.sc{padding:12px 20px 14px}
+.schead{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap}
+.schead h2{font-size:var(--fs-body)}
+.schead .asof{font-size:var(--fs-caption);color:var(--grey)}
+.schead .asof.stale{color:var(--red-dark);font-weight:700}
+.schead .btn{margin-left:auto}
+.scgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 24px;margin-top:8px}
+.scm{min-width:0}
+.scm .l{font-size:var(--fs-caption);color:var(--grey);font-weight:700}
+.scm .v{font-size:var(--fs-h2);font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.scm .s{font-size:var(--fs-caption);color:var(--grey);margin-top:2px}
+.scm .btn.text{padding:0;margin-top:2px;color:var(--black)}
+.tg{display:inline-block;font-size:var(--fs-caption);font-weight:700;border-radius:4px;padding:0 6px;line-height:18px;border:1px solid var(--black);white-space:nowrap}
+.tg.bad{background:var(--red);border-color:var(--red);color:#fff}
+.sbar{display:block;position:relative;height:8px;background:var(--border);border-radius:4px;margin-top:6px}
+.sbar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--black);display:block}
+.sbar i.bad{background:var(--red)}
+.sbar b{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--black);display:block}
+.sctable{margin-top:12px;border-top:1px solid var(--border);overflow-x:auto}
+.sctable table{border-collapse:collapse;width:100%;font-size:var(--fs-ui);min-width:720px}
+.sctable th,.sctable td{text-align:left;padding:8px 10px 8px 0;border-bottom:1px solid var(--border);white-space:nowrap;font-variant-numeric:tabular-nums}
+.sctable th{font-size:var(--fs-caption);letter-spacing:.06em;text-transform:uppercase;color:var(--grey);padding-top:10px}
+.sctable tr.me td{background:var(--light)}
+.sctable td .sbar{width:120px;display:inline-block;vertical-align:middle;margin:0 8px 0 0}
+.sctable .k{font-size:var(--fs-caption);color:var(--grey);padding-top:8px}
+.scx{margin-top:12px;border-top:1px solid var(--border);padding-top:12px}
+.scx .tools{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap}
+.scx .tools h3{font-size:var(--fs-body);margin-right:auto}
+.scx .tools label{font-size:var(--fs-ui);font-weight:700;color:var(--grey)}
+.scx .tools select{font-size:16px;min-height:44px;border:1px solid var(--line);border-radius:var(--r-ctl);padding:0 10px;background:#fff;color:var(--black)}
+.scx .sum{font-size:var(--fs-ui);color:var(--grey);margin-top:8px}
+.scx .tw{margin-top:8px;max-height:460px;overflow:auto;border:1px solid var(--border);border-radius:var(--r-ctl)}
+.scx table{border-collapse:collapse;width:100%;font-size:var(--fs-ui)}
+.scx th,.scx td{text-align:left;vertical-align:top;padding:8px 12px;border-top:1px solid var(--border)}
+.scx thead th{position:sticky;top:0;background:var(--light);border-top:none;z-index:1;font-size:var(--fs-caption);letter-spacing:.06em;text-transform:uppercase;color:var(--grey)}
+.scx td.n,.scx th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.scx td b{display:block;line-height:1.35;overflow-wrap:anywhere}
+.scx td span.d{display:block;font-size:var(--fs-caption);color:var(--grey);line-height:1.4}
+.scx td .tg{margin-left:6px}
+.scx tr.low td{background:var(--red-tint)}
+@media(max-width:640px){
+.sc{padding:12px}
+.scgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+.scm .v{font-size:var(--fs-lead)}
+.scx th,.scx td{padding:8px}
+.scx .cc{display:none}
+.scx td.n .tg{display:block;margin:2px 0 0 auto;width:max-content}
 }
 
 /* ---------- Alerts: work tickets, property supplies, vendor supplies, opportunity replies,
@@ -557,6 +607,8 @@ details.card summary{padding:0 12px}
 </div>
 </section>
 
+<section class="card sc" id="sccard" aria-labelledby="sch" hidden></section>
+
 <div class="alerts" id="alerts">
 <section class="acard" aria-labelledby="alh">
 <div class="ahead"><h2 id="alh">Alerts</h2><span class="acount" id="alcount">&hellip;</span>
@@ -576,6 +628,7 @@ details.card summary{padding:0 12px}
 <summary><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>What changed on the hub<span class="when">November 21</span></summary>
 <div class="dbody">
 <div><h3>New this week</h3><ul>
+<li><b>Your numbers are at the top.</b> OS and supplies, your margin on extra charges, inspections and supplies vs route. Open See my extra charges for every line.</li>
 <li><b>Alerts come first.</b> The photo banner is gone so your list is on the first screen.</li>
 <li><b>Pick your name once</b> at the top of the page. It drives your alerts.</li>
 <li><b>Search shows results right under the box.</b> Arrow keys and Enter work.</li>
@@ -1488,6 +1541,7 @@ function alAgo(t){ var m = Math.round((Date.now() - t) / 60000); return m < 1 ? 
 function alApply(r){
 AL.items = r.items || []; AL.roster = r.roster || []; AL.statuses = r.statuses || {}; AL.days = r.days || 45;
 alFillWho(); alRender();
+if(SCD) scRender();
 }
 function alSkeleton(){
 var tile = '<span class="skel"></span>';
@@ -2145,12 +2199,145 @@ addMsg("b_msg", "The building was not saved. " + esc((r && r.error) || "Try agai
 }).catch(function(){ go.disabled = false; go.textContent = "Add building"; addMsg("b_msg", "Could not reach the server, so the building was not saved. Check your connection and press Add building again.", true); });
 });
 
+/* ---------- FSM scorecard strip (Nov 21 2026) ----------
+Four numbers for the person picked in "You are": OS and supplies sold against goal, margin on
+extra charges, inspections against pace, supplies against route. Show team opens everyone. See my
+extra charges lists every completed work order line with billed, cost and margin.
+Data: sc_get on the CW Team Portal Backend (Scorecard.gs), team passcode. A morning run pulls CRM
+with scorecard-pull.js and posts sections lv and nnv; supplies come from the Friday report run.
+The last copy is kept in localStorage and painted first, so the page never waits on the fetch.
+Margin rule (TJ, Nov 21 2026): an In House line with no cost counts at 35% margin, except admin
+fees, which are all margin. A line billed at $0 with a cost on it counts as under 35%. */
+var SCD = null, scTeam = false, scLines = false, scFilter = "all", scSort = "new";
+var SC_CACHE = "cwScCache", SC_FLOOR = 35, SC_SUP_TARGET = 8;
+var SC_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function scMoney(n){ return "$" + Math.round(n).toLocaleString("en-US"); }
+function scDay(s){ var p = String(s || "").split("-"); if(p.length === 3) return SC_MONTHS[+p[1] - 1] + " " + (+p[2]); if(p.length === 2) return SC_MONTHS[+p[0] - 1] + " " + (+p[1]); return ""; }
+function scBizPace(mStart, asOf, holidays){
+var a = new Date(mStart + "T00:00:00"), end = new Date(a.getFullYear(), a.getMonth() + 1, 0), cut = new Date(asOf + "T00:00:00");
+var tot = 0, done = 0, hol = {}; (holidays || []).forEach(function(h){ hol[h] = 1; });
+for(var d = new Date(a); d <= end; d.setDate(d.getDate() + 1)){
+var k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+if(d.getDay() === 0 || d.getDay() === 6 || hol[k]) continue;
+tot++; if(d <= cut) done++;
+}
+return tot ? Math.round(done / tot * 100) : 0;
+}
+function scBuild(data){
+var people = [], byName = {};
+["lv", "nnv"].forEach(function(k){
+var s = data && data[k]; if(!s || !s.data || !s.data.fsms) return;
+var d = s.data, cfg = (d.cfg && d.cfg.people) || [];
+Object.keys(d.fsms).forEach(function(n){
+var c = cfg.filter(function(x){ return x.name === n; })[0] || {};
+var p = { name:n, label:c.label || n, role:c.role || "", goal:c.goal || null, noInsp:!!c.noInsp, order:c.order == null ? 50 : c.order, f:d.fsms[n], lines:[], asOf:d.asOf, mStart:d.mStart, saved:s.saved, holidays:(d.cfg && d.cfg.holidays) || [] };
+people.push(p); byName[n] = p;
+});
+(d.lines || []).forEach(function(l){
+var p = byName[l[1]]; if(!p) return;
+var o = { d:l[0], acct:l[2], svc:l[3], amt:+l[4] || 0, cost:+l[5] || 0, ic:l[6] || "" }, inh = /^in house$/i.test(o.ic);
+if(o.amt === 0){ o.kind = "nobill"; o.m = -1; o.tc = o.cost; }
+else if(inh && o.cost === 0 && !/admin fee/i.test(o.svc)){ o.kind = "assumed"; o.m = SC_FLOOR; o.tc = o.amt * (1 - SC_FLOOR / 100); }
+else if(inh && o.cost === 0){ o.kind = "fee"; o.m = 100; o.tc = 0; }
+else { o.kind = "real"; o.m = Math.round((1 - o.cost / o.amt) * 100); o.tc = o.cost; }
+o.low = o.kind === "nobill" || (o.kind === "real" && o.m < SC_FLOOR);
+p.lines.push(o);
+});
+});
+var sup = data && data.supplies && data.supplies.data;
+people.forEach(function(p){
+var f = p.f, rev = 0, cost = 0, tc = 0, low = 0;
+p.lines.forEach(function(o){ rev += o.amt; cost += o.cost; tc += o.tc; if(o.low) low++; });
+p.rev = rev; p.n = p.lines.length; p.low = low; p.gp = rev - tc;
+p.m = rev ? Math.round((1 - tc / rev) * 100) : null; p.me = rev ? Math.round((1 - cost / rev) * 100) : null;
+p.sup = sup && sup.by_fsm && sup.by_fsm[p.name] != null ? +sup.by_fsm[p.name] : null;
+p.os = (f.osDone || 0) + (f.osOpen || 0) + (p.sup || 0);
+var g = p.goal; p.goalAmt = !g ? 0 : g.type === "flat" ? g.amount : Math.max(g.floor || 0, (g.pct || 0) * (f.route || 0));
+p.osPct = p.goalAmt ? Math.round(p.os / p.goalAmt * 100) : null;
+p.osPace = scBizPace(p.mStart, p.asOf, p.holidays);
+var a = new Date(p.asOf + "T00:00:00"); p.insPace = Math.round(a.getDate() / new Date(a.getFullYear(), a.getMonth() + 1, 0).getDate() * 100);
+p.insPct = (!p.noInsp && f.insDue) ? Math.round(f.insCred / f.insDue * 100) : null;
+p.supPct = (p.sup != null && f.route) ? p.sup / f.route * 100 : null;
+});
+people.sort(function(x, y){ return x.order - y.order; });
+return { people:people, supAsOf: sup ? sup.asOf : "" };
+}
+function scMe(){
+if(!SCD) return null;
+var name = String(alByName() || "").toLowerCase().trim(); if(!name) return null;
+var hit = SCD.people.filter(function(p){ return p.label.toLowerCase() === name || p.name.toLowerCase() === name; })[0];
+if(hit) return hit;
+var parts = name.split(/\s+/), last = parts[parts.length - 1], fi = name.charAt(0);
+return SCD.people.filter(function(p){ var q = p.name.toLowerCase().split(/\s+/); return q[q.length - 1] === last && q[0].charAt(0) === fi; })[0] || null;
+}
+function scBar(pct, tick, bad, max){ max = max || 100; return '<span class="sbar" aria-hidden="true"><i class="' + (bad ? 'bad' : '') + '" style="width:' + Math.max(0, Math.min(100, pct / max * 100)) + '%"></i>' + (tick != null ? '<b style="left:' + Math.min(100, tick / max * 100) + '%"></b>' : '') + '</span>'; }
+function scTag(bad, good, badTxt){ return '<span class="tg' + (bad ? ' bad' : '') + '">' + (bad ? badTxt : good) + '</span>'; }
+function scRows(p){
+var list = p.lines.filter(function(o){ return scFilter === "all" || (scFilter === "low") === o.low; }).slice();
+list.sort(function(a, b){ if(scSort === "low") return a.m - b.m || b.amt - a.amt; if(scSort === "big") return b.amt - a.amt; return b.d.localeCompare(a.d) || b.amt - a.amt; });
+return list.map(function(o){
+var mg = o.kind === "nobill" ? '<span class="tg bad" style="margin-left:0">Not billed</span>' : o.kind === "assumed" ? SC_FLOOR + '%<span class="d">assumed, in house</span>' : o.kind === "fee" ? '100%<span class="d">fee, no cost</span>' : o.m + '%' + (o.low ? '<span class="tg bad">Under ' + SC_FLOOR + '%</span>' : '');
+return '<tr class="' + (o.low ? 'low' : '') + '"><td><b>' + esc(o.acct) + '</b><span class="d">' + esc(o.svc) + ' · ' + scDay(o.d) + ' · ' + (/^in house$/i.test(o.ic) ? "In house" : esc(o.ic)) + '</span></td><td class="n">' + scMoney(o.amt) + '</td><td class="n cc">' + (o.kind === "assumed" ? '<span class="d">none entered</span>' : scMoney(o.cost)) + '</td><td class="n">' + mg + '</td></tr>';
+}).join("");
+}
+function scRender(){
+var card = document.getElementById("sccard");
+if(!SCD || !SCD.people.length){ card.hidden = true; return; }
+card.hidden = false;
+var p = scMe(), any = SCD.people[0], h = "";
+var newest = SCD.people.map(function(x){ return x.saved || ""; }).sort().pop() || "";
+var stale = newest && (Date.now() - new Date(newest).getTime()) > 36 * 3600000;
+var asof = 'Sales, margin and inspections through ' + scDay(any.asOf) + '.' + (SCD.supAsOf ? ' Supplies through ' + scDay(SCD.supAsOf) + '.' : '');
+var showTeam = scTeam || !p;
+h += '<div class="schead"><h2 id="sch">' + (p ? esc(p.label.split(" ")[0]) + ', your ' + ["January","February","March","April","May","June","July","August","September","October","November","December"][+any.mStart.split("-")[1] - 1] : 'Team scorecard') + '</h2><span class="asof' + (stale ? ' stale' : '') + '">' + (stale ? 'Not refreshed since ' + scDay(newest.slice(0, 10)) + '. ' : '') + asof + '</span>' + (p ? '<button class="btn" type="button" id="scteam" aria-expanded="' + scTeam + '">' + (scTeam ? 'Hide team' : 'Show team') + '</button>' : '') + '</div>';
+if(p){
+var f = p.f;
+h += '<div class="scgrid">';
+h += '<div class="scm"><div class="l">OS and supplies sold</div>' + (p.osPct == null ? '<div class="v">' + scMoney(p.os) + '</div><div class="s">No goal on file.</div>' : '<div class="v">' + p.osPct + '%' + scTag(p.osPct < p.osPace, 'Ahead of pace', 'Behind pace') + '</div>' + scBar(p.osPct, p.osPace, p.osPct < p.osPace) + '<div class="s">' + scMoney(p.os) + ' of ' + scMoney(p.goalAmt) + '. Pace today is ' + p.osPace + '%.</div>') + '</div>';
+h += '<div class="scm"><div class="l">Your margin on extra charges so far</div>' + (p.m == null ? '<div class="v">No lines yet</div><div class="s">No completed work orders this month.</div>' : '<div class="v">' + p.m + '%</div>' + scBar(p.m, SC_FLOOR, p.m < SC_FLOOR, 70) + '<div class="s">' + scMoney(p.gp) + ' gross profit on ' + p.n + ' lines. ' + p.low + ' under ' + SC_FLOOR + '%.</div><button class="btn text" type="button" id="sclines" aria-expanded="' + scLines + '">' + (scLines ? 'Hide my extra charges' : 'See my extra charges') + '</button>') + '</div>';
+h += '<div class="scm"><div class="l">Inspections this month</div>' + (p.insPct == null ? '<div class="v">Not tracked</div><div class="s">No inspection goal for this role.</div>' : '<div class="v">' + p.insPct + '%' + scTag(p.insPct < p.insPace, 'Ahead of pace', 'Behind pace') + '</div>' + scBar(p.insPct, p.insPace, p.insPct < p.insPace) + '<div class="s">' + Math.round(f.insCred) + ' of ' + Math.round(f.insDue) + ' due. Pace today is ' + p.insPace + '%.</div>') + '</div>';
+h += '<div class="scm"><div class="l">Supplies vs route</div>' + (p.supPct == null ? '<div class="v">Not tracked</div><div class="s">No supply figure for this role yet.</div>' : '<div class="v">' + p.supPct.toFixed(1) + '%' + scTag(p.supPct < SC_SUP_TARGET, 'At target', 'Under ' + SC_SUP_TARGET + '%') + '</div>' + scBar(p.supPct, SC_SUP_TARGET, p.supPct < SC_SUP_TARGET, 12) + '<div class="s">Target is ' + SC_SUP_TARGET + '% of route. Supplies update Fridays.</div>') + '</div>';
+h += '</div>';
+if(scLines && p.n){
+var nlow = p.lines.filter(function(o){ return o.low; }).length;
+h += '<div class="scx"><div class="tools"><h3>' + esc(p.label.split(" ")[0]) + "'s extra charges this month</h3>" +
+'<div class="seg" role="group" aria-label="Which extra charges"><button type="button" data-scf="all" aria-pressed="' + (scFilter === "all") + '">All ' + p.n + '</button><button type="button" data-scf="low" aria-pressed="' + (scFilter === "low") + '">Under ' + SC_FLOOR + '% &nbsp;' + nlow + '</button><button type="button" data-scf="ok" aria-pressed="' + (scFilter === "ok") + '">' + SC_FLOOR + '% and up &nbsp;' + (p.n - nlow) + '</button></div>' +
+'<label for="scsort">Sort</label><select id="scsort"><option value="new"' + (scSort === "new" ? " selected" : "") + '>Newest first</option><option value="low"' + (scSort === "low" ? " selected" : "") + '>Lowest margin first</option><option value="big"' + (scSort === "big" ? " selected" : "") + '>Largest first</option></select></div>' +
+'<p class="sum">' + scMoney(p.rev) + ' billed on ' + p.n + ' lines. ' + p.me + '% as entered in CRM. ' + p.m + '% once in house work with no cost is counted at ' + SC_FLOOR + '%.</p>' +
+'<div class="tw"><table><thead><tr><th>Extra charge</th><th class="n">Billed</th><th class="n cc">Cost</th><th class="n">Margin</th></tr></thead><tbody>' + (scRows(p) || '<tr><td colspan="4">No extra charges match this filter.</td></tr>') + '</tbody></table></div></div>';
+}
+}
+if(showTeam){
+h += '<div class="sctable"><table><thead><tr><th>FSM</th><th>OS and supplies vs goal</th><th>Margin</th><th>Inspections</th><th>Supplies vs route</th></tr></thead><tbody>';
+SCD.people.forEach(function(x){
+h += '<tr class="' + (p && x === p ? 'me' : '') + '"><td><b>' + esc(x.label) + '</b></td><td>' + (x.osPct == null ? scMoney(x.os) : scBar(x.osPct, x.osPace, x.osPct < x.osPace, 150) + x.osPct + '% &nbsp;' + scMoney(x.os)) + '</td><td>' + (x.m == null ? 'No lines yet' : scBar(x.m, SC_FLOOR, x.m < SC_FLOOR, 70) + x.m + '%') + '</td><td>' + (x.insPct == null ? 'Not tracked' : scBar(x.insPct, x.insPace, x.insPct < x.insPace) + x.insPct + '% &nbsp;' + Math.round(x.f.insCred) + ' of ' + Math.round(x.f.insDue)) + '</td><td>' + (x.supPct == null ? 'Not tracked' : x.supPct.toFixed(1) + '%') + '</td></tr>';
+});
+h += '</tbody></table><p class="k">The tick on each bar is where the month should be today. Red means behind it. Margin counts in house work with no cost at ' + SC_FLOOR + '%.</p></div>';
+}
+card.innerHTML = h;
+}
+function scInit(){
+try{ var c = JSON.parse(localStorage.getItem(SC_CACHE) || "null"); if(c){ SCD = scBuild(c); scRender(); } }catch(e){}
+alPost({ kind:"sc_get" }).then(function(r){
+if(r && r.ok && r.data){ try{ localStorage.setItem(SC_CACHE, JSON.stringify(r.data)); }catch(e){} SCD = scBuild(r.data); scRender(); }
+}).catch(function(){});
+document.getElementById("alwho").addEventListener("change", function(){ scLines = false; scRender(); });
+var card = document.getElementById("sccard");
+card.addEventListener("click", function(e){
+if(e.target.closest("#scteam")){ scTeam = !scTeam; scRender(); var b = document.getElementById("scteam"); if(b) b.focus(); return; }
+if(e.target.closest("#sclines")){ scLines = !scLines; scRender(); var s = document.getElementById("sclines"); if(s) s.focus(); return; }
+var f = e.target.closest("[data-scf]"); if(f){ scFilter = f.getAttribute("data-scf"); scRender(); var n = card.querySelector('[data-scf="' + scFilter + '"]'); if(n) n.focus(); }
+});
+card.addEventListener("change", function(e){ if(e.target.id === "scsort"){ scSort = e.target.value; scRender(); var s = document.getElementById("scsort"); if(s) s.focus(); } });
+}
+
 function unlock(){
 renderMainNav();
 buildSearchIndex();
 renderQuick();
 loadPill();
 alInit();
+scInit();
 }
 
 /* ---------- Gate: one team unlock per device (cw-auth.js). The passcode is checked
