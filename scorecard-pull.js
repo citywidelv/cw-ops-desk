@@ -1,6 +1,6 @@
 // City Wide Nevada FSM scorecard pull. Build 2026-11-21.
 // Run on a signed-in tab at https://gocitywide.crm.dynamics.com/api/data/v9.2/WhoAmI.
-// Las Vegas runs in TJ's Chrome, Northern Nevada in NNV Chrome. Send ONE javascript call:
+// Las Vegas runs in CW LV's Chrome (CRM user Joshua Smith), Northern Nevada in NNV Chrome. Send ONE javascript call:
 //   window.SCFG = { market:'lv', fsms:['Brett Stephens','Alejandro Manon','Jake Schmidt','Robert Krause'], mStart:'2026-11-01', asOf:'2026-11-21',
 //     cfg:{ people:[{name:'Brett Stephens',label:'Brett Stephens',role:'FSM',order:1,goal:{type:'flat',amount:65000}}, ...], holidays:['2026-11-11','2026-11-26'] } };
 // cfg is passed through untouched; the Ops Hub uses it for display names, goals, order and business-day pace.
