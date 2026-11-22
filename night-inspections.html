@@ -9,156 +9,208 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <style>
-:root{--red:#D22730;--red-dark:#B01F27;--black:#2D2A26;--grey:#636466;--light:#F5F5F5;--border:#E5E5E5;--ok:#1d8f4e;
---shadow:0 1px 3px rgba(45,42,38,.08),0 4px 14px rgba(45,42,38,.06)}
+/* FSM review of night recaps. Work page: what needs a look first, the count beside it. White ground, black and grey structure, red only for problems. */
+:root{--red:#D22730;--red-dark:#B01F27;--ink:#2D2A26;--grey:#636466;--line:#D4D4D4;--tint:#F5F5F5;--red-tint:#FDF1F1;
+--r-ctl:6px;--r-card:11px;--r-pill:18px;
+--black:var(--ink);--light:var(--tint);--border:var(--line);--ok:var(--ink);color-scheme:light}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;color:var(--black);background:var(--light);font-size:14px;line-height:1.5}
-.head{background:#fff;box-shadow:0 1px 8px rgba(45,42,38,.10);position:sticky;top:0;z-index:5}
-.head .bar{max-width:1100px;margin:0 auto;padding:0 16px;height:56px;display:flex;align-items:center;gap:12px}
-.head img{height:30px;width:auto;flex:none}
-.head .t{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--grey);border-left:2px solid var(--border);padding-left:12px;white-space:nowrap}
-.head a.back{margin-left:auto;font-size:11px;font-weight:700;color:var(--grey);text-decoration:none;border:1px solid var(--border);border-radius:14px;padding:7px 12px;background:var(--light);white-space:nowrap}
-.wrap{max-width:1100px;margin:0 auto;padding:16px}
-h1{font-size:20px;margin-bottom:4px}
-.sub{color:var(--grey);font-size:13px;margin-bottom:14px}
-.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
-.tools input,.tools select{font-family:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;background:#fff;min-height:42px}
-.tools input[type=search]{flex:1;min-width:180px}
-.chip{border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-weight:700;background:#fff;cursor:pointer;min-height:42px;font-family:inherit;color:var(--black)}
-.chip.on{border-color:var(--red);background:#fdf3f3;color:var(--red-dark)}
-.chip.red.on{background:var(--red);color:#fff}
-.day{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin:18px 0 8px}
-.day:first-child{margin-top:0}
-.card{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden}
-.row{display:grid;grid-template-columns:64px 1fr auto;gap:12px;padding:14px 16px;cursor:pointer;align-items:start}
-.score{width:64px;height:64px;border-radius:12px;background:var(--light);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:24px}
-.score small{font-size:10px;color:var(--grey);font-weight:400}
-.score.low{background:#fdf3f3;color:var(--red)}
-.score.na{color:var(--grey);font-size:12px}
-.main b{font-size:16px;display:block}
-.main .meta{font-size:13px;color:var(--grey);margin-top:2px}
-.flags{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px}
-.flag{font-size:11px;font-weight:700;border-radius:9px;padding:2px 8px;background:var(--light);color:var(--black)}
-.flag.hot{background:var(--red);color:#fff}
-.flag.mid{background:var(--black);color:#fff}
-.links{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
-.links a{font-size:12px;font-weight:700;color:#fff;background:var(--black);text-decoration:none;border-radius:9px;padding:8px 12px;white-space:nowrap}
-.links a.pdf{background:var(--red)}
-.links a.edit{background:#fff;color:var(--black);border:1.5px solid var(--black);padding:6.5px 12px}
-.det{display:none;border-top:1px solid var(--border);padding:14px 16px;background:#fafafa}
-.card.open .det{display:block}
-.det table{width:100%;border-collapse:collapse;font-size:13px}
-.det th{text-align:left;color:var(--grey);font-weight:400;width:200px;padding:5px 8px 5px 0;vertical-align:top}
-.det td{padding:5px 0;white-space:pre-wrap;vertical-align:top}
-.det .sum{white-space:pre-wrap;background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13px}
-.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.thumbs a{display:block;width:120px;height:120px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#eee}
-.thumbs img{width:100%;height:100%;object-fit:cover;display:block}
-.flag.src{background:#fff;border:1px solid var(--border);color:var(--grey)}
-.jfnote{font-size:12px;color:var(--grey);margin:-6px 0 12px}
-.thumbs a.lnk{width:auto;height:auto;padding:8px 12px;font-size:12px;font-weight:700;color:var(--black);text-decoration:none;background:#fff}
-.empty{text-align:center;color:var(--grey);padding:40px 10px}
-.views{display:inline-flex;border:1.5px solid var(--border);border-radius:12px;background:#fff;padding:3px;margin:0 0 12px}
-.views button{border:0;border-radius:9px;padding:9px 16px;font-size:13px;font-weight:700;background:none;cursor:pointer;font-family:inherit;color:var(--grey);min-height:40px}
-.views button.on{background:var(--black);color:#fff}
-.range{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:12px}
-.range .lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin-right:4px}
-.range button{border:1.5px solid var(--border);border-radius:9px;padding:6px 10px;font-size:12px;font-weight:700;background:#fff;cursor:pointer;font-family:inherit;color:var(--black);min-height:36px}
-.range button.on{border-color:var(--red);background:#fdf3f3;color:var(--red-dark)}
-.range .pick{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;color:var(--grey)}
-.range .pick input{font-family:inherit;font-size:14px;border:1.5px solid var(--border);border-radius:9px;padding:6px 8px;background:#fff;min-height:36px;color:var(--black)}
-.range .pick button{background:var(--black);color:#fff;border-color:var(--black)}
-.tally{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:16px}
-.tally .th{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:4px}
-.tally .th b{font-size:15px;margin-right:auto}
-.rt{background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
-.rt .rh{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;padding:12px 16px;border-bottom:1px solid var(--border);background:#fafafa}
-.rt .rh b{font-size:15px}
-.rt .rh .meta{font-size:12px;color:var(--grey)}
-.rt .rh .meta a{color:var(--black)}
-.stop{padding:12px 16px;border-top:1px solid var(--border)}
-.stop:first-of-type{border-top:0}
-.stop.miss{background:#fdf3f3}
-.stop .sh{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:4px}
-.stop .sh b{font-size:15px;margin-right:2px}
-.pill{font-size:11px;font-weight:700;border-radius:9px;padding:2px 8px;background:var(--light);color:var(--black);white-space:nowrap}
-.pill.must{background:var(--black);color:#fff}
-.pill.done{background:#e6f4ec;color:var(--ok)}
-.pill.bad{background:var(--red);color:#fff}
-.pill.open{background:#fff;border:1px solid var(--border);color:var(--grey)}
-.stop .rsn{font-size:12px;color:var(--grey)}
-.stop .ins{white-space:pre-wrap;font-size:13px;margin:4px 0 2px}
-.stop .lab{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey);margin:8px 0 3px}
-.stop ul.chk{margin:0 0 0 18px;font-size:13px}
-.stop .ans{display:grid;gap:4px}
-.stop .al{display:grid;grid-template-columns:72px 1fr;gap:8px;font-size:13px;align-items:start}
-.stop .al .a{font-weight:700;border-radius:8px;padding:2px 8px;text-align:center;background:#e6f4ec;color:var(--ok)}
-.stop .al.no .a{background:var(--red);color:#fff}
-.stop .al.na .a{background:var(--light);color:var(--grey)}
-.stop .al .n{color:var(--grey);display:block;font-size:12px}
-.stop .nmn{white-space:pre-wrap;background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin-top:8px;font-size:13px}
-.stop .links{flex-direction:row;justify-content:flex-start;margin-top:8px;flex-wrap:wrap}
-.stop .links button{font-size:12px;font-weight:700;color:#fff;background:var(--black);border:0;border-radius:9px;padding:8px 12px;cursor:pointer;font-family:inherit}
-.tally .note{font-size:12px;color:var(--grey);margin-bottom:10px;overflow-wrap:anywhere}
-.tl{display:grid;grid-template-columns:minmax(110px,190px) minmax(48px,1fr) max-content;gap:6px 12px;align-items:center}
-.tl .hd{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--grey)}
-.tl .hd.r{text-align:right}
-.tl .nmb{font-weight:700;font-size:14px;background:none;border:0;padding:6px 0;text-align:left;cursor:pointer;font-family:inherit;color:var(--black);min-height:34px;min-width:0;overflow-wrap:anywhere}
-.tl .nmb.on{color:var(--red-dark);text-decoration:underline}
-.tl .bar{height:22px;border-radius:6px;background:var(--light);position:relative;overflow:hidden}
-.tl .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--ok);border-radius:6px}
-.tl .bar.lo i{background:var(--red)}
-.tl .bar.na{background:repeating-linear-gradient(45deg,#f5f5f5,#f5f5f5 6px,#ececec 6px,#ececec 12px)}
-.tl .num{text-align:right;font-size:14px;font-weight:700;white-space:nowrap;min-width:72px}
-.tl .num small{display:block;font-size:11px;font-weight:400;color:var(--grey)}
-.tl .sep{grid-column:1/-1;border-top:1px solid var(--border);margin:2px 0}
-.tl .miss{grid-column:1/-1;font-size:12px;color:var(--grey);background:var(--light);border-radius:9px;padding:8px 10px;margin:-2px 0 4px}
-.tl .miss b{color:var(--black)}
-.gatebox{max-width:380px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:24px;margin:40px auto;text-align:center}
+html{-webkit-text-size-adjust:100%}
+body{font-family:Verdana,'Liberation Sans','DejaVu Sans',Geneva,Tahoma,sans-serif;color:var(--ink);background:var(--tint);font-size:15px;line-height:1.5;accent-color:var(--red);caret-color:var(--red)}
+::selection{background:var(--ink);color:#fff}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+button,input,select,textarea{font-family:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+svg.ic{width:20px;height:20px;flex:none;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .hidden{display:none!important}
-.foot{text-align:center;font-size:11px;color:var(--grey);padding:22px}
-@media (max-width:520px){.head .t{display:none}.tl{grid-template-columns:minmax(90px,130px) minmax(36px,1fr) max-content;gap:6px 8px}.tl .hd{font-size:10px;letter-spacing:.04em}}
-@media (max-width:640px){.row{grid-template-columns:52px 1fr}.links{grid-column:1/-1;flex-direction:row;justify-content:flex-start}.score{width:52px;height:52px;font-size:20px}.det th{width:120px}}
+
+.head{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.head .bar{max-width:1160px;margin:0 auto;padding:0 16px;height:56px;display:flex;align-items:center;gap:12px}
+.head img{height:28px;width:auto;flex:none}
+.head .t{font-size:13px;font-weight:700;color:var(--grey);border-left:1px solid var(--line);padding-left:12px;white-space:nowrap}
+.head a.back{margin-left:auto;display:inline-flex;align-items:center;gap:4px;min-height:44px;padding:0 12px 0 8px;font-size:13px;font-weight:700;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:var(--r-ctl);background:#fff;white-space:nowrap}
+.wrap{max-width:1160px;margin:0 auto;padding:24px 16px}
+h1{font-size:28px;line-height:1.2;margin-bottom:4px;text-wrap:balance}
+.sub{color:var(--grey);font-size:13px;margin-bottom:16px;max-width:68ch}
+.how{margin:0 0 16px;font-size:13px;color:var(--grey);max-width:68ch}
+.how summary{cursor:pointer;font-weight:700;color:var(--ink);min-height:44px;display:inline-flex;align-items:center;text-decoration:underline;text-underline-offset:3px}
+.how p{margin:0 0 8px}
+
+.filters{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;margin-bottom:16px}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fld > label,.fld > .lbl,.range .lbl{font-size:13px;font-weight:700;color:var(--grey)}
+select,input[type=search],input[type=date]{font-size:16px;border:1px solid #9A9A9A;border-radius:var(--r-ctl);padding:0 12px;background:#fff;min-height:44px}
+.seg{display:inline-flex;border:1px solid #9A9A9A;border-radius:var(--r-ctl);background:#fff;overflow:hidden}
+.seg button,.chip,.range button,.views button{border:0;background:#fff;padding:0 16px;font-size:13px;font-weight:700;min-height:44px;color:var(--ink);white-space:nowrap}
+.seg button + button{border-left:1px solid #9A9A9A}
+.seg button.on,.chip.on,.range button.on,.views button.on{background:var(--ink);color:#fff}
+.seg .n{font-weight:400;font-variant-numeric:tabular-nums;margin-left:4px}
+.tools{display:contents}
+.range{display:flex;flex-direction:column;gap:4px}
+.range .btns{display:inline-flex;flex-wrap:wrap;border:1px solid #9A9A9A;border-radius:var(--r-ctl);overflow:hidden;background:#fff}
+.range .btns button + button{border-left:1px solid #9A9A9A}
+.range .pick{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;color:var(--grey);margin-top:8px}
+.range .pick button{background:var(--ink);color:#fff;border-radius:var(--r-ctl)}
+.views{display:inline-flex;border-bottom:1px solid var(--line);margin:0 0 16px;width:100%;gap:4px}
+.views button{background:none;border-bottom:3px solid transparent;border-radius:0;padding:0 12px;font-size:15px;color:var(--grey)}
+.views button.on{background:none;color:var(--ink);border-bottom-color:var(--red)}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+.listbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.listbar input[type=search]{flex:1 1 200px;min-width:0}
+.jfnote{font-size:13px;color:var(--grey);margin:0 0 12px}
+.jfnote:empty{display:none}
+.day{font-size:15px;font-weight:700;margin:24px 0 8px}
+.day:first-child{margin-top:0}
+
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);margin-bottom:8px;overflow:hidden}
+.card.attn{border-color:var(--red)}
+.rowb{display:grid;grid-template-columns:56px minmax(0,1fr) 24px;gap:12px;padding:12px 16px;align-items:start;width:100%;text-align:left;border:0;background:none}
+.score{width:56px;height:56px;border-radius:var(--r-ctl);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:21px;line-height:1.1;font-variant-numeric:tabular-nums}
+.score small{font-size:12px;color:var(--grey);font-weight:400}
+.score.low{border-color:var(--red);color:var(--red-dark);background:var(--red-tint)}
+.score.low small{color:var(--red-dark)}
+.score.na{color:var(--grey);font-size:12px;font-weight:400;text-align:center}
+.main b{font-size:17px;line-height:1.3;display:block}
+.main .meta{font-size:13px;color:var(--grey);margin-top:4px}
+.flags{margin-top:8px;display:flex;flex-wrap:wrap;gap:4px}
+.flag,.pill{font-size:12px;font-weight:700;border-radius:var(--r-pill);padding:2px 10px;background:var(--tint);color:var(--ink);white-space:nowrap;display:inline-flex;align-items:center;gap:4px;min-height:24px}
+.flag.hot{background:var(--red);color:#fff}
+.flag.mid{background:#fff;border:1px solid var(--ink)}
+.flag.src{background:#fff;border:1px solid var(--line);color:var(--grey)}
+.flag.ack{background:#fff;border:1px solid var(--ink)}
+.flag svg{width:14px;height:14px}
+.rowb .chev{margin-top:16px;color:var(--grey);transition:none}
+.card.open .rowb .chev{transform:rotate(180deg)}
+.det{display:none;border-top:1px solid var(--line);padding:16px;background:#fff}
+.card.open .det{display:block}
+.grp{padding:16px 0;border-top:1px solid var(--line)}
+.grp:first-child{padding-top:0;border-top:0}
+.grp h3{font-size:15px;line-height:1.3;margin-bottom:8px}
+.kv{display:grid;grid-template-columns:176px minmax(0,1fr);gap:4px 16px;font-size:15px}
+.kv dt{color:var(--grey);font-size:13px;padding-top:2px}
+.kv dd{white-space:pre-wrap;overflow-wrap:anywhere}
+.ans{display:grid;gap:8px}
+.al{display:grid;grid-template-columns:88px minmax(0,1fr);gap:12px;font-size:15px;align-items:start}
+.al .a{font-size:13px;font-weight:700;border-radius:var(--r-pill);padding:2px 8px;text-align:center;border:1px solid var(--ink);background:#fff}
+.al.no .a{background:var(--red);border-color:var(--red);color:#fff}
+.al.na .a{background:var(--grey);border-color:var(--grey);color:#fff}
+.al .n{color:var(--grey);display:block;font-size:13px}
+.sum{white-space:pre-wrap;font-size:15px;max-width:68ch}
+.det details summary{cursor:pointer;font-size:13px;font-weight:700;min-height:44px;display:inline-flex;align-items:center;text-decoration:underline;text-underline-offset:3px}
+.acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.acts a,.acts button,.stop .links a,.stop .links button,.empty button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;font-size:13px;font-weight:700;color:var(--ink);background:#fff;border:1px solid var(--ink);text-decoration:none;border-radius:var(--r-ctl)}
+.acts .pri{background:var(--red);border-color:var(--red);color:#fff}
+.acts .filed{font-size:12px;color:var(--grey);margin-left:auto}
+.ackbox{border:1px solid var(--ink);border-radius:var(--r-ctl);padding:12px;margin-bottom:16px;background:var(--tint)}
+.ackbox label{display:block;font-size:15px;font-weight:700;margin-bottom:8px}
+.ackbox textarea{width:100%;min-height:72px;font-size:16px;border:1px solid #9A9A9A;border-radius:var(--r-ctl);padding:12px;background:#fff;margin-bottom:8px;resize:vertical}
+.ackbox input[type=text]{width:100%;min-height:44px;font-size:16px;border:1px solid #9A9A9A;border-radius:var(--r-ctl);padding:0 12px;margin-bottom:12px;background:#fff}
+.ackbox .msg{font-size:13px;color:var(--red-dark);font-weight:700}
+.ackdone{font-size:15px;margin-bottom:16px;padding:12px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--tint)}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.thumbs a{display:block;width:120px;height:120px;border-radius:var(--r-ctl);overflow:hidden;border:1px solid var(--line);background:var(--tint)}
+.thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+.thumbs a.lnk{width:auto;height:auto;padding:12px;font-size:13px;font-weight:700;color:var(--ink);background:#fff}
+.empty{text-align:left;color:var(--grey);padding:24px 16px;background:#fff;border:1px dashed #9A9A9A;border-radius:var(--r-card);font-size:15px}
+.empty b{color:var(--ink);display:block;font-size:17px;margin-bottom:4px}
+.empty button{margin-top:12px}
+
+.tally{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);padding:16px}
+.tally .th b{font-size:17px;line-height:1.3;display:block;margin-bottom:4px}
+.tally .note{font-size:13px;color:var(--grey);margin-bottom:12px;overflow-wrap:anywhere}
+.tl{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:4px 12px;align-items:center}
+.tl .hd{display:none}
+.tl .nmb{grid-column:1/-1;font-weight:700;font-size:15px;background:none;border:0;padding:0;text-align:left;min-height:44px;display:flex;align-items:flex-end;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.tl div.nmb{text-decoration:none}
+.tl .nmb.on{color:var(--red-dark)}
+.tl .bar{height:16px;border-radius:3px;background:var(--tint);border:1px solid var(--line);position:relative;overflow:hidden}
+.tl .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--ink)}
+.tl .bar.lo i{background:var(--red)}
+.tl .bar.na{background:var(--tint)}
+.tl .num{text-align:right;font-size:15px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tl .tsub{grid-column:1/-1;font-size:13px;color:var(--grey);font-variant-numeric:tabular-nums}
+.tl .sep{grid-column:1/-1;border-top:1px solid var(--line);margin:12px 0 0}
+.tl .miss{grid-column:1/-1;font-size:13px;color:var(--grey);background:var(--tint);border-radius:var(--r-ctl);padding:8px 12px;margin:4px 0}
+.tl .miss b{color:var(--ink)}
+
+.rt{background:#fff;border:1px solid var(--line);border-radius:var(--r-card);margin-bottom:12px;overflow:hidden}
+.rt .rh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--tint)}
+.rt .rh b{font-size:15px}
+.rt .rh .meta{font-size:13px;color:var(--grey)}
+.stop{padding:12px 16px;border-top:1px solid var(--line)}
+.stop:first-of-type{border-top:0}
+.stop.miss{background:var(--red-tint)}
+.stop .sh{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-bottom:4px}
+.stop .sh b{font-size:17px}
+.pill.must{background:var(--ink);color:#fff}
+.pill.done{background:#fff;border:1px solid var(--ink)}
+.pill.bad{background:var(--red);color:#fff}
+.pill.open{background:#fff;border:1px solid var(--red);color:var(--red-dark)}
+.stop .rsn{font-size:13px;color:var(--grey)}
+.stop .ins{white-space:pre-wrap;font-size:15px;margin:4px 0}
+.stop .lab{font-size:13px;font-weight:700;color:var(--grey);margin:12px 0 8px}
+.stop ul.chk{margin:0 0 0 20px;font-size:15px}
+.stop .nmn{white-space:pre-wrap;background:#fff;border:1px solid var(--line);border-radius:var(--r-ctl);padding:8px 12px;margin-top:8px;font-size:15px}
+.stop .links{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.gatebox{max-width:380px;background:#fff;border:1px solid var(--line);border-radius:var(--r-card);padding:24px;margin:40px auto;text-align:center}
+.foot{text-align:center;font-size:12px;color:var(--grey);padding:24px 16px}
+#sheetLink{margin-top:16px}#sheetLink a{color:var(--ink)}
+@media (max-width:900px){.cols{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){.head .t{display:none}.kv{grid-template-columns:minmax(0,1fr);gap:0}.kv dd{margin-bottom:8px}.rowb{grid-template-columns:48px minmax(0,1fr) 24px;padding:12px}.score{width:48px;height:48px;font-size:17px}.fld,.range{width:100%}.seg,.range .btns{width:100%}.seg button,.range .btns button{flex:1;padding:0 8px}.acts .filed{margin-left:0;width:100%}}
+@media (hover:hover){.rowb:hover{background:var(--tint)}.acts a:hover,.acts button:hover{background:var(--tint)}.acts .pri:hover{background:var(--red-dark)}}
 </style>
 <link rel="stylesheet" href="https://citywidelv.github.io/cw-base.css">
 </head>
 <body>
 <header class="head"><div class="bar">
-<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions">
-<span class="t">Night Inspection Recaps</span>
-<a class="back" href="index.html">&larr; Ops Hub</a>
+<img src="https://emailer.emfluence.com/clients/citywide/uploadedfiles/signature_logo.png" alt="City Wide Facility Solutions" width="200" height="28">
+<span class="t">Night recaps</span>
+<a class="back" id="backLink" href="index.html"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Ops Hub</a>
 </div></header>
 
 <div class="wrap">
 <div id="gate" class="gatebox hidden"><b>Open this from the Ops Hub</b><p class="sub">This page uses the Ops Hub session on this device.</p><a href="index.html">&larr; Ops Hub</a></div>
 <div id="app" class="hidden">
-<h1>Night inspection recaps</h1>
-<div class="sub" id="intro">Pick the nights to look at, then switch between the recaps the night managers filed and the route outs the FSMs sent them. The box counts each night manager's recaps against what is expected: 5 a night, every weekday that is not a holiday. Under each count is how many buildings they were routed out to. Tap a row for the details. Hub recaps carry a PDF with the photos in it. Tap Edit beside the PDF to fix a recap, such as the wrong cleaning company or building.</div>
-<div class="views"><button type="button" data-v="insp" class="on">Inspections</button><button type="button" data-v="routes">Route outs</button></div>
-<div class="range"><span class="lbl">Nights</span><button type="button" data-r="night">Last night</button><button type="button" data-r="week" class="on">This week</button><button type="button" data-r="month">This month</button><button type="button" data-r="pick">Pick dates</button>
+<h1>Night recaps</h1>
+<div class="sub" id="intro">What the night managers filed. The ones that need you are first.</div>
+<details class="how"><summary>How this page counts</summary>
+<p>A recap needs a look when the score is under 8, a problem is still open, the client complained, a standard was not met, one of your questions came back No, the crew was out of uniform, or the night manager asked for you. Mark it handled once you have dealt with it.</p>
+<p>Each night manager is expected to file 5 in-building recaps a night, every weekday that is not a holiday. Phone-only and photos-from-crew recaps are shown but do not count toward the 5. Routed means buildings an FSM sent on the Route Out. Tap a name to see routed stops with no recap.</p>
+</details>
+<div class="filters">
+<div class="fld"><span class="lbl" id="mktL">Market</span><div class="seg" role="group" aria-labelledby="mktL"><button class="chip on" data-m="lv" type="button">Las Vegas</button><button class="chip" data-m="nnv" type="button">Northern Nevada</button></div></div>
+<div class="fld"><label for="fsm">FSM</label><select id="fsm"><option value="">All FSMs</option></select></div>
+<div class="range"><span class="lbl" id="rngL">Nights</span><div class="btns" role="group" aria-labelledby="rngL"><button type="button" data-r="night">Last night</button><button type="button" data-r="week" class="on">This week</button><button type="button" data-r="month">This month</button><button type="button" data-r="pick">Pick dates</button></div>
 <span class="pick hidden" id="pickBox"><input type="date" id="dFrom" aria-label="From"> to <input type="date" id="dTo" aria-label="To"> <button type="button" id="dGo">Show</button></span></div>
-<div class="tally" id="tally"><div class="th"><b>Submitted vs expected</b></div>
-<div class="note" id="tallyNote">Loading route outs...</div><div class="tl" id="tallyBody"></div></div>
-<div class="tools">
-<button class="chip on" data-m="lv" type="button">Las Vegas</button><button class="chip" data-m="nnv" type="button">Northern Nevada</button>
-<select id="nm"><option value="">All night managers</option></select>
-<select id="fsm"><option value="">All FSMs</option></select>
-<button class="chip red" id="flagsOnly" type="button">Needs attention only</button>
-<input type="search" id="q" placeholder="Search building, company, name">
+</div>
+<div class="views" role="group" aria-label="View"><button type="button" data-v="insp" class="on">Recaps</button><button type="button" data-v="routes">Route outs</button></div>
+<div class="cols">
+<div>
+<div class="listbar">
+<div class="seg" role="group" aria-label="Which recaps"><button id="flagsOnly" type="button" class="on">Needs a look</button><button id="allBtn" type="button">All</button></div>
+<select id="nm" aria-label="Night manager"><option value="">All night managers</option></select>
+<input type="search" id="q" aria-label="Search recaps" placeholder="Search building, company, name">
 </div>
 <div class="jfnote" id="jfNote"></div>
-<div id="list"><div class="empty">Loading...</div></div>
-<div class="sub" id="sheetLink" style="margin-top:14px"></div>
+<div id="list"><div class="empty">Loading the recaps for these nights.</div></div>
+<div class="sub" id="sheetLink"></div>
+</div>
+<aside class="tally" id="tally" aria-label="Recaps by night manager"><div class="th"><b>In the building, against 5 a night</b></div>
+<div class="note" id="tallyNote">Loading route outs.</div><div class="tl" id="tallyBody"></div></aside>
 </div>
 </div>
-<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only</div>
+</div>
+<div class="foot">City Wide Facility Solutions &middot; Ops Hub &middot; Internal use only &middot; GoCityWide.com</div>
 
 <script src="https://citywidelv.github.io/cw-ops-desk/cw-auth.js"></script>
 <script>
 (function(){
 "use strict";
 var WEBHOOK = "https://script.google.com/macros/s/AKfycbzfNnrpidCbWB1DeUNgXvRhDFMQgApfpn-3C9GU45wMEHcJpWFl8ZQVo6PUBSRfEVfRdg/exec";
-var PASS = "", MKT = "lv", ROWS = [], FLAGS_ONLY = false;
+var PASS = "", MKT = "lv", ROWS = [], FLAGS_ONLY = true;
+// The FSM picked in "You are" on the hub home. The page opens on their buildings.
+var ME = window.MOCK_ME || "", ME_SET = false, ME_KEY = "", LIMIT = 200, REFRESH = "";
+try { ME_KEY = String(localStorage.getItem("cwAlertsWho") || "").toLowerCase(); } catch (e) {}
 // Oct 8 2026: Jotform recaps (Feeds slugs ni_lv / ni_nnv, read through jf_list) are merged
 // into this page so the FSMs have one place to look whichever form the night manager used.
 var HUB_ROWS = [], JF_ROWS = [], JF_STATE = "", LOADSEQ = 0, STAFF = null;
@@ -177,7 +229,7 @@ var JF_SLUG = { lv:"ni_lv", nnv:"ni_nnv" }, JF_DAYS = 35, JF_IN = 0;
 var STOPS = [], STOP_STATE = "", TALLY_R = "week", TALLY_OPEN = "", VIEW = "insp", PICK = { from:"", to:"" };
 var LOADED = { from:"", to:"" }, HUB_TRUNC = false, HUB_NOTE = "";
 var JQ = { score:"Rate the Quality of the Clean based on what you see tonight", fsmAsk:"Any actions needed by the FSM tomorrow morning?", fsmNote:"FSM Follow-up needed", resolved:"Were all issues resolved before you left", why:"Why wasn't it resolved prior to you leaving, what is the plan for resolution?", how:"How was the issue Resolved", uniform:"Is the crew all in uniform?", supplies:"Do we need to order supplies for the account or for the vendor?", times:"Arrival and Departure Times", vendor:"Vendor", fsmEmail:"FSM Email", date:"Date", sub:"Submission Date" };
-var FLAG = { standards_failed:["Standard not met","hot"], low_score:["Low score","hot"], complaint:["Complaint","hot"], unresolved:["Unresolved","hot"], fsm_action:["FSM action","hot"], crew_unverified:["Crew not background checked","mid"], uniform:["Uniform","mid"], supplies:["Supplies",""], unmatched_vendor:["Company not in directory",""], unmatched_account:["Building not in directory",""] };
+var FLAG = { fsm_ask_missed:["Your question came back No","hot"], standards_failed:["Standard not met","hot"], low_score:["Low score","hot"], complaint:["Complaint","hot"], unresolved:["Unresolved","hot"], fsm_action:["FSM action","hot"], crew_unverified:["Crew not background checked","mid"], uniform:["Uniform","hot"], supplies:["Supplies",""], unmatched_vendor:["Company not in directory",""], unmatched_account:["Building not in directory",""] };
 function $(id){ return document.getElementById(id); }
 function esc(s){ var d=document.createElement("div"); d.textContent=String(s==null?"":s); return d.innerHTML; }
 function post(body){ body.passcode = PASS; return fetch(WEBHOOK, { method:"POST", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(body) }).then(function(r){ return r.json(); }); }
@@ -196,15 +248,27 @@ function load(win){
   $("list").innerHTML = '<div class="empty">Loading...</div>'; jfNote();
   loadJf(seq, mkt);
   loadStops(seq, mkt, win);
-  var body = { kind:"ni_list", market: mkt, limit: 500 };
+  REFRESH = "";
+  if (!win){ try {
+    var c = JSON.parse(localStorage.getItem("niRecaps_" + mkt) || "null");
+    if (c && c.rows && c.rows.length){
+      HUB_ROWS = c.rows.map(function(x){ x._src = "hub"; x._ts = hubTs(x.submitted_at); return x; });
+      ACK = c.acks || {}; REFRESH = new Date(c.t).toLocaleString("en-US", { weekday:"short", hour:"numeric", minute:"2-digit" });
+      merge();
+    }
+  } catch (e) {} }
+  var body = { kind:"ni_list", market: mkt, limit: win ? 500 : LIMIT };
   if (win){ body.from = win.from; body.to = win.to; }
   post(body).then(function(r){
     if (seq !== LOADSEQ) return;
     if (!r || !r.ok){ if (r && CWAuth.isPassError(r.error)) return CWAuth.locked("ops", r.error); $("list").innerHTML = '<div class="empty">' + esc((r && r.error) || "Could not load.") + '</div>'; return; }
+    ACK = r.acks || {};
     HUB_ROWS = (r.rows || []).map(function(x){ x._src = "hub"; x._ts = hubTs(x.submitted_at); return x; });
     // The newest-500 read can stop short of the Jotform window. Note the oldest night it
     // reached, so a range that goes further back reloads instead of counting low.
-    if (!win && HUB_ROWS.length >= 500){
+    REFRESH = "";
+    if (!win){ try { localStorage.setItem("niRecaps_" + mkt, JSON.stringify({ t: Date.now(), rows: (r.rows || []).slice(0, 80), acks: r.acks || {} })); } catch (e) {} }
+    if (!win && HUB_ROWS.length >= LIMIT){
       HUB_TRUNC = true;
       var oldest = HUB_ROWS.reduce(function(m, x){ var d = String(x.report_date||"").slice(0,10); return d && (!m || d < m) ? d : m; }, "");
       if (oldest && oldest > LOADED.from) LOADED.from = oldest;
@@ -212,7 +276,11 @@ function load(win){
     HUB_NOTE = (win && r.truncated) ? " Only the newest 500 hub recaps in these nights loaded; narrow the dates to see the rest." : "";
     if (r.sheet_url) $("sheetLink").innerHTML = 'Every hub recap is also a row on the <a href="' + esc(r.sheet_url) + '" target="_blank" rel="noopener">CW Night Inspections sheet</a>. Jotform recaps open in full under Form Submissions.';
     merge();
-  }).catch(function(){ if (seq === LOADSEQ) $("list").innerHTML = '<div class="empty">Could not reach the server.</div>'; });
+  }).catch(function(){
+    if (seq !== LOADSEQ) return;
+    if (REFRESH){ REFRESH = ""; HUB_NOTE = " Could not reach the server, so this is the last copy saved on this device."; jfNote(); return; }
+    $("list").innerHTML = '<div class="empty"><b>Could not reach the server.</b>Check your connection and reload the page.</div>';
+  });
 }
 function daysBetween(a, b){ var p = String(a).split("-"), q = String(b).split("-"); return Math.round((new Date(+q[0], +q[1]-1, +q[2]) - new Date(+p[0], +p[1]-1, +p[2])) / 864e5); }
 // Make sure the current range is loaded, then draw. Reloads only when the range reaches
@@ -235,10 +303,16 @@ function merge(){
 function fillSels(){
   var src = VIEW === "routes" ? STOPS : ROWS;
   fillSel("nm", "nm_name", src); fillSel("fsm", "fsm", src);
+  if (!ME_SET){
+    var opts = Array.prototype.map.call($("fsm").options, function(o){ return o.value; }).filter(String), hit = "";
+    if (ME) hit = opts.filter(function(v){ return v === ME; })[0] || "";
+    else if (ME_KEY) hit = opts.filter(function(v){ return v.toLowerCase().split(/\s+/)[0].indexOf(ME_KEY) === 0; })[0] || "";
+    if (hit){ ME_SET = true; ME = hit; $("fsm").value = hit; }
+  }
 }
 function jfNote(){
   var n = JF_ROWS.length;
-  $("jfNote").textContent = (JF_STATE === "loading" ? "Loading Jotform recaps..." : JF_STATE === "err" ? "Jotform recaps could not load. Hub recaps are shown." : JF_STATE === "ok" && n ? "Includes " + n + " Jotform recap" + (n===1?"":"s") + " from the last " + JF_DAYS + " days." : "") + HUB_NOTE;
+  $("jfNote").textContent = (REFRESH ? "Showing the copy from " + REFRESH + ". Getting the newest now. " : "") + (JF_STATE === "loading" ? "Loading Jotform recaps..." : JF_STATE === "err" ? "Jotform recaps could not load. Hub recaps are shown." : JF_STATE === "ok" && n ? "Includes " + n + " Jotform recap" + (n===1?"":"s") + " from the last " + JF_DAYS + " days." : "") + HUB_NOTE;
 }
 function hubTs(s){ var m = String(s||"").match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})/); return m ? new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5]).getTime() : 0; }
 // The night a recap belongs to. report_date is the calendar day it was filed, so a recap
@@ -407,9 +481,10 @@ function matchStops(stops, recs){
 function tally(){
   var note = $("tallyNote"), body = $("tallyBody");
   Array.prototype.forEach.call(document.querySelectorAll("[data-r]"), function(b){ b.classList.toggle("on", b.getAttribute("data-r") === TALLY_R); });
-  if (STOP_STATE === "loading"){ note.textContent = "Loading route outs..."; body.innerHTML = ""; return; }
+  if (STOP_STATE === "loading"){ note.textContent = "Loading route outs."; body.innerHTML = ""; return; }
   if (STOP_STATE.indexOf("err") === 0){ note.textContent = "Route outs could not load. " + STOP_STATE.slice(4); body.innerHTML = ""; return; }
-  var rg = tallyRange(), fsm = $("fsm").value;
+  // The 5 a night is a count per person across every FSM, so the FSM picker does not narrow it.
+  var rg = tallyRange(), fsm = "";
   var stops = STOPS.filter(function(s){ return s.report_date >= rg.from && s.report_date <= rg.to && (!fsm || s.fsm === fsm); });
   // A recap filed after midnight can carry the next day's date, so a recap on the stop's night or the morning after counts.
   var recs = ROWS.filter(function(r){ var d = String(r.report_date||"").slice(0,10); return d >= rg.from && d <= addDays(rg.to, 1) && (!fsm || r.fsm === fsm || stops.some(function(s){ return sameAcct(s, r); })); });
@@ -417,7 +492,7 @@ function tally(){
   var by = {}, order = [];
   function nmRow(name){
     for (var i = 0; i < order.length; i++) if (samePerson(order[i], name)) return by[order[i]];
-    order.push(name); by[name] = { name: name, submitted: 0, routed: 0, covered: 0, miss: [] }; return by[name];
+    order.push(name); by[name] = { name: name, submitted: 0, remote: 0, mins: 0, timed: 0, routed: 0, covered: 0, miss: [] }; return by[name];
   }
   // Every active night manager in this market is on the board, even with nothing filed.
   (STAFF || []).forEach(function(p){
@@ -438,7 +513,10 @@ function tally(){
   recs.forEach(function(r){
     var d = String(r.report_date||"").slice(0,10);
     if (d < rg.from || d > rg.to) return;
-    nmRow(r.nm_name || "Name not given").submitted++;
+    var row = nmRow(r.nm_name || "Name not given");
+    if (/^(Phone only|Photos from crew)$/.test(r.reason || "")){ row.remote++; return; }
+    row.submitted++;
+    var mi = minsIn(r); if (mi !== null){ row.mins += mi; row.timed++; }
   });
   var list = order.map(function(k){ return by[k]; }).sort(function(a, b){ return b.submitted - a.submitted || b.routed - a.routed || (a.name < b.name ? -1 : 1); });
   var thru = rg.to === rg.end ? "" : ", counted through last night (" + niceDay(rg.to) + ")";
@@ -450,7 +528,7 @@ function tally(){
   var jfOld = JF_ROWS.reduce(function(m, r){ var d = String(r.report_date||"").slice(0,10); return d && (!m || d < m) ? d : m; }, "");
   if (JF_STATE === "ok" && JF_IN > JF_ROWS.length && jfOld > rg.from) jfMsg += " Only the newest " + JF_ROWS.length + " Jotform recaps loaded, so nights before " + niceDay(jfOld) + " may count low.";
   note.textContent = (MKT === "nnv" ? "Northern Nevada, " : "Las Vegas, ") + span + (fsm ? ", FSM " + fsm : "") + ". Expected " + expect + " per night manager: " + EXPECT_PER_NIGHT + " a night over " + wn.nights + " weekday night" + (wn.nights === 1 ? "" : "s")
-    + (wn.skipped.length ? ", skipping " + wn.skipped.join(" and ") : "") + ". Routed = buildings sent on the Route Out. Tap a name to see routed stops with no recap and filter the list." + jfMsg;
+    + (wn.skipped.length ? ", skipping " + wn.skipped.join(" and ") : "") + "." + jfMsg;
   if (!list.length){ body.innerHTML = ""; return; }
   var tS = 0, tE = 0, tR = 0, tC = 0, h = '<div class="hd">Night manager</div><div class="hd">Submitted of expected</div><div class="hd r">Submitted</div>';
   list.forEach(function(x){
@@ -458,14 +536,15 @@ function tally(){
     var pct = expect ? Math.round(x.submitted / expect * 100) : null;
     h += '<button type="button" class="nmb' + (TALLY_OPEN === x.name ? ' on' : '') + '" data-nmk="' + esc(x.name) + '">' + esc(x.name) + '</button>'
       + '<div class="bar' + (pct === null ? ' na' : pct < 80 ? ' lo' : '') + '" title="' + (pct === null ? 'No weekday nights in range' : pct + '%') + '">' + (pct === null ? '' : '<i style="width:' + Math.min(100, pct) + '%"></i>') + '</div>'
-      + '<div class="num">' + x.submitted + ' of ' + expect + '<small>' + (pct === null ? '' : pct + '% &middot; ') + 'routed ' + x.routed + (x.routed ? ' (' + x.covered + ' covered)' : '') + '</small></div>';
+      + '<div class="num">' + x.submitted + ' of ' + expect + '</div>'
+      + '<div class="tsub">' + [pct === null ? '' : pct + '%', x.timed ? 'average ' + Math.round(x.mins / x.timed) + ' min in a building' : '', x.remote ? x.remote + ' more by phone or photos' : '', 'routed ' + x.routed + (x.routed ? ', ' + x.covered + ' with a recap' : '')].filter(String).join(' &middot; ') + '</div>';
     if (TALLY_OPEN === x.name){
       h += '<div class="miss">' + (x.routed ? (x.miss.length ? '<b>Routed, no recap:</b> ' + x.miss.map(function(s){ return esc(s.account_name) + ' (' + esc(niceDay(s.report_date)) + (s.fsm ? ', ' + esc(s.fsm) : '') + ')'; }).join('; ') : 'Every routed stop has a recap.') : 'Nothing was routed to this night manager in this range.')
         + (x.submitted > x.covered ? '<br>' + (x.submitted - x.covered) + ' recap' + (x.submitted - x.covered === 1 ? '' : 's') + ' filed at buildings not on the route.' : '') + '</div>';
     }
   });
   var tp = tE ? Math.round(tS / tE * 100) : null;
-  h += '<div class="sep"></div><div class="nmb">All</div><div class="bar' + (tp === null ? ' na' : tp < 80 ? ' lo' : '') + '">' + (tp === null ? '' : '<i style="width:' + Math.min(100, tp) + '%"></i>') + '</div><div class="num">' + tS + ' of ' + tE + '<small>' + (tp === null ? '' : tp + '% &middot; ') + 'routed ' + tR + (tR ? ' (' + tC + ' covered)' : '') + '</small></div>';
+  h += '<div class="sep"></div><div class="nmb">Everyone</div><div class="bar' + (tp === null ? ' na' : tp < 80 ? ' lo' : '') + '">' + (tp === null ? '' : '<i style="width:' + Math.min(100, tp) + '%"></i>') + '</div><div class="num">' + tS + ' of ' + tE + '</div><div class="tsub">' + (tp === null ? '' : tp + '% &middot; ') + 'routed ' + tR + (tR ? ', ' + tC + ' with a recap' : '') + '</div>';
   body.innerHTML = h;
   Array.prototype.forEach.call(body.querySelectorAll("[data-nmk]"), function(b){ b.addEventListener("click", function(){
     var k = b.getAttribute("data-nmk"); TALLY_OPEN = TALLY_OPEN === k ? "" : k;
@@ -480,39 +559,153 @@ function fillSel(id, key, src){
   var names = (src || ROWS).map(function(r){ return r[key]; }).filter(function(n){ if (!n || seen[n]) return false; seen[n] = 1; return true; }).sort(function(a, b){ return b.length - a.length; });
   if (id === "nm") names = names.filter(function(n, i){ return !names.slice(0, i).some(function(m){ return samePerson(m, n); }); });
   names.sort();
-  sel.innerHTML = '<option value="">' + (id==="nm" ? "All night managers" : "All FSMs") + '</option>' + names.map(function(n){ return '<option' + (n===cur?' selected':'') + '>' + esc(n) + '</option>'; }).join("");
+  sel.innerHTML = '<option value="">' + (id==="nm" ? "All night managers" : "All FSMs") + '</option>' + names.map(function(n){ return '<option value="' + esc(n) + '"' + (n===cur?' selected':'') + '>' + esc(n) + '</option>'; }).join("");
+}
+// What counts as "needs a look". One rule, shared with the morning email. A crew name with
+// no background check goes to the ops admin, so it shows as a tag but does not count here.
+var ATTN = /low_score|complaint|unresolved|fsm_action|standards_failed|fsm_ask_missed|uniform/;
+// Handled marks, by recap id: { by, at, note }. Loaded with the list, saved through ni_ack.
+var ACK = {}, OPEN = {}, ACKING = "";
+var IC = {
+  chev: '<svg class="ic chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+  check: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>'
+};
+function ackName(){ var n = ""; try { n = localStorage.getItem("niAckBy") || ""; } catch (e) {} return n || (ME_KEY ? ME_KEY.charAt(0).toUpperCase() + ME_KEY.slice(1) : ""); }
+function isAttn(r){ return ATTN.test(r.flags||""); }
+function needsLook(r){ return isAttn(r) && !ACK[r.inspection_id]; }
+function hm(s){ var m = String(s||"").match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*$/); return m ? (+m[1]) * 60 + (+m[2]) : null; }
+function minsIn(r){ var a = hm(r.arrival), d = hm(r.departure); if (a === null || d === null) return null; var m = d - a; return m < 0 ? m + 1440 : m; }
+function paintSeg(a, b, routes){
+  $("flagsOnly").innerHTML = (routes ? "Missed or not met" : "Needs a look") + (a === null ? "" : ' <span class="n">' + a + '</span>');
+  $("allBtn").innerHTML = "All" + (b === null ? "" : ' <span class="n">' + b + '</span>');
+  $("flagsOnly").classList.toggle("on", FLAGS_ONLY); $("allBtn").classList.toggle("on", !FLAGS_ONLY);
+  $("flagsOnly").setAttribute("aria-pressed", FLAGS_ONLY ? "true" : "false"); $("allBtn").setAttribute("aria-pressed", FLAGS_ONLY ? "false" : "true");
 }
 function render(){
   Array.prototype.forEach.call(document.querySelectorAll("[data-v]"), function(b){ b.classList.toggle("on", b.getAttribute("data-v") === VIEW); });
-  $("flagsOnly").textContent = VIEW === "routes" ? "Missed or not met only" : "Needs attention only";
   $("q").placeholder = VIEW === "routes" ? "Search building, instructions, name" : "Search building, company, name";
-  if (VIEW === "routes") return renderRoutes();
+  if (VIEW === "routes"){ paintSeg(null, null, true); return renderRoutes(); }
   var q = $("q").value.trim().toLowerCase(), nm = $("nm").value, fsm = $("fsm").value, rg = tallyRange();
-  var rows = ROWS.filter(function(r){
+  var base = ROWS.filter(function(r){
     if (r._night && (r._night < rg.from || r._night > rg.to)) return false;
     if (nm && r.nm_name !== nm && !samePerson(r.nm_name, nm)) return false;
     if (fsm && r.fsm !== fsm) return false;
-    if (FLAGS_ONLY && !/low_score|complaint|unresolved|fsm_action|crew_unverified|standards_failed/.test(r.flags||"")) return false;
     if (q && (r.account_name + " " + r.vendor_name + " " + r.nm_name + " " + r.fsm + " " + r.reason + " " + r.summary + " " + r.inspection_id).toLowerCase().indexOf(q) < 0) return false;
     return true;
   });
-  if (!rows.length){ $("list").innerHTML = '<div class="empty">' + (JF_STATE === "loading" && !HUB_ROWS.length ? 'Loading...' : 'No recaps for these nights.') + '</div>'; return; }
+  var open = base.filter(needsLook);
+  paintSeg(open.length, base.length, false);
+  var rows = FLAGS_ONLY ? open : base;
+  var list = $("list");
+  if (!rows.length){
+    var loading = JF_STATE === "loading" && !HUB_ROWS.length;
+    list.innerHTML = loading ? '<div class="empty">Loading the recaps for these nights.</div>'
+      : FLAGS_ONLY && base.length ? '<div class="empty"><b>Nothing needs a look.</b>' + base.length + ' recap' + (base.length === 1 ? ' was' : 's were') + ' filed for these nights' + (fsm ? ' at ' + esc(fsm) + "'s buildings" : '') + ' and none is flagged.<br><button type="button" id="showAll">Show all ' + base.length + '</button></div>'
+      : '<div class="empty"><b>No recaps for these nights.</b>' + (fsm || nm || q ? 'Clear the FSM, night manager or search to see more.' : 'Pick other nights above.') + '</div>';
+    var sa = $("showAll"); if (sa) sa.addEventListener("click", function(){ FLAGS_ONLY = false; render(); });
+    return;
+  }
   var html = "", day = "";
-  rows.forEach(function(r, i){
+  rows.forEach(function(r){
     var rd = r._night || String(r.report_date||'').slice(0,10);
-    if (rd !== day){ day = rd; html += '<div class="day">' + esc(niceDay(day)) + '</div>'; }
-    var sc = r.score !== "" ? Number(r.score) : null;
-    var flags = (r.flags||"").split(",").filter(String).map(function(f){ var d = FLAG[f] || [f,""]; return '<span class="flag ' + d[1] + '">' + esc(d[0]) + '</span>'; }).join("");
+    if (rd !== day){ day = rd; html += '<h2 class="day">' + esc(niceDay(day)) + '</h2>'; }
+    var id = r.inspection_id, sc = r.score !== "" && r.score != null ? Number(r.score) : null, ack = ACK[id], mi = minsIn(r);
+    var flags = (r.flags||"").split(",").filter(String).map(function(f){ var d = FLAG[f] || [f,""]; return '<span class="flag ' + (ack && d[1] === "hot" ? "mid" : d[1]) + '">' + esc(d[0]) + '</span>'; }).join("");
+    if (ack) flags = '<span class="flag ack">' + IC.check + 'Handled by ' + esc(ack.by) + '</span>' + flags;
     var photos = (r.photo_links||"").split("\n").filter(String);
-    html += '<div class="card" data-i="' + i + '"><div class="row">'
-      + '<div class="score' + (sc===null ? ' na' : sc < 8 ? ' low' : '') + '">' + (sc===null ? 'no<br>score' : sc + '<small>of 10</small>') + '</div>'
-      + '<div class="main"><b>' + esc(r.account_name) + '</b><div class="meta">' + esc(r.nm_name) + ' &middot; ' + esc(r.reason) + (r.vendor_name ? ' &middot; ' + esc(r.vendor_name) : '') + (r.arrival ? ' &middot; ' + esc(clock(r.arrival)) + (r.departure ? ' to ' + esc(clock(r.departure)) : '') : '') + (r.fsm ? ' &middot; FSM ' + esc(r.fsm) : '') + (r._src === "jotform" ? ' <span class="flag src">Jotform</span>' : '') + '</div>'
-      + (flags ? '<div class="flags">' + flags + '</div>' : '') + '</div>'
-      + '<div class="links">' + (r._src === "jotform" ? '<a href="form-view.html?f=' + esc(r._slug) + '&raw=1#' + encodeURIComponent(r._jf ? r._jf.id : '') + '">Jotform</a>' : '') + (r.pdf_url ? '<a class="pdf" href="' + esc(r.pdf_url) + '" target="_blank" rel="noopener">PDF</a>' : '') + (r._src !== "jotform" && r.inspection_id ? '<a class="edit" href="night-inspection-edit.html?id=' + encodeURIComponent(r.inspection_id) + '">Edit this record</a>' : '') + (photos.length && r._src !== "jotform" ? '<a href="' + esc(r.photo_folder_url || photos[0]) + '" target="_blank" rel="noopener">' + photos.length + ' photo' + (photos.length>1?'s':'') + '</a>' : '') + '</div>'
-      + '</div><div class="det">' + (r._src === "jotform" ? detailJf(r, photos) : detail(r, photos)) + '</div></div>';
+    html += '<article class="card' + (needsLook(r) ? ' attn' : '') + (OPEN[id] ? ' open' : '') + '" data-id="' + esc(id) + '">'
+      + '<button type="button" class="rowb" aria-expanded="' + (OPEN[id] ? 'true' : 'false') + '">'
+      + '<span class="score' + (sc===null ? ' na' : sc < 8 ? ' low' : '') + '">' + (sc===null ? 'no score' : sc + '<small>of 10</small>') + '</span>'
+      + '<span class="main"><b>' + esc(r.account_name) + '</b><span class="meta">' + esc([r.nm_name, r.reason, r.vendor_name, r.arrival ? clock(r.arrival) + (r.departure ? ' to ' + clock(r.departure) : '') + (mi !== null ? ' (' + mi + ' min)' : '') : '', r.fsm ? 'FSM ' + r.fsm : ''].filter(String).join(' · ')) + (r._src === "jotform" ? ' <span class="flag src">Jotform</span>' : '') + '</span>'
+      + (flags ? '<span class="flags">' + flags + '</span>' : '') + '</span>' + IC.chev + '</button>'
+      + '<div class="det">' + (OPEN[id] ? (r._src === "jotform" ? detailJf(r, photos) : detail(r, photos)) : '') + '</div></article>';
   });
-  $("list").innerHTML = html;
-  Array.prototype.forEach.call(document.querySelectorAll(".row"), function(el){ el.addEventListener("click", function(e){ if (e.target.closest("a")) return; el.parentNode.classList.toggle("open"); }); });
+  list.innerHTML = html;
+  Array.prototype.forEach.call(list.querySelectorAll(".rowb"), function(el){ el.addEventListener("click", function(){
+    var id = el.parentNode.getAttribute("data-id"); if (OPEN[id]) delete OPEN[id]; else OPEN[id] = 1; render();
+  }); });
+  Array.prototype.forEach.call(list.querySelectorAll("[data-ack]"), function(b){ b.addEventListener("click", function(){ ACKING = b.getAttribute("data-ack"); render(); var t = $("ackNote"); if (t) t.focus(); }); });
+  var sv = $("ackSave"); if (sv) sv.addEventListener("click", function(){
+    var note = $("ackNote").value.trim(), id = ACKING, byEl = $("ackBy"), who = byEl ? byEl.value.trim() : ME;
+    if (!who){ $("ackMsg").textContent = "Type your name."; byEl.focus(); return; }
+    if (!note){ $("ackMsg").textContent = "Write one line on what you did."; $("ackNote").focus(); return; }
+    if (byEl) try { localStorage.setItem("niAckBy", who); } catch (e) {}
+    sv.disabled = true; sv.textContent = "Saving";
+    // The same Alert Status row the hub alert uses (Alerts.gs, key ni:<id>), so both agree.
+    post({ kind:"alerts_set", keys:["ni:" + id], status:"Handled", by: who, summary: note }).then(function(r){
+      var s = r && r.ok && r.saved && r.saved[0];
+      if (!s){ sv.disabled = false; sv.textContent = "Save"; $("ackMsg").textContent = (r && r.error) || "Could not save. Try again."; return; }
+      ACK[id] = { by: s.by || who, at: s.at_nice || "", note: note }; ACKING = "";
+      try { var c = JSON.parse(localStorage.getItem("niRecaps_" + MKT) || "null"); if (c){ c.acks = c.acks || {}; c.acks[id] = ACK[id]; localStorage.setItem("niRecaps_" + MKT, JSON.stringify(c)); } } catch (e) {}
+      render();
+    }).catch(function(){ sv.disabled = false; sv.textContent = "Save"; $("ackMsg").textContent = "Could not reach the server. Try again."; });
+  });
+  var cx = $("ackCancel"); if (cx) cx.addEventListener("click", function(){ ACKING = ""; render(); });
+}
+// Every answer the night manager gave, grouped. What the FSM asked comes first.
+function detail(r, photos){
+  var id = r.inspection_id, ack = ACK[id], h = "";
+  function kv(rows){ var s = rows.filter(function(p){ return p && p[1]; }).map(function(p){ return '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>'; }).join(""); return s ? '<dl class="kv">' + s + '</dl>' : ''; }
+  function grp(title, body){ return body ? '<section class="grp"><h3>' + esc(title) + '</h3>' + body + '</section>' : ''; }
+  function lines(s){ return String(s||"").split("\n").map(function(x){ return x.trim(); }).filter(String); }
+  if (ack) h += '<div class="ackdone"><b>Handled by ' + esc(ack.by) + ', ' + esc(ack.at) + '.</b> ' + esc(ack.note) + '</div>';
+  else if (ACKING === id) h += '<div class="ackbox">' + (ME ? '' : '<label for="ackBy">Your name</label><input type="text" id="ackBy" autocomplete="name" value="' + esc(ackName()) + '">') + '<label for="ackNote">What did you do about it?</label><textarea id="ackNote" maxlength="200" placeholder="Example: called the owner, crew re-mops tonight, I will check Monday"></textarea><div class="acts"><button type="button" class="pri" id="ackSave">Save</button><button type="button" id="ackCancel">Cancel</button><span class="msg" id="ackMsg" role="alert"></span></div></div>';
+  var ans = parseAnswers(r.route_answers);
+  h += grp("What you asked them to check", ans.length ? '<div class="ans">' + ans.map(function(a){
+    var cls = /^yes/i.test(a.a) ? '' : /^no/i.test(a.a) ? ' no' : ' na';
+    return '<div class="al' + cls + '"><span class="a">' + esc(/^could/i.test(a.a) ? "Could not" : (a.a || "No answer")) + '</span><span>' + esc(a.q) + (a.n ? '<span class="n">' + esc(a.n) + '</span>' : '') + '</span></div>';
+  }).join("") + '</div>' : '');
+  h += grp("Problems", kv([
+    ["FSM must handle first", r.fsm_action_needed === "Yes" ? (r.fsm_action_note || "Yes") : ""],
+    ["What was wrong", r.score_note],
+    ["Standard not met, and what was done", lines(r.standards_failed).map(function(l){ var p = l.split("|"); return p[0].trim() + (p[1] && p[1].trim() ? "\n   " + p.slice(1).join("|").trim() : ""); }).join("\n")],
+    ["Fixed before leaving", r.issues_resolved === "Nothing to fix" ? "" : r.issues_resolved],
+    ["How it was fixed", r.issue_resolution],
+    ["Still open", r.issue_remaining],
+    ["Who is fixing it", r.issue_owner], ["By when", r.issue_due]
+  ]));
+  if (/^true$/i.test(r.complaint_flag)) h += grp("Client complaint", kv([
+    ["What the client said", r.complaint_what], ["Rooms or spots", r.complaint_areas], ["How we heard", r.complaint_channel],
+    ["Looked at it in person", r.complaint_verified], ["Why it happened", r.complaint_root_cause], ["What the crew agreed to", r.complaint_agreed_fix],
+    ["Fixed", r.complaint_resolved], ["What stopped it", r.complaint_blocker], ["Closed in CRM", r.crm_closed]
+  ]));
+  var mi = minsIn(r);
+  h += grp("The visit", kv([
+    ["Why they were there", r.reason],
+    ["When they got there", r.timing ? r.timing + (r.why_early ? " (" + r.why_early + ")" : "") : ""],
+    ["Time in the building", r.arrival ? clock(r.arrival) + (r.departure ? " to " + clock(r.departure) : "") + (mi !== null ? ", " + mi + " minutes" : "") : ""],
+    ["New building", r.newstart_night ? r.newstart_night + (r.initial_clean_paid ? ", initial clean paid: " + r.initial_clean_paid : "") : ""],
+    ["New building checklist", lines(r.checklist_items).join("\n")],
+    ["Work order", r.wo_what ? r.wo_what + (r.wo_done ? " (done: " + r.wo_done + ")" : "") : ""],
+    ["Phone call", r.call_who ? [r.call_who, r.call_about, r.call_next ? "Next: " + r.call_next : ""].filter(String).join("\n") : ""]
+  ]));
+  var checks = lines(r.crew_check).map(function(l){ var p = l.split("|"); return p[0].trim() + (p[1] ? " (" + p[1].trim().toLowerCase() + ")" : ""); });
+  h += grp("Crew", kv([
+    ["Crew on site", r.crew_seen === "Yes" ? (checks.length ? checks.join("\n") : (lines(r.crew_names).join(", ") || "Names not taken")) : (r.crew_seen === "No" ? "Did not see the crew" : "")],
+    ["Uniform", r.crew_seen === "Yes" && r.crew_uniform ? (r.crew_uniform === "Yes" ? "All in uniform" : r.crew_uniform) + (r.crew_uniform_note ? " (" + r.crew_uniform_note + ")" : "") : ""],
+    ["No background check on file", lines(r.crew_unverified).join(", ")]
+  ]));
+  var std = lines(r.standards), shown = lines(r.hotspots_shown), done = lines(r.hotspots_checked);
+  var skipped = shown.filter(function(x){ return done.indexOf(x) < 0; });
+  var closet = r.closet_checked === "Yes" ? [["closet_organized","not organized"],["sds_present","no SDS sheets"],["chemicals_labelled","bottles with no label"],["chemicals_on_hand","chemicals missing"],["equipment_ok","equipment not right"]].filter(function(x){ return r[x[0]] === "No"; }).map(function(x){ return x[1]; }).concat(r.envirox_low === "Yes" ? ["EnvirOx is low"] : []) : null;
+  h += grp("What they checked", kv([
+    ["Standards", r.standards_met ? r.standards_met.replace("/", " of ") + " met" : ""],
+    ["Hot spots", shown.length ? done.length + " of " + shown.length + " looked at" + (skipped.length ? "\nNot looked at: " + skipped.join(", ") : "") : ""],
+    ["Past complaint areas", r.prior_complaints],
+    // Recaps filed before the Nov 22 2026 form fix saved a tapped No as Yes, so only v2 answers are shown.
+    ["Janitor closet", closet === null ? (r.closet_checked === "No" ? "Not checked" : "") : (/v2/.test(r.source || "") ? (closet.length ? closet.join(", ") : "In order") : "Checked. The yes and no answers on recaps filed before Nov 22, 2026 did not save correctly.") + (r.closet_notes ? "\n" + r.closet_notes : "")]
+  ]) + (std.length ? '<details><summary>All ' + std.length + ' standards answers</summary>' + kv(std.map(function(l){ var p = l.split("|"); return [p[0].trim(), (p[1]||"").trim() || "No answer"]; })) + '</details>' : ''));
+  h += grp("Supplies", kv([["Building needs", lines(r.building_supplies).join(", ")], ["Crew needs", lines(r.vendor_supplies).join(", ")]]));
+  if (r.summary) h += grp("Summary", '<div class="sum">' + esc(r.summary) + '</div>');
+  if (photos.length) h += grp("Photos", '<div class="thumbs">' + photos.map(function(u){ var d = driveId(u); return '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + (d ? '<img loading="lazy" src="https://drive.google.com/thumbnail?id=' + esc(d) + '&sz=w240" alt="Photo from the recap">' : '') + '</a>'; }).join("") + '</div>');
+  var n = Number(r.photo_count) || photos.length;
+  h += '<section class="grp"><div class="acts">'
+    + (needsLook(r) && ACKING !== id ? '<button type="button" class="pri" data-ack="' + esc(id) + '">Mark handled</button>' : '')
+    + (r.pdf_url ? '<a href="' + esc(r.pdf_url) + '" target="_blank" rel="noopener">Open the PDF</a>' : '')
+    + (n && r.photo_folder_url ? '<a href="' + esc(r.photo_folder_url) + '" target="_blank" rel="noopener">' + n + ' photo' + (n === 1 ? '' : 's') + '</a>' : '')
+    + (id ? '<a href="night-inspection-edit.html?id=' + encodeURIComponent(id) + '">Edit this recap</a>' : '')
+    + '<span class="filed">Filed ' + esc(r.submitted_at) + ' · ' + esc(id) + '</span></div></section>';
+  return h;
 }
 // ---- route outs ----
 // One card per route (an FSM's stops for one night manager on one night), newest night first,
@@ -555,7 +748,7 @@ function renderRoutes(){
     html += '<div class="day">' + esc(niceDay(d)) + '</div>';
     nights[d].order.forEach(function(k){
       var rt = nights[d].by[k], done = rt.stops.filter(covered).length, bad = rt.stops.filter(notMet).length;
-      html += '<div class="rt"><div class="rh"><b>' + esc(rt.fsm || "FSM not named") + ' &rarr; ' + esc(rt.nm || "Night manager not named") + '</b>'
+      html += '<div class="rt"><div class="rh"><b>' + esc(rt.fsm || "FSM not named") + ' to ' + esc(rt.nm || "Night manager not named") + '</b>'
         + '<span class="meta">' + rt.stops.length + ' stop' + (rt.stops.length === 1 ? '' : 's') + ' &middot; ' + done + ' with a recap' + (bad ? ' &middot; ' + bad + ' not met' : '') + (rt.sent ? ' &middot; sent ' + esc(clockOf(rt.sent)) : '') + '</span></div>';
       rt.stops.forEach(function(s){ html += stopCard(s); });
       html += '</div>';
@@ -604,40 +797,17 @@ function clockOf(s){ var m = String(s||"").match(/(\d{1,2}):(\d{2})/); return m 
 // Jump from a route stop to its recap: switch to Inspections, search by the recap id, open the card.
 function openRecap(id){
   if (!id) return;
-  VIEW = "insp"; $("q").value = id; FLAGS_ONLY = false; $("flagsOnly").classList.remove("on");
+  VIEW = "insp"; $("q").value = id; FLAGS_ONLY = false; OPEN[id] = 1;
   var rg = tallyRange(), rec = ROWS.filter(function(r){ return r.inspection_id === id; })[0];
   var d = rec ? rec._night : "";
   // Point the range at the recap's own night if the current one misses it.
   if (d && (d < rg.from || d > rg.to)){ TALLY_R = "pick"; PICK = { from: d, to: d }; syncPick(); }
   fillSels(); render(); tally();
-  var card = document.querySelector(".card"); if (card){ card.classList.add("open"); card.scrollIntoView({ behavior:"smooth", block:"start" }); }
+  var card = document.querySelector(".card"); if (card) card.scrollIntoView({ block:"start" });
 }
 function syncPick(){
   $("dFrom").value = PICK.from; $("dTo").value = PICK.to;
   $("pickBox").classList.toggle("hidden", TALLY_R !== "pick");
-}
-function detail(r, photos){
-  function tr(k, v){ return v ? '<tr><th>' + esc(k) + '</th><td>' + esc(v) + '</td></tr>' : ''; }
-  var t = '<table>'
-    + tr("FSM must handle tomorrow", r.fsm_action_needed === "Yes" ? r.fsm_action_note || "Yes" : "")
-    + tr("What was wrong", r.score_note)
-    + tr("Complaint", /^true$/i.test(r.complaint_flag) ? [r.complaint_what, "Resolved: " + r.complaint_resolved, r.complaint_blocker].filter(String).join("\n") : "")
-    + tr("Everything fixed", r.issues_resolved + (r.issue_remaining ? "\nLeft: " + r.issue_remaining + (r.issue_owner ? " (" + r.issue_owner + (r.issue_due ? ", by " + r.issue_due : "") + ")" : "") : ""))
-    + tr("Crew on site", r.crew_seen === "Yes" ? (r.crew_names || "Names not taken") + (r.crew_uniform ? "\nUniform: " + r.crew_uniform + (r.crew_uniform_note ? " (" + r.crew_uniform_note + ")" : "") : "") : (r.crew_seen === "No" ? "Did not see the crew" : ""))
-    + tr("No background check on file", r.crew_unverified)
-    + tr("Standards met", r.standards_met)
-    + tr("Did not meet standard, what was done", r.standards_failed)
-    + tr("Hot spots checked", r.hotspots_checked)
-    + tr("Closet", r.closet_checked === "Yes" ? ["organized " + r.closet_organized, "SDS " + r.sds_present, "labelled " + r.chemicals_labelled, "on hand " + r.chemicals_on_hand, "equipment " + r.equipment_ok, "EnvirOx low " + r.envirox_low].join(", ") + (r.closet_notes ? "\n" + r.closet_notes : "") : "")
-    + tr("Building needs", r.building_supplies) + tr("Crew needs", r.vendor_supplies)
-    + tr("New building", r.newstart_night ? r.newstart_night + (r.initial_clean_paid ? ", initial clean paid: " + r.initial_clean_paid : "") : "")
-    + tr("Work order", r.wo_what ? r.wo_what + (r.wo_done ? " (done: " + r.wo_done + ")" : "") : "")
-    + tr("Phone call", r.call_who ? [r.call_who, r.call_about, r.call_next].filter(String).join("\n") : "")
-    + tr("Filed", r.submitted_at + " - " + r.inspection_id)
-    + '</table>';
-  if (r.summary) t += '<div class="sum">' + esc(r.summary) + '</div>';
-  if (photos.length) t += '<div class="thumbs">' + photos.map(function(u){ var id = driveId(u); return '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + (id ? '<img loading="lazy" src="https://drive.google.com/thumbnail?id=' + esc(id) + '&sz=w240" alt="">' : '') + '</a>'; }).join("") + '</div>';
-  return t;
 }
 function detailJf(r, photos){
   var f = (r._jf && r._jf.fields) || {}, skip = { "Name - First Name":1, "Name - Last Name":1, "Summary":1, "Submission Date":1, "Email":1 };
@@ -659,7 +829,8 @@ function monthName(d){ var p = String(d).split("-"); return new Date(+p[0], +p[1
 function niceDay(d){ if (!d) return ""; d = String(d).slice(0,10); var p = d.split("-"); var dt = new Date(Number(p[0]), Number(p[1])-1, Number(p[2])); return dt.toLocaleDateString("en-US", { weekday:"long", month:"short", day:"numeric" }); }
 
 Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(b){ b.addEventListener("click", function(){ MKT = b.getAttribute("data-m"); Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(x){ x.classList.toggle("on", x===b); }); var rg = tallyRange(); load(TALLY_R === "pick" ? { from: rg.from, to: addDays(rg.to, 1) } : null); }); });
-$("flagsOnly").addEventListener("click", function(){ FLAGS_ONLY = !FLAGS_ONLY; this.classList.toggle("on", FLAGS_ONLY); render(); });
+$("flagsOnly").addEventListener("click", function(){ FLAGS_ONLY = true; render(); });
+$("allBtn").addEventListener("click", function(){ FLAGS_ONLY = false; render(); });
 $("q").addEventListener("input", render); $("nm").addEventListener("change", function(){ TALLY_OPEN = ""; render(); tally(); }); $("fsm").addEventListener("change", function(){ render(); tally(); });
 Array.prototype.forEach.call(document.querySelectorAll("[data-v]"), function(b){ b.addEventListener("click", function(){ VIEW = b.getAttribute("data-v"); fillSels(); render(); }); });
 // Nights: the three quick ranges draw at once. Pick dates shows the two boxes and waits for Show
@@ -692,7 +863,9 @@ try {
   var QS = new URLSearchParams(location.search);
   var qm = String(QS.get("m") || "").toLowerCase();
   if (qm === "lv" || qm === "nnv"){ MKT = qm; Array.prototype.forEach.call(document.querySelectorAll("[data-m]"), function(x){ x.classList.toggle("on", x.getAttribute("data-m") === qm); }); }
-  if (QS.get("attn") === "1"){ FLAGS_ONLY = true; $("flagsOnly").classList.add("on"); }
+  if (QS.get("attn") === "0") FLAGS_ONLY = false;
+  if (QS.get("fsm")) ME = QS.get("fsm");
+  if (QS.get("q")) ME_SET = true;   // a link to one recap shows it whoever the FSM is
   if (QS.get("q")) $("q").value = QS.get("q");
   if (QS.get("v") === "routes") VIEW = "routes";
   var qf = String(QS.get("from") || QS.get("date") || ""), qt = String(QS.get("to") || qf);

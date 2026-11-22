@@ -391,6 +391,13 @@ function alShop_(accounts, idx) {
 
 // Night manager escalations. One item per recap where the night manager said
 // the FSM has to act in the morning. The row's fsm column names the FSM.
+// Nov 22 2026: a recap also raises an alert on its own when it is flagged (NI_ATTN in
+// NightInspection.gs: low score, a problem still open, a complaint, a standard not met,
+// an FSM question that came back No, crew out of uniform). Only recaps filed from
+// AL_NI_AUTO_FROM on, so the change did not put 45 days of old recaps on every FSM's list.
+// Marking one Handled here or on night-inspections.html writes the same Alert Status row.
+var AL_NI_AUTO_FROM = new Date('2026-11-22T00:00:00-08:00').getTime();
+var AL_NI_WORDS = { low_score: 'low score', complaint: 'client complaint', unresolved: 'problem still open', standards_failed: 'standard not met', fsm_ask_missed: 'FSM question came back No', uniform: 'crew out of uniform' };
 function alNight_() {
   var items = [];
   if (typeof niSS_ !== 'function' || typeof niTab_ !== 'function') return items;
@@ -399,13 +406,17 @@ function alNight_() {
   alRows_(sh).forEach(function (r) {
     var id = alStr_(r.inspection_id);
     if (!id) return;
-    if (alStr_(r.fsm_action_needed) !== 'Yes') return;
     var when = alDate_(r.submitted_at);
+    var asked = alStr_(r.fsm_action_needed) === 'Yes';
+    var auto = typeof NI_ATTN !== 'undefined' && NI_ATTN.test(alStr_(r.flags)) && !!when && when.getTime() >= AL_NI_AUTO_FROM;
+    if (!asked && !auto) return;
     if (!alFresh_(when, AL_DAYS)) return;
     var bits = [];
     if (alStr_(r.fsm_action_note)) bits.push(alStr_(r.fsm_action_note));
     if (alStr_(r.score)) bits.push('score ' + alStr_(r.score));
-    if (alStr_(r.flags)) bits.push(alStr_(r.flags).split(',').filter(function (f) { return f !== 'fsm_action'; }).join(', '));
+    var words = alStr_(r.flags).split(',').map(function (f) { return AL_NI_WORDS[f.trim()] || ''; }).filter(String);
+    if (words.length) bits.push(words.join(', '));
+    if (!asked && alStr_(r.score_note)) bits.push(alStr_(r.score_note).slice(0, 160));
     items.push({
       key: 'ni:' + id, type: 'night',
       fsm: alFsmKey_(r.fsm),

@@ -62,21 +62,27 @@ var NID_JQ = { score: 'Rate the Quality of the Clean based on what you see tonig
   supplies: 'Do we need to order supplies for the account or for the vendor?', vendor: 'Vendor', fsmEmail: 'FSM Email', date: 'Date', sub: 'Submission Date' };
 var NID_REPLY = { lv: 'lvservicecall@gocitywide.com', nnv: 'rnservicecall@gocitywide.com' };
 
-// Flag code -> plain words. HOT ones put a recap in "Needs a look".
+// Flag code -> plain words. HOT ones put a recap in "Needs a look". Nov 22 2026: one rule,
+// shared with the hub page (night-inspections.html ATTN) and the hub alerts (NI_ATTN in
+// NightInspection.gs). A building or company that is not in the directory already goes to
+// the office through ni_request, and a crew name with no background check goes to the ops
+// admin, so neither puts a recap in front of the FSM.
 var NID_FLAG = {
-  complaint: 'Client complaint',
-  fsm_action: 'FSM follow-up requested',
-  low_score: 'Score under 8',
-  unresolved: 'Not fixed before leaving',
+  complaint: 'Complaint',
+  fsm_action: 'Night manager asked for you',
+  low_score: 'Low score',
+  unresolved: 'Still open',
   standards_failed: 'Standard not met',
-  uniform: 'Crew uniform issue',
+  fsm_ask_missed: 'Your question came back No',
+  uniform: 'Uniform',
   unmatched_vendor: 'Company not in the directory',
   unmatched_account: 'Building not in the directory',
-  supplies: 'Supplies needed',
-  crew_unverified: 'Crew name with no background check on file'
+  supplies: 'Supplies',
+  crew_unverified: 'Crew name with no background check'
 };
-var NID_HOT = ['complaint', 'fsm_action', 'low_score', 'unresolved', 'standards_failed', 'uniform', 'unmatched_vendor', 'unmatched_account'];
-var NID_RANK = { complaint: 0, fsm_action: 1, unresolved: 2, low_score: 3, standards_failed: 4, uniform: 5, unmatched_account: 6, unmatched_vendor: 7 };
+var NID_HOT = ['complaint', 'fsm_action', 'low_score', 'unresolved', 'standards_failed', 'fsm_ask_missed', 'uniform'];
+var NID_RANK = { complaint: 0, fsm_action: 1, unresolved: 2, low_score: 3, standards_failed: 4, fsm_ask_missed: 5, uniform: 6 };
+var NID_EXPECT = 5;   // in-building recaps expected from each night manager on a weekday night
 
 // ------------------------------------------------------------ helpers -----
 function nidStr_(v) { return (v === null || v === undefined) ? '' : String(v).trim(); }
@@ -236,76 +242,135 @@ function nidSort_(rows) {
 // standalone 7 AM email, kept for niDigestRun / niDigestPreview.
 function nidBuild_(mkt, key, rows, sinceMs, test) {
   var inner = nidInner_(mkt, key, rows, sinceMs);
-  var label = 'Night Inspections';
+  var label = 'Night recaps';
   var sub = mkt + ' \u00b7 ' + nidFmt_(new Date().getTime(), 'EEE MMM d');
-  var subject = (test ? '[TEST] ' : '') + 'Night Inspections | ' + mkt + ' | ' + nidPlural_(rows.length, 'recap') +
-    (inner.hot ? ', ' + inner.hot + ' need a look' : '');
+  var subject = (test ? '[TEST] ' : '') + 'Night recaps | ' + mkt + ' | ' + rows.length + ' filed' +
+    (inner.hot ? ', ' + inner.hot + (inner.hot === 1 ? ' needs a look' : ' need a look') : '');
   return { subject: subject, htmlBody: cwShell_(label, sub, inner.html, 'Sent from the City Wide Nevada team platform. Covers recaps filed on the hub and on the Jotform. GoCityWide.com'), body: inner.text };
 }
+// Nov 22 2026: rebuilt. Grouped by FSM with a link that opens the hub on that FSM's
+// buildings, the answers shown under every recap that needs a look (what the FSM asked,
+// what was wrong, how it was fixed, what is still open), minutes in the building, and a
+// night manager count at the bottom. No stat tiles, nothing under 12px.
+function nidHm_(v) { var m = niStr_(v).match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*$/); return m ? Number(m[1]) * 60 + Number(m[2]) : null; }
+function nidMins_(r) {
+  if (r._src === 'jotform') return null;
+  var a = nidHm_(r.arrival), d = nidHm_(r.departure);
+  if (a === null || d === null) return null;
+  var m = d - a; return m < 0 ? m + 1440 : m;
+}
+function nidClock_(v) { var m = nidHm_(v); if (m === null) return ''; var h = Math.floor(m / 60), ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + ('0' + (m % 60)).slice(-2) + ' ' + ap; }
+function nidRemote_(r) { return /^(Phone only|Photos from crew)$/.test(nidStr_(r.reason)); }
+// Lines of "question | Yes/No/Couldn't | note" as the recap form writes them.
+function nidAnswers_(r) {
+  return nidStr_(r.route_answers).split('\n').map(function (l) { return l.trim(); }).filter(String).map(function (l) {
+    var p = l.split('|').map(function (x) { return x.trim(); });
+    return p.length >= 2 ? { q: p[0], a: p[1], n: p.slice(2).join(' | ') } : { q: l, a: '', n: '' };
+  });
+}
 function nidInner_(mkt, key, rows, sinceMs) {
-  var F = CW_HTML_F;
+  var F = CW_HTML_F, INK = '#2D2A26', GREY = '#636466', REDD = '#B01F27', LINE = '#D4D4D4';
   var hubUrl = NID_HUB + '?m=' + key;
+  var multi = (new Date().getTime() - Number(sinceMs || 0)) > 36 * 3600000;   // the weekly, or a run that covers more than one night
+  var rank = function (r) { return Math.min.apply(null, nidHot_(r).map(function (f) { return NID_RANK[f]; })); };
   var hot = rows.filter(function (r) { return nidHot_(r).length; });
-  hot.sort(function (a, b) {
-    var ra = Math.min.apply(null, nidHot_(a).map(function (f) { return NID_RANK[f]; }));
-    var rb = Math.min.apply(null, nidHot_(b).map(function (f) { return NID_RANK[f]; }));
-    return (ra - rb) || (a._ts - b._ts);
-  });
-  var buildings = {}, nms = {}, scores = [];
+  var nms = {}, nmOrder = [];
+  var byFsm = {}, order = [];
   rows.forEach(function (r) {
-    buildings[r.account_name || r.account_id] = 1;
-    if (r.nm_name) nms[r.nm_name] = 1;
-    if (r.score !== '' && !isNaN(Number(r.score))) scores.push(Number(r.score));
+    var f = r.fsm || 'No FSM picked';
+    if (!byFsm[f]) { byFsm[f] = { all: [], hot: [] }; order.push(f); }
+    byFsm[f].all.push(r);
+    if (nidHot_(r).length) byFsm[f].hot.push(r);
+    var n = r.nm_name || 'Name not given';
+    if (!nms[n]) { nms[n] = { inb: 0, remote: 0, mins: 0, timed: 0 }; nmOrder.push(n); }
+    if (nidRemote_(r)) nms[n].remote++;
+    else { nms[n].inb++; var mi = nidMins_(r); if (mi !== null) { nms[n].mins += mi; nms[n].timed++; } }
   });
-  var avg = scores.length ? (scores.reduce(function (s, x) { return s + x; }, 0) / scores.length) : null;
-  var nB = Object.keys(buildings).length, nNM = Object.keys(nms).length;
+  order.sort(); nmOrder.sort();
   var sinceNice = nidFmt_(sinceMs, 'EEE MMM d, h:mm a');
-
-  // stat strip
-  var stat = function (n, label, red) {
-    return '<td align="center" width="25%" style="padding:12px 6px;border:1px solid #E5E5E5;">' +
-      '<div style="' + F + 'font-size:22px;font-weight:bold;color:' + (red ? '#D22730' : '#2d2a26') + ';">' + nidE_(n) + '</div>' +
-      '<div style="' + F + 'font-size:10px;color:#636466;text-transform:uppercase;letter-spacing:0.05em;padding-top:2px;">' + nidE_(label) + '</div></td>';
-  };
-  var html = '';
   var nJf = rows.filter(function (r) { return r._src === 'jotform'; }).length;
-  var srcLine = nJf === 0 ? ' on the hub' : nJf === rows.length ? ' on the Jotform' : ' (' + (rows.length - nJf) + ' on the hub, ' + nJf + ' on the Jotform)';
-  html += '<p style="margin:0 0 14px;' + F + 'font-size:14px;line-height:1.55;color:#2d2a26;">' +
-    nidE_(nidPlural_(rows.length, 'inspection')) + nidE_(srcLine) + ' from ' + nidE_(nidPlural_(nNM, 'night manager')) +
-    ' since ' + nidE_(sinceNice) + '. ' +
-    (hot.length ? '<b style="color:#D22730;">' + nidE_(hot.length) + ' need a look.</b>' : 'Nothing flagged.') + '</p>';
-  html += '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr>' +
-    stat(rows.length, 'Inspections') + stat(nB, 'Buildings') + stat(avg === null ? '-' : avg.toFixed(1), 'Avg score') +
-    stat(hot.length, 'Need a look', hot.length > 0) + '</tr></table>';
-  html += cwButton_('Review them in the Ops Hub', hubUrl);
+  var srcLine = nJf === 0 ? '' : nJf === rows.length ? ' on the Jotform' : ' (' + (rows.length - nJf) + ' on the hub, ' + nJf + ' on the Jotform)';
+  var h2 = function (t) { return '<div style="margin:28px 0 4px;' + F + 'font-size:17px;font-weight:bold;color:' + INK + ';line-height:1.3;">' + nidE_(t) + '</div>'; };
+  var h3 = function (t) { return '<div style="margin:16px 0 8px;' + F + 'font-size:14px;font-weight:bold;color:' + INK + ';">' + nidE_(t) + '</div>'; };
+  var th = function (t, al) { return '<td align="' + (al || 'left') + '" style="padding:8px 10px;border-bottom:1px solid ' + INK + ';' + F + 'font-size:12px;font-weight:bold;color:' + GREY + ';">' + nidE_(t) + '</td>'; };
+  var td = function (t, al, bold, color) { return '<td align="' + (al || 'left') + '" style="padding:10px;border-bottom:1px solid ' + LINE + ';' + F + 'font-size:14px;' + (bold ? 'font-weight:bold;' : '') + 'color:' + (color || INK) + ';">' + t + '</td>'; };
 
-  // Needs a look
+  var html = '<p style="margin:0 0 12px;' + F + 'font-size:14px;line-height:1.55;color:' + INK + ';">' +
+    nidE_(nidPlural_(rows.length, 'recap')) + nidE_(srcLine) + ' from ' + nidE_(nidPlural_(nmOrder.length, 'night manager')) + ' since ' + nidE_(sinceNice) + '. ' +
+    (hot.length ? '<b style="color:' + REDD + ';">' + nidE_(hot.length) + (hot.length === 1 ? ' needs a look.' : ' need a look.') + '</b>' : 'Nothing needs a look.') + '</p>';
+
+  // one line per FSM, with a link that opens the hub on their buildings
+  html += '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr>' + th('FSM') + th('Recaps', 'right') + th('Need a look', 'right') + th('', 'right') + '</tr>';
+  order.forEach(function (f) {
+    var g = byFsm[f], url = hubUrl + (f === 'No FSM picked' ? '&attn=0' : '&fsm=' + encodeURIComponent(f));
+    html += '<tr>' + td(nidE_(f), 'left', true) + td(String(g.all.length), 'right') + td(String(g.hot.length), 'right', g.hot.length > 0, g.hot.length ? REDD : INK) +
+      td('<a href="' + nidE_(url) + '" style="' + F + 'font-size:12px;font-weight:bold;color:' + INK + ';text-decoration:underline;">Open in the hub</a>', 'right') + '</tr>';
+  });
+  html += '</table>';
+
   if (hot.length) {
-    html += '<div style="margin:26px 0 8px;' + F + 'font-size:12px;font-weight:bold;color:#D22730;text-transform:uppercase;letter-spacing:0.06em;">Needs a look</div>';
-    hot.forEach(function (r) { html += nidCard_(r, key); });
+    html += h2('Needs a look');
+    order.forEach(function (f) {
+      var g = byFsm[f]; if (!g.hot.length) return;
+      g.hot.sort(function (a, b) { return (rank(a) - rank(b)) || (a._ts - b._ts); });
+      html += h3(f);
+      g.hot.forEach(function (r) { html += nidCard_(r, key); });
+    });
   }
 
-  // Everything, grouped by FSM
-  html += '<div style="margin:26px 0 8px;' + F + 'font-size:12px;font-weight:bold;color:#2d2a26;text-transform:uppercase;letter-spacing:0.06em;">All inspections</div>';
-  var byFsm = {}, order = [];
-  rows.forEach(function (r) { var f = r.fsm || 'No FSM picked'; if (!byFsm[f]) { byFsm[f] = []; order.push(f); } byFsm[f].push(r); });
-  order.sort();
+  html += h2('Every recap');
   order.forEach(function (f) {
-    html += '<div style="margin:14px 0 4px;' + F + 'font-size:12px;font-weight:bold;color:#636466;">FSM ' + nidE_(f) + ' &middot; ' + nidE_(nidPlural_(byFsm[f].length, 'stop')) + '</div>';
+    var g = byFsm[f];
+    html += h3(f + ' · ' + nidPlural_(g.all.length, 'recap'));
     html += '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">';
-    byFsm[f].forEach(function (r) { html += nidLine_(r, key); });
+    g.all.forEach(function (r) { html += nidLine_(r, key); });
     html += '</table>';
   });
 
-  html += cwButton_('Open every recap in the Ops Hub', hubUrl);
-  html += '<p style="margin:14px 0 0;' + F + 'font-size:12px;line-height:1.55;color:#636466;">The hub asks for the team password the first time on a new device. Each PDF opens straight from Drive.</p>';
+  // Night managers. "of 5" only when this run covers one weekday night.
+  var night = '', oneNight = false, routed = {};
+  try {
+    if (!multi && typeof nrNightDate_ === 'function') {
+      night = nrNightDate_();
+      var dow = Number(Utilities.formatDate(Utilities.parseDate(night, NI_TZ, 'yyyy-MM-dd'), NI_TZ, 'u'));
+      oneNight = dow >= 1 && dow <= 5;
+      var rl = JSON.parse(nrList_({ market: key, report_date: night, sent_only: true }).getContent());
+      var filed = {}; rows.forEach(function (r) { filed[nidStr_(r.account_name).toLowerCase()] = 1; });
+      ((rl && rl.ok && rl.stops) || []).forEach(function (s) {
+        var n = s.nm_name || 'Name not given';
+        if (!routed[n]) routed[n] = { all: 0, done: 0, miss: [] };
+        routed[n].all++;
+        if (s.status === 'Done' || s.inspection_id || filed[nidStr_(s.account_name).toLowerCase()]) routed[n].done++;
+        else routed[n].miss.push(s.account_name + (s.fsm ? ' (from ' + s.fsm + ')' : ''));
+      });
+    }
+  } catch (re) { routed = {}; }
+  Object.keys(routed).forEach(function (n) { if (!nms[n]) { nms[n] = { inb: 0, remote: 0, mins: 0, timed: 0 }; nmOrder.push(n); } });
+  var anyRoute = Object.keys(routed).length > 0;
+  html += h2(multi ? 'Night managers' : 'Night managers last night');
+  html += '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin-top:8px;"><tr>' + th('Night manager') + th(oneNight ? 'In the building, of ' + NID_EXPECT : 'In the building', 'right') + th('Average time', 'right') + (anyRoute ? th('Route stops', 'right') : '') + '</tr>';
+  var notes = [];
+  nmOrder.forEach(function (n) {
+    var x = nms[n], low = oneNight && x.inb < NID_EXPECT, rt = routed[n];
+    html += '<tr>' + td(nidE_(n), 'left', true) + td(String(x.inb), 'right', low, low ? REDD : INK) + td(x.timed ? Math.round(x.mins / x.timed) + ' min' : '-', 'right') +
+      (anyRoute ? td(rt ? rt.done + ' of ' + rt.all : '-', 'right', !!(rt && rt.miss.length), rt && rt.miss.length ? REDD : INK) : '') + '</tr>';
+    if (x.remote) notes.push(n + ' also filed ' + nidPlural_(x.remote, 'recap') + ' by phone or from crew photos.');
+    if (rt && rt.miss.length) notes.push('Routed with no recap for ' + n + ': ' + rt.miss.join(', ') + '.');
+  });
+  html += '</table>';
+  if (notes.length || oneNight) html += '<p style="margin:10px 0 0;' + F + 'font-size:12px;line-height:1.55;color:' + GREY + ';">' + nidE_(notes.join(' ')) +
+    (oneNight ? (notes.length ? ' ' : '') + 'Phone and photo recaps do not count toward the ' + NID_EXPECT + '.' : '') + '</p>';
 
-  var text = [nidPlural_(rows.length, 'inspection') + srcLine + ' since ' + sinceNice + '.',
-    hot.length ? hot.length + ' need a look.' : 'Nothing flagged.', ''];
+  html += cwButton_('Open every recap in the Ops Hub', hubUrl + '&attn=0');
+  html += '<p style="margin:14px 0 0;' + F + 'font-size:12px;line-height:1.55;color:' + GREY + ';">The hub asks for the team password the first time on a new device. Mark a recap handled on the hub once you have dealt with it.</p>';
+
+  var text = [nidPlural_(rows.length, 'recap') + srcLine + ' since ' + sinceNice + '.',
+    hot.length ? hot.length + (hot.length === 1 ? ' needs a look.' : ' need a look.') : 'Nothing needs a look.', ''];
   rows.forEach(function (r) {
-    text.push('- ' + nidWhen_(r) + ' | ' + r.account_name + ' | ' + r.nm_name + ' | ' + r.reason +
+    var mi = nidMins_(r);
+    text.push('- ' + nidWhen_(r) + ' | ' + r.account_name + ' | ' + r.nm_name + ' | ' + r.reason + (mi !== null ? ' | ' + mi + ' min' : '') +
       (r.score !== '' ? ' | ' + r.score + '/10' : '') + (nidHot_(r).length ? ' | ' + nidHot_(r).map(function (f) { return NID_FLAG[f]; }).join(', ') : '') +
-      (r.pdf_url ? ' | ' + r.pdf_url : '') + (r._src === 'jotform' ? ' | Jotform' : ''));
+      (r.fsm ? ' | FSM ' + r.fsm : '') + (r.pdf_url ? ' | ' + r.pdf_url : '') + (r._src === 'jotform' ? ' | Jotform' : ''));
   });
   text.push('', 'Review them in the Ops Hub ' + hubUrl);
 
@@ -336,73 +401,95 @@ function nidBlock_(mkt, key, sinceMs) {
 
 function nidScore_(r) {
   var F = CW_HTML_F;
-  if (r.score === '' || isNaN(Number(r.score))) return '<span style="' + F + 'font-size:12px;color:#999999;">no score</span>';
+  if (r.score === '' || isNaN(Number(r.score))) return '<span style="' + F + 'font-size:12px;color:#636466;">no score</span>';
   var low = Number(r.score) < NI_LOW_SCORE;
-  return '<span style="' + F + 'font-size:15px;font-weight:bold;color:' + (low ? '#D22730' : '#2d2a26') + ';">' + nidE_(r.score) + '</span><span style="' + F + 'font-size:10px;color:#636466;">/10</span>';
+  return '<span style="' + F + 'font-size:17px;font-weight:bold;color:' + (low ? '#B01F27' : '#2D2A26') + ';">' + nidE_(r.score) + '</span><span style="' + F + 'font-size:12px;color:#636466;"> of 10</span>';
 }
 function nidLinks_(r, key) {
   var F = CW_HTML_F;
   var a = [];
-  if (r.pdf_url) a.push('<a href="' + nidE_(r.pdf_url) + '" style="' + F + 'font-size:12px;font-weight:bold;color:#D22730;text-decoration:underline;">PDF</a>');
-  if (r._src === 'jotform') a.push('<a href="' + nidE_(r._link) + '" style="' + F + 'font-size:12px;font-weight:bold;color:#D22730;text-decoration:underline;">Jotform recap</a>');
+  var link = function (label, url, bold) { return '<a href="' + nidE_(url) + '" style="' + F + 'font-size:12px;' + (bold ? 'font-weight:bold;' : '') + 'color:#2D2A26;text-decoration:underline;">' + nidE_(label) + '</a>'; };
+  a.push(link('Open it in the hub', NID_HUB + '?m=' + key + '&attn=0&q=' + encodeURIComponent(r._src === 'jotform' ? (r.account_name || '') : (r.inspection_id || r.account_name || '')), true));
+  if (r.pdf_url) a.push(link('PDF', r.pdf_url));
+  if (r._src === 'jotform') a.push(link('Jotform recap', r._link));
   var n = Number(r.photo_count) || 0;
   if (n && r._src === 'jotform') a.push('<span style="' + F + 'font-size:12px;color:#636466;">' + nidPlural_(n, 'photo') + ' on the Jotform</span>');
-  if (n && r.photo_folder_url) a.push('<a href="' + nidE_(r.photo_folder_url) + '" style="' + F + 'font-size:12px;color:#2d2a26;text-decoration:underline;">' + nidPlural_(n, 'photo') + '</a>');
-  a.push('<a href="' + nidE_(NID_HUB + '?m=' + key + '&q=' + encodeURIComponent(r.account_name || '')) + '" style="' + F + 'font-size:12px;color:#2d2a26;text-decoration:underline;">Hub</a>');
+  if (n && r.photo_folder_url) a.push(link(nidPlural_(n, 'photo'), r.photo_folder_url));
   return a.join(' &nbsp;&middot;&nbsp; ');
 }
 function nidChips_(codes) {
   var F = CW_HTML_F;
   return codes.map(function (f) {
     var hot = NID_HOT.indexOf(f) >= 0;
-    return '<span style="display:inline-block;margin:4px 4px 0 0;padding:2px 8px;border-radius:10px;' + F + 'font-size:10px;font-weight:bold;' +
-      (hot ? 'background:#fdecec;color:#a61d24;' : 'background:#F0F0F0;color:#636466;') + '">' + nidE_(NID_FLAG[f] || f) + '</span>';
+    return '<span style="display:inline-block;margin:4px 4px 0 0;padding:2px 10px;border-radius:18px;' + F + 'font-size:12px;font-weight:bold;' +
+      (hot ? 'background:#D22730;color:#ffffff;' : 'background:#ffffff;color:#2D2A26;border:1px solid #2D2A26;') + '">' + nidE_(NID_FLAG[f] || f) + '</span>';
   }).join('');
 }
-// Full card for a recap that needs a look: what was flagged and the words behind it.
+// Who, why, which company, and how long they were in the building.
+function nidMeta_(r) {
+  var mi = nidMins_(r);
+  var when = (r._src === 'jotform' || nidHm_(r.arrival) === null) ? nidWhen_(r)
+    : nidClock_(r.arrival) + (nidHm_(r.departure) !== null ? ' to ' + nidClock_(r.departure) : '') + (mi !== null ? ', ' + mi + ' minutes in the building' : '');
+  return [r.nm_name, r.reason, r.vendor_name, when, r._src === 'jotform' ? 'Jotform' : ''].map(nidStr_).filter(Boolean).join(' · ');
+}
+// Full card for a recap that needs a look: the tags, what the FSM asked and the answer,
+// and the words behind every problem. A full border, no stripe down one side.
 function nidCard_(r, key) {
   var F = CW_HTML_F;
   var hot = nidHot_(r);
   var det = [];
   var add = function (k, v) { v = nidStr_(v); if (v) det.push([k, v]); };
-  if (hot.indexOf('complaint') >= 0) {
-    add('Complaint', [r.complaint_what, r.complaint_areas].map(nidStr_).filter(Boolean).join(' | ') || 'Flagged with no details');
-    if (r.complaint_resolved) add('Complaint fixed', r.complaint_resolved + (r.complaint_blocker ? ' | ' + r.complaint_blocker : ''));
-  }
-  if (r.fsm_action_needed === 'Yes') add('For the FSM', r.fsm_action_note || 'Follow-up requested');
+  if (r.fsm_action_needed === 'Yes') add('For you first thing', r.fsm_action_note || 'Follow-up requested');
   add('What was wrong', r.score_note);
-  if (hot.indexOf('standards_failed') >= 0) add('Standard not met', r.standards_failed);
-  if (hot.indexOf('unresolved') >= 0) add('Still open', [r.issue_remaining, r.issue_owner, r.issue_due].map(nidStr_).filter(Boolean).join(' | '));
-  if (hot.indexOf('uniform') >= 0) add('Uniform', [r.crew_uniform, r.crew_uniform_note].map(nidStr_).filter(Boolean).join(' | '));
+  if (hot.indexOf('standards_failed') >= 0) add('Standard not met, and what was done', nidStr_(r.standards_failed).split('\n').map(function (l) { var p = l.split('|'); return p[0].trim() + (p[1] && p[1].trim() ? '. ' + p.slice(1).join('|').trim() : ''); }).join('\n'));
+  if (hot.indexOf('complaint') >= 0) {
+    add('The client said', [r.complaint_what, r.complaint_areas].map(nidStr_).filter(Boolean).join(' | ') || 'Flagged with no details');
+    add('Why it happened', r.complaint_root_cause);
+    add('The crew agreed to', r.complaint_agreed_fix);
+    if (r.complaint_resolved) add('Complaint fixed', r.complaint_resolved + (r.complaint_blocker ? '. ' + r.complaint_blocker : ''));
+    add('Closed in CRM', r.crm_closed);
+  }
+  add('How it was fixed', r.issue_resolution);
+  if (hot.indexOf('unresolved') >= 0) add('Still open', [r.issue_remaining, r.issue_owner, r.issue_due ? 'by ' + r.issue_due : ''].map(nidStr_).filter(Boolean).join(' | '));
+  if (hot.indexOf('uniform') >= 0) add('Uniform', [r.crew_uniform, r.crew_uniform_note].map(nidStr_).filter(Boolean).join('. '));
   var rowsHtml = det.map(function (p) {
-    return '<tr><td width="1%" style="padding:4px 12px 4px 0;' + F + 'font-size:11px;color:#636466;white-space:nowrap;vertical-align:top;">' + nidE_(p[0]) + '</td>' +
-      '<td style="padding:4px 0;' + F + 'font-size:13px;color:#2d2a26;line-height:1.45;">' + nidE_(nidCut_(p[1], 400)) + '</td></tr>';
+    return '<tr><td style="padding:8px 0 0;"><div style="' + F + 'font-size:12px;color:#636466;">' + nidE_(p[0]) + '</div>' +
+      '<div style="' + F + 'font-size:14px;color:#2D2A26;line-height:1.45;">' + nidE_(nidCut_(p[1], 500)).replace(/\n/g, '<br>') + '</div></td></tr>';
   }).join('');
-  return '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 10px;border-collapse:collapse;"><tr>' +
-    '<td width="4" bgcolor="#D22730" style="width:4px;"></td>' +
-    '<td style="padding:10px 14px;background:#FAFAFA;border:1px solid #EEEEEE;border-left:0;">' +
+  var asked = nidAnswers_(r).map(function (a) {
+    var yes = /^yes/i.test(a.a);
+    var pill = '<span style="display:inline-block;min-width:44px;text-align:center;padding:2px 8px;border-radius:18px;' + F + 'font-size:12px;font-weight:bold;' +
+      (yes ? 'border:1px solid #2D2A26;color:#2D2A26;' : 'background:#D22730;color:#ffffff;') + '">' + nidE_(/^could/i.test(a.a) ? 'Could not' : (a.a || 'No answer')) + '</span>';
+    return '<tr><td width="84" style="padding:4px 10px 4px 0;vertical-align:top;">' + pill + '</td><td style="padding:4px 0;' + F + 'font-size:14px;color:#2D2A26;line-height:1.45;">' + nidE_(a.q) +
+      (a.n ? '<br><span style="font-size:12px;color:#636466;">' + nidE_(nidCut_(a.n, 300)) + '</span>' : '') + '</td></tr>';
+  }).join('');
+  return '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 12px;border:1px solid #D22730;border-collapse:separate;border-radius:8px;"><tr>' +
+    '<td style="padding:14px 16px;">' +
     '<table border="0" cellpadding="0" cellspacing="0" width="100%"><tr>' +
-    '<td style="' + F + 'font-size:14px;font-weight:bold;color:#2d2a26;">' + nidE_(r.account_name) + '</td>' +
-    '<td align="right" style="white-space:nowrap;">' + nidScore_(r) + '</td></tr></table>' +
-    '<div style="' + F + 'font-size:12px;color:#636466;padding-top:2px;">' + nidE_([r.nm_name, nidWhen_(r), r.reason, r._src === 'jotform' ? 'Jotform' : '', r.vendor_name, r.fsm ? 'FSM ' + r.fsm : ''].map(nidStr_).filter(Boolean).join(' · ')) + '</div>' +
+    '<td style="' + F + 'font-size:16px;font-weight:bold;color:#2D2A26;line-height:1.3;">' + nidE_(r.account_name) + '</td>' +
+    '<td align="right" style="white-space:nowrap;vertical-align:top;">' + nidScore_(r) + '</td></tr></table>' +
+    '<div style="' + F + 'font-size:12px;color:#636466;padding-top:4px;line-height:1.5;">' + nidE_(nidMeta_(r)) + '</div>' +
     '<div>' + nidChips_(hot) + '</div>' +
-    (rowsHtml ? '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top:8px;">' + rowsHtml + '</table>' : '') +
-    '<div style="padding-top:8px;">' + nidLinks_(r, key) + '</div>' +
+    (asked ? '<div style="' + F + 'font-size:12px;font-weight:bold;color:#2D2A26;padding:12px 0 4px;">What you asked them to check</div><table border="0" cellpadding="0" cellspacing="0" width="100%">' + asked + '</table>' : '') +
+    (rowsHtml ? '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top:6px;">' + rowsHtml + '</table>' : '') +
+    '<div style="padding-top:12px;">' + nidLinks_(r, key) + '</div>' +
     '</td></tr></table>';
 }
 // One compact line for the full log.
 function nidLine_(r, key) {
   var F = CW_HTML_F;
-  var codes = nidFlags_(r);
+  var hot = nidHot_(r).length > 0, mi = nidMins_(r);
+  var codes = nidFlags_(r).filter(function (f) { return NID_HOT.indexOf(f) < 0; });
   return '<tr>' +
-    '<td width="1%" style="padding:9px 12px 9px 0;border-bottom:1px solid #EEEEEE;' + F + 'font-size:11px;color:#636466;white-space:nowrap;vertical-align:top;">' + (r._src === 'jotform' && !r._timeKnown ? nidE_(nidWhen_(r)).replace(' ', '<br>') : nidE_(nidFmt_(r._ts, 'EEE')) + '<br>' + nidE_(nidFmt_(r._ts, 'h:mm a'))) + '</td>' +
-    '<td style="padding:9px 10px 9px 0;border-bottom:1px solid #EEEEEE;vertical-align:top;">' +
-    '<div style="' + F + 'font-size:13px;font-weight:bold;color:#2d2a26;">' + nidE_(r.account_name) + '</div>' +
-    '<div style="' + F + 'font-size:11px;color:#636466;padding-top:1px;">' + nidE_([r.nm_name, r.reason, r.vendor_name, r._src === 'jotform' ? 'Jotform' : ''].map(nidStr_).filter(Boolean).join(' · ')) + '</div>' +
-    (r.summary ? '<div style="' + F + 'font-size:12px;color:#2d2a26;line-height:1.45;padding-top:4px;">' + nidE_(nidCut_(r.summary, 220)) + '</div>' : '') +
+    '<td width="1%" style="padding:10px 12px 10px 0;border-bottom:1px solid #D4D4D4;' + F + 'font-size:12px;color:#636466;white-space:nowrap;vertical-align:top;">' + (r._src === 'jotform' && !r._timeKnown ? nidE_(nidWhen_(r)).replace(' ', '<br>') : nidE_(nidFmt_(r._ts, 'EEE')) + '<br>' + nidE_(nidFmt_(r._ts, 'h:mm a'))) + '</td>' +
+    '<td style="padding:10px 10px 10px 0;border-bottom:1px solid #D4D4D4;vertical-align:top;">' +
+    '<div style="' + F + 'font-size:14px;font-weight:bold;color:#2D2A26;">' + nidE_(r.account_name) + '</div>' +
+    '<div style="' + F + 'font-size:12px;color:#636466;padding-top:2px;line-height:1.5;">' + nidE_([r.nm_name, r.reason, mi !== null ? mi + ' min' : '', r.vendor_name, r._src === 'jotform' ? 'Jotform' : ''].map(nidStr_).filter(Boolean).join(' · ')) + '</div>' +
+    (hot ? '<div style="' + F + 'font-size:12px;font-weight:bold;color:#B01F27;padding-top:4px;">Needs a look. Details above.</div>'
+      : (r.summary ? '<div style="' + F + 'font-size:12px;color:#2D2A26;line-height:1.5;padding-top:4px;">' + nidE_(nidCut_(r.summary, 220)) + '</div>' : '')) +
     (codes.length ? '<div>' + nidChips_(codes) + '</div>' : '') +
-    '<div style="padding-top:5px;">' + nidLinks_(r, key) + '</div></td>' +
-    '<td width="1%" align="right" style="padding:9px 0;border-bottom:1px solid #EEEEEE;white-space:nowrap;vertical-align:top;">' + nidScore_(r) + '</td>' +
+    '<div style="padding-top:6px;">' + nidLinks_(r, key) + '</div></td>' +
+    '<td width="1%" align="right" style="padding:10px 0;border-bottom:1px solid #D4D4D4;white-space:nowrap;vertical-align:top;">' + nidScore_(r) + '</td>' +
     '</tr>';
 }
 

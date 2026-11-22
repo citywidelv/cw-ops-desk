@@ -57,6 +57,10 @@ var NI_TAB = 'Inspections';
 var NI_REQ_TAB = 'Requests';
 var NI_TZ = 'America/Los_Angeles';
 var NI_LOW_SCORE = 8;   // under this = low_score flag
+// Nov 22 2026: the flags that put a recap in front of the FSM. One rule for the hub alert
+// (Alerts.gs alNight_), the recaps page (night-inspections.html ATTN) and the morning email
+// (NightDigest.gs NID_HOT).
+var NI_ATTN = /low_score|complaint|unresolved|fsm_action|standards_failed|fsm_ask_missed|uniform/;
 var NI_PHOTO_MAX = 60;  // photos filed per recap. Every one is kept in Drive and linked on the row.
 var NI_PDF_MAX = 30;    // photos embedded in the PDF. Category photos first, then General condition.
                         // Past this the PDF says how many more are in the photo folder.
@@ -675,7 +679,7 @@ function niSubmit_(data) {
       photos.forEach(function (p) {
         try {
           var label = niSafe_(p.label || '') || 'photo';
-          var name = stem + ' - ' + ('0' + (links.length + 1)).slice(-2) + ' ' + label + '.jpg';
+          var name = niPhotoName_(r, reportDate, links.length + 1);
           var f = null;
           if (p.file_id) {
             f = DriveApp.getFileById(String(p.file_id));
@@ -687,6 +691,7 @@ function niSubmit_(data) {
             f = photoFolder.createFile(Utilities.newBlob(Utilities.base64Decode(b64), 'image/jpeg', name));
           }
           if (!f) return;
+          try { f.setDescription(label); } catch (de) {}
           niShare_(f);
           links.push(f.getUrl());
           if (embeds.length < NI_PDF_MAX) {
@@ -713,7 +718,7 @@ function niSubmit_(data) {
     try { if (typeof nrAnswer_ === 'function') answered = nrAnswer_(r); } catch (re) {}
 
     niHistoryPatch_(mkt, r);
-    return niOut_({ ok: true, inspection_id: id, pdf_url: pdf.url, photo_count: links.length, flags: r.flags, route: answered, crew_check: r.crew_check });
+    return niOut_({ ok: true, inspection_id: id, pdf_url: pdf.url, photo_count: links.length, flags: r.flags, flagged: NI_ATTN.test(r.flags), route: answered, crew_check: r.crew_check });
   } finally { lock.releaseLock(); }
 }
 
@@ -1085,6 +1090,30 @@ function niStem_(r, reportDate) {
     + (niSafe_(niLastName_(r.nm_name)) || 'NM') + ' - ' + r.reason + (r.score !== '' ? ' - ' + r.score : '');
 }
 
+// Photo file names carry only the building, the night and a number, so a photo
+// can go to the client as it is downloaded. Vendor, night manager, reason and
+// score stay on the PDF name and the sheet. The photo's label (Janitor closet,
+// Hot spot ...) is kept in the Drive file description, which is where edits and
+// reattaches read it back from to caption and order the PDF.
+function niPhotoName_(r, reportDate, n) {
+  return (niSafe_(r.account_name) || 'Building') + ' - ' + reportDate + ' - ' + ('0' + n).slice(-2) + '.jpg';
+}
+function niPhotoLabel_(f) {
+  var d = '';
+  try { d = niStr_(f.getDescription()); } catch (e) {}
+  if (d) return d;
+  var pm = niStr_(f.getName()).match(/^.* - (\d{2}) (.+?)\.jpe?g$/i);   // older names: "... - 10 - 03 Janitor closet.jpg"
+  return pm ? pm[2] : 'photo';
+}
+function niPhotoNum_(f) {
+  var pm = niStr_(f.getName()).match(/^.* - (\d{2})(?: .*?)?\.jpe?g$/i);
+  return pm ? Number(pm[1]) : 0;
+}
+function niPhotoFile_(f, r, reportDate, n, label) {
+  f.setName(niPhotoName_(r, reportDate, n));
+  try { f.setDescription(label); } catch (e) {}
+}
+
 function niEdit_(data) {
   var id = niStr_(data.id), editor = niStr_(data.editor);
   if (!id) return niOut_({ ok: false, error: 'No recap was named.' });
@@ -1149,9 +1178,8 @@ function niEdit_(data) {
       if (!m) return;
       try {
         var f = DriveApp.getFileById(m[1]);
-        var pm = f.getName().match(/^(.*) - (\d{2}) (.*?)\.jpe?g$/i);
-        var label = pm ? pm[3] : 'photo';
-        f.setName(stem + ' - ' + (pm ? pm[2] : ('0' + (i + 1)).slice(-2)) + ' ' + label + '.jpg');
+        var label = niPhotoLabel_(f);
+        niPhotoFile_(f, r, reportDate, niPhotoNum_(f) || (i + 1), label);
         if (photoFolder) f.moveTo(photoFolder);
         files.push({ f: f, label: label });
       } catch (pe) {}
@@ -1238,8 +1266,7 @@ function niReattach_(data) {
       if (!m) return;
       try {
         var f = DriveApp.getFileById(m[1]);
-        var pm = f.getName().match(/ - (\d{2}) (.*?)\.jpe?g$/i);
-        have.push({ f: f, size: f.getSize(), label: pm ? pm[2] : 'photo' });
+        have.push({ f: f, size: f.getSize(), label: niPhotoLabel_(f) });
       } catch (e) {}
     });
 
@@ -1268,7 +1295,7 @@ function niReattach_(data) {
       if (have.length >= NI_PHOTO_MAX) return;
       n++;
       try {
-        x.f.setName(stem + ' - ' + ('0' + n).slice(-2) + ' ' + x.label + '.jpg');
+        niPhotoFile_(x.f, r, reportDate, n, x.label);
         x.f.moveTo(photoFolder);
         niShare_(x.f);
         links.push(x.f.getUrl());
@@ -1347,5 +1374,21 @@ function niList_(data) {
     rows.push(o);
     if (rows.length >= n) break;
   }
-  return niOut_({ ok: true, rows: rows, sheet_url: sh.getParent().getUrl(), from: from, to: to, truncated: rows.length >= n });
+  return niOut_({ ok: true, rows: rows, acks: niAcks_(), sheet_url: sh.getParent().getUrl(), from: from, to: to, truncated: rows.length >= n });
+}
+// Nov 22 2026: "Handled" marks for recaps. They live on the Alert Status tab (Alerts.gs,
+// key ni:<inspection id>, written by alerts_set), so the hub alert and the recaps page
+// agree. { inspection_id: { by, at, note } }
+function niAcks_() {
+  var out = {};
+  try {
+    var map = alStatusMap_(alSheet_());
+    Object.keys(map).forEach(function (k) {
+      if (k.indexOf('ni:') !== 0) return;
+      var st = map[k];
+      if (!st.status || st.status === 'Open') return;
+      out[k.slice(3)] = { by: st.by, at: alNice_(st.at), note: st.summary || '' };
+    });
+  } catch (e) {}
+  return out;
 }
