@@ -83,6 +83,7 @@ var NID_FLAG = {
 var NID_HOT = ['complaint', 'fsm_action', 'low_score', 'unresolved', 'standards_failed', 'fsm_ask_missed', 'uniform'];
 var NID_RANK = { complaint: 0, fsm_action: 1, unresolved: 2, low_score: 3, standards_failed: 4, fsm_ask_missed: 5, uniform: 6 };
 var NID_EXPECT = 5;   // in-building recaps expected from each night manager on a weekday night
+var NID_BUDGET = 90000;   // characters this block may add to an email
 
 // ------------------------------------------------------------ helpers -----
 function nidStr_(v) { return (v === null || v === undefined) ? '' : String(v).trim(); }
@@ -308,24 +309,36 @@ function nidInner_(mkt, key, rows, sinceMs) {
   });
   html += '</table>';
 
-  if (hot.length) {
-    html += h2('Needs a look');
-    order.forEach(function (f) {
-      var g = byFsm[f]; if (!g.hot.length) return;
-      g.hot.sort(function (a, b) { return (rank(a) - rank(b)) || (a._ts - b._ts); });
-      html += h3(f);
-      g.hot.forEach(function (r) { html += nidCard_(r, key); });
-    });
-  }
-
-  html += h2('Every recap');
+  // Gmail refuses a body over 200 KB and this block shares the rollup with everything else,
+  // so it keeps to NID_BUDGET: full lines first, then brief lines, then fewer cards.
+  var cards = [], cardFsm = [];
   order.forEach(function (f) {
     var g = byFsm[f];
-    html += h3(f + ' · ' + nidPlural_(g.all.length, 'recap'));
-    html += '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">';
-    g.all.forEach(function (r) { html += nidLine_(r, key); });
-    html += '</table>';
+    g.hot.sort(function (a, b) { return (rank(a) - rank(b)) || (a._ts - b._ts); });
+    g.hot.forEach(function (r) { cards.push(nidCard_(r, key)); cardFsm.push(f); });
   });
+  var linesFor = function (brief) {
+    var s = '';
+    order.forEach(function (f) {
+      var g = byFsm[f];
+      s += h3(f + ' \u00b7 ' + nidPlural_(g.all.length, 'recap')) + '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">';
+      g.all.forEach(function (r) { s += nidLine_(r, key, brief); });
+      s += '</table>';
+    });
+    return s;
+  };
+  var size = function (a) { return a.reduce(function (n, x) { return n + x.length; }, 0); };
+  var lines = linesFor(false);
+  if (html.length + size(cards) + lines.length > NID_BUDGET) lines = linesFor(true);
+  var keep = cards.length;
+  while (keep > 0 && html.length + size(cards.slice(0, keep)) + lines.length > NID_BUDGET) keep--;
+  if (hot.length) {
+    html += h2('Needs a look');
+    var lastF = '';
+    cards.slice(0, keep).forEach(function (c, i) { if (cardFsm[i] !== lastF) { lastF = cardFsm[i]; html += h3(lastF); } html += c; });
+    if (keep < cards.length) html += '<p style="margin:8px 0 0;' + F + 'font-size:14px;line-height:1.5;color:' + REDD + ';font-weight:bold;">' + nidE_(cards.length - keep) + ' more need a look. They are marked in the list below. Open the hub for the detail.</p>';
+  }
+  html += h2('Every recap') + lines;
 
   // Night managers. "of 5" only when this run covers one weekday night.
   var night = '', oneNight = false, routed = {};
@@ -406,22 +419,21 @@ function nidScore_(r) {
   return '<span style="' + F + 'font-size:17px;font-weight:bold;color:' + (low ? '#B01F27' : '#2D2A26') + ';">' + nidE_(r.score) + '</span><span style="' + F + 'font-size:12px;color:#636466;"> of 10</span>';
 }
 function nidLinks_(r, key) {
-  var F = CW_HTML_F;
   var a = [];
-  var link = function (label, url, bold) { return '<a href="' + nidE_(url) + '" style="' + F + 'font-size:12px;' + (bold ? 'font-weight:bold;' : '') + 'color:#2D2A26;text-decoration:underline;">' + nidE_(label) + '</a>'; };
+  var link = function (label, url, bold) { return '<a href="' + nidE_(url) + '" style="color:#2D2A26;' + (bold ? 'font-weight:bold;' : '') + '">' + nidE_(label) + '</a>'; };
   a.push(link('Open it in the hub', NID_HUB + '?m=' + key + '&attn=0&q=' + encodeURIComponent(r._src === 'jotform' ? (r.account_name || '') : (r.inspection_id || r.account_name || '')), true));
   if (r.pdf_url) a.push(link('PDF', r.pdf_url));
   if (r._src === 'jotform') a.push(link('Jotform recap', r._link));
   var n = Number(r.photo_count) || 0;
-  if (n && r._src === 'jotform') a.push('<span style="' + F + 'font-size:12px;color:#636466;">' + nidPlural_(n, 'photo') + ' on the Jotform</span>');
+  if (n && r._src === 'jotform') a.push(nidPlural_(n, 'photo') + ' on the Jotform');
   if (n && r.photo_folder_url) a.push(link(nidPlural_(n, 'photo'), r.photo_folder_url));
-  return a.join(' &nbsp;&middot;&nbsp; ');
+  return a.join(' &middot; ');
 }
 function nidChips_(codes) {
   var F = CW_HTML_F;
   return codes.map(function (f) {
     var hot = NID_HOT.indexOf(f) >= 0;
-    return '<span style="display:inline-block;margin:4px 4px 0 0;padding:2px 10px;border-radius:18px;' + F + 'font-size:12px;font-weight:bold;' +
+    return '<span style="display:inline-block;margin:4px 4px 0 0;padding:2px 10px;border-radius:18px;font-size:12px;font-weight:bold;' +
       (hot ? 'background:#D22730;color:#ffffff;' : 'background:#ffffff;color:#2D2A26;border:1px solid #2D2A26;') + '">' + nidE_(NID_FLAG[f] || f) + '</span>';
   }).join('');
 }
@@ -453,44 +465,41 @@ function nidCard_(r, key) {
   if (hot.indexOf('unresolved') >= 0) add('Still open', [r.issue_remaining, r.issue_owner, r.issue_due ? 'by ' + r.issue_due : ''].map(nidStr_).filter(Boolean).join(' | '));
   if (hot.indexOf('uniform') >= 0) add('Uniform', [r.crew_uniform, r.crew_uniform_note].map(nidStr_).filter(Boolean).join('. '));
   var rowsHtml = det.map(function (p) {
-    return '<tr><td style="padding:8px 0 0;"><div style="' + F + 'font-size:12px;color:#636466;">' + nidE_(p[0]) + '</div>' +
-      '<div style="' + F + 'font-size:14px;color:#2D2A26;line-height:1.45;">' + nidE_(nidCut_(p[1], 500)).replace(/\n/g, '<br>') + '</div></td></tr>';
+    return '<div style="padding-top:8px;"><span style="font-size:12px;color:#636466;">' + nidE_(p[0]) + '</span><br>' + nidE_(nidCut_(p[1], 400)) + '</div>';
   }).join('');
   var asked = nidAnswers_(r).map(function (a) {
     var yes = /^yes/i.test(a.a);
-    var pill = '<span style="display:inline-block;min-width:44px;text-align:center;padding:2px 8px;border-radius:18px;' + F + 'font-size:12px;font-weight:bold;' +
-      (yes ? 'border:1px solid #2D2A26;color:#2D2A26;' : 'background:#D22730;color:#ffffff;') + '">' + nidE_(/^could/i.test(a.a) ? 'Could not' : (a.a || 'No answer')) + '</span>';
-    return '<tr><td width="84" style="padding:4px 10px 4px 0;vertical-align:top;">' + pill + '</td><td style="padding:4px 0;' + F + 'font-size:14px;color:#2D2A26;line-height:1.45;">' + nidE_(a.q) +
-      (a.n ? '<br><span style="font-size:12px;color:#636466;">' + nidE_(nidCut_(a.n, 300)) + '</span>' : '') + '</td></tr>';
+    return '<div style="padding-top:6px;"><span style="display:inline-block;padding:1px 8px;border-radius:18px;font-size:12px;font-weight:bold;' +
+      (yes ? 'border:1px solid #2D2A26;' : 'background:#D22730;color:#ffffff;') + '">' + nidE_(/^could/i.test(a.a) ? 'Could not' : (a.a || 'No answer')) + '</span> ' + nidE_(a.q) +
+      (a.n ? '<br><span style="font-size:12px;color:#636466;">' + nidE_(nidCut_(a.n, 300)) + '</span>' : '') + '</div>';
   }).join('');
   return '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 12px;border:1px solid #D22730;border-collapse:separate;border-radius:8px;"><tr>' +
-    '<td style="padding:14px 16px;">' +
+    '<td style="padding:14px 16px;' + F + 'font-size:14px;line-height:1.45;color:#2D2A26;">' +
     '<table border="0" cellpadding="0" cellspacing="0" width="100%"><tr>' +
     '<td style="' + F + 'font-size:16px;font-weight:bold;color:#2D2A26;line-height:1.3;">' + nidE_(r.account_name) + '</td>' +
     '<td align="right" style="white-space:nowrap;vertical-align:top;">' + nidScore_(r) + '</td></tr></table>' +
-    '<div style="' + F + 'font-size:12px;color:#636466;padding-top:4px;line-height:1.5;">' + nidE_(nidMeta_(r)) + '</div>' +
+    '<div style="font-size:12px;color:#636466;padding-top:4px;">' + nidE_(nidMeta_(r)) + '</div>' +
     '<div>' + nidChips_(hot) + '</div>' +
-    (asked ? '<div style="' + F + 'font-size:12px;font-weight:bold;color:#2D2A26;padding:12px 0 4px;">What you asked them to check</div><table border="0" cellpadding="0" cellspacing="0" width="100%">' + asked + '</table>' : '') +
-    (rowsHtml ? '<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top:6px;">' + rowsHtml + '</table>' : '') +
-    '<div style="padding-top:12px;">' + nidLinks_(r, key) + '</div>' +
+    (asked ? '<div style="font-size:12px;font-weight:bold;padding-top:12px;">What you asked them to check</div>' + asked : '') +
+    rowsHtml +
+    '<div style="padding-top:12px;font-size:12px;">' + nidLinks_(r, key) + '</div>' +
     '</td></tr></table>';
 }
-// One compact line for the full log.
-function nidLine_(r, key) {
+// One compact line for the full log. brief = no summary and no links, used when the email
+// would otherwise run past the size Gmail accepts (a week of recaps).
+function nidLine_(r, key, brief) {
   var F = CW_HTML_F;
   var hot = nidHot_(r).length > 0, mi = nidMins_(r);
   var codes = nidFlags_(r).filter(function (f) { return NID_HOT.indexOf(f) < 0; });
-  return '<tr>' +
-    '<td width="1%" style="padding:10px 12px 10px 0;border-bottom:1px solid #D4D4D4;' + F + 'font-size:12px;color:#636466;white-space:nowrap;vertical-align:top;">' + (r._src === 'jotform' && !r._timeKnown ? nidE_(nidWhen_(r)).replace(' ', '<br>') : nidE_(nidFmt_(r._ts, 'EEE')) + '<br>' + nidE_(nidFmt_(r._ts, 'h:mm a'))) + '</td>' +
-    '<td style="padding:10px 10px 10px 0;border-bottom:1px solid #D4D4D4;vertical-align:top;">' +
-    '<div style="' + F + 'font-size:14px;font-weight:bold;color:#2D2A26;">' + nidE_(r.account_name) + '</div>' +
-    '<div style="' + F + 'font-size:12px;color:#636466;padding-top:2px;line-height:1.5;">' + nidE_([r.nm_name, r.reason, mi !== null ? mi + ' min' : '', r.vendor_name, r._src === 'jotform' ? 'Jotform' : ''].map(nidStr_).filter(Boolean).join(' · ')) + '</div>' +
-    (hot ? '<div style="' + F + 'font-size:12px;font-weight:bold;color:#B01F27;padding-top:4px;">Needs a look. Details above.</div>'
-      : (r.summary ? '<div style="' + F + 'font-size:12px;color:#2D2A26;line-height:1.5;padding-top:4px;">' + nidE_(nidCut_(r.summary, 220)) + '</div>' : '')) +
-    (codes.length ? '<div>' + nidChips_(codes) + '</div>' : '') +
-    '<div style="padding-top:6px;">' + nidLinks_(r, key) + '</div></td>' +
-    '<td width="1%" align="right" style="padding:10px 0;border-bottom:1px solid #D4D4D4;white-space:nowrap;vertical-align:top;">' + nidScore_(r) + '</td>' +
-    '</tr>';
+  var when = r._src === 'jotform' && !r._timeKnown ? nidWhen_(r) : nidFmt_(r._ts, 'EEE h:mm a');
+  return '<tr><td style="padding:10px 10px 10px 0;border-bottom:1px solid #D4D4D4;vertical-align:top;' + F + 'font-size:12px;line-height:1.5;color:#636466;">' +
+    '<span style="font-size:14px;font-weight:bold;color:#2D2A26;">' + nidE_(r.account_name) + '</span><br>' +
+    nidE_([when, r.nm_name, r.reason, mi !== null ? mi + ' min' : '', r.vendor_name, r._src === 'jotform' ? 'Jotform' : ''].map(nidStr_).filter(Boolean).join(' \u00b7 ')) +
+    (hot ? '<br><b style="color:#B01F27;">Needs a look.' + (brief ? '' : ' Details above.') + '</b>'
+      : (!brief && r.summary ? '<br><span style="color:#2D2A26;">' + nidE_(nidCut_(r.summary, 200)) + '</span>' : '')) +
+    (!brief && codes.length ? '<br>' + nidChips_(codes) : '') +
+    (brief ? '' : '<br>' + nidLinks_(r, key)) + '</td>' +
+    '<td width="1%" align="right" style="padding:10px 0;border-bottom:1px solid #D4D4D4;white-space:nowrap;vertical-align:top;">' + nidScore_(r) + '</td></tr>';
 }
 
 // ---------------------------------------------------------------- runs -----
