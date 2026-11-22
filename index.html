@@ -2244,13 +2244,17 @@ o.low = o.kind === "nobill" || (o.kind === "real" && o.m < SC_FLOOR);
 p.lines.push(o);
 });
 });
-var sup = data && data.supplies && data.supplies.data;
+var sup = data && data.supplies && data.supplies.data, supUsed = false;
 people.forEach(function(p){
 var f = p.f, rev = 0, cost = 0, tc = 0, low = 0;
 p.lines.forEach(function(o){ rev += o.amt; cost += o.cost; tc += o.tc; if(o.low) low++; });
 p.rev = rev; p.n = p.lines.length; p.low = low; p.gp = rev - tc;
 p.m = rev ? Math.round((1 - tc / rev) * 100) : null; p.me = rev ? Math.round((1 - cost / rev) * 100) : null;
-p.sup = sup && sup.by_fsm && sup.by_fsm[p.name] != null ? +sup.by_fsm[p.name] : null;
+/* supplies only count when they are for the same month as the CRM numbers */
+var supOk = !!(sup && sup.by_fsm) && String(sup.asOf || "").slice(0, 7) === String(p.mStart || "").slice(0, 7);
+if(supOk) supUsed = true;
+p.supWait = !!(sup && sup.by_fsm) && !supOk && sup.by_fsm[p.name] != null;
+p.sup = supOk && sup.by_fsm[p.name] != null ? +sup.by_fsm[p.name] : null;
 p.os = (f.osDone || 0) + (f.osOpen || 0) + (p.sup || 0);
 var g = p.goal; p.goalAmt = !g ? 0 : g.type === "flat" ? g.amount : Math.max(g.floor || 0, (g.pct || 0) * (f.route || 0));
 p.osPct = p.goalAmt ? Math.round(p.os / p.goalAmt * 100) : null;
@@ -2260,7 +2264,7 @@ p.insPct = (!p.noInsp && f.insDue) ? Math.round(f.insCred / f.insDue * 100) : nu
 p.supPct = (p.sup != null && f.route) ? p.sup / f.route * 100 : null;
 });
 people.sort(function(x, y){ return x.order - y.order; });
-return { people:people, supAsOf: sup ? sup.asOf : "" };
+return { people:people, supAsOf: supUsed ? sup.asOf : "" };
 }
 function scMe(){
 if(!SCD) return null;
@@ -2296,7 +2300,7 @@ h += '<div class="scgrid">';
 h += '<div class="scm"><div class="l">OS and supplies sold</div>' + (p.osPct == null ? '<div class="v">' + scMoney(p.os) + '</div><div class="s">No goal on file.</div>' : '<div class="v">' + p.osPct + '%' + scTag(p.osPct < p.osPace, 'Ahead of pace', 'Behind pace') + '</div>' + scBar(p.osPct, p.osPace, p.osPct < p.osPace) + '<div class="s">' + scMoney(p.os) + ' of ' + scMoney(p.goalAmt) + '. Pace today is ' + p.osPace + '%.</div>') + '</div>';
 h += '<div class="scm"><div class="l">Your margin on extra charges so far</div>' + (p.m == null ? '<div class="v">No lines yet</div><div class="s">No completed work orders this month.</div>' : '<div class="v">' + p.m + '%</div>' + scBar(p.m, SC_FLOOR, p.m < SC_FLOOR, 70) + '<div class="s">' + scMoney(p.gp) + ' gross profit on ' + p.n + ' lines. ' + p.low + ' under ' + SC_FLOOR + '%.</div><button class="btn text" type="button" id="sclines" aria-expanded="' + scLines + '">' + (scLines ? 'Hide my extra charges' : 'See my extra charges') + '</button>') + '</div>';
 h += '<div class="scm"><div class="l">Inspections this month</div>' + (p.insPct == null ? '<div class="v">Not tracked</div><div class="s">No inspection goal for this role.</div>' : '<div class="v">' + p.insPct + '%' + scTag(p.insPct < p.insPace, 'Ahead of pace', 'Behind pace') + '</div>' + scBar(p.insPct, p.insPace, p.insPct < p.insPace) + '<div class="s">' + Math.round(f.insCred) + ' of ' + Math.round(f.insDue) + ' due. Pace today is ' + p.insPace + '%.</div>') + '</div>';
-h += '<div class="scm"><div class="l">Supplies vs route</div>' + (p.supPct == null ? '<div class="v">Not tracked</div><div class="s">No supply figure for this role yet.</div>' : '<div class="v">' + p.supPct.toFixed(1) + '%' + scTag(p.supPct < SC_SUP_TARGET, 'At target', 'Under ' + SC_SUP_TARGET + '%') + '</div>' + scBar(p.supPct, SC_SUP_TARGET, p.supPct < SC_SUP_TARGET, 12) + '<div class="s">Target is ' + SC_SUP_TARGET + '% of route. Supplies update Fridays.</div>') + '</div>';
+h += '<div class="scm"><div class="l">Supplies vs route</div>' + (p.supPct == null ? (p.supWait ? '<div class="v">Not in yet</div><div class="s">Supplies for this month post on Friday.</div>' : '<div class="v">Not tracked</div><div class="s">No supply figure for this role yet.</div>') : '<div class="v">' + p.supPct.toFixed(1) + '%' + scTag(p.supPct < SC_SUP_TARGET, 'At target', 'Under ' + SC_SUP_TARGET + '%') + '</div>' + scBar(p.supPct, SC_SUP_TARGET, p.supPct < SC_SUP_TARGET, 12) + '<div class="s">Target is ' + SC_SUP_TARGET + '% of route. Supplies update Fridays.</div>') + '</div>';
 h += '</div>';
 if(scLines && p.n){
 var nlow = p.lines.filter(function(o){ return o.low; }).length;
@@ -2310,7 +2314,7 @@ h += '<div class="scx"><div class="tools"><h3>' + esc(p.label.split(" ")[0]) + "
 if(showTeam){
 h += '<div class="sctable"><table><thead><tr><th>FSM</th><th>OS and supplies vs goal</th><th>Margin</th><th>Inspections</th><th>Supplies vs route</th></tr></thead><tbody>';
 SCD.people.forEach(function(x){
-h += '<tr class="' + (p && x === p ? 'me' : '') + '"><td><b>' + esc(x.label) + '</b></td><td>' + (x.osPct == null ? scMoney(x.os) : scBar(x.osPct, x.osPace, x.osPct < x.osPace, 150) + x.osPct + '% &nbsp;' + scMoney(x.os)) + '</td><td>' + (x.m == null ? 'No lines yet' : scBar(x.m, SC_FLOOR, x.m < SC_FLOOR, 70) + x.m + '%') + '</td><td>' + (x.insPct == null ? 'Not tracked' : scBar(x.insPct, x.insPace, x.insPct < x.insPace) + x.insPct + '% &nbsp;' + Math.round(x.f.insCred) + ' of ' + Math.round(x.f.insDue)) + '</td><td>' + (x.supPct == null ? 'Not tracked' : x.supPct.toFixed(1) + '%') + '</td></tr>';
+h += '<tr class="' + (p && x === p ? 'me' : '') + '"><td><b>' + esc(x.label) + '</b></td><td>' + (x.osPct == null ? scMoney(x.os) : scBar(x.osPct, x.osPace, x.osPct < x.osPace, 150) + x.osPct + '% &nbsp;' + scMoney(x.os)) + '</td><td>' + (x.m == null ? 'No lines yet' : scBar(x.m, SC_FLOOR, x.m < SC_FLOOR, 70) + x.m + '%') + '</td><td>' + (x.insPct == null ? 'Not tracked' : scBar(x.insPct, x.insPace, x.insPct < x.insPace) + x.insPct + '% &nbsp;' + Math.round(x.f.insCred) + ' of ' + Math.round(x.f.insDue)) + '</td><td>' + (x.supPct == null ? (x.supWait ? 'Not in yet' : 'Not tracked') : x.supPct.toFixed(1) + '%') + '</td></tr>';
 });
 h += '</tbody></table><p class="k">The tick on each bar is where the month should be today. Red means behind it. Margin counts in house work with no cost at ' + SC_FLOOR + '%.</p></div>';
 }
