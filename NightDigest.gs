@@ -379,7 +379,9 @@ function nidInner_(mkt, key, rows, sinceMs) {
 
   var text = [nidPlural_(rows.length, 'recap') + srcLine + ' since ' + sinceNice + '.',
     hot.length ? hot.length + (hot.length === 1 ? ' needs a look.' : ' need a look.') : 'Nothing needs a look.', ''];
-  rows.forEach(function (r) {
+  var tRows = rows.length > 80 ? rows.filter(function (r) { return nidHot_(r).length; }).slice(0, 80) : rows;
+  if (tRows.length < rows.length) text.push('Only the ones that need a look are listed here. The hub has all ' + rows.length + '.', '');
+  tRows.forEach(function (r) {
     var mi = nidMins_(r);
     text.push('- ' + nidWhen_(r) + ' | ' + r.account_name + ' | ' + r.nm_name + ' | ' + r.reason + (mi !== null ? ' | ' + mi + ' min' : '') +
       (r.score !== '' ? ' | ' + r.score + '/10' : '') + (nidHot_(r).length ? ' | ' + nidHot_(r).map(function (f) { return NID_FLAG[f]; }).join(', ') : '') +
@@ -543,7 +545,7 @@ function niDigestRun() {
 function niDigestPreview() {
   var now = new Date().getTime();
   var first = Utilities.parseDate(NID_FIRST_CUTOFF, NI_TZ, 'yyyy-MM-dd HH:mm').getTime();
-  var since = Math.min(first, now - 3 * 86400000);
+  var since = now - 3 * 86400000;   // Nov 22 2026: three days only. Reaching back to the first cutoff made a body too big to send.
   var out = [];
   [['Las Vegas', 'lv'], ['Northern Nevada', 'nnv']].forEach(function (p) {
     var rows = nidRows_(p[0], since, now);
