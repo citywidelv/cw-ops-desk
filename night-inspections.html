@@ -673,6 +673,8 @@ function detail(r, photos){
   var mi = minsIn(r);
   h += grp("The visit", kv([
     ["Why they were there", r.reason],
+    ["Cleaning company", r.vendor_name ? r.vendor_name + (r.vendor_owner ? " - " + r.vendor_owner : "") + (/^false$/i.test(r.vendor_matched) ? " (typed by hand, not in the directory)" : "") : ""],
+    ["Building", /^false$/i.test(r.account_matched) ? r.account_name + " (typed by hand, not in the directory)" : ""],
     ["When they got there", r.timing ? r.timing + (r.why_early ? " (" + r.why_early + ")" : "") : ""],
     ["Time in the building", r.arrival ? clock(r.arrival) + (r.departure ? " to " + clock(r.departure) : "") + (mi !== null ? ", " + mi + " minutes" : "") : ""],
     ["New building", r.newstart_night ? r.newstart_night + (r.initial_clean_paid ? ", initial clean paid: " + r.initial_clean_paid : "") : ""],
@@ -705,7 +707,7 @@ function detail(r, photos){
     + (r.pdf_url ? '<a href="' + esc(r.pdf_url) + '" target="_blank" rel="noopener">Open the PDF</a>' : '')
     + (n && r.photo_folder_url ? '<a href="' + esc(r.photo_folder_url) + '" target="_blank" rel="noopener">' + n + ' photo' + (n === 1 ? '' : 's') + '</a>' : '')
     + (id ? '<a href="night-inspection-edit.html?id=' + encodeURIComponent(id) + '">Edit this recap</a>' : '')
-    + '<span class="filed">Filed ' + esc(r.submitted_at) + ' · ' + esc(id) + '</span></div></section>';
+    + '<span class="filed">Filed ' + esc(r.submitted_at) + ' · ' + esc(id) + (r.edited_at ? ', edited ' + esc(r.edited_at) + (r.edited_by ? ' by ' + esc(r.edited_by) : '') : '') + '</span></div></section>';
   return h;
 }
 // ---- route outs ----
