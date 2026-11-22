@@ -574,7 +574,8 @@ function ackName(){ var n = ""; try { n = localStorage.getItem("niAckBy") || "";
 function isAttn(r){ return ATTN.test(r.flags||""); }
 function needsLook(r){ return isAttn(r) && !ACK[r.inspection_id]; }
 function hm(s){ var m = String(s||"").match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*$/); return m ? (+m[1]) * 60 + (+m[2]) : null; }
-function minsIn(r){ var a = hm(r.arrival), d = hm(r.departure); if (a === null || d === null) return null; var m = d - a; return m < 0 ? m + 1440 : m; }
+// Over 10 hours means one of the two times was typed wrong, so it is left out of the minutes and the averages.
+function minsIn(r){ var a = hm(r.arrival), d = hm(r.departure); if (a === null || d === null) return null; var m = d - a; if (m < 0) m += 1440; return m > 600 ? null : m; }
 function paintSeg(a, b, routes){
   $("flagsOnly").innerHTML = (routes ? "Missed or not met" : "Needs a look") + (a === null ? "" : ' <span class="n">' + a + '</span>');
   $("allBtn").innerHTML = "All" + (b === null ? "" : ' <span class="n">' + b + '</span>');

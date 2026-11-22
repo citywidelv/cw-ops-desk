@@ -1141,6 +1141,7 @@ function validate(n){
   }
   if (n===6){
     if (showsTimes() && (!S.arrival || !S.departure)) return bad("Fill in both times.", "timeCard");
+    if (showsTimes() && minutesIn() > 600) return bad("The times add up to over 10 hours. Fix the time you walked in or the time you left.", "timeCard");
   }
   return true;
 }
@@ -1192,8 +1193,8 @@ $("arrival2").addEventListener("change", function(){ S.arrival = this.value; $("
 $("departure2").addEventListener("change", function(){ S.departure = this.value; $("departure").value = S.departure; save(); paintTimeIn(); });
 function paintTimeIn(){
   var m = minutesIn(), el = $("timeIn");
-  el.classList.toggle("short", m !== null && inBuilding() && m < 10);
-  el.textContent = m === null ? "" : m + " minute" + (m===1?"":"s") + " in the building." + (m < 10 && inBuilding() ? " That is short for a walk-through. Fix the times if they are wrong." : "");
+  el.classList.toggle("short", m !== null && ((inBuilding() && m < 10) || m > 600));
+  el.textContent = m === null ? "" : m > 600 ? "That is over 10 hours in the building. One of the times is wrong. Fix it above." : m + " minute" + (m===1?"":"s") + " in the building." + (m < 10 && inBuilding() ? " That is short for a walk-through. Fix the times if they are wrong." : "");
 }
 Array.prototype.forEach.call(document.querySelectorAll("[data-now]"), function(b){
   b.addEventListener("click", function(){ var k = b.getAttribute("data-now"); S[k] = nowHM(); $(k).value = S[k]; save(); clearErr(); });

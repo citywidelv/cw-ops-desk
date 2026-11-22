@@ -258,7 +258,8 @@ function nidMins_(r) {
   if (r._src === 'jotform') return null;
   var a = nidHm_(r.arrival), d = nidHm_(r.departure);
   if (a === null || d === null) return null;
-  var m = d - a; return m < 0 ? m + 1440 : m;
+  var m = d - a; if (m < 0) m += 1440;
+  return m > 600 ? null : m;   // over 10 hours means a time was typed wrong
 }
 function nidClock_(v) { var m = nidHm_(v); if (m === null) return ''; var h = Math.floor(m / 60), ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return h + ':' + ('0' + (m % 60)).slice(-2) + ' ' + ap; }
 function nidRemote_(r) { return /^(Phone only|Photos from crew)$/.test(nidStr_(r.reason)); }
