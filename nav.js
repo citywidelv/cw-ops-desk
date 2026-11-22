@@ -1,7 +1,7 @@
 /* nav.js for the Ops Hub. Seeded from the page menu on 2026-09-13 by Claude.
    The Site Admin hub (cw-admin-hub/site-admin.html) republishes this file; do not edit by hand.
    The page keeps its own MENU as a fallback if this file is missing or malformed.
-   Edited by hand 2026-11-21 (Night Ops > Night Manager AI Tool repointed from the retiring custom GPT to the ChatGPT plugin), 2026-10-30b (Accounts & Buildings > Accounts Map > Northern Nevada repointed to the new City Wide NNV account map), 2026-10-30 (Accounts & Buildings > Accounts Map > Las Vegas repointed to the new City Wide account map), 2026-10-22b (Accounts & Buildings > Client Hubs: Ovation Hub, Ovation Review Queue), 2026-10-22 (Work Tickets > Handyman Work Orders and Handyman Order Form hidden, nothing deleted), 2026-10-20 (Accounts & Buildings > Account Changes hidden, nothing deleted), 2026-10-15 (Work Tickets > Tickets to Bill) and 2026-09-25 (menu cleanup: one home per tool, short labels with tag chips; Opportunities promoted, Work Tickets under Accounts): before the next Site Admin publish, click Import live menu. */
+   Edited by hand 2026-11-21b (Night Ops > Route Out: the two retired Jotform route out forms, Las Vegas and NNV, removed; the hub Route Out page replaced them), 2026-11-21 (Night Ops > Night Manager AI Tool repointed from the retiring custom GPT to the ChatGPT plugin), 2026-10-30b (Accounts & Buildings > Accounts Map > Northern Nevada repointed to the new City Wide NNV account map), 2026-10-30 (Accounts & Buildings > Accounts Map > Las Vegas repointed to the new City Wide account map), 2026-10-22b (Accounts & Buildings > Client Hubs: Ovation Hub, Ovation Review Queue), 2026-10-22 (Work Tickets > Handyman Work Orders and Handyman Order Form hidden, nothing deleted), 2026-10-20 (Accounts & Buildings > Account Changes hidden, nothing deleted), 2026-10-15 (Work Tickets > Tickets to Bill) and 2026-09-25 (menu cleanup: one home per tool, short labels with tag chips; Opportunities promoted, Work Tickets under Accounts): before the next Site Admin publish, click Import live menu. */
 window.CW_NAV = {
  "hub": "ops",
  "label": "Ops Hub",
@@ -428,16 +428,6 @@ window.CW_NAV = {
       {
        "label": "Route Out Tonight",
        "href": "night-route.html#status"
-      },
-      {
-       "label": "Route Out Form",
-       "href": "https://form.jotform.com/241440730763149",
-       "tag": "Jotform"
-      },
-      {
-       "label": "Route Out Form, NNV",
-       "href": "https://form.jotform.com/team/253234894174059/nnv-night-manager-route-out",
-       "tag": "Jotform"
       }
      ]
     },
