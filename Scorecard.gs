@@ -1,25 +1,14 @@
-// ============================================================
-// Scorecard.gs - FSM scorecard store for the Ops Hub home strip (Nov 21 2026)
-// File in the CW Team Portal Backend Apps Script project. doPost routes the sc_ prefix here.
-//
-// Why: the hub repos are public, and the scorecard holds customer names, vendor cost and
-// margin, so the numbers cannot sit in a file on GitHub. A morning run pulls Dynamics CRM in
-// the browser (cw-ops-desk/scorecard-pull.js), then posts each market here. The Ops Hub home
-// reads it back with the team passcode.
-//
-// Storage (own book and own folder, created on first use, ids in script properties)
-//   Drive folder "CW FSM Scorecard"   SC_FOLDER_ID   holds scorecard.json (SC_FILE_ID)
-//   Sheet "CW FSM Scorecard"          SC_SHEET_ID    tab Log: one row per save
-//
-// Kinds (team passcode)
-//   sc_get  {}                      -> {ok, data:{lv:{data,saved,by}, nnv:{...}, supplies:{...}}}
-//   sc_put  {section, data, by}     -> {ok, section, bytes}   section = lv | nnv | supplies | platinum
-//   sc_get  {section?}              -> only that section when given (Team Portal reads platinum this way)
-// One section is replaced per put, so a market run never wipes the other market or supplies.
-// ============================================================
+// Scorecard.gs - FSM scorecard store for the Ops Hub home strip (Nov 21 2026). doPost routes the sc_ prefix here.
+// The hub repos are public and the scorecard holds customer names, vendor cost and margin, so the numbers live here behind
+// the team passcode. A morning run pulls Dynamics CRM in the browser (cw-ops-desk/scorecard-pull.js) and posts each market.
+// Storage: Drive folder CW FSM Scorecard (SC_FOLDER_ID) holding scorecard.json (SC_FILE_ID); Sheet CW FSM Scorecard (SC_SHEET_ID), tab Log.
+// Kinds (team passcode): sc_get {} -> {ok, data:{lv,nnv,supplies}}; sc_put {section, data, by} -> {ok, section, bytes}. One section per put.
 var SC_NAME = 'CW FSM Scorecard';
 var SC_EDITOR = 'tjroberts@gocitywide.com';
-var SC_SECTIONS = { lv: 1, nnv: 1, supplies: 1, platinum: 1 };
+// Sales Hub sections (Nov 28 2026): sales_cfg (goals and people), sales_lv and sales_nnv (the morning CRM pull,
+// cw-ops-desk/sales-pull.js), sales_mkt (marketing numbers from the Friday weekly report run). sc_get {sections:[...]}
+// returns only the sections named. A plain sc_get leaves the sales_ sections out, so the Ops Hub download stays the size it was.
+var SC_SECTIONS = { lv: 1, nnv: 1, supplies: 1, platinum: 1, sales_cfg: 1, sales_lv: 1, sales_nnv: 1, sales_mkt: 1 };
 var SC_CACHE_KEY = 'sc_json_v1';
 var SC_MAX_BYTES = 400000;
 
@@ -93,12 +82,19 @@ function scGet_(d) {
   // platinum thermometer) does not download the whole scorecard. No section = everything, as before.
   var sec = String((d && d.section) || '');
   if (sec) { var one = {}; if (obj[sec]) one[sec] = obj[sec]; return { ok: true, data: one }; }
-  return { ok: true, data: obj };
+  if (d && d.sections && typeof d.sections.forEach === 'function') {
+    var some = {};
+    d.sections.forEach(function (k) { k = String(k); if (obj[k]) some[k] = obj[k]; });
+    return { ok: true, data: some };
+  }
+  var rest = {};
+  Object.keys(obj).forEach(function (k) { if (k.indexOf('sales_') !== 0) rest[k] = obj[k]; });
+  return { ok: true, data: rest };
 }
 
 function scPut_(d) {
   var section = String(d.section || '');
-  if (!SC_SECTIONS[section]) return { ok: false, error: 'Unknown section ' + section + '. Use lv, nnv, supplies or platinum.' };
+  if (!SC_SECTIONS[section]) return { ok: false, error: 'Unknown section ' + section + '. Use lv, nnv, supplies, platinum, sales_cfg, sales_lv, sales_nnv or sales_mkt.' };
   if (!d.data || typeof d.data !== 'object') return { ok: false, error: 'Nothing to save.' };
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
