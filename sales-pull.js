@@ -84,12 +84,19 @@ await (async () => {
   const BS = '0c8d5d22-d253-ef11-a317-6045bdff1835', PD = '90633f84-bb5b-ef11-a317-7c1e52023f04';
   const ap = await all(`appointments?$select=_cwm_activitycategory_value,createdon,scheduledstart,statecode,cwm_amtproposed,_ownerid_value,_regardingobjectid_value&$filter=(createdon ge ${W0} or scheduledstart ge ${W0}) and ${own}`);
   const dup = new Set(), once = new Set();   // same owner + account + day (+ amount) logged twice counts once
+  // For the people in uniqBs a survey counts once per account. A survey hangs off an opportunity, and one account
+  // can carry two opportunities, so read the account behind each opportunity first.
+  const LN = '@Microsoft.Dynamics.CRM.lookuplogicalname', acctOf = {};
+  if (uniq.size) {
+    const opp = [...new Set(ap.filter(a => a._cwm_activitycategory_value === BS && uniq.has(inv[a._ownerid_value]) && a['_regardingobjectid_value' + LN] === 'opportunity').map(a => a._regardingobjectid_value))];
+    for (let i = 0; i < opp.length; i += 40) (await all(`opportunities?$select=_parentaccountid_value,_customerid_value&$filter=` + opp.slice(i, i + 40).map(o => `opportunityid eq ${o}`).join(' or '))).forEach(o => acctOf[o.opportunityid] = o._parentaccountid_value || o._customerid_value || o.opportunityid);
+  }
   ap.slice().sort((a, b) => String(a.createdon).localeCompare(String(b.createdon))).forEach(a => {
     const c = a._cwm_activitycategory_value;
     const dk = [a._ownerid_value, c, a._regardingobjectid_value, ymd(c === PD ? a.scheduledstart : a.createdon), a.cwm_amtproposed || 0].join('|');
     if (a._regardingobjectid_value && dup.has(dk)) return; dup.add(dk);
     if (c === BS && a.statecode !== 2) {
-      if (uniq.has(inv[a._ownerid_value]) && a._regardingobjectid_value) { const k = a._ownerid_value + '|' + a._regardingobjectid_value; if (once.has(k)) return; once.add(k); }
+      if (uniq.has(inv[a._ownerid_value]) && a._regardingobjectid_value) { const k = a._ownerid_value + '|' + (acctOf[a._regardingobjectid_value] || a._regardingobjectid_value); if (once.has(k)) return; once.add(k); }
       add(a._ownerid_value, 'bs', a.createdon, 1);
     }
     if (c === PD && a.statecode === 1) { add(a._ownerid_value, 'prop', a.scheduledstart, 1); add(a._ownerid_value, 'propd', a.scheduledstart, a.cwm_amtproposed || 0); }
