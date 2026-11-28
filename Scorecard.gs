@@ -13,12 +13,13 @@
 //
 // Kinds (team passcode)
 //   sc_get  {}                      -> {ok, data:{lv:{data,saved,by}, nnv:{...}, supplies:{...}}}
-//   sc_put  {section, data, by}     -> {ok, section, bytes}   section = lv | nnv | supplies
+//   sc_put  {section, data, by}     -> {ok, section, bytes}   section = lv | nnv | supplies | platinum
+//   sc_get  {section?}              -> only that section when given (Team Portal reads platinum this way)
 // One section is replaced per put, so a market run never wipes the other market or supplies.
 // ============================================================
 var SC_NAME = 'CW FSM Scorecard';
 var SC_EDITOR = 'tjroberts@gocitywide.com';
-var SC_SECTIONS = { lv: 1, nnv: 1, supplies: 1 };
+var SC_SECTIONS = { lv: 1, nnv: 1, supplies: 1, platinum: 1 };
 var SC_CACHE_KEY = 'sc_json_v1';
 var SC_MAX_BYTES = 400000;
 
@@ -26,7 +27,7 @@ function scDispatch(d) {
   if (String(d.passcode || '') !== PASSCODE) return _json({ ok: false, error: 'Wrong passcode.' });
   var kind = String(d.kind || '');
   try {
-    if (kind === 'sc_get') return _json(scGet_());
+    if (kind === 'sc_get') return _json(scGet_(d));
     if (kind === 'sc_put') return _json(scPut_(d));
   } catch (e) {
     return _json({ ok: false, error: String(e && e.message || e) });
@@ -85,15 +86,19 @@ function scRead_() {
   return txt;
 }
 
-function scGet_() {
+function scGet_(d) {
   var obj = {};
   try { obj = JSON.parse(scRead_() || '{}') || {}; } catch (e) { obj = {}; }
+  // Optional {section}: return only that section, so a page that needs one small section (the Team Portal
+  // platinum thermometer) does not download the whole scorecard. No section = everything, as before.
+  var sec = String((d && d.section) || '');
+  if (sec) { var one = {}; if (obj[sec]) one[sec] = obj[sec]; return { ok: true, data: one }; }
   return { ok: true, data: obj };
 }
 
 function scPut_(d) {
   var section = String(d.section || '');
-  if (!SC_SECTIONS[section]) return { ok: false, error: 'Unknown section ' + section + '. Use lv, nnv or supplies.' };
+  if (!SC_SECTIONS[section]) return { ok: false, error: 'Unknown section ' + section + '. Use lv, nnv, supplies or platinum.' };
   if (!d.data || typeof d.data !== 'object') return { ok: false, error: 'Nothing to save.' };
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
